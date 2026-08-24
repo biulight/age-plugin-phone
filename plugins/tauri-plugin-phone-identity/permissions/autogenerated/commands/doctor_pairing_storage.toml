@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-doctor-pairing-storage"
+description = "Enables the doctor_pairing_storage command without any pre-configured scope."
+commands.allow = ["doctor_pairing_storage"]
+
+[[permission]]
+identifier = "deny-doctor-pairing-storage"
+description = "Denies the doctor_pairing_storage command without any pre-configured scope."
+commands.deny = ["doctor_pairing_storage"]

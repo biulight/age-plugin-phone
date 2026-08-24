@@ -7,4 +7,5 @@ permissions = [
     "allow-doctor-create-probe",
     "allow-doctor-run-agreement",
     "allow-doctor-cleanup",
+    "allow-doctor-pairing-storage",
 ]

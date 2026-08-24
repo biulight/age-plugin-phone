@@ -163,6 +163,27 @@ internal object OfflineEnvelopeCrypto {
         return VerifiedRequest(request, encoded.copyOf(), digest(requestDigestDomain, encoded))
     }
 
+    fun verifyRequestAndConsume(
+        encoded: ByteArray,
+        pairingState: PairingStateStore,
+        nowUnix: Long,
+    ): VerifiedRequest {
+        val record = pairingState.pairingRecord()
+        val verified = try {
+            verifyRequest(
+                encoded,
+                record.desktopId,
+                record.identityId,
+                record.desktopSigningKey(),
+                nowUnix,
+            )
+        } catch (_: TaggedRecipientCrypto.InvalidStanzaException) {
+            throw ProtocolException()
+        }
+        pairingState.consumeRequest(verified, nowUnix)
+        return verified
+    }
+
     fun sealResponse(
         request: VerifiedRequest,
         fileKey: ByteArray,
@@ -237,7 +258,11 @@ internal object OfflineEnvelopeCrypto {
         val n = strictArray(encoded, 8)
         header(n, PAIRING_RESPONSE_TYPE)
         val recipient = text(n[4], 160)
-        validateRecipient(recipient)
+        try {
+            TaggedRecipientCrypto.decodeRecipient(recipient)
+        } catch (_: TaggedRecipientCrypto.InvalidStanzaException) {
+            throw ProtocolException()
+        }
         return PairingResponse(
             bytes(n[3], 16),
             recipient,
@@ -337,54 +362,6 @@ internal object OfflineEnvelopeCrypto {
     private fun unsignedLong(node: JsonNode): Long {
         if (!node.isIntegralNumber || !node.canConvertToLong() || node.longValue() < 0) throw ProtocolException()
         return node.longValue()
-    }
-
-    private fun validateRecipient(value: String) {
-        val charset = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
-        if (value != value.lowercase() || value.length !in 8..90) throw ProtocolException()
-        val separator = value.lastIndexOf('1')
-        if (separator <= 0 || value.substring(0, separator) != "age1phone") throw ProtocolException()
-        val data = value.substring(separator + 1).map { character ->
-            charset.indexOf(character).also { if (it < 0) throw ProtocolException() }
-        }
-        if (data.size < 6 || bech32Polymod(bech32HrpExpand("age1phone") + data) != 1) {
-            throw ProtocolException()
-        }
-        val payload = convertFiveToEight(data.dropLast(6))
-        if (payload.size != 34 || payload[0] != 1.toByte()) throw ProtocolException()
-        TaggedRecipientCrypto.decodeCompressed(payload.copyOfRange(1, payload.size))
-    }
-
-    private fun bech32HrpExpand(value: String): List<Int> =
-        value.map { it.code ushr 5 } + listOf(0) + value.map { it.code and 31 }
-
-    private fun bech32Polymod(values: List<Int>): Int {
-        val generators = intArrayOf(0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3)
-        var checksum = 1
-        for (value in values) {
-            val top = checksum ushr 25
-            checksum = ((checksum and 0x1ffffff) shl 5) xor value
-            for (index in generators.indices) {
-                if ((top ushr index) and 1 != 0) checksum = checksum xor generators[index]
-            }
-        }
-        return checksum
-    }
-
-    private fun convertFiveToEight(values: List<Int>): ByteArray {
-        val output = ArrayList<Byte>()
-        var accumulator = 0
-        var bits = 0
-        for (value in values) {
-            accumulator = ((accumulator shl 5) or value) and 0xfff
-            bits += 5
-            while (bits >= 8) {
-                bits -= 8
-                output.add(((accumulator ushr bits) and 0xff).toByte())
-            }
-        }
-        if (bits >= 5 || ((accumulator shl (8 - bits)) and 0xff) != 0) throw ProtocolException()
-        return output.toByteArray()
     }
 
     private fun sign(key: PrivateKey, domain: ByteArray, payload: ByteArray): ByteArray {

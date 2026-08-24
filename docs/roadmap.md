@@ -26,7 +26,8 @@
 ## Milestone 2: bidirectional QR prototype
 
 - [x] Select Tauri 2 as the mobile application shell with an untrusted, presentation-only WebView.
-- [ ] Commit pairing state and its replay scope atomically in app-private storage.
+- [x] Commit pairing state and its replay scope atomically in app-private, non-backed-up storage.
+- [ ] Connect verified QR pairing confirmation to native pairing-state creation.
 - [ ] Implement QR fragmentation and animated-frame handling.
 - [ ] Implement desktop pairing and public identity stub creation.
 - [ ] Implement one request/response file-key unwrap with fresh user verification.

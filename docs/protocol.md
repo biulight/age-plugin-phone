@@ -56,6 +56,12 @@ has a clock high-water mark and hard capacity, and stores only request IDs/nonce
 digests through the request expiry. Opening missing state never silently creates an empty store.
 The in-memory guard is for deterministic tests only.
 
+On Android, [`ADR 0004`](adr/0004-android-pairing-state.md) makes the verified public pairing record
+and phone request-replay state one atomic, non-backed-up app-private storage unit. Native request
+verification uses the identifiers and desktop signing key loaded from that record, then durably
+consumes the request before returning it to any authorization path. Pairing deletion makes the
+scope unavailable; it never recreates an empty replay set.
+
 ## Encoding
 
 Protocol payloads use fixed-length canonical CBOR arrays and reject unknown or extra fields. Signed

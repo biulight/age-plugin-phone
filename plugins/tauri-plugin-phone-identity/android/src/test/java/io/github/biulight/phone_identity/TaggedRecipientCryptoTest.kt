@@ -32,6 +32,13 @@ class TaggedRecipientCryptoTest {
             Base64.getEncoder().withoutPadding()
                 .encodeToString(TaggedRecipientCrypto.encodeCompressed(identity.public)),
         )
+        assertEquals(vector["recipient"].asText(), TaggedRecipientCrypto.encodeRecipient(identity.public))
+        assertArrayEquals(
+            TaggedRecipientCrypto.encodeCompressed(identity.public),
+            TaggedRecipientCrypto.encodeCompressed(
+                TaggedRecipientCrypto.decodeRecipient(vector["recipient"].asText()),
+            ),
+        )
         val stanza = TaggedRecipientCrypto.wrapForTest(
             identity.public,
             ephemeral.private,
@@ -78,6 +85,13 @@ class TaggedRecipientCryptoTest {
         }
         assertThrows(TaggedRecipientCrypto.InvalidStanzaException::class.java) {
             TaggedRecipientCrypto.parse(stanza.copy(body = stanza.body.copyOf(31)))
+        }
+        assertThrows(TaggedRecipientCrypto.InvalidStanzaException::class.java) {
+            TaggedRecipientCrypto.decodeRecipient(vector["recipient"].asText().uppercase())
+        }
+        assertThrows(TaggedRecipientCrypto.InvalidStanzaException::class.java) {
+            val recipient = vector["recipient"].asText()
+            TaggedRecipientCrypto.decodeRecipient(recipient.dropLast(1) + if (recipient.last() == 'q') "p" else "q")
         }
         val modified = stanza.body.copyOf().also { it[0] = (it[0].toInt() xor 1).toByte() }
         assertThrows(TaggedRecipientCrypto.AuthenticationException::class.java) {

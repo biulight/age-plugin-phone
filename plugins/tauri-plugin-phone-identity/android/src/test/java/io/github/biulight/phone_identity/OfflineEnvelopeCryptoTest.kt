@@ -48,6 +48,25 @@ class OfflineEnvelopeCryptoTest {
         )
         org.junit.Assert.assertEquals(pairingVector["desktop_label"].asText(), offer.offer.desktopLabel)
         org.junit.Assert.assertEquals(pairingVector["recipient"].asText(), response.response.recipient)
+
+        val record = StoredPairingRecord.fromVerifiedTranscript(offer, response)
+        assertArrayEquals(offer.offer.desktopId, record.desktopId)
+        assertArrayEquals(response.response.identityId, record.identityId)
+        assertArrayEquals(offer.digest, record.offerDigest)
+        assertArrayEquals(
+            OfflineEnvelopeCrypto.pairingFingerprint(offer, response),
+            record.transcriptFingerprint,
+        )
+        assertArrayEquals(
+            TaggedRecipientCrypto.encodeCompressed(offer.offer.desktopSigningPublicKey),
+            record.desktopSigningPublicKey,
+        )
+        assertArrayEquals(
+            TaggedRecipientCrypto.encodeCompressed(response.response.phoneSigningPublicKey),
+            record.phoneSigningPublicKey,
+        )
+        org.junit.Assert.assertEquals(offer.offer.desktopLabel, record.desktopLabel)
+        org.junit.Assert.assertEquals(response.response.recipient, record.recipient)
     }
 
     @Test

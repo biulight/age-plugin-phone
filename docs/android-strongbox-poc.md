@@ -491,3 +491,20 @@ decision: Result A
 6. disposable 探针随后精确删除并确认不存在；限定 App PID 的日志扫描未发现禁止材料。
 
 该扩展仍是随机合成数据的 Doctor 验证，不是生产 identity、真实 age 文件或桌面传输实现。
+
+### 配对状态与重放 scope 扩展
+
+同日按 [`ADR 0004`](adr/0004-android-pairing-state.md) 实现 Android 原生配对状态边界：公开
+配对记录与 request replay entries 共同存入 `Context.noBackupFilesDir` 下的单个规范 CBOR
+文件，并以独占锁、同目录临时文件、文件 `fsync`、原子替换和目录 `fsync` 提交。打开缺失、
+错误 scope、损坏、非规范、权限过宽、容量耗尽、时钟回退或写入不确定的状态都会在系统认证
+前失败关闭。
+
+新增的存储 Doctor 只使用新生成的 synthetic 软件密钥和 file key，验证创建、验签后持久
+consume、关闭并重开后的 replay 拒绝、错误 scope、删除后缺失以及精确清理。WebView 仅接收
+非敏感布尔结果和错误分类；路径、标识符、alias、请求、stanza 与 QR 内容均不返回。
+
+同日在 Samsung `SM-F9660` 真机执行该 Doctor：上述七项布尔检查全部为 `true`，
+`errorCategory == null`。随后通过应用沙箱独立确认 Doctor 专用目录不存在；限定本次 App PID
+的设备端完整日志过滤未发现 key、payload、stanza、QR、alias 等禁止材料标记，也未发现崩溃
+标记。

@@ -51,3 +51,17 @@ pub struct CleanupReport {
     pub probe_key_absent_after_delete: bool,
     pub error_category: Option<String>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[allow(clippy::struct_excessive_bools)]
+pub struct PairingStorageReport {
+    pub no_backup_storage: bool,
+    pub atomic_state_created: bool,
+    pub verified_before_consume: bool,
+    pub replay_rejected_after_reopen: bool,
+    pub wrong_scope_rejected: bool,
+    pub missing_state_rejected_after_delete: bool,
+    pub cleanup_complete: bool,
+    pub error_category: Option<String>,
+}

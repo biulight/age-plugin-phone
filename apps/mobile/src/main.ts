@@ -50,7 +50,23 @@ interface CleanupReport {
   errorCategory: string | null;
 }
 
-type DoctorReport = CapabilityReport | ProbeKeyReport | AgreementReport | CleanupReport;
+interface PairingStorageReport {
+  noBackupStorage: boolean;
+  atomicStateCreated: boolean;
+  verifiedBeforeConsume: boolean;
+  replayRejectedAfterReopen: boolean;
+  wrongScopeRejected: boolean;
+  missingStateRejectedAfterDelete: boolean;
+  cleanupComplete: boolean;
+  errorCategory: string | null;
+}
+
+type DoctorReport =
+  | CapabilityReport
+  | ProbeKeyReport
+  | AgreementReport
+  | CleanupReport
+  | PairingStorageReport;
 
 const app = document.querySelector<HTMLElement>("#app");
 
@@ -87,6 +103,7 @@ app.innerHTML = `
         <button data-action="agreement2">Run tagged unwrap #2</button>
         <button data-action="cancel">Run and cancel</button>
         <button data-action="restart">Verify after restart</button>
+        <button data-action="pairingStorage">Test pairing replay storage</button>
         <button class="danger" data-action="cleanup">Delete probe key</button>
       </div>
       <pre id="doctor-report" aria-live="polite">No probe has run.</pre>
@@ -156,10 +173,24 @@ actionButtons.forEach((button) => {
       agreement2: "doctor_run_agreement",
       cancel: "doctor_run_agreement",
       restart: "doctor_run_agreement",
+      pairingStorage: "doctor_pairing_storage",
       cleanup: "doctor_cleanup",
     };
     if (!action || !commands[action]) return;
     void runDoctor(commands[action], action).catch(() => {
+      if (action === "pairingStorage") {
+        showReport(action, {
+          noBackupStorage: false,
+          atomicStateCreated: false,
+          verifiedBeforeConsume: false,
+          replayRejectedAfterReopen: false,
+          wrongScopeRejected: false,
+          missingStateRejectedAfterDelete: false,
+          cleanupComplete: false,
+          errorCategory: "bridge_unavailable",
+        });
+        return;
+      }
       showReport(action, {
         authenticated: false,
         agreementMatch: false,

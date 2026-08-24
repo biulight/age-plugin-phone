@@ -72,7 +72,9 @@ evicted to make room.
 The initial file backend targets Unix-family app-private storage, including Android and the first
 desktop prototype. Its advisory lock and filesystem durability assumptions must be re-evaluated for
 each platform filesystem. Mobile integration must place the file in non-backed-up app-private
-storage. Restoring or replacing replay state independently of pairing state is unsupported.
+storage. Restoring or replacing replay state independently of pairing state is unsupported. Android
+implements that lifecycle by embedding request-replay entries in the pairing record's atomic
+storage unit; see [ADR 0004](0004-android-pairing-state.md).
 
 An in-memory guard remains available only for deterministic tests. It does not satisfy this ADR.
 
@@ -84,5 +86,5 @@ An in-memory guard remains available only for deterministic tests. It does not s
 - Replay-state rollback by a compromised OS or app-private-storage implementation remains outside
   the threat model. Same-user modification of an unprotected desktop state file is not treated as a
   trust boundary.
-- Pairing persistence and the native Android request path must adopt this state machine before the
-  bidirectional QR prototype may handle real secrets.
+- The native Android storage and request-verification path adopt this state machine. The QR flow
+  must use that lifecycle before the bidirectional prototype may handle real secrets.

@@ -8,6 +8,7 @@ Allows the development-only StrongBox doctor commands.
 - `allow-doctor-create-probe`
 - `allow-doctor-run-agreement`
 - `allow-doctor-cleanup`
+- `allow-doctor-pairing-storage`
 
 ## Permission Table
 
@@ -92,6 +93,32 @@ Enables the doctor_create_probe command without any pre-configured scope.
 <td>
 
 Denies the doctor_create_probe command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:allow-doctor-pairing-storage`
+
+</td>
+<td>
+
+Enables the doctor_pairing_storage command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:deny-doctor-pairing-storage`
+
+</td>
+<td>
+
+Denies the doctor_pairing_storage command without any pre-configured scope.
 
 </td>
 </tr>

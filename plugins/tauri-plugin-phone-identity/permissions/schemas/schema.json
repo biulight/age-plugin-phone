@@ -331,6 +331,18 @@
           "markdownDescription": "Denies the doctor_create_probe command without any pre-configured scope."
         },
         {
+          "description": "Enables the doctor_pairing_storage command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-doctor-pairing-storage",
+          "markdownDescription": "Enables the doctor_pairing_storage command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the doctor_pairing_storage command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-doctor-pairing-storage",
+          "markdownDescription": "Denies the doctor_pairing_storage command without any pre-configured scope."
+        },
+        {
           "description": "Enables the doctor_run_agreement command without any pre-configured scope.",
           "type": "string",
           "const": "allow-doctor-run-agreement",
@@ -343,10 +355,10 @@
           "markdownDescription": "Denies the doctor_run_agreement command without any pre-configured scope."
         },
         {
-          "description": "Allows the development-only StrongBox doctor commands.\n#### This default permission set includes:\n\n- `allow-doctor-capabilities`\n- `allow-doctor-create-probe`\n- `allow-doctor-run-agreement`\n- `allow-doctor-cleanup`",
+          "description": "Allows the development-only StrongBox doctor commands.\n#### This default permission set includes:\n\n- `allow-doctor-capabilities`\n- `allow-doctor-create-probe`\n- `allow-doctor-run-agreement`\n- `allow-doctor-cleanup`\n- `allow-doctor-pairing-storage`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Allows the development-only StrongBox doctor commands.\n#### This default permission set includes:\n\n- `allow-doctor-capabilities`\n- `allow-doctor-create-probe`\n- `allow-doctor-run-agreement`\n- `allow-doctor-cleanup`"
+          "markdownDescription": "Allows the development-only StrongBox doctor commands.\n#### This default permission set includes:\n\n- `allow-doctor-capabilities`\n- `allow-doctor-create-probe`\n- `allow-doctor-run-agreement`\n- `allow-doctor-cleanup`\n- `allow-doctor-pairing-storage`"
         }
       ]
     }

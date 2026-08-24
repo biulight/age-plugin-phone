@@ -65,6 +65,7 @@ Start with the [Android StrongBox PoC](docs/android-strongbox-poc.md), then read
 [the architecture](docs/architecture.md), [experimental P-256 recipient ADR](docs/adr/0001-experimental-p256-recipient.md),
 [offline-envelope ADR](docs/adr/0002-experimental-offline-envelope.md),
 [persistent replay-state ADR](docs/adr/0003-persistent-replay-state.md),
+[Android pairing-state ADR](docs/adr/0004-android-pairing-state.md),
 [protocol draft](docs/protocol.md), and [threat model](docs/threat-model.md) before implementing a
 transport or cryptographic backend.
 

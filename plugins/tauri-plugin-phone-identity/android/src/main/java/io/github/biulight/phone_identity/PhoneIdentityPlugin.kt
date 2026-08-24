@@ -29,6 +29,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     private val doctor = StrongBoxDoctor(activity, keys)
     private val mainHandler = Handler(Looper.getMainLooper())
     private val stateLock = Any()
+    private val pairingDoctorLock = Any()
     private var active: PendingAgreement? = null
 
     @Command
@@ -70,6 +71,11 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     fun doctorCleanup(invoke: Invoke) {
         cancelActive("authentication_failed")
         invoke.resolve(keys.cleanup())
+    }
+
+    @Command
+    fun doctorPairingStorage(invoke: Invoke) {
+        invoke.resolve(synchronized(pairingDoctorLock) { runPairingStorageDoctor() })
     }
 
     override fun onStop() {
@@ -293,6 +299,128 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     private fun isActive(token: UUID): Boolean = synchronized(stateLock) { active?.token == token }
+
+    private fun runPairingStorageDoctor(): JSObject {
+        var store: PairingStateStore? = null
+        var syntheticFileKey: ByteArray? = null
+        var noBackupStorage = PairingStateStore.doctorRootIsNoBackup(activity)
+        var atomicStateCreated = false
+        var verifiedBeforeConsume = false
+        var replayRejectedAfterReopen = false
+        var wrongScopeRejected = false
+        var missingStateRejectedAfterDelete = false
+        var cleanupComplete: Boolean
+        var errorCategory: String? = null
+        try {
+            if (!PairingStateStore.cleanupDoctorArtifacts(activity)) {
+                throw PairingStateStore.PairingStateException(PairingStateStore.Category.STORAGE)
+            }
+            val generator = KeyPairGenerator.getInstance("EC").apply {
+                initialize(ECGenParameterSpec("secp256r1"))
+            }
+            val identity = generator.generateKeyPair()
+            val ephemeral = generator.generateKeyPair()
+            val desktopSigning = generator.generateKeyPair()
+            val desktopSession = generator.generateKeyPair()
+            val phoneSigning = generator.generateKeyPair()
+            syntheticFileKey = ByteArray(TaggedRecipientCrypto.FILE_KEY_BYTES).also {
+                SecureRandom().nextBytes(it)
+            }
+            val stanza = TaggedRecipientCrypto.wrapForTest(
+                identity.public,
+                ephemeral.private,
+                ephemeral.public,
+                syntheticFileKey,
+            )
+            val nowUnix = System.currentTimeMillis() / 1000
+            val request = OfflineEnvelopeCrypto.createSignedRequest(
+                stanza,
+                desktopSigning,
+                desktopSession.public,
+                nowUnix,
+                SecureRandom(),
+            )
+            val record = StoredPairingRecord(
+                desktopId = request.request.desktopId.copyOf(),
+                identityId = request.request.identityId.copyOf(),
+                desktopLabel = "Pairing storage Doctor",
+                recipient = TaggedRecipientCrypto.encodeRecipient(identity.public),
+                desktopSigningPublicKey = TaggedRecipientCrypto.encodeCompressed(desktopSigning.public),
+                phoneSigningPublicKey = TaggedRecipientCrypto.encodeCompressed(phoneSigning.public),
+                offerDigest = ByteArray(32).also { SecureRandom().nextBytes(it) },
+                transcriptFingerprint = ByteArray(32).also { SecureRandom().nextBytes(it) },
+            )
+            store = PairingStateStore.createDoctor(activity, record, nowUnix)
+            val stored = store.pairingRecord()
+            atomicStateCreated = MessageDigest.isEqual(stored.desktopId, record.desktopId) &&
+                MessageDigest.isEqual(stored.identityId, record.identityId) &&
+                MessageDigest.isEqual(stored.offerDigest, record.offerDigest)
+            val consumed = OfflineEnvelopeCrypto.verifyRequestAndConsume(
+                request.signedBytes,
+                store,
+                nowUnix,
+            )
+            verifiedBeforeConsume = MessageDigest.isEqual(consumed.digest, request.digest)
+            store.close()
+
+            wrongScopeRejected = try {
+                PairingStateStore.openDoctor(
+                    activity,
+                    record.desktopId.copyOf().also { it[0] = (it[0].toInt() xor 1).toByte() },
+                    record.identityId,
+                ).close()
+                false
+            } catch (_: PairingStateStore.PairingStateException) {
+                true
+            }
+
+            store = PairingStateStore.openDoctor(activity, record.desktopId, record.identityId)
+            replayRejectedAfterReopen = try {
+                OfflineEnvelopeCrypto.verifyRequestAndConsume(request.signedBytes, store, nowUnix)
+                false
+            } catch (error: PairingStateStore.PairingStateException) {
+                error.category == PairingStateStore.Category.REPLAY
+            }
+            store.deleteState()
+            store.close()
+            store = null
+            missingStateRejectedAfterDelete = try {
+                PairingStateStore.openDoctor(activity, record.desktopId, record.identityId).close()
+                false
+            } catch (error: PairingStateStore.PairingStateException) {
+                error.category == PairingStateStore.Category.MISSING
+            }
+        } catch (error: PairingStateStore.PairingStateException) {
+            errorCategory = when (error.category) {
+                PairingStateStore.Category.REPLAY -> "replay"
+                PairingStateStore.Category.CLOCK_ROLLBACK -> "clock_rollback"
+                PairingStateStore.Category.CAPACITY -> "replay_capacity"
+                else -> "pairing_state_failed"
+            }
+        } catch (_: Exception) {
+            errorCategory = "pairing_state_failed"
+        } finally {
+            try {
+                store?.close()
+            } catch (_: Exception) {
+                errorCategory = "pairing_state_failed"
+            }
+            syntheticFileKey?.fill(0)
+            cleanupComplete = PairingStateStore.cleanupDoctorArtifacts(activity)
+            if (!cleanupComplete && errorCategory == null) errorCategory = "pairing_state_failed"
+            noBackupStorage = noBackupStorage && PairingStateStore.doctorRootIsNoBackup(activity)
+        }
+        return JSObject().apply {
+            put("noBackupStorage", noBackupStorage)
+            put("atomicStateCreated", atomicStateCreated)
+            put("verifiedBeforeConsume", verifiedBeforeConsume)
+            put("replayRejectedAfterReopen", replayRejectedAfterReopen)
+            put("wrongScopeRejected", wrongScopeRejected)
+            put("missingStateRejectedAfterDelete", missingStateRejectedAfterDelete)
+            put("cleanupComplete", cleanupComplete)
+            put("errorCategory", errorCategory)
+        }
+    }
 
     private data class PendingAgreement(
         val token: UUID,

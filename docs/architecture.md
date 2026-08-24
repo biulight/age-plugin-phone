@@ -58,11 +58,18 @@ Durable replay consumption is specified in
 [`ADR 0003`](adr/0003-persistent-replay-state.md). The protocol crate provides a scoped, bounded,
 atomically replaced Unix file backend; the in-memory guard is test-only.
 
+Android binds each public pairing record and its request-replay scope into one canonical state file
+under `Context.noBackupFilesDir`, as specified in
+[`ADR 0004`](adr/0004-android-pairing-state.md). Creation is explicit, opening missing state fails
+closed, and native request verification returns only after the combined state replacement is
+durable. A separate synthetic-data Doctor exercises create, consume, reopen, replay rejection,
+wrong scope, deletion, and cleanup without exposing paths or protocol material to the WebView.
+
 A wrapped native X25519 identity remains a separately reviewed fallback candidate for platforms
 that cannot expose a suitable non-exportable operation. It is not enabled on the verified Android
 path. Canonical pairing/request encoding and complete Rust/Kotlin protocol vectors now exist;
-pairing/native-path integration of persistent replay state and independent review are still
-required before the wire format is stabilized.
+the remaining integration work is to connect verified QR pairing confirmation to the native
+pairing-state lifecycle. Independent review is still required before the wire format is stabilized.
 
 ## Transport strategy
 
