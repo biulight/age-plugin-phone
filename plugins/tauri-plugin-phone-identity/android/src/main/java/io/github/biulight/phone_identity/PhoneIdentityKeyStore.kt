@@ -115,6 +115,33 @@ internal class PhoneIdentityKeyStore private constructor(
         PhoneIdentityProvision(live.copySafe(), inspection, false)
     }
 
+    fun createPairingResponse(signedOffer: ByteArray): ByteArray = synchronized(processLock) {
+        val provision = open()
+        val store = keyStore()
+        val signingPrivate = store.getKey(signingAlias(provision.public.identityId), null) as? PrivateKey
+            ?: throw KeyStoreException(Category.MISSING)
+        val offer = try {
+            OfflineEnvelopeCrypto.verifyPairingOffer(signedOffer)
+        } catch (_: Exception) {
+            throw KeyStoreException(Category.MALFORMED)
+        }
+        try {
+            OfflineEnvelopeCrypto.createPairingResponse(
+                offer,
+                provision.public,
+                signingPrivate,
+                SecureRandom(),
+            ).encoded
+        } catch (_: Exception) {
+            throw KeyStoreException(Category.GENERATION_FAILED)
+        } finally {
+            offer.encoded.fill(0)
+            offer.digest.fill(0)
+            offer.offer.desktopId.fill(0)
+            offer.offer.nonce.fill(0)
+        }
+    }
+
     fun cleanup(): Boolean = synchronized(processLock) {
         val root = prepareRoot()
         val stateFile = File(root, STATE_FILE_NAME)

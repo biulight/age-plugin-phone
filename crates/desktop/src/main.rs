@@ -4,7 +4,7 @@ use std::{
     io::{self, Write as _},
     path::PathBuf,
     thread,
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 use age_core::format::{FileKey, Stanza};
@@ -13,12 +13,18 @@ use age_plugin::{
     identity::{self, IdentityPluginV1},
     run_state_machine,
 };
+use age_plugin_phone::pairing::PublicIdentityStub;
+use age_plugin_phone::pairing::{
+    DesktopKeyState, DesktopPairingSession, MAX_PAIRING_SESSION_AGE_MS, create_identity_stub_file,
+};
 use age_plugin_phone::qr_terminal::{
     DEFAULT_FRAME_INTERVAL_MS, FrameScheduler, render_offline_html, render_terminal_frame,
 };
 use age_plugin_phone_protocol::{
     PROTOCOL_VERSION, PairingOffer, SignedPairingOffer, fragment_qr_message,
 };
+use age_plugin_phone_recipient_p256::PLUGIN_NAME;
+use base64::{Engine as _, engine::general_purpose::STANDARD_NO_PAD};
 use clap::{Parser, Subcommand};
 use p256::ecdsa::SigningKey;
 use rand_core::{OsRng, RngCore as _};
@@ -41,8 +47,21 @@ struct Options {
 enum Command {
     /// Report scaffold and protocol status without probing devices.
     Status,
-    /// Start offline phone pairing once a transport backend is implemented.
-    Pair,
+    /// Complete an authenticated pairing using an external QR response capture.
+    Pair {
+        /// Untrusted desktop label shown on both endpoints.
+        #[arg(long)]
+        label: String,
+        /// Persistent desktop authentication state (contains no age identity key).
+        #[arg(long)]
+        desktop_state: PathBuf,
+        /// File populated by the QR capture helper with unpadded Base64 response bytes.
+        #[arg(long)]
+        response_file: PathBuf,
+        /// New public age identity stub; an existing file is never overwritten.
+        #[arg(long)]
+        identity_output: PathBuf,
+    },
     /// Display a signed, disposable pairing offer to exercise QR capture only.
     QrCaptureProbe {
         /// Untrusted label shown by the phone after signature verification.
@@ -70,7 +89,7 @@ impl PluginHandler for Handler {
 
 #[derive(Default)]
 struct PhoneIdentityPlugin {
-    identities: Vec<(usize, String, Vec<u8>)>,
+    identities: Vec<(usize, PublicIdentityStub)>,
 }
 
 impl IdentityPluginV1 for PhoneIdentityPlugin {
@@ -80,8 +99,17 @@ impl IdentityPluginV1 for PhoneIdentityPlugin {
         plugin_name: &str,
         bytes: &[u8],
     ) -> Result<(), identity::Error> {
-        self.identities
-            .push((index, plugin_name.to_owned(), bytes.to_vec()));
+        if plugin_name != PLUGIN_NAME {
+            return Err(identity::Error::Identity {
+                index,
+                message: "identity was routed to the wrong plugin".into(),
+            });
+        }
+        let stub = PublicIdentityStub::decode(bytes).map_err(|_| identity::Error::Identity {
+            index,
+            message: "malformed or unsupported public phone identity stub".into(),
+        })?;
+        self.identities.push((index, stub));
         Ok(())
     }
 
@@ -106,19 +134,102 @@ fn main() -> io::Result<()> {
             println!("status: scaffold-only");
             println!("protocol_version: {PROTOCOL_VERSION}");
             println!("qr_capture_probe: available");
-            println!("pairing_transport: not_implemented");
+            println!("pairing_transport: external_qr_capture");
             println!("ble_transport: not_implemented");
-            println!("mobile_identity: not_implemented");
+            println!("mobile_identity: android_strongbox_pairing");
             println!("secret_operations: fail_closed");
             Ok(())
         }
-        Command::Pair => Err(io::Error::new(io::ErrorKind::Unsupported, NOT_IMPLEMENTED)),
+        Command::Pair {
+            label,
+            desktop_state,
+            response_file,
+            identity_output,
+        } => run_pair(label, &desktop_state, &response_file, &identity_output),
         Command::QrCaptureProbe {
             label,
             cycles,
             html_output,
         } => run_qr_capture_probe(label, cycles, html_output),
     }
+}
+
+fn run_pair(
+    label: String,
+    desktop_state: &std::path::Path,
+    response_file: &std::path::Path,
+    identity_output: &std::path::Path,
+) -> io::Result<()> {
+    if identity_output.exists() {
+        return Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            "identity output already exists",
+        ));
+    }
+    let state = DesktopKeyState::open_or_create(desktop_state, &mut OsRng)
+        .map_err(|_| io::Error::other("desktop authentication state is unavailable"))?;
+    let mut session =
+        DesktopPairingSession::begin(state.desktop_id, label, state.signing_key(), 0, &mut OsRng)
+            .map_err(|_| io::Error::other("failed to create pairing offer"))?;
+    let frames = fragment_qr_message(&session.signed_offer(), 120, &mut OsRng)
+        .map_err(|_| io::Error::other("failed to fragment pairing offer"))?;
+    let mut scheduler = FrameScheduler::new(&frames, DEFAULT_FRAME_INTERVAL_MS)
+        .map_err(|_| io::Error::other("failed to schedule pairing QR"))?;
+    let started = Instant::now();
+    let mut stdout = io::stdout().lock();
+
+    while !response_file.is_file() {
+        let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+        if elapsed_ms > MAX_PAIRING_SESSION_AGE_MS {
+            session.cancel();
+            return Err(io::Error::new(io::ErrorKind::TimedOut, "pairing timed out"));
+        }
+        let (index, frame) = scheduler
+            .frame_at(elapsed_ms)
+            .map_err(|_| io::Error::other("pairing QR clock failed"))?;
+        let rendered = render_terminal_frame(frame)
+            .map_err(|_| io::Error::other("failed to render pairing QR"))?;
+        write!(
+            stdout,
+            "\x1b[2J\x1b[HPair phone · offer frame {}/{}\nWaiting for captured phone response…\n\n{rendered}",
+            index + 1,
+            frames.len(),
+        )?;
+        stdout.flush()?;
+        thread::sleep(Duration::from_millis(DEFAULT_FRAME_INTERVAL_MS));
+    }
+
+    let encoded_response = std::fs::read_to_string(response_file)?;
+    let response = STANDARD_NO_PAD
+        .decode(encoded_response.trim())
+        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "malformed pairing response"))?;
+    let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+    let display = session
+        .receive_response(&response, elapsed_ms)
+        .map_err(|_| {
+            io::Error::new(io::ErrorKind::PermissionDenied, "pairing response rejected")
+        })?;
+    writeln!(
+        stdout,
+        "\x1b[2J\x1b[HCompare this full fingerprint with the phone:\n{}\n\nType the full fingerprint to confirm:",
+        display.transcript_fingerprint,
+    )?;
+    stdout.flush()?;
+    drop(stdout);
+    let mut confirmation = String::new();
+    io::stdin().read_line(&mut confirmation)?;
+    let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+    let stub = session
+        .confirm(confirmation.trim(), elapsed_ms)
+        .map_err(|_| io::Error::new(io::ErrorKind::PermissionDenied, "pairing not confirmed"))?;
+    create_identity_stub_file(identity_output, &stub)
+        .map_err(|_| io::Error::other("failed to create public identity stub"))?;
+    println!(
+        "Public identity stub created: {}",
+        identity_output.display()
+    );
+    println!("Recipient: {}", stub.recipient());
+    Ok(())
 }
 
 fn run_qr_capture_probe(

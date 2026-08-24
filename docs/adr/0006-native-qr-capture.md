@@ -2,7 +2,7 @@
 
 - Status: experimental, accepted for implementation testing
 - Date: 2026-08-25
-- Scope: pairing-offer capture plumbing; not a complete pairing flow
+- Scope: initial pairing-offer capture plumbing (extended by ADR 0008)
 
 ## Context
 
@@ -66,7 +66,7 @@ is a camera/interoperability probe and cannot establish a pairing.
 - Terminal QR readability still depends on font geometry, contrast, window size, and physical
   camera placement.
 - Phone response rendering, full transcript comparison, and durable desktop public pairing state
-  are the next pairing milestone.
+  are implemented by ADR 0008.
 
 ## Validation
 

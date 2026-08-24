@@ -27,6 +27,12 @@ Desktop state contains only public keys, identity identifiers, recipients, and t
 Phone state contains the private identity, paired desktop public keys, counters, and revocation
 state.
 
+Android signs the response with the persistent StrongBox phone-authentication key associated with
+the committed public identity metadata and keeps response QR frames in native memory. The desktop
+uses a persistent, role-separated authentication key, rejects responses bound to any other offer,
+and writes a fixed-field canonical public plugin identity stub only after exact full-fingerprint
+confirmation. The stub contains no private key, and existing state is never silently overwritten.
+
 ## Unwrap request
 
 Each request contains:

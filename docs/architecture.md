@@ -79,10 +79,12 @@ path. Canonical pairing/request encoding and complete Rust/Kotlin protocol vecto
 The native confirmation-to-persistence boundary now exists. Versioned canonical
 framing and bounded animated-frame assembly are specified by
 [`ADR 0005`](adr/0005-qr-framing.md) and implemented in Rust and Kotlin. Android native continuous
-capture and the desktop terminal animation probe are specified by
-[`ADR 0006`](adr/0006-native-qr-capture.md). The capture prototype currently validates one signed
-offer only; phone response generation and the full confirmation exchange remain. Independent review
-is still required before the wire format is stabilized.
+capture and desktop terminal animation are specified by
+[`ADR 0006`](adr/0006-native-qr-capture.md). [`ADR 0008`](adr/0008-bidirectional-pairing.md)
+connects the production StrongBox keys to phone response signing and native QR rendering. The
+desktop verifies the response, compares the same full transcript fingerprint, and creates a
+canonical public identity stub only after confirmation. Independent review is still required before
+the wire format is stabilized.
 
 ## Transport strategy
 

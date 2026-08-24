@@ -11,7 +11,11 @@ version.workspace = true
 age-core.workspace = true
 age-plugin.workspace = true
 age-plugin-phone-protocol = { path = "../protocol" }
+age-plugin-phone-recipient-p256 = { path = "../recipient-p256" }
+base64.workspace = true
+bech32.workspace = true
 clap.workspace = true
+minicbor.workspace = true
 p256.workspace = true
 qrcode.workspace = true
 rand_core.workspace = true

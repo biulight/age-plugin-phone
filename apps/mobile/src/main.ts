@@ -98,6 +98,13 @@ interface PairingOfferScanReport {
   errorCategory: string | null;
 }
 
+interface PhonePairingReport {
+  paired: boolean;
+  desktopLabel: string | null;
+  transcriptFingerprint: string | null;
+  errorCategory: string | null;
+}
+
 type DoctorReport =
   | CapabilityReport
   | IdentityCustodyReport
@@ -105,7 +112,8 @@ type DoctorReport =
   | AgreementReport
   | CleanupReport
   | PairingStorageReport
-  | PairingOfferScanReport;
+  | PairingOfferScanReport
+  | PhonePairingReport;
 
 const app = document.querySelector<HTMLElement>("#app");
 
@@ -145,6 +153,7 @@ app.innerHTML = `
         <button data-action="restart">Verify after restart</button>
         <button data-action="pairingStorage">Test pairing QR + replay</button>
         <button data-action="scanPairingOffer">Scan pairing offer</button>
+        <button data-action="pairPhone">Pair this phone</button>
         <button class="danger" data-action="cleanup">Delete probe key</button>
       </div>
       <pre id="doctor-report" aria-live="polite">No probe has run.</pre>
@@ -217,6 +226,7 @@ actionButtons.forEach((button) => {
       restart: "doctor_run_agreement",
       pairingStorage: "doctor_pairing_storage",
       scanPairingOffer: "scan_pairing_offer",
+      pairPhone: "pair_phone",
       cleanup: "doctor_cleanup",
     };
     if (!action || !commands[action]) return;
@@ -228,6 +238,15 @@ actionButtons.forEach((button) => {
           desktopLabel: null,
           offerFingerprint: null,
           framesAccepted: 0,
+          errorCategory: "bridge_unavailable",
+        });
+        return;
+      }
+      if (action === "pairPhone") {
+        showReport(action, {
+          paired: false,
+          desktopLabel: null,
+          transcriptFingerprint: null,
           errorCategory: "bridge_unavailable",
         });
         return;

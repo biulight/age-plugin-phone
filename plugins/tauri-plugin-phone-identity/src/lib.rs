@@ -2,7 +2,7 @@ mod models;
 
 pub use models::{
     AgreementReport, CapabilityReport, CleanupReport, IdentityCustodyReport,
-    PairingOfferScanReport, PairingStorageReport, ProbeKeyReport,
+    PairingOfferScanReport, PairingStorageReport, PhonePairingReport, ProbeKeyReport,
 };
 
 #[cfg(not(target_os = "android"))]
@@ -207,6 +207,24 @@ fn scan_pairing_offer<R: Runtime>(
     })
 }
 
+#[tauri::command]
+#[allow(clippy::unnecessary_wraps)]
+fn pair_phone<R: Runtime>(
+    _app: AppHandle<R>,
+    _identity: State<'_, PhoneIdentity<R>>,
+) -> Result<PhonePairingReport, Error> {
+    #[cfg(target_os = "android")]
+    return _identity.pair_phone();
+
+    #[cfg(not(target_os = "android"))]
+    Ok(PhonePairingReport {
+        paired: false,
+        desktop_label: None,
+        transcript_fingerprint: None,
+        error_category: Some("unsupported_api".into()),
+    })
+}
+
 #[must_use]
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("phone-identity")
@@ -217,7 +235,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             doctor_run_agreement,
             doctor_cleanup,
             doctor_pairing_storage,
-            scan_pairing_offer
+            scan_pairing_offer,
+            pair_phone
         ])
         .setup(|app, _api| {
             #[cfg(target_os = "android")]

@@ -35,6 +35,7 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind:2.19.2")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.19.2")
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    implementation("com.google.zxing:core:3.5.3")
     implementation(project(":tauri-android"))
     testImplementation("junit:junit:4.13.2")
 }

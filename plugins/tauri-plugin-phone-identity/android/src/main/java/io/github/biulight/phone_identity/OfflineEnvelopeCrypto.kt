@@ -116,6 +116,37 @@ internal object OfflineEnvelopeCrypto {
         return VerifiedPairingResponse(response, encoded.copyOf())
     }
 
+    /** Creates a response using an already-provisioned, non-exportable phone signing key. */
+    fun createPairingResponse(
+        offer: VerifiedPairingOffer,
+        identity: PhoneIdentityPublic,
+        phoneSigningPrivateKey: PrivateKey,
+        random: SecureRandom,
+    ): VerifiedPairingResponse {
+        if (!MessageDigest.isEqual(
+                identity.signingPublicKey,
+                TaggedRecipientCrypto.encodeCompressed(
+                    TaggedRecipientCrypto.decodeCompressed(identity.signingPublicKey),
+                ),
+            )
+        ) throw ProtocolException()
+        val response = PairingResponse(
+            identityId = identity.identityId.copyOf(),
+            recipient = identity.recipient,
+            phoneSigningPublicKey = TaggedRecipientCrypto.decodeCompressed(
+                identity.signingPublicKey,
+            ),
+            offerDigest = offer.digest.copyOf(),
+            nonce = randomBytes(32, random),
+        )
+        val payload = encodePairingResponsePayload(response)
+        val encoded = encodeSigned(
+            payload,
+            sign(phoneSigningPrivateKey, pairingSignatureDomain, payload),
+        )
+        return verifyPairingResponse(encoded, offer)
+    }
+
     fun pairingFingerprint(
         offer: VerifiedPairingOffer,
         response: VerifiedPairingResponse,

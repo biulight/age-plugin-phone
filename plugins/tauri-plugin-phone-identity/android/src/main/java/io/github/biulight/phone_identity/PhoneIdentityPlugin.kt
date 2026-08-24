@@ -33,12 +33,15 @@ import javax.crypto.KeyAgreement
 class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     private val keys = ProbeKeyStore(activity)
     private val doctor = StrongBoxDoctor(activity, keys)
+    private val productionIdentity = PhoneIdentityKeyStore.production(activity)
     private val mainHandler = Handler(Looper.getMainLooper())
     private val stateLock = Any()
     private val pairingDoctorLock = Any()
     private var active: PendingAgreement? = null
-    private var activeQrScanner: NativeQrScannerController? = null
+    private var activeQrScanner: NativeQrScannerController<*>? = null
+    private var activePairingResponse: NativePairingResponseController? = null
     private var cameraPermissionPending = false
+    private var pairingPermissionPending = false
     private val pairingConfirmation = PairingConfirmationCoordinator(
         PairingSessionFactory { signedOffer, signedResponse ->
             PairingConfirmationSession.begin(activity, signedOffer, signedResponse)
@@ -113,6 +116,25 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
+    @Command
+    fun pairPhone(invoke: Invoke) {
+        val granted = getPermissionState("camera") == PermissionState.GRANTED
+        synchronized(stateLock) {
+            if (activeQrScanner != null || activePairingResponse != null ||
+                cameraPermissionPending || pairingPermissionPending
+            ) {
+                invoke.resolve(phonePairingReport(false, null, null, "pairing_active"))
+                return
+            }
+            pairingPermissionPending = !granted
+        }
+        if (granted) {
+            activity.runOnUiThread { startPhonePairingScanner(invoke) }
+        } else {
+            requestPermissionForAlias("camera", invoke, "pairingCameraPermissionGranted")
+        }
+    }
+
     @PermissionCallback
     fun cameraPermissionGranted(invoke: Invoke) {
         synchronized(stateLock) { cameraPermissionPending = false }
@@ -125,16 +147,28 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
+    @PermissionCallback
+    fun pairingCameraPermissionGranted(invoke: Invoke) {
+        synchronized(stateLock) { pairingPermissionPending = false }
+        if (getPermissionState("camera") == PermissionState.GRANTED) {
+            activity.runOnUiThread { startPhonePairingScanner(invoke) }
+        } else {
+            invoke.resolve(phonePairingReport(false, null, null, "camera_permission_denied"))
+        }
+    }
+
     override fun onStop() {
         cancelActive("authentication_failed")
         cancelPendingPairing()
         cancelQrScanner()
+        cancelPairingResponse()
     }
 
     override fun onDestroy(activity: androidx.appcompat.app.AppCompatActivity) {
         cancelActive("authentication_failed")
         cancelPendingPairing()
         cancelQrScanner()
+        cancelPairingResponse()
     }
 
     private fun startPairingOfferScanner(invoke: Invoke) {
@@ -145,6 +179,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             }
             activeQrScanner = NativeQrScannerController(
                 activity,
+                CompletedQrMessageVerifier(::verifyPairingOfferForScan),
                 onComplete = { display, framesAccepted ->
                     synchronized(stateLock) { activeQrScanner = null }
                     invoke.resolve(
@@ -172,6 +207,100 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             activeQrScanner.also { activeQrScanner = null }
         }
         scanner?.cancel()
+    }
+
+    private fun startPhonePairingScanner(invoke: Invoke) {
+        synchronized(stateLock) {
+            if (activeQrScanner != null || activePairingResponse != null) {
+                invoke.resolve(phonePairingReport(false, null, null, "pairing_active"))
+                return
+            }
+            activeQrScanner = NativeQrScannerController(
+                activity,
+                CompletedQrMessageVerifier(::preparePhonePairing),
+                onComplete = { prepared, _ ->
+                    synchronized(stateLock) { activeQrScanner = null }
+                    showPairingResponse(prepared, invoke)
+                },
+                onFailure = { category ->
+                    synchronized(stateLock) { activeQrScanner = null }
+                    cancelPendingPairing()
+                    invoke.resolve(phonePairingReport(false, null, null, category))
+                },
+            )
+            activeQrScanner?.start()
+        }
+    }
+
+    private fun preparePhonePairing(message: ByteArray): PreparedPhonePairing {
+        try {
+            productionIdentity.open()
+        } catch (error: PhoneIdentityKeyStore.KeyStoreException) {
+            if (error.category != PhoneIdentityKeyStore.Category.MISSING) throw error
+            productionIdentity.provision()
+        }
+        val signedResponse = productionIdentity.createPairingResponse(message)
+        return try {
+            val display = pairingConfirmation.begin(message, signedResponse)
+            PreparedPhonePairing(
+                display,
+                QrFraming.fragment(signedResponse, RESPONSE_QR_CHUNK_BYTES),
+            )
+        } finally {
+            signedResponse.fill(0)
+        }
+    }
+
+    private fun showPairingResponse(prepared: PreparedPhonePairing, invoke: Invoke) {
+        synchronized(stateLock) {
+            activePairingResponse = NativePairingResponseController(
+                activity,
+                prepared,
+                pairingConfirmation,
+                onComplete = { committed ->
+                    synchronized(stateLock) { activePairingResponse = null }
+                    invoke.resolve(
+                        phonePairingReport(
+                            true,
+                            committed.desktopLabel,
+                            committed.transcriptFingerprint,
+                            null,
+                        ),
+                    )
+                },
+                onFailure = { category ->
+                    synchronized(stateLock) { activePairingResponse = null }
+                    invoke.resolve(phonePairingReport(false, null, null, category))
+                },
+            )
+            activePairingResponse?.start()
+        }
+    }
+
+    private fun cancelPairingResponse() {
+        val controller = synchronized(stateLock) {
+            activePairingResponse.also { activePairingResponse = null }
+        }
+        controller?.cancel()
+    }
+
+    private fun verifyPairingOfferForScan(message: ByteArray): PairingOfferScanDisplay {
+        val verified = OfflineEnvelopeCrypto.verifyPairingOffer(message)
+        return try {
+            PairingOfferScanDisplay(
+                desktopLabel = verified.offer.desktopLabel,
+                offerFingerprint = verified.digest.toHex(),
+            )
+        } finally {
+            verified.encoded.fill(0)
+            verified.digest.fill(0)
+            verified.offer.desktopId.fill(0)
+            verified.offer.nonce.fill(0)
+        }
+    }
+
+    private fun ByteArray.toHex(): String = joinToString(separator = "") { byte ->
+        "%02x".format(byte.toInt() and 0xff)
     }
 
     internal fun beginNativePairingConfirmation(
@@ -739,6 +868,20 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             put("framesAccepted", framesAccepted)
             put("errorCategory", error)
         }
+
+        private fun phonePairingReport(
+            paired: Boolean,
+            desktopLabel: String?,
+            transcriptFingerprint: String?,
+            errorCategory: String?,
+        ): JSObject = JSObject().apply {
+            put("paired", paired)
+            put("desktopLabel", desktopLabel)
+            put("transcriptFingerprint", transcriptFingerprint)
+            put("errorCategory", errorCategory)
+        }
+
+        private const val RESPONSE_QR_CHUNK_BYTES = 120
 
         internal fun authenticationErrorCategory(errorCode: Int): String = when (errorCode) {
             BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED,

@@ -30,15 +30,14 @@ internal data class PairingOfferScanDisplay(
     val offerFingerprint: String,
 )
 
-internal class NativeQrScannerController(
+internal class NativeQrScannerController<T>(
     private val activity: Activity,
-    private val onComplete: (PairingOfferScanDisplay, Int) -> Unit,
+    verifier: CompletedQrMessageVerifier<T>,
+    private val onComplete: (T, Int) -> Unit,
     private val onFailure: (String) -> Unit,
 ) {
     private val handler = Handler(Looper.getMainLooper())
-    private val session = QrScanSession(
-        CompletedQrMessageVerifier(::verifyOffer),
-    )
+    private val session = QrScanSession(verifier)
     private val scanner: BarcodeScanner = BarcodeScanning.getClient(
         BarcodeScannerOptions.Builder()
             .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
@@ -177,7 +176,7 @@ internal class NativeQrScannerController(
         }
     }
 
-    private fun finishSuccess(display: PairingOfferScanDisplay, framesAccepted: Int) {
+    private fun finishSuccess(display: T, framesAccepted: Int) {
         if (finished) return
         finished = true
         closeResources()
@@ -202,25 +201,6 @@ internal class NativeQrScannerController(
         status = null
         dialog?.dismiss()
         dialog = null
-    }
-
-    private fun verifyOffer(message: ByteArray): PairingOfferScanDisplay {
-        val verified = OfflineEnvelopeCrypto.verifyPairingOffer(message)
-        return try {
-            PairingOfferScanDisplay(
-                desktopLabel = verified.offer.desktopLabel,
-                offerFingerprint = verified.digest.toHex(),
-            )
-        } finally {
-            verified.encoded.fill(0)
-            verified.digest.fill(0)
-            verified.offer.desktopId.fill(0)
-            verified.offer.nonce.fill(0)
-        }
-    }
-
-    private fun ByteArray.toHex(): String = joinToString(separator = "") { byte ->
-        "%02x".format(byte.toInt() and 0xff)
     }
 
     companion object {

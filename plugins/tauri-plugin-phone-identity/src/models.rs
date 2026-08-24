@@ -107,3 +107,12 @@ pub struct PairingOfferScanReport {
     pub frames_accepted: u32,
     pub error_category: Option<String>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PhonePairingReport {
+    pub paired: bool,
+    pub desktop_label: Option<String>,
+    pub transcript_fingerprint: Option<String>,
+    pub error_category: Option<String>,
+}

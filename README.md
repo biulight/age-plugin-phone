@@ -8,8 +8,9 @@ It is intended to work with any compatible age client. It does not depend on Shi
 Shine environments, or define a Shine-specific ciphertext format.
 
 > [!WARNING]
-> This repository is a design and fail-closed plugin scaffold. It cannot create identities or
-> decrypt files yet. Do not use it to protect real secrets.
+> This repository is an experimental prototype. It can create a paired public identity stub, but
+> file-key unwrap is still fail-closed and the protocol has not received independent review. Do not
+> use it to protect real secrets.
 
 ## Intended boundary
 
@@ -41,6 +42,7 @@ user. It must never export the long-term private key to the desktop.
 
 ```console
 cargo run -p age-plugin-phone -- status
+cargo run -p age-plugin-phone -- pair --help
 cargo run -p age-plugin-phone -- qr-capture-probe
 cargo test --workspace
 
@@ -49,6 +51,12 @@ bun install
 bun run tauri android init
 bun run tauri ios init
 ```
+
+The Android development build's **Pair this phone** action scans the desktop offer, signs and
+renders the phone response entirely in native UI, and shows the full transcript fingerprint. The
+desktop `pair` command waits for an external QR capture helper to write that response as strict
+unpadded Base64, verifies it, asks for the same full fingerprint, and then creates the public stub.
+The capture helper is transport-only; its bytes are never trusted without protocol verification.
 
 The plugin accepts the age `--age-plugin=identity-v1` entry point, but deliberately returns an
 unsupported error until a reviewed phone transport and cryptographic backend exist.
@@ -69,6 +77,8 @@ Start with the [Android StrongBox PoC](docs/android-strongbox-poc.md), then read
 [Android pairing-state ADR](docs/adr/0004-android-pairing-state.md),
 [QR framing ADR](docs/adr/0005-qr-framing.md),
 [native QR capture ADR](docs/adr/0006-native-qr-capture.md),
+[Android production key-custody ADR](docs/adr/0007-android-production-key-custody.md),
+[bidirectional pairing ADR](docs/adr/0008-bidirectional-pairing.md),
 [protocol draft](docs/protocol.md), and [threat model](docs/threat-model.md) before implementing a
 transport or cryptographic backend.
 

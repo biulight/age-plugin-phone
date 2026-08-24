@@ -10,4 +10,5 @@ permissions = [
     "allow-doctor-cleanup",
     "allow-doctor-pairing-storage",
     "allow-scan-pairing-offer",
+    "allow-pair-phone",
 ]
