@@ -44,4 +44,4 @@ and resealing to a newly generated phone recipient.
 - DPAPI, Keychain, file-key, password, or TOTP fallback on transport failure.
 - Trusting application labels, BLE pairing, or device names as authorization.
 - Logging protocol payloads, recipient stanza bodies, file keys, or plaintext.
-
+- Treating missing, corrupt, mismatched, or full replay state as an empty store.

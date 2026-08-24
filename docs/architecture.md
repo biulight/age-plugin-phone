@@ -54,11 +54,15 @@ Canonical signed messages and the one-time desktop session response envelope are
 recorded in [`ADR 0002`](adr/0002-experimental-offline-envelope.md). The protocol crate owns this
 logic; transports carry opaque canonical bytes and do not redefine authentication or key binding.
 
+Durable replay consumption is specified in
+[`ADR 0003`](adr/0003-persistent-replay-state.md). The protocol crate provides a scoped, bounded,
+atomically replaced Unix file backend; the in-memory guard is test-only.
+
 A wrapped native X25519 identity remains a separately reviewed fallback candidate for platforms
 that cannot expose a suitable non-exportable operation. It is not enabled on the verified Android
 path. Canonical pairing/request encoding and complete Rust/Kotlin protocol vectors now exist;
-persistent replay-state design and independent review are still required before the wire format is
-stabilized.
+pairing/native-path integration of persistent replay state and independent review are still
+required before the wire format is stabilized.
 
 ## Transport strategy
 

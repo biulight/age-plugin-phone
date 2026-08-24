@@ -80,6 +80,7 @@ dependencies = [
  "minicbor",
  "p256",
  "rand_core",
+ "rustix",
  "serde",
  "serde_json",
  "sha2",

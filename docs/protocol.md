@@ -35,7 +35,9 @@ Each request contains:
 - a desktop signature over the canonical request.
 
 The phone hashes the canonical request, displays its paired device and request fingerprint, and
-requires a fresh system user-verification gesture. Approval is never cached.
+durably consumes its request ID and nonce before requiring a fresh system user-verification
+gesture. Approval is never cached. Missing, corrupt, full, mismatched, or unavailable replay state
+fails closed before a prompt appears.
 
 ## Unwrap response
 
@@ -43,7 +45,16 @@ The response contains the request identifier and digest, a fresh nonce, and only
 encrypted to the request's one-time session public key. It is signed by the paired phone key.
 
 The desktop rejects a response if any binding, signature, expiry, algorithm, identity, nonce, or
-request digest differs. A response is consumed at most once.
+request digest differs. After authenticating the ciphertext it durably consumes the response digest
+before returning the file key. A response is consumed at most once.
+
+## Replay state
+
+Persistent consumption is specified in
+[`ADR 0003`](adr/0003-persistent-replay-state.md). State is bound to one pairing and endpoint role,
+has a clock high-water mark and hard capacity, and stores only request IDs/nonces or response
+digests through the request expiry. Opening missing state never silently creates an empty store.
+The in-memory guard is for deterministic tests only.
 
 ## Encoding
 

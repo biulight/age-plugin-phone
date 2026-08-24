@@ -20,11 +20,13 @@
 - [x] Cross-check the canonical signed request/encrypted response vector in Kotlin.
 - [x] Validate a live StrongBox unwrap through the request-bound encrypted response path.
 - [x] Publish and cross-check the complete pairing transcript vector in Kotlin.
+- [x] Specify and implement bounded, crash-safe replay-consumption state.
 - [ ] Obtain independent cryptographic review before stabilizing version 1.
 
 ## Milestone 2: bidirectional QR prototype
 
 - [x] Select Tauri 2 as the mobile application shell with an untrusted, presentation-only WebView.
+- [ ] Commit pairing state and its replay scope atomically in app-private storage.
 - [ ] Implement QR fragmentation and animated-frame handling.
 - [ ] Implement desktop pairing and public identity stub creation.
 - [ ] Implement one request/response file-key unwrap with fresh user verification.

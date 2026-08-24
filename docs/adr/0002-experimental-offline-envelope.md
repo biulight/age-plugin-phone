@@ -108,10 +108,11 @@ is consumed at most once.
 - Captured responses cannot be moved to another request, identity, desktop, or one-time session key.
 - Caller labels remain display-only and are nevertheless signed to prevent post-signature UI
   substitution.
-- The prototype replay guard is in-memory state owned by the paired endpoint, not an authorization
-  cache. Persistence, bounding, and crash-safe consumption are production design work.
-- Production remains blocked on persistent replay-state design, complete lifecycle tests, and
-  independent cryptographic review.
+- Durable replay consumption is defined by
+  [`ADR 0003`](0003-persistent-replay-state.md). The bounded file backend commits before a verified
+  request or decrypted file key is released; the in-memory guard remains test-only.
+- Production remains blocked on pairing/mobile integration of persistent replay state, complete
+  lifecycle tests, and independent cryptographic review.
 
 ## Cross-language evidence
 

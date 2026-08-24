@@ -2,8 +2,6 @@
 
 #![allow(clippy::missing_errors_doc)]
 
-use std::collections::HashSet;
-
 use age_plugin_phone_recipient_p256::{Recipient, TaggedStanza, validate_stanza};
 use chacha20poly1305::{
     ChaCha20Poly1305, KeyInit as _, Nonce,
@@ -24,6 +22,12 @@ use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest as _, Sha256};
 use thiserror::Error;
 use zeroize::{Zeroize as _, Zeroizing};
+
+mod replay;
+
+#[cfg(unix)]
+pub use replay::FileReplayGuard;
+pub use replay::{DEFAULT_REPLAY_CAPACITY, ReplayGuard, ReplayRole, ReplayScope, ReplayStore};
 
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const ALGORITHM_SUITE: u16 = 1;
@@ -70,6 +74,12 @@ pub enum Error {
     LifetimeTooLong,
     #[error("replayed request or response")]
     Replay,
+    #[error("wall clock moved backwards relative to replay state")]
+    ClockRollback,
+    #[error("replay-state capacity exhausted")]
+    ReplayCapacity,
+    #[error("replay state is unavailable, corrupt, mismatched, or not durable")]
+    ReplayState,
     #[error("invalid recipient stanza")]
     InvalidRecipientStanza,
     #[error("response binding mismatch")]
@@ -150,13 +160,6 @@ pub struct PairingRecord {
     pub identity_id: Id,
     pub desktop_signing_public_key: EncodedPublicKey,
     pub phone_signing_public_key: EncodedPublicKey,
-}
-
-#[derive(Default)]
-pub struct ReplayGuard {
-    requests: HashSet<Id>,
-    nonces: HashSet<ProtocolNonce>,
-    responses: HashSet<ProtocolDigest>,
 }
 
 #[derive(Clone, Debug)]
@@ -277,38 +280,48 @@ impl ReplayGuard {
         pairing: &PairingRecord,
         now: u64,
     ) -> Result<VerifiedRequest, Error> {
-        validate_request(&request.payload)?;
-        if request.payload.desktop_id != pairing.desktop_id {
-            return Err(Error::WrongDesktop);
-        }
-        if request.payload.identity_id != pairing.identity_id {
-            return Err(Error::WrongIdentity);
-        }
-        if request.payload.expires_at_unix < now {
-            return Err(Error::Expired);
-        }
-        if request.payload.expires_at_unix > now.saturating_add(MAX_REQUEST_LIFETIME_SECS) {
-            return Err(Error::LifetimeTooLong);
-        }
-        verify(
-            &verifying(&pairing.desktop_signing_public_key)?,
-            REQUEST_SIG,
-            &encode_request(&request.payload),
-            &request.signature,
-        )?;
-        if self.requests.contains(&request.payload.request_id)
-            || self.nonces.contains(&request.payload.nonce)
-        {
-            return Err(Error::Replay);
-        }
-        let digest = hash(REQUEST_DIGEST, &request.encode());
-        self.requests.insert(request.payload.request_id);
-        self.nonces.insert(request.payload.nonce);
-        Ok(VerifiedRequest {
-            signed: request,
-            digest,
-        })
+        verify_request_with_replay(request, pairing, now, self)
     }
+}
+
+pub fn verify_request_with_replay(
+    request: SignedUnwrapRequest,
+    pairing: &PairingRecord,
+    now: u64,
+    replay: &mut (impl ReplayStore + ?Sized),
+) -> Result<VerifiedRequest, Error> {
+    validate_request(&request.payload)?;
+    if request.payload.desktop_id != pairing.desktop_id {
+        return Err(Error::WrongDesktop);
+    }
+    if request.payload.identity_id != pairing.identity_id {
+        return Err(Error::WrongIdentity);
+    }
+    if request.payload.expires_at_unix < now {
+        return Err(Error::Expired);
+    }
+    if request.payload.expires_at_unix > now.saturating_add(MAX_REQUEST_LIFETIME_SECS) {
+        return Err(Error::LifetimeTooLong);
+    }
+    verify(
+        &verifying(&pairing.desktop_signing_public_key)?,
+        REQUEST_SIG,
+        &encode_request(&request.payload),
+        &request.signature,
+    )?;
+    let digest = hash(REQUEST_DIGEST, &request.encode());
+    replay.consume_request(
+        pairing.desktop_id,
+        pairing.identity_id,
+        request.payload.request_id,
+        request.payload.nonce,
+        request.payload.expires_at_unix,
+        now,
+    )?;
+    Ok(VerifiedRequest {
+        signed: request,
+        digest,
+    })
 }
 
 impl VerifiedRequest {
@@ -383,8 +396,12 @@ pub fn open_response(
     request: &VerifiedRequest,
     pairing: &PairingRecord,
     desktop_session: &SecretKey,
-    replay: &mut ReplayGuard,
+    replay: &mut (impl ReplayStore + ?Sized),
+    now: u64,
 ) -> Result<Zeroizing<[u8; 16]>, Error> {
+    if request.payload().expires_at_unix < now {
+        return Err(Error::Expired);
+    }
     let p = &response.payload;
     if p.request_id != request.payload().request_id
         || p.request_digest != request.digest()
@@ -406,23 +423,30 @@ pub fn open_response(
     let key = session_key(shared.raw_secret_bytes(), &p.request_digest, &p.nonce)?;
     let cipher =
         ChaCha20Poly1305::new_from_slice(key.as_slice()).map_err(|_| Error::KeyDerivation)?;
-    let plaintext = cipher
-        .decrypt(
-            Nonce::from_slice(&[0; 12]),
-            Payload {
-                msg: &p.encrypted_file_key,
-                aad: &response_aad(p),
-            },
-        )
-        .map_err(|_| Error::Decryption)?;
-    let file_key = plaintext.try_into().map_err(|_| Error::Decryption)?;
-    if !replay
-        .responses
-        .insert(hash(RESPONSE_SIG, &response.encode()))
-    {
-        return Err(Error::Replay);
+    let plaintext = Zeroizing::new(
+        cipher
+            .decrypt(
+                Nonce::from_slice(&[0; 12]),
+                Payload {
+                    msg: &p.encrypted_file_key,
+                    aad: &response_aad(p),
+                },
+            )
+            .map_err(|_| Error::Decryption)?,
+    );
+    if plaintext.len() != 16 {
+        return Err(Error::Decryption);
     }
-    Ok(Zeroizing::new(file_key))
+    let mut file_key = Zeroizing::new([0; 16]);
+    file_key.copy_from_slice(&plaintext);
+    replay.consume_response(
+        pairing.desktop_id,
+        pairing.identity_id,
+        hash(RESPONSE_SIG, &response.encode()),
+        request.payload().expires_at_unix,
+        now,
+    )?;
+    Ok(file_key)
 }
 
 fn seal_shared(
@@ -937,6 +961,31 @@ mod tests {
         }
         assert_eq!(borrow, 0);
     }
+    struct FailingReplayStore;
+    impl ReplayStore for FailingReplayStore {
+        fn consume_request(
+            &mut self,
+            _desktop_id: Id,
+            _identity_id: Id,
+            _request_id: Id,
+            _nonce: ProtocolNonce,
+            _expires_at_unix: u64,
+            _now_unix: u64,
+        ) -> Result<(), Error> {
+            Err(Error::ReplayState)
+        }
+
+        fn consume_response(
+            &mut self,
+            _desktop_id: Id,
+            _identity_id: Id,
+            _response_digest: ProtocolDigest,
+            _expires_at_unix: u64,
+            _now_unix: u64,
+        ) -> Result<(), Error> {
+            Err(Error::ReplayState)
+        }
+    }
     #[test]
     fn round_trip_and_replay() {
         use base64::{Engine as _, engine::general_purpose::STANDARD_NO_PAD};
@@ -965,11 +1014,11 @@ mod tests {
         );
         let mut rg = ReplayGuard::default();
         assert_eq!(
-            *open_response(&response, &verified, &p, &s, &mut rg).unwrap(),
+            *open_response(&response, &verified, &p, &s, &mut rg, 1_000_000).unwrap(),
             F
         );
         assert_eq!(
-            open_response(&response, &verified, &p, &s, &mut rg).unwrap_err(),
+            open_response(&response, &verified, &p, &s, &mut rg, 1_000_000).unwrap_err(),
             Error::Replay
         );
     }
@@ -1000,10 +1049,63 @@ mod tests {
         );
         let mut response =
             seal_response_with_ephemeral(&verified, &F, &ps, &sk(6), [0x66; 32]).unwrap();
+        assert_eq!(
+            open_response(
+                &response,
+                &verified,
+                &p,
+                &s,
+                &mut ReplayGuard::default(),
+                1_000_301,
+            )
+            .unwrap_err(),
+            Error::Expired
+        );
         response.payload.request_digest[0] ^= 1;
         assert_eq!(
-            open_response(&response, &verified, &p, &s, &mut ReplayGuard::default()).unwrap_err(),
+            open_response(
+                &response,
+                &verified,
+                &p,
+                &s,
+                &mut ReplayGuard::default(),
+                1_000_000,
+            )
+            .unwrap_err(),
             Error::BindingMismatch
+        );
+    }
+    #[test]
+    fn replay_storage_failure_never_falls_back() {
+        let (request, pairing, desktop_session, phone_signing) = fixture();
+        assert_eq!(
+            verify_request_with_replay(
+                request.clone(),
+                &pairing,
+                1_000_000,
+                &mut FailingReplayStore,
+            )
+            .unwrap_err(),
+            Error::ReplayState
+        );
+
+        let verified = ReplayGuard::default()
+            .verify_request(request, &pairing, 1_000_000)
+            .unwrap();
+        let response =
+            seal_response_with_ephemeral(&verified, &F, &phone_signing, &sk(6), [0x66; 32])
+                .unwrap();
+        assert_eq!(
+            open_response(
+                &response,
+                &verified,
+                &pairing,
+                &desktop_session,
+                &mut FailingReplayStore,
+                1_000_000,
+            )
+            .unwrap_err(),
+            Error::ReplayState
         );
     }
     #[test]
