@@ -16,14 +16,14 @@ struct ProjectStatus {
 fn project_status() -> ProjectStatus {
     ProjectStatus {
         stage: if cfg!(debug_assertions) {
-            "strongbox-poc"
+            "pairing-key-custody"
         } else {
             "scaffold-only"
         },
         protocol_version: PROTOCOL_VERSION,
         qr_transport: "native capture prototype",
         ble_transport: "not implemented",
-        key_backend: "StrongBox probe only",
+        key_backend: "StrongBox dual-key custody validated",
         doctor_enabled: cfg!(debug_assertions),
     }
 }

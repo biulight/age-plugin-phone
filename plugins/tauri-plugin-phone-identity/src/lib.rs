@@ -1,8 +1,8 @@
 mod models;
 
 pub use models::{
-    AgreementReport, CapabilityReport, CleanupReport, PairingOfferScanReport, PairingStorageReport,
-    ProbeKeyReport,
+    AgreementReport, CapabilityReport, CleanupReport, IdentityCustodyReport,
+    PairingOfferScanReport, PairingStorageReport, ProbeKeyReport,
 };
 
 #[cfg(not(target_os = "android"))]
@@ -61,6 +61,36 @@ fn doctor_capabilities<R: Runtime>(
         secure_lock_screen: false,
         key_agreement_crypto_object: false,
         leftover_probe_key: false,
+        error_category: Some("unsupported_api".into()),
+    })
+}
+
+#[tauri::command]
+#[allow(clippy::unnecessary_wraps)]
+fn doctor_identity_custody<R: Runtime>(
+    _app: AppHandle<R>,
+    _identity: State<'_, PhoneIdentity<R>>,
+) -> Result<IdentityCustodyReport, Error> {
+    #[cfg(target_os = "android")]
+    return _identity.doctor_identity_custody();
+
+    #[cfg(not(target_os = "android"))]
+    Ok(IdentityCustodyReport {
+        no_backup_storage: false,
+        identity_strong_box: false,
+        identity_agree_only: false,
+        identity_auth_per_use: false,
+        identity_biometric_strong: false,
+        signing_strong_box: false,
+        signing_purpose_sign_only: false,
+        signing_no_user_auth: false,
+        private_keys_non_exportable: false,
+        keys_distinct: false,
+        metadata_bound: false,
+        reopened: false,
+        duplicate_rejected: false,
+        preparing_recovered: false,
+        cleanup_complete: true,
         error_category: Some("unsupported_api".into()),
     })
 }
@@ -182,6 +212,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("phone-identity")
         .invoke_handler(tauri::generate_handler![
             doctor_capabilities,
+            doctor_identity_custody,
             doctor_create_probe,
             doctor_run_agreement,
             doctor_cleanup,

@@ -4,6 +4,7 @@
 description = "Allows the development-only StrongBox doctor commands."
 permissions = [
     "allow-doctor-capabilities",
+    "allow-doctor-identity-custody",
     "allow-doctor-create-probe",
     "allow-doctor-run-agreement",
     "allow-doctor-cleanup",

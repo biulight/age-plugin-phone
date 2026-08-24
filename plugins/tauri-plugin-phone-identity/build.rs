@@ -1,5 +1,6 @@
 const COMMANDS: &[&str] = &[
     "doctor_capabilities",
+    "doctor_identity_custody",
     "doctor_create_probe",
     "doctor_run_agreement",
     "doctor_cleanup",

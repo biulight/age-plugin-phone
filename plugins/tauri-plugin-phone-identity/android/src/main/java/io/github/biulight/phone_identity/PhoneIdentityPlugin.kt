@@ -51,6 +51,11 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     @Command
+    fun doctorIdentityCustody(invoke: Invoke) {
+        invoke.resolve(doctor.identityCustody())
+    }
+
+    @Command
     fun doctorCreateProbe(invoke: Invoke) {
         if (!doctor.strongBiometricAvailable()) {
             invoke.resolve(ProbeKeyStore.emptyProbeReport("strong_biometric_unavailable"))

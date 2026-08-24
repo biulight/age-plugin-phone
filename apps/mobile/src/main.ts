@@ -22,6 +22,25 @@ interface CapabilityReport {
   errorCategory: string | null;
 }
 
+interface IdentityCustodyReport {
+  noBackupStorage: boolean;
+  identityStrongBox: boolean;
+  identityAgreeOnly: boolean;
+  identityAuthPerUse: boolean;
+  identityBiometricStrong: boolean;
+  signingStrongBox: boolean;
+  signingPurposeSignOnly: boolean;
+  signingNoUserAuth: boolean;
+  privateKeysNonExportable: boolean;
+  keysDistinct: boolean;
+  metadataBound: boolean;
+  reopened: boolean;
+  duplicateRejected: boolean;
+  preparingRecovered: boolean;
+  cleanupComplete: boolean;
+  errorCategory: string | null;
+}
+
 interface ProbeKeyReport {
   generated: boolean;
   securityLevel: string;
@@ -81,6 +100,7 @@ interface PairingOfferScanReport {
 
 type DoctorReport =
   | CapabilityReport
+  | IdentityCustodyReport
   | ProbeKeyReport
   | AgreementReport
   | CleanupReport
@@ -117,6 +137,7 @@ app.innerHTML = `
       </div>
       <div class="actions" aria-label="StrongBox probe actions">
         <button data-action="capabilities">Check capabilities</button>
+        <button data-action="identityCustody">Test production key custody</button>
         <button data-action="create">Create probe key</button>
         <button data-action="agreement1">Run tagged unwrap #1</button>
         <button data-action="agreement2">Run tagged unwrap #2</button>
@@ -188,6 +209,7 @@ actionButtons.forEach((button) => {
     const action = button.dataset.action;
     const commands: Record<string, string> = {
       capabilities: "doctor_capabilities",
+      identityCustody: "doctor_identity_custody",
       create: "doctor_create_probe",
       agreement1: "doctor_run_agreement",
       agreement2: "doctor_run_agreement",
@@ -227,6 +249,27 @@ actionButtons.forEach((button) => {
           replayRejectedAfterReopen: false,
           wrongScopeRejected: false,
           missingStateRejectedAfterDelete: false,
+          cleanupComplete: false,
+          errorCategory: "bridge_unavailable",
+        });
+        return;
+      }
+      if (action === "identityCustody") {
+        showReport(action, {
+          noBackupStorage: false,
+          identityStrongBox: false,
+          identityAgreeOnly: false,
+          identityAuthPerUse: false,
+          identityBiometricStrong: false,
+          signingStrongBox: false,
+          signingPurposeSignOnly: false,
+          signingNoUserAuth: false,
+          privateKeysNonExportable: false,
+          keysDistinct: false,
+          metadataBound: false,
+          reopened: false,
+          duplicateRejected: false,
+          preparingRecovered: false,
           cleanupComplete: false,
           errorCategory: "bridge_unavailable",
         });

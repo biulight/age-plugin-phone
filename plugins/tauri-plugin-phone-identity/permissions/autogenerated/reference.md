@@ -5,6 +5,7 @@ Allows the development-only StrongBox doctor commands.
 #### This default permission set includes the following:
 
 - `allow-doctor-capabilities`
+- `allow-doctor-identity-custody`
 - `allow-doctor-create-probe`
 - `allow-doctor-run-agreement`
 - `allow-doctor-cleanup`
@@ -94,6 +95,32 @@ Enables the doctor_create_probe command without any pre-configured scope.
 <td>
 
 Denies the doctor_create_probe command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:allow-doctor-identity-custody`
+
+</td>
+<td>
+
+Enables the doctor_identity_custody command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:deny-doctor-identity-custody`
+
+</td>
+<td>
+
+Denies the doctor_identity_custody command without any pre-configured scope.
 
 </td>
 </tr>

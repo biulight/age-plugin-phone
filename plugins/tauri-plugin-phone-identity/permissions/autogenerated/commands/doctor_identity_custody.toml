@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-doctor-identity-custody"
+description = "Enables the doctor_identity_custody command without any pre-configured scope."
+commands.allow = ["doctor_identity_custody"]
+
+[[permission]]
+identifier = "deny-doctor-identity-custody"
+description = "Denies the doctor_identity_custody command without any pre-configured scope."
+commands.deny = ["doctor_identity_custody"]

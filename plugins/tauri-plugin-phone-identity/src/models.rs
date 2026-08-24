@@ -18,6 +18,28 @@ pub struct CapabilityReport {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[allow(clippy::struct_excessive_bools)]
+pub struct IdentityCustodyReport {
+    pub no_backup_storage: bool,
+    pub identity_strong_box: bool,
+    pub identity_agree_only: bool,
+    pub identity_auth_per_use: bool,
+    pub identity_biometric_strong: bool,
+    pub signing_strong_box: bool,
+    pub signing_purpose_sign_only: bool,
+    pub signing_no_user_auth: bool,
+    pub private_keys_non_exportable: bool,
+    pub keys_distinct: bool,
+    pub metadata_bound: bool,
+    pub reopened: bool,
+    pub duplicate_rejected: bool,
+    pub preparing_recovered: bool,
+    pub cleanup_complete: bool,
+    pub error_category: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 // These booleans mirror distinct KeyInfo assertions; collapsing them would hide evidence.
 #[allow(clippy::struct_excessive_bools)]
 pub struct ProbeKeyReport {
