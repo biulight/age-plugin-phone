@@ -1,0 +1,28 @@
+{
+  "schema": "age-plugin-phone/pairing-transcript-test-vector/v1",
+  "warning": "All scalar and protocol values are public deterministic test data and must never be used for real pairing.",
+  "desktop_signing_scalar": 1,
+  "phone_signing_scalar": 2,
+  "identity_scalar": 3,
+  "desktop_id_hex": "11111111111111111111111111111111",
+  "identity_id_hex": "22222222222222222222222222222222",
+  "desktop_label": "desktop",
+  "offer_nonce_hex": "0707070707070707070707070707070707070707070707070707070707070707",
+  "response_nonce_hex": "0808080808080808080808080808080808080808080808080808080808080808",
+  "desktop_signing_public_key_base64": "A2sX0fLhLEJH+Lzm5WOkQPJ3A32BLeszoPShOUXYmMKW",
+  "phone_signing_public_key_base64": "A3zyexiNA09+ilI4AwS1GsPAiWnid/IbNaYLSPxHZpl4",
+  "recipient": "age1phone1qyp9ajly6xnrxzjyerm7l9gaf0cktekxkus7ltdfsha5zesmcmnl6mqlcfacm",
+  "signed_offer_base64": "glhihwEBAVARERERERERERERERERERERZ2Rlc2t0b3BYIQNrF9Hy4SxCR/i85uVjpEDydwN9gS3rM6D0oTlF2JjCllggBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwdYQDkOj/PMgNqNPup1mVVJ5vD14Rpal1OjGwvKBJjXAoi5f6ekjD0FGTtvsJpVawcMS/NcQg+PnIZNKH44DkscNko",
+  "offer_digest_base64": "wNkQWpl/07Pkeij5I+hq3e8xHuT+yD0qHJCB0NdvVqQ",
+  "signed_response_base64": "gljFiAECAVAiIiIiIiIiIiIiIiIiIiIieEdhZ2UxcGhvbmUxcXlwOWFqbHk2eG5yeHpqeWVybTdsOWdhZjBja3Rla3hrdXM3bHRkZnNoYTV6ZXNtY21ubDZtcWxjZmFjbVghA3zyexiNA09+ilI4AwS1GsPAiWnid/IbNaYLSPxHZpl4WCDA2RBamX/Ts+R6KPkj6Grd7zEe5P7IPSockIHQ129WpFggCAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAhYQEvdcxcnC/QuTT2bEGGIP6vp2GACGFGQ1PsTNXeXWxukYl5JOEPd5Ts0MIuimE+EEMpBgwEcx1G2nBf4STrjcAI",
+  "fingerprint_base64": "8tS2itdc+h3QpCRRQTfaP92JdZ3D4wlerEe+0bIWrm0",
+  "required_negative_mutations": [
+    "unknown protocol version, algorithm suite, message type, or extra field",
+    "non-canonical CBOR",
+    "modified or high-S offer signature",
+    "modified or high-S response signature",
+    "response bound to a different signed offer",
+    "wrong recipient HRP, version, checksum, length, or P-256 point",
+    "oversized untrusted desktop label"
+  ]
+}

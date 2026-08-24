@@ -19,7 +19,7 @@
 - [x] Publish a deterministic signed request/encrypted response test vector.
 - [x] Cross-check the canonical signed request/encrypted response vector in Kotlin.
 - [x] Validate a live StrongBox unwrap through the request-bound encrypted response path.
-- [ ] Publish and cross-check the complete pairing transcript vector in Kotlin.
+- [x] Publish and cross-check the complete pairing transcript vector in Kotlin.
 - [ ] Obtain independent cryptographic review before stabilizing version 1.
 
 ## Milestone 2: bidirectional QR prototype

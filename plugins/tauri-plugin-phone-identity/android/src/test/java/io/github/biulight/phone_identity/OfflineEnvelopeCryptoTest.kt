@@ -18,6 +18,70 @@ class OfflineEnvelopeCryptoTest {
     private val vector = ObjectMapper().readTree(
         requireNotNull(javaClass.classLoader?.getResourceAsStream("offline-envelope-v1.json")),
     )
+    private val pairingVector = ObjectMapper().readTree(
+        requireNotNull(javaClass.classLoader?.getResourceAsStream("pairing-transcript-v1.json")),
+    )
+
+    @Test
+    fun verifiesSharedRustPairingTranscriptVector() {
+        val offer = OfflineEnvelopeCrypto.verifyPairingOffer(
+            base64(pairingVector["signed_offer_base64"].asText()),
+        )
+        val response = OfflineEnvelopeCrypto.verifyPairingResponse(
+            base64(pairingVector["signed_response_base64"].asText()),
+            offer,
+        )
+        assertArrayEquals(hex(pairingVector["desktop_id_hex"].asText()), offer.offer.desktopId)
+        assertArrayEquals(
+            base64(pairingVector["desktop_signing_public_key_base64"].asText()),
+            TaggedRecipientCrypto.encodeCompressed(offer.offer.desktopSigningPublicKey),
+        )
+        assertArrayEquals(base64(pairingVector["offer_digest_base64"].asText()), offer.digest)
+        assertArrayEquals(hex(pairingVector["identity_id_hex"].asText()), response.response.identityId)
+        assertArrayEquals(
+            base64(pairingVector["phone_signing_public_key_base64"].asText()),
+            TaggedRecipientCrypto.encodeCompressed(response.response.phoneSigningPublicKey),
+        )
+        assertArrayEquals(
+            base64(pairingVector["fingerprint_base64"].asText()),
+            OfflineEnvelopeCrypto.pairingFingerprint(offer, response),
+        )
+        org.junit.Assert.assertEquals(pairingVector["desktop_label"].asText(), offer.offer.desktopLabel)
+        org.junit.Assert.assertEquals(pairingVector["recipient"].asText(), response.response.recipient)
+    }
+
+    @Test
+    fun rejectsMalformedTamperedAndWrongOfferPairingMessages() {
+        val offerBytes = base64(pairingVector["signed_offer_base64"].asText())
+        val responseBytes = base64(pairingVector["signed_response_base64"].asText())
+        val offer = OfflineEnvelopeCrypto.verifyPairingOffer(offerBytes)
+
+        assertProtocolFailure(offerBytes + byteArrayOf(0), true)
+        assertProtocolFailure(offerBytes.copyOf().also { it[it.lastIndex] = (it.last().toInt() xor 1).toByte() }, true)
+        assertProtocolFailure(makeHighS(offerBytes), true)
+
+        val unknownVersion = offerBytes.copyOf()
+        val header = byteArrayOf(0x87.toByte(), 0x01, 0x01, 0x01)
+        val headerOffset = indexOf(unknownVersion, header)
+        org.junit.Assert.assertTrue(headerOffset >= 0)
+        unknownVersion[headerOffset + 1] = 2
+        assertProtocolFailure(unknownVersion, true)
+
+        assertThrows(OfflineEnvelopeCrypto.ProtocolException::class.java) {
+            OfflineEnvelopeCrypto.verifyPairingResponse(
+                responseBytes,
+                offer.copy(digest = offer.digest.copyOf().also { it[0] = (it[0].toInt() xor 1).toByte() }),
+            )
+        }
+        assertProtocolFailure(responseBytes.copyOf().also { it[it.lastIndex] = (it.last().toInt() xor 1).toByte() }, false, offer)
+        assertProtocolFailure(makeHighS(responseBytes), false, offer)
+
+        val invalidRecipient = responseBytes.copyOf()
+        val recipientOffset = indexOf(invalidRecipient, pairingVector["recipient"].asText().toByteArray())
+        org.junit.Assert.assertTrue(recipientOffset >= 0)
+        invalidRecipient[recipientOffset] = 'b'.code.toByte()
+        assertProtocolFailure(invalidRecipient, false, offer)
+    }
 
     @Test
     fun verifiesAndDecryptsSharedRustVector() {
@@ -114,6 +178,46 @@ class OfflineEnvelopeCryptoTest {
         }.mod(p)
         val x = slope.pow(2).subtract(left.affineX).subtract(right.affineX).mod(p)
         return ECPoint(x, slope.multiply(left.affineX.subtract(x)).subtract(left.affineY).mod(p))
+    }
+
+    private fun assertProtocolFailure(
+        encoded: ByteArray,
+        offerMessage: Boolean,
+        offer: OfflineEnvelopeCrypto.VerifiedPairingOffer? = null,
+    ) {
+        assertThrows(OfflineEnvelopeCrypto.ProtocolException::class.java) {
+            if (offerMessage) {
+                OfflineEnvelopeCrypto.verifyPairingOffer(encoded)
+            } else {
+                OfflineEnvelopeCrypto.verifyPairingResponse(encoded, requireNotNull(offer))
+            }
+        }
+    }
+
+    private fun makeHighS(encoded: ByteArray): ByteArray {
+        val order = hex("ffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551")
+        return encoded.copyOf().also { result ->
+            var borrow = 0
+            for (index in 31 downTo 0) {
+                val minuend = order[index].toInt() and 0xff
+                val subtrahend = (result[result.size - 32 + index].toInt() and 0xff) + borrow
+                if (minuend >= subtrahend) {
+                    result[result.size - 32 + index] = (minuend - subtrahend).toByte()
+                    borrow = 0
+                } else {
+                    result[result.size - 32 + index] = (minuend + 256 - subtrahend).toByte()
+                    borrow = 1
+                }
+            }
+            org.junit.Assert.assertEquals(0, borrow)
+        }
+    }
+
+    private fun indexOf(value: ByteArray, needle: ByteArray): Int {
+        for (offset in 0..value.size - needle.size) {
+            if (needle.indices.all { value[offset + it] == needle[it] }) return offset
+        }
+        return -1
     }
 
     private fun base64(value: String): ByteArray = Base64.getDecoder().decode(value)

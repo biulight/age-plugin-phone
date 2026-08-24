@@ -7,8 +7,9 @@ The experimental P-256 file-key wrapping construction is specified separately by
 response wire encoding described here.
 
 The experimental canonical pairing/request and encrypted response envelope is specified by
-[`ADR 0002`](adr/0002-experimental-offline-envelope.md). It is implemented for deterministic Rust
-testing but remains unsuitable for real secrets or transport compatibility commitments.
+[`ADR 0002`](adr/0002-experimental-offline-envelope.md). Its pairing and unwrap transcripts have
+deterministic Rust/Kotlin interoperability vectors, but it remains unsuitable for real secrets or
+transport compatibility commitments.
 
 ## Pairing
 

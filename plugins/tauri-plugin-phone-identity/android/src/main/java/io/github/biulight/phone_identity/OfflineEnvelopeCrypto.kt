@@ -22,15 +22,47 @@ import javax.crypto.spec.SecretKeySpec
 internal object OfflineEnvelopeCrypto {
     private const val VERSION = 1
     private const val SUITE = 1
+    private const val OFFER_TYPE = 1
+    private const val PAIRING_RESPONSE_TYPE = 2
     private const val REQUEST_TYPE = 3
     private const val RESPONSE_TYPE = 4
     private const val MAX_LIFETIME_SECONDS = 300L
+    private val offerSignatureDomain = ascii("age-plugin-phone/pairing-offer-signature/v1")
+    private val pairingSignatureDomain = ascii("age-plugin-phone/pairing-response-signature/v1")
     private val requestSignatureDomain = ascii("age-plugin-phone/unwrap-request-signature/v1")
     private val responseSignatureDomain = ascii("age-plugin-phone/unwrap-response-signature/v1")
+    private val offerDigestDomain = ascii("age-plugin-phone/pairing-offer-digest/v1")
+    private val fingerprintDomain = ascii("age-plugin-phone/pairing-fingerprint/v1")
     private val requestDigestDomain = ascii("age-plugin-phone/request-digest/v1")
     private val sessionInfo = ascii("age-plugin-phone/session-response/p256/v1")
     private val cbor = ObjectMapper(CBORFactory())
     private val zeroNonce = ByteArray(12)
+
+    data class PairingOffer(
+        val desktopId: ByteArray,
+        val desktopLabel: String,
+        val desktopSigningPublicKey: PublicKey,
+        val nonce: ByteArray,
+    )
+
+    data class VerifiedPairingOffer(
+        val offer: PairingOffer,
+        val encoded: ByteArray,
+        val digest: ByteArray,
+    )
+
+    data class PairingResponse(
+        val identityId: ByteArray,
+        val recipient: String,
+        val phoneSigningPublicKey: PublicKey,
+        val offerDigest: ByteArray,
+        val nonce: ByteArray,
+    )
+
+    data class VerifiedPairingResponse(
+        val response: PairingResponse,
+        val encoded: ByteArray,
+    )
 
     data class Request(
         val requestId: ByteArray,
@@ -60,6 +92,29 @@ internal object OfflineEnvelopeCrypto {
     )
 
     data class SignedResponse(val response: Response, val encoded: ByteArray)
+
+    fun verifyPairingOffer(encoded: ByteArray): VerifiedPairingOffer {
+        val (payload, signature) = decodeSigned(encoded)
+        val offer = decodePairingOfferPayload(payload)
+        verify(offer.desktopSigningPublicKey, offerSignatureDomain, payload, signature)
+        return VerifiedPairingOffer(offer, encoded.copyOf(), digest(offerDigestDomain, encoded))
+    }
+
+    fun verifyPairingResponse(
+        encoded: ByteArray,
+        offer: VerifiedPairingOffer,
+    ): VerifiedPairingResponse {
+        val (payload, signature) = decodeSigned(encoded)
+        val response = decodePairingResponsePayload(payload)
+        if (!MessageDigest.isEqual(response.offerDigest, offer.digest)) throw ProtocolException()
+        verify(response.phoneSigningPublicKey, pairingSignatureDomain, payload, signature)
+        return VerifiedPairingResponse(response, encoded.copyOf())
+    }
+
+    fun pairingFingerprint(
+        offer: VerifiedPairingOffer,
+        response: VerifiedPairingResponse,
+    ): ByteArray = digest(fingerprintDomain, offer.encoded + response.encoded)
 
     fun createSignedRequest(
         stanza: TaggedRecipientCrypto.Stanza,
@@ -167,6 +222,31 @@ internal object OfflineEnvelopeCrypto {
         }
     }
 
+    private fun decodePairingOfferPayload(encoded: ByteArray): PairingOffer {
+        val n = strictArray(encoded, 7)
+        header(n, OFFER_TYPE)
+        return PairingOffer(
+            bytes(n[3], 16),
+            text(n[4], 64),
+            TaggedRecipientCrypto.decodeCompressed(bytes(n[5], 33)),
+            bytes(n[6], 32),
+        )
+    }
+
+    private fun decodePairingResponsePayload(encoded: ByteArray): PairingResponse {
+        val n = strictArray(encoded, 8)
+        header(n, PAIRING_RESPONSE_TYPE)
+        val recipient = text(n[4], 160)
+        validateRecipient(recipient)
+        return PairingResponse(
+            bytes(n[3], 16),
+            recipient,
+            TaggedRecipientCrypto.decodeCompressed(bytes(n[5], 33)),
+            bytes(n[6], 32),
+            bytes(n[7], 32),
+        )
+    }
+
     private fun encodeRequestPayload(value: Request): ByteArray = encodeArray {
         add(VERSION); add(REQUEST_TYPE); add(SUITE); add(value.requestId); add(value.identityId)
         add(value.desktopId); add(TaggedRecipientCrypto.encodeCompressed(value.sessionPublicKey))
@@ -257,6 +337,54 @@ internal object OfflineEnvelopeCrypto {
     private fun unsignedLong(node: JsonNode): Long {
         if (!node.isIntegralNumber || !node.canConvertToLong() || node.longValue() < 0) throw ProtocolException()
         return node.longValue()
+    }
+
+    private fun validateRecipient(value: String) {
+        val charset = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
+        if (value != value.lowercase() || value.length !in 8..90) throw ProtocolException()
+        val separator = value.lastIndexOf('1')
+        if (separator <= 0 || value.substring(0, separator) != "age1phone") throw ProtocolException()
+        val data = value.substring(separator + 1).map { character ->
+            charset.indexOf(character).also { if (it < 0) throw ProtocolException() }
+        }
+        if (data.size < 6 || bech32Polymod(bech32HrpExpand("age1phone") + data) != 1) {
+            throw ProtocolException()
+        }
+        val payload = convertFiveToEight(data.dropLast(6))
+        if (payload.size != 34 || payload[0] != 1.toByte()) throw ProtocolException()
+        TaggedRecipientCrypto.decodeCompressed(payload.copyOfRange(1, payload.size))
+    }
+
+    private fun bech32HrpExpand(value: String): List<Int> =
+        value.map { it.code ushr 5 } + listOf(0) + value.map { it.code and 31 }
+
+    private fun bech32Polymod(values: List<Int>): Int {
+        val generators = intArrayOf(0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3)
+        var checksum = 1
+        for (value in values) {
+            val top = checksum ushr 25
+            checksum = ((checksum and 0x1ffffff) shl 5) xor value
+            for (index in generators.indices) {
+                if ((top ushr index) and 1 != 0) checksum = checksum xor generators[index]
+            }
+        }
+        return checksum
+    }
+
+    private fun convertFiveToEight(values: List<Int>): ByteArray {
+        val output = ArrayList<Byte>()
+        var accumulator = 0
+        var bits = 0
+        for (value in values) {
+            accumulator = ((accumulator shl 5) or value) and 0xfff
+            bits += 5
+            while (bits >= 8) {
+                bits -= 8
+                output.add(((accumulator ushr bits) and 0xff).toByte())
+            }
+        }
+        if (bits >= 5 || ((accumulator shl (8 - bits)) and 0xff) != 0) throw ProtocolException()
+        return output.toByteArray()
     }
 
     private fun sign(key: PrivateKey, domain: ByteArray, payload: ByteArray): ByteArray {

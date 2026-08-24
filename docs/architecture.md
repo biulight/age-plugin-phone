@@ -56,8 +56,9 @@ logic; transports carry opaque canonical bytes and do not redefine authenticatio
 
 A wrapped native X25519 identity remains a separately reviewed fallback candidate for platforms
 that cannot expose a suitable non-exportable operation. It is not enabled on the verified Android
-path. Canonical pairing/request encoding, complete protocol test vectors, and independent review
-are still required before the wire format is stabilized.
+path. Canonical pairing/request encoding and complete Rust/Kotlin protocol vectors now exist;
+persistent replay-state design and independent review are still required before the wire format is
+stabilized.
 
 ## Transport strategy
 

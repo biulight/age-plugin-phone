@@ -881,6 +881,62 @@ mod tests {
         };
         (request, pairing, session, ps)
     }
+    fn pairing_fixture() -> (
+        SignedPairingOffer,
+        SignedPairingResponse,
+        SigningKey,
+        SigningKey,
+    ) {
+        let desktop = sig(1);
+        let phone = sig(2);
+        let offer = SignedPairingOffer::sign(
+            PairingOffer {
+                desktop_id: D,
+                desktop_label: "desktop".into(),
+                desktop_signing_public_key: public_signing(desktop.verifying_key()),
+                nonce: [7; 32],
+            },
+            &desktop,
+        )
+        .unwrap();
+        let response = SignedPairingResponse::sign(
+            PairingResponse {
+                identity_id: I,
+                recipient: Recipient::from_public_key_bytes(
+                    sk(3).public_key().to_encoded_point(true).as_bytes(),
+                )
+                .unwrap()
+                .to_string()
+                .unwrap(),
+                phone_signing_public_key: public_signing(phone.verifying_key()),
+                offer_digest: offer.digest(),
+                nonce: [8; 32],
+            },
+            &phone,
+        )
+        .unwrap();
+        (offer, response, desktop, phone)
+    }
+    fn make_high_s(signature: &mut [u8; 64]) {
+        const ORDER: [u8; 32] = [
+            0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+            0xff, 0xff, 0xbc, 0xe6, 0xfa, 0xad, 0xa7, 0x17, 0x9e, 0x84, 0xf3, 0xb9, 0xca, 0xc2,
+            0xfc, 0x63, 0x25, 0x51,
+        ];
+        let mut borrow = 0_u16;
+        for i in (0..32).rev() {
+            let minuend = u16::from(ORDER[i]);
+            let subtrahend = u16::from(signature[32 + i]) + borrow;
+            if minuend >= subtrahend {
+                signature[32 + i] = u8::try_from(minuend - subtrahend).unwrap();
+                borrow = 0;
+            } else {
+                signature[32 + i] = u8::try_from(minuend + 256 - subtrahend).unwrap();
+                borrow = 1;
+            }
+        }
+        assert_eq!(borrow, 0);
+    }
     #[test]
     fn round_trip_and_replay() {
         use base64::{Engine as _, engine::general_purpose::STANDARD_NO_PAD};
@@ -970,34 +1026,9 @@ mod tests {
     }
     #[test]
     fn pairing_transcript() {
-        let d = sig(1);
-        let p = sig(2);
-        let offer = SignedPairingOffer::sign(
-            PairingOffer {
-                desktop_id: D,
-                desktop_label: "desktop".into(),
-                desktop_signing_public_key: public_signing(d.verifying_key()),
-                nonce: [7; 32],
-            },
-            &d,
-        )
-        .unwrap();
-        let response = SignedPairingResponse::sign(
-            PairingResponse {
-                identity_id: I,
-                recipient: Recipient::from_public_key_bytes(
-                    sk(3).public_key().to_encoded_point(true).as_bytes(),
-                )
-                .unwrap()
-                .to_string()
-                .unwrap(),
-                phone_signing_public_key: public_signing(p.verifying_key()),
-                offer_digest: offer.digest(),
-                nonce: [8; 32],
-            },
-            &p,
-        )
-        .unwrap();
+        use base64::{Engine as _, engine::general_purpose::STANDARD_NO_PAD};
+
+        let (offer, response, desktop, phone) = pairing_fixture();
         SignedPairingOffer::decode(&offer.encode())
             .unwrap()
             .verify()
@@ -1006,6 +1037,109 @@ mod tests {
             .unwrap()
             .verify(&offer)
             .unwrap();
-        assert_ne!(pairing_fingerprint(&offer, &response), [0; 32]);
+        let vector: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../docs/test-vectors/pairing-transcript-v1.json"
+        ))
+        .unwrap();
+        assert_eq!(
+            STANDARD_NO_PAD.encode(offer.encode()),
+            vector["signed_offer_base64"].as_str().unwrap()
+        );
+        assert_eq!(
+            STANDARD_NO_PAD.encode(offer.digest()),
+            vector["offer_digest_base64"].as_str().unwrap()
+        );
+        assert_eq!(
+            STANDARD_NO_PAD.encode(response.encode()),
+            vector["signed_response_base64"].as_str().unwrap()
+        );
+        assert_eq!(
+            STANDARD_NO_PAD.encode(pairing_fingerprint(&offer, &response)),
+            vector["fingerprint_base64"].as_str().unwrap()
+        );
+        assert_eq!(
+            STANDARD_NO_PAD.encode(public_signing(desktop.verifying_key())),
+            vector["desktop_signing_public_key_base64"]
+                .as_str()
+                .unwrap()
+        );
+        assert_eq!(
+            STANDARD_NO_PAD.encode(public_signing(phone.verifying_key())),
+            vector["phone_signing_public_key_base64"].as_str().unwrap()
+        );
+        assert_eq!(
+            response.payload.recipient,
+            vector["recipient"].as_str().unwrap()
+        );
+    }
+    #[test]
+    fn rejects_pairing_tamper_wrong_offer_and_malformed_fields() {
+        let (offer, response, desktop, phone) = pairing_fixture();
+
+        let mut bad_offer = offer.clone();
+        bad_offer.signature[0] ^= 1;
+        assert_eq!(bad_offer.verify().unwrap_err(), Error::InvalidSignature);
+
+        let mut high_s_offer = offer.clone();
+        make_high_s(&mut high_s_offer.signature);
+        assert_eq!(high_s_offer.verify().unwrap_err(), Error::InvalidSignature);
+
+        let mut trailing = offer.encode();
+        trailing.push(0);
+        assert_eq!(
+            SignedPairingOffer::decode(&trailing).unwrap_err(),
+            Error::Malformed
+        );
+
+        let other_offer = SignedPairingOffer::sign(
+            PairingOffer {
+                nonce: [9; 32],
+                ..offer.payload.clone()
+            },
+            &desktop,
+        )
+        .unwrap();
+        assert_eq!(
+            response.verify(&other_offer).unwrap_err(),
+            Error::BindingMismatch
+        );
+
+        let mut bad_response = response.clone();
+        bad_response.signature[0] ^= 1;
+        assert_eq!(
+            bad_response.verify(&offer).unwrap_err(),
+            Error::InvalidSignature
+        );
+
+        let mut high_s_response = response.clone();
+        make_high_s(&mut high_s_response.signature);
+        assert_eq!(
+            high_s_response.verify(&offer).unwrap_err(),
+            Error::InvalidSignature
+        );
+
+        let mut wrong_digest = response.payload.clone();
+        wrong_digest.offer_digest[0] ^= 1;
+        assert_eq!(
+            SignedPairingResponse::sign(wrong_digest, &phone)
+                .unwrap()
+                .verify(&offer)
+                .unwrap_err(),
+            Error::BindingMismatch
+        );
+
+        let mut invalid_recipient = response.payload.clone();
+        invalid_recipient.recipient.make_ascii_uppercase();
+        assert_eq!(
+            SignedPairingResponse::sign(invalid_recipient, &phone).unwrap_err(),
+            Error::InvalidRecipientStanza
+        );
+
+        let mut oversized = offer.payload.clone();
+        oversized.desktop_label = "x".repeat(65);
+        assert_eq!(
+            SignedPairingOffer::sign(oversized, &desktop).unwrap_err(),
+            Error::Malformed
+        );
     }
 }
