@@ -2193,10 +2193,10 @@
           "markdownDescription": "Denies the unminimize command without any pre-configured scope."
         },
         {
-          "description": "Allows the development-only StrongBox doctor commands.\n#### This default permission set includes:\n\n- `allow-doctor-capabilities`\n- `allow-doctor-create-probe`\n- `allow-doctor-run-agreement`\n- `allow-doctor-cleanup`\n- `allow-doctor-pairing-storage`",
+          "description": "Allows the development-only StrongBox doctor commands.\n#### This default permission set includes:\n\n- `allow-doctor-capabilities`\n- `allow-doctor-create-probe`\n- `allow-doctor-run-agreement`\n- `allow-doctor-cleanup`\n- `allow-doctor-pairing-storage`\n- `allow-scan-pairing-offer`",
           "type": "string",
           "const": "phone-identity:default",
-          "markdownDescription": "Allows the development-only StrongBox doctor commands.\n#### This default permission set includes:\n\n- `allow-doctor-capabilities`\n- `allow-doctor-create-probe`\n- `allow-doctor-run-agreement`\n- `allow-doctor-cleanup`\n- `allow-doctor-pairing-storage`"
+          "markdownDescription": "Allows the development-only StrongBox doctor commands.\n#### This default permission set includes:\n\n- `allow-doctor-capabilities`\n- `allow-doctor-create-probe`\n- `allow-doctor-run-agreement`\n- `allow-doctor-cleanup`\n- `allow-doctor-pairing-storage`\n- `allow-scan-pairing-offer`"
         },
         {
           "description": "Enables the doctor_capabilities command without any pre-configured scope.",
@@ -2229,6 +2229,12 @@
           "markdownDescription": "Enables the doctor_run_agreement command without any pre-configured scope."
         },
         {
+          "description": "Enables the scan_pairing_offer command without any pre-configured scope.",
+          "type": "string",
+          "const": "phone-identity:allow-scan-pairing-offer",
+          "markdownDescription": "Enables the scan_pairing_offer command without any pre-configured scope."
+        },
+        {
           "description": "Denies the doctor_capabilities command without any pre-configured scope.",
           "type": "string",
           "const": "phone-identity:deny-doctor-capabilities",
@@ -2257,6 +2263,12 @@
           "type": "string",
           "const": "phone-identity:deny-doctor-run-agreement",
           "markdownDescription": "Denies the doctor_run_agreement command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the scan_pairing_offer command without any pre-configured scope.",
+          "type": "string",
+          "const": "phone-identity:deny-scan-pairing-offer",
+          "markdownDescription": "Denies the scan_pairing_offer command without any pre-configured scope."
         }
       ]
     },

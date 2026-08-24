@@ -33,8 +33,9 @@ Hardware-key creation and file-key unwrap are implemented by a dedicated Tauri m
 - Native code returns an already encrypted, request-bound response to Rust, never key bytes to
   JavaScript.
 
-The official Tauri barcode scanner is a reasonable QR capture frontend. The generic biometric
-plugin alone is insufficient because a separate authentication success boolean is not
+Android QR capture is owned by the native Kotlin plugin so raw frame strings and signed protocol
+bytes never become Tauri command values. The generic biometric plugin alone is insufficient because
+a separate authentication success boolean is not
 cryptographically bound to the later private-key operation. BLE requires a reviewed native plugin
 and is not part of the first milestone.
 
@@ -75,11 +76,13 @@ protocol bytes are not Tauri command arguments and never enter JavaScript.
 A wrapped native X25519 identity remains a separately reviewed fallback candidate for platforms
 that cannot expose a suitable non-exportable operation. It is not enabled on the verified Android
 path. Canonical pairing/request encoding and complete Rust/Kotlin protocol vectors now exist;
-The native confirmation-to-persistence boundary now exists; the remaining QR work is framing,
-capture, and wiring a reviewed native transport controller to that boundary. Versioned canonical
+The native confirmation-to-persistence boundary now exists. Versioned canonical
 framing and bounded animated-frame assembly are specified by
-[`ADR 0005`](adr/0005-qr-framing.md) and implemented in Rust and Kotlin; camera capture and desktop
-rendering remain. Independent review is still required before the wire format is stabilized.
+[`ADR 0005`](adr/0005-qr-framing.md) and implemented in Rust and Kotlin. Android native continuous
+capture and the desktop terminal animation probe are specified by
+[`ADR 0006`](adr/0006-native-qr-capture.md). The capture prototype currently validates one signed
+offer only; phone response generation and the full confirmation exchange remain. Independent review
+is still required before the wire format is stabilized.
 
 ## Transport strategy
 
@@ -90,6 +93,9 @@ never the protocol's trust root; messages remain end-to-end authenticated and en
 QR framing provides bounded corruption detection and assembly only. It never authenticates a peer.
 The Android native scanner path owns raw frame strings, clears partial assemblies on failure or
 cancellation, and passes only a complete digest-checked byte message to the native protocol parser.
+Its Tauri result contains only a verified untrusted desktop label, offer digest, frame count, and
+coarse error category. The desktop renderer writes QR modules and safe progress metadata, never the
+frame text.
 
 ## Integration invariant
 

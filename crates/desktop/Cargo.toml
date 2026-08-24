@@ -12,7 +12,11 @@ age-core.workspace = true
 age-plugin.workspace = true
 age-plugin-phone-protocol = { path = "../protocol" }
 clap.workspace = true
+p256.workspace = true
+qrcode.workspace = true
+rand_core.workspace = true
+thiserror.workspace = true
+
 
 [lints]
 workspace = true
-

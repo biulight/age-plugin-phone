@@ -521,3 +521,15 @@ transcript fingerprint 展示模型和原子创建串成一次性状态机。fin
 no-backup 存储共十六项全部为 `true`，`errorCategory == null`。随后通过应用沙箱独立确认
 Doctor 专用目录不存在；限定本次 App PID 的完整日志过滤未发现 key、payload、stanza、QR、
 alias、signed transcript 或 encoded frame 等禁止材料标记，崩溃日志过滤也为空。
+
+### 原生相机 QR capture 扩展
+
+2026-08-25 按 [`ADR 0006`](adr/0006-native-qr-capture.md) 在同一设备验证 CameraX + 离线
+ML Kit 连续扫码控制器。系统相机授权成功；显式取消返回 `user_cancelled`，整体扫描 deadline
+返回 `scan_timeout`。桌面使用 disposable P-256 签名 offer 和 80-byte chunk 生成三帧本地
+SVG 动画，手机在八次帧观测后完成重组和验签，报告 `messageVerified: true`、预期的不可信
+desktop label、与桌面完全一致的 offer digest，且 `errorCategory == null`。
+
+完成后 CameraService 的 active client 列表为空。限定本次 App PID 的日志扫描未发现 QR
+前缀、raw frame、signed offer、key 或 payload，修复版进程无崩溃标记，Doctor 目录仍不存在。
+该扩展只验证 signed offer capture，不生成 phone response，也不创建真实配对。

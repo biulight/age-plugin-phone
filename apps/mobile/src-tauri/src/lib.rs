@@ -21,7 +21,7 @@ fn project_status() -> ProjectStatus {
             "scaffold-only"
         },
         protocol_version: PROTOCOL_VERSION,
-        qr_transport: "not implemented",
+        qr_transport: "native capture prototype",
         ble_transport: "not implemented",
         key_backend: "StrongBox probe only",
         doctor_enabled: cfg!(debug_assertions),

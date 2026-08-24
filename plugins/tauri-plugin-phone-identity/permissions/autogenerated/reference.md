@@ -9,6 +9,7 @@ Allows the development-only StrongBox doctor commands.
 - `allow-doctor-run-agreement`
 - `allow-doctor-cleanup`
 - `allow-doctor-pairing-storage`
+- `allow-scan-pairing-offer`
 
 ## Permission Table
 
@@ -145,6 +146,32 @@ Enables the doctor_run_agreement command without any pre-configured scope.
 <td>
 
 Denies the doctor_run_agreement command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:allow-scan-pairing-offer`
+
+</td>
+<td>
+
+Enables the scan_pairing_offer command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:deny-scan-pairing-offer`
+
+</td>
+<td>
+
+Denies the scan_pairing_offer command without any pre-configured scope.
 
 </td>
 </tr>

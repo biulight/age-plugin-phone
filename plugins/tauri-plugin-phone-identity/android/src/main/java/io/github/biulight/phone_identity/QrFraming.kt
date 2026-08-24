@@ -35,6 +35,8 @@ internal object QrFraming {
     private val encoder = Base64.getUrlEncoder().withoutPadding()
     private val decoder = Base64.getUrlDecoder()
 
+    fun isFrameCandidate(value: String): Boolean = value.startsWith(PREFIX)
+
     fun fragment(
         message: ByteArray,
         chunkBytes: Int = DEFAULT_CHUNK_BYTES,

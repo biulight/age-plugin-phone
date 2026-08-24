@@ -74,3 +74,14 @@ pub struct PairingStorageReport {
     pub cleanup_complete: bool,
     pub error_category: Option<String>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PairingOfferScanReport {
+    pub scanner_started: bool,
+    pub message_verified: bool,
+    pub desktop_label: Option<String>,
+    pub offer_fingerprint: Option<String>,
+    pub frames_accepted: u32,
+    pub error_category: Option<String>,
+}

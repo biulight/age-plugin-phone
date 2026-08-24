@@ -82,6 +82,12 @@ out-of-order frames are accepted; conflicting duplicates, timeout, clock rollbac
 length mismatch, or digest mismatch poison the assembly until explicit reset. Framing integrity is
 not authentication; the completed message still passes the strict signed protocol parser.
 
+On Android, CameraX and the bundled ML Kit QR detector feed candidate strings directly to the native
+reassembler. Unrelated codes are ignored. A different valid transfer cannot evict the active one;
+malformed candidate frames, timeout, cancellation, lifecycle loss, or protocol verification failure
+close the scan and clear partial or completed buffers. The capture prototype accepts only a complete
+canonical signed pairing offer and returns no protocol bytes to Rust or JavaScript.
+
 The response file key is encrypted to the request's one-time P-256 session key with a fresh phone
 session key, HKDF-SHA256, and ChaCha20-Poly1305. Its AEAD context and phone signature bind both
 paired identifiers, request ID and digest, response nonce, and both session participants.

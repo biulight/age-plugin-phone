@@ -70,12 +70,22 @@ interface PairingStorageReport {
   errorCategory: string | null;
 }
 
+interface PairingOfferScanReport {
+  scannerStarted: boolean;
+  messageVerified: boolean;
+  desktopLabel: string | null;
+  offerFingerprint: string | null;
+  framesAccepted: number;
+  errorCategory: string | null;
+}
+
 type DoctorReport =
   | CapabilityReport
   | ProbeKeyReport
   | AgreementReport
   | CleanupReport
-  | PairingStorageReport;
+  | PairingStorageReport
+  | PairingOfferScanReport;
 
 const app = document.querySelector<HTMLElement>("#app");
 
@@ -94,8 +104,8 @@ app.innerHTML = `
       <div><dt>Stage</dt><dd>Loading</dd></div>
     </dl>
     <p class="warning">
-      Probe only. It uses a random synthetic file key and disposable stanza in native memory; it
-      never handles a real age identity, QR payload, or application plaintext.
+      Prototype only. Raw QR frames and signed protocol bytes stay in Android native memory; the
+      WebView receives only a verified display label, fingerprint, counters, and error categories.
     </p>
     <section class="doctor" id="doctor" hidden>
       <div class="doctor-heading">
@@ -113,6 +123,7 @@ app.innerHTML = `
         <button data-action="cancel">Run and cancel</button>
         <button data-action="restart">Verify after restart</button>
         <button data-action="pairingStorage">Test pairing QR + replay</button>
+        <button data-action="scanPairingOffer">Scan pairing offer</button>
         <button class="danger" data-action="cleanup">Delete probe key</button>
       </div>
       <pre id="doctor-report" aria-live="polite">No probe has run.</pre>
@@ -183,10 +194,22 @@ actionButtons.forEach((button) => {
       cancel: "doctor_run_agreement",
       restart: "doctor_run_agreement",
       pairingStorage: "doctor_pairing_storage",
+      scanPairingOffer: "scan_pairing_offer",
       cleanup: "doctor_cleanup",
     };
     if (!action || !commands[action]) return;
     void runDoctor(commands[action], action).catch(() => {
+      if (action === "scanPairingOffer") {
+        showReport(action, {
+          scannerStarted: false,
+          messageVerified: false,
+          desktopLabel: null,
+          offerFingerprint: null,
+          framesAccepted: 0,
+          errorCategory: "bridge_unavailable",
+        });
+        return;
+      }
       if (action === "pairingStorage") {
         showReport(action, {
           noBackupStorage: false,

@@ -5,7 +5,8 @@ use tauri::{
 };
 
 use crate::{
-    AgreementReport, CapabilityReport, CleanupReport, Error, PairingStorageReport, ProbeKeyReport,
+    AgreementReport, CapabilityReport, CleanupReport, Error, PairingOfferScanReport,
+    PairingStorageReport, ProbeKeyReport,
 };
 
 const PLUGIN_IDENTIFIER: &str = "io.github.biulight.phone_identity";
@@ -48,6 +49,12 @@ impl<R: Runtime> PhoneIdentity<R> {
     pub fn doctor_pairing_storage(&self) -> Result<PairingStorageReport, Error> {
         self.0
             .run_mobile_plugin("doctorPairingStorage", ())
+            .map_err(Into::into)
+    }
+
+    pub fn scan_pairing_offer(&self) -> Result<PairingOfferScanReport, Error> {
+        self.0
+            .run_mobile_plugin("scanPairingOffer", ())
             .map_err(Into::into)
     }
 }

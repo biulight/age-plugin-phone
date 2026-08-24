@@ -41,6 +41,7 @@ user. It must never export the long-term private key to the desktop.
 
 ```console
 cargo run -p age-plugin-phone -- status
+cargo run -p age-plugin-phone -- qr-capture-probe
 cargo test --workspace
 
 cd apps/mobile
@@ -67,6 +68,7 @@ Start with the [Android StrongBox PoC](docs/android-strongbox-poc.md), then read
 [persistent replay-state ADR](docs/adr/0003-persistent-replay-state.md),
 [Android pairing-state ADR](docs/adr/0004-android-pairing-state.md),
 [QR framing ADR](docs/adr/0005-qr-framing.md),
+[native QR capture ADR](docs/adr/0006-native-qr-capture.md),
 [protocol draft](docs/protocol.md), and [threat model](docs/threat-model.md) before implementing a
 transport or cryptographic backend.
 

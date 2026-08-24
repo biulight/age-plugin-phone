@@ -1,6 +1,7 @@
 package io.github.biulight.phone_identity
 
 import android.app.Activity
+import android.Manifest
 import android.hardware.biometrics.BiometricPrompt
 import android.os.Build
 import android.os.CancellationSignal
@@ -8,7 +9,10 @@ import android.os.Handler
 import android.os.Looper
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import app.tauri.annotation.Command
+import app.tauri.annotation.Permission
+import app.tauri.annotation.PermissionCallback
 import app.tauri.annotation.TauriPlugin
+import app.tauri.PermissionState
 import app.tauri.plugin.Invoke
 import app.tauri.plugin.JSObject
 import app.tauri.plugin.Plugin
@@ -23,7 +27,9 @@ import java.security.spec.ECGenParameterSpec
 import java.util.UUID
 import javax.crypto.KeyAgreement
 
-@TauriPlugin
+@TauriPlugin(
+    permissions = [Permission(strings = [Manifest.permission.CAMERA], alias = "camera")],
+)
 class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     private val keys = ProbeKeyStore(activity)
     private val doctor = StrongBoxDoctor(activity, keys)
@@ -31,6 +37,8 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     private val stateLock = Any()
     private val pairingDoctorLock = Any()
     private var active: PendingAgreement? = null
+    private var activeQrScanner: NativeQrScannerController? = null
+    private var cameraPermissionPending = false
     private val pairingConfirmation = PairingConfirmationCoordinator(
         PairingSessionFactory { signedOffer, signedResponse ->
             PairingConfirmationSession.begin(activity, signedOffer, signedResponse)
@@ -83,14 +91,82 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         invoke.resolve(synchronized(pairingDoctorLock) { runPairingStorageDoctor() })
     }
 
+    @Command
+    fun scanPairingOffer(invoke: Invoke) {
+        val granted = getPermissionState("camera") == PermissionState.GRANTED
+        synchronized(stateLock) {
+            if (activeQrScanner != null || cameraPermissionPending) {
+                invoke.resolve(pairingOfferScanReport(false, false, null, null, 0, "scan_active"))
+                return
+            }
+            cameraPermissionPending = !granted
+        }
+        if (granted) {
+            activity.runOnUiThread { startPairingOfferScanner(invoke) }
+        } else {
+            requestPermissionForAlias("camera", invoke, "cameraPermissionGranted")
+        }
+    }
+
+    @PermissionCallback
+    fun cameraPermissionGranted(invoke: Invoke) {
+        synchronized(stateLock) { cameraPermissionPending = false }
+        if (getPermissionState("camera") == PermissionState.GRANTED) {
+            activity.runOnUiThread { startPairingOfferScanner(invoke) }
+        } else {
+            invoke.resolve(
+                pairingOfferScanReport(false, false, null, null, 0, "camera_permission_denied"),
+            )
+        }
+    }
+
     override fun onStop() {
         cancelActive("authentication_failed")
         cancelPendingPairing()
+        cancelQrScanner()
     }
 
     override fun onDestroy(activity: androidx.appcompat.app.AppCompatActivity) {
         cancelActive("authentication_failed")
         cancelPendingPairing()
+        cancelQrScanner()
+    }
+
+    private fun startPairingOfferScanner(invoke: Invoke) {
+        synchronized(stateLock) {
+            if (activeQrScanner != null) {
+                invoke.resolve(pairingOfferScanReport(false, false, null, null, 0, "scan_active"))
+                return
+            }
+            activeQrScanner = NativeQrScannerController(
+                activity,
+                onComplete = { display, framesAccepted ->
+                    synchronized(stateLock) { activeQrScanner = null }
+                    invoke.resolve(
+                        pairingOfferScanReport(
+                            true,
+                            true,
+                            display.desktopLabel,
+                            display.offerFingerprint,
+                            framesAccepted,
+                            null,
+                        ),
+                    )
+                },
+                onFailure = { category ->
+                    synchronized(stateLock) { activeQrScanner = null }
+                    invoke.resolve(pairingOfferScanReport(true, false, null, null, 0, category))
+                },
+            )
+            activeQrScanner?.start()
+        }
+    }
+
+    private fun cancelQrScanner() {
+        val scanner = synchronized(stateLock) {
+            activeQrScanner.also { activeQrScanner = null }
+        }
+        scanner?.cancel()
     }
 
     internal fun beginNativePairingConfirmation(
@@ -640,6 +716,22 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             put("authenticated", authenticated)
             put("agreementMatch", match)
             put("responseEnvelopeMatch", match)
+            put("errorCategory", error)
+        }
+
+        private fun pairingOfferScanReport(
+            scannerStarted: Boolean,
+            messageVerified: Boolean,
+            desktopLabel: String?,
+            offerFingerprint: String?,
+            framesAccepted: Int,
+            error: String?,
+        ): JSObject = JSObject().apply {
+            put("scannerStarted", scannerStarted)
+            put("messageVerified", messageVerified)
+            put("desktopLabel", desktopLabel)
+            put("offerFingerprint", offerFingerprint)
+            put("framesAccepted", framesAccepted)
             put("errorCategory", error)
         }
 

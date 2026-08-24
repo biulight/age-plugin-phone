@@ -29,7 +29,7 @@
 - [x] Commit pairing state and its replay scope atomically in app-private, non-backed-up storage.
 - [x] Add a one-shot native confirmation session that creates pairing state from a verified transcript.
 - [x] Implement versioned QR fragmentation and bounded animated-frame handling in Rust and Kotlin.
-- [ ] Wire native camera capture and desktop animated-QR rendering to the framing layer.
+- [x] Wire native camera capture and desktop animated-QR rendering to the framing layer.
 - [ ] Implement desktop pairing and public identity stub creation.
 - [ ] Implement one request/response file-key unwrap with fresh user verification.
 - [ ] Test cancellation, replay, wrong device, wrong identity, expiry, and corrupted frames.

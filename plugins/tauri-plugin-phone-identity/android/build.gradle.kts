@@ -28,9 +28,13 @@ android {
 
 dependencies {
     implementation("androidx.appcompat:appcompat:1.7.1")
+    implementation("androidx.camera:camera-camera2:1.5.3")
+    implementation("androidx.camera:camera-mlkit-vision:1.5.3")
+    implementation("androidx.camera:camera-view:1.5.3")
     implementation("androidx.core:core-ktx:1.17.0")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.19.2")
     implementation("com.fasterxml.jackson.dataformat:jackson-dataformat-cbor:2.19.2")
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
     implementation(project(":tauri-android"))
     testImplementation("junit:junit:4.13.2")
 }

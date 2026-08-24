@@ -8,4 +8,5 @@ permissions = [
     "allow-doctor-run-agreement",
     "allow-doctor-cleanup",
     "allow-doctor-pairing-storage",
+    "allow-scan-pairing-offer",
 ]
