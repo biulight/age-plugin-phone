@@ -137,6 +137,10 @@ fn doctor_pairing_storage<R: Runtime>(
     #[cfg(not(target_os = "android"))]
     Ok(PairingStorageReport {
         no_backup_storage: false,
+        qr_fragmented: false,
+        qr_out_of_order_reassembled: false,
+        qr_corruption_rejected: false,
+        qr_timeout_rejected: false,
         transcript_verified: false,
         fingerprint_mismatch_rejected: false,
         cancellation_rejected: false,

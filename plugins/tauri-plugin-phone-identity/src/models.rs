@@ -57,6 +57,10 @@ pub struct CleanupReport {
 #[allow(clippy::struct_excessive_bools)]
 pub struct PairingStorageReport {
     pub no_backup_storage: bool,
+    pub qr_fragmented: bool,
+    pub qr_out_of_order_reassembled: bool,
+    pub qr_corruption_rejected: bool,
+    pub qr_timeout_rejected: bool,
     pub transcript_verified: bool,
     pub fingerprint_mismatch_rejected: bool,
     pub cancellation_rejected: bool,

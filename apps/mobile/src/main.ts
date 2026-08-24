@@ -52,6 +52,10 @@ interface CleanupReport {
 
 interface PairingStorageReport {
   noBackupStorage: boolean;
+  qrFragmented: boolean;
+  qrOutOfOrderReassembled: boolean;
+  qrCorruptionRejected: boolean;
+  qrTimeoutRejected: boolean;
   transcriptVerified: boolean;
   fingerprintMismatchRejected: boolean;
   cancellationRejected: boolean;
@@ -108,7 +112,7 @@ app.innerHTML = `
         <button data-action="agreement2">Run tagged unwrap #2</button>
         <button data-action="cancel">Run and cancel</button>
         <button data-action="restart">Verify after restart</button>
-        <button data-action="pairingStorage">Test pairing replay storage</button>
+        <button data-action="pairingStorage">Test pairing QR + replay</button>
         <button class="danger" data-action="cleanup">Delete probe key</button>
       </div>
       <pre id="doctor-report" aria-live="polite">No probe has run.</pre>
@@ -186,6 +190,10 @@ actionButtons.forEach((button) => {
       if (action === "pairingStorage") {
         showReport(action, {
           noBackupStorage: false,
+          qrFragmented: false,
+          qrOutOfOrderReassembled: false,
+          qrCorruptionRejected: false,
+          qrTimeoutRejected: false,
           transcriptVerified: false,
           fingerprintMismatchRejected: false,
           cancellationRejected: false,

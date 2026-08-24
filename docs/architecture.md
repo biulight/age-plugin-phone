@@ -76,14 +76,20 @@ A wrapped native X25519 identity remains a separately reviewed fallback candidat
 that cannot expose a suitable non-exportable operation. It is not enabled on the verified Android
 path. Canonical pairing/request encoding and complete Rust/Kotlin protocol vectors now exist;
 The native confirmation-to-persistence boundary now exists; the remaining QR work is framing,
-capture, and wiring a reviewed native transport controller to that boundary. Independent review is
-still required before the wire format is stabilized.
+capture, and wiring a reviewed native transport controller to that boundary. Versioned canonical
+framing and bounded animated-frame assembly are specified by
+[`ADR 0005`](adr/0005-qr-framing.md) and implemented in Rust and Kotlin; camera capture and desktop
+rendering remain. Independent review is still required before the wire format is stabilized.
 
 ## Transport strategy
 
 QR is the first implementation target because it is observable, offline, and independent of radio
 pairing behavior. BLE may follow after the application-layer protocol is stable. BLE pairing is
 never the protocol's trust root; messages remain end-to-end authenticated and encrypted.
+
+QR framing provides bounded corruption detection and assembly only. It never authenticates a peer.
+The Android native scanner path owns raw frame strings, clears partial assemblies on failure or
+cancellation, and passes only a complete digest-checked byte message to the native protocol parser.
 
 ## Integration invariant
 

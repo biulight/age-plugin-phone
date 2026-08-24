@@ -324,7 +324,13 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     private fun runPairingStorageDoctor(): JSObject {
         var store: PairingStateStore? = null
         var syntheticFileKey: ByteArray? = null
+        var assembledOffer: ByteArray? = null
+        var assembledResponse: ByteArray? = null
         var noBackupStorage = PairingStateStore.doctorRootIsNoBackup(activity)
+        var qrFragmented = false
+        var qrOutOfOrderReassembled = false
+        var qrCorruptionRejected = false
+        var qrTimeoutRejected = false
         var transcriptVerified = false
         var fingerprintMismatchRejected = false
         var cancellationRejected = false
@@ -356,12 +362,23 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 phoneSigning,
                 random,
             )
+            val offerFrames = QrFraming.fragment(transcript.signedOffer, 64, random)
+            val responseFrames = QrFraming.fragment(transcript.signedResponse, 64, random)
+            qrFragmented = offerFrames.size > 1 && responseFrames.size > 1
+            val reconstructedOffer = reassembleDoctorFrames(offerFrames)
+            val reconstructedResponse = reassembleDoctorFrames(responseFrames)
+            assembledOffer = reconstructedOffer
+            assembledResponse = reconstructedResponse
+            qrOutOfOrderReassembled = MessageDigest.isEqual(reconstructedOffer, transcript.signedOffer) &&
+                MessageDigest.isEqual(reconstructedResponse, transcript.signedResponse)
+            qrCorruptionRejected = rejectsDoctorQrConflict(offerFrames.first())
+            qrTimeoutRejected = rejectsDoctorQrTimeout(offerFrames)
             val creator = PairingStateCreator { record, nowUnix ->
                 PairingStateStore.createDoctor(activity, record, nowUnix)
             }
             val mismatch = PairingConfirmationSession.beginWithCreator(
-                transcript.signedOffer,
-                transcript.signedResponse,
+                reconstructedOffer,
+                reconstructedResponse,
                 creator,
             )
             transcriptVerified = mismatch.display.desktopLabel == "Pairing confirmation Doctor" &&
@@ -376,8 +393,8 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 error.category == PairingConfirmationSession.Category.FINGERPRINT_MISMATCH
             }
             val cancelled = PairingConfirmationSession.beginWithCreator(
-                transcript.signedOffer,
-                transcript.signedResponse,
+                reconstructedOffer,
+                reconstructedResponse,
                 creator,
             )
             cancelled.cancel()
@@ -388,8 +405,8 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 error.category == PairingConfirmationSession.Category.SESSION_CLOSED
             }
             val confirmation = PairingConfirmationSession.beginWithCreator(
-                transcript.signedOffer,
-                transcript.signedResponse,
+                reconstructedOffer,
+                reconstructedResponse,
                 creator,
             )
             val nowUnix = System.currentTimeMillis() / 1000
@@ -483,12 +500,18 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 errorCategory = "pairing_state_failed"
             }
             syntheticFileKey?.fill(0)
+            assembledOffer?.fill(0)
+            assembledResponse?.fill(0)
             cleanupComplete = PairingStateStore.cleanupDoctorArtifacts(activity)
             if (!cleanupComplete && errorCategory == null) errorCategory = "pairing_state_failed"
             noBackupStorage = noBackupStorage && PairingStateStore.doctorRootIsNoBackup(activity)
         }
         return JSObject().apply {
             put("noBackupStorage", noBackupStorage)
+            put("qrFragmented", qrFragmented)
+            put("qrOutOfOrderReassembled", qrOutOfOrderReassembled)
+            put("qrCorruptionRejected", qrCorruptionRejected)
+            put("qrTimeoutRejected", qrTimeoutRejected)
             put("transcriptVerified", transcriptVerified)
             put("fingerprintMismatchRejected", fingerprintMismatchRejected)
             put("cancellationRejected", cancellationRejected)
@@ -501,6 +524,66 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             put("missingStateRejectedAfterDelete", missingStateRejectedAfterDelete)
             put("cleanupComplete", cleanupComplete)
             put("errorCategory", errorCategory)
+        }
+    }
+
+    private fun reassembleDoctorFrames(frames: List<EncodedQrFrame>): ByteArray {
+        val reassembler = QrReassembler()
+        var nowMs = 1_000L
+        val order = frames.indices.reversed()
+        val first = order.first()
+        reassembler.push(frames[first].value, nowMs++)
+        reassembler.push(frames[first].value, nowMs++)
+        for (index in order.drop(1)) {
+            when (val status = reassembler.push(frames[index].value, nowMs++)) {
+                is QrAssemblyStatus.Complete -> return status.message
+                is QrAssemblyStatus.InProgress -> Unit
+            }
+        }
+        throw QrFraming.QrException(QrFraming.Category.MALFORMED_FRAME)
+    }
+
+    private fun rejectsDoctorQrConflict(frame: EncodedQrFrame): Boolean {
+        val decoded = QrFraming.decode(frame.value)
+        val changed = decoded.chunk.copyOf().also { it[0] = (it[0].toInt() xor 1).toByte() }
+        val conflicting = try {
+            QrFraming.encode(
+                QrFraming.Frame(
+                    decoded.transferId,
+                    decoded.digest,
+                    decoded.index,
+                    decoded.count,
+                    decoded.totalLength,
+                    changed,
+                ),
+            )
+        } finally {
+            decoded.chunk.fill(0)
+            changed.fill(0)
+        }
+        val reassembler = QrReassembler()
+        reassembler.push(frame.value, 0)
+        return try {
+            reassembler.push(conflicting.value, 1)
+            false
+        } catch (error: QrFraming.QrException) {
+            error.category == QrFraming.Category.CONFLICTING_FRAGMENT
+        } finally {
+            reassembler.reset()
+        }
+    }
+
+    private fun rejectsDoctorQrTimeout(frames: List<EncodedQrFrame>): Boolean {
+        if (frames.size < 2) return false
+        val reassembler = QrReassembler()
+        reassembler.push(frames[0].value, 0)
+        return try {
+            reassembler.push(frames[1].value, QrFraming.MAX_ASSEMBLY_AGE_MS + 1)
+            false
+        } catch (error: QrFraming.QrException) {
+            error.category == QrFraming.Category.TIMEOUT
+        } finally {
+            reassembler.reset()
         }
     }
 

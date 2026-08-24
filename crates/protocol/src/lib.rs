@@ -23,8 +23,13 @@ use sha2::{Digest as _, Sha256};
 use thiserror::Error;
 use zeroize::{Zeroize as _, Zeroizing};
 
+mod qr;
 mod replay;
 
+pub use qr::{
+    DEFAULT_QR_CHUNK_BYTES, EncodedQrFrame, MAX_QR_ASSEMBLY_AGE_MS, MAX_QR_FRAGMENTS,
+    MAX_QR_MESSAGE_BYTES, QrAssemblyStatus, QrError, QrReassembler, fragment_qr_message,
+};
 #[cfg(unix)]
 pub use replay::FileReplayGuard;
 pub use replay::{DEFAULT_REPLAY_CAPACITY, ReplayGuard, ReplayRole, ReplayScope, ReplayStore};

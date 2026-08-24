@@ -72,7 +72,15 @@ scope unavailable; it never recreates an empty replay set.
 
 Protocol payloads use fixed-length canonical CBOR arrays and reject unknown or extra fields. Signed
 envelopes contain the canonical payload bytes and a fixed-width low-S P-256 ECDSA signature. JSON
-exists only as a public test-vector container and is never signed. QR framing remains unspecified.
+exists only as a public test-vector container and is never signed.
+
+QR transport framing is specified by [`ADR 0005`](adr/0005-qr-framing.md). Each textual frame has a
+strict prefix and unpadded base64url canonical-CBOR body binding a random transfer ID, complete
+message digest, index, count, total length, and chunk. Assemblies are bounded to 65,536 bytes, 128
+frames, 600 bytes per chunk, and 30 seconds from the first accepted frame. Identical duplicates and
+out-of-order frames are accepted; conflicting duplicates, timeout, clock rollback, invalid layout,
+length mismatch, or digest mismatch poison the assembly until explicit reset. Framing integrity is
+not authentication; the completed message still passes the strict signed protocol parser.
 
 The response file key is encrypted to the request's one-time P-256 session key with a fresh phone
 session key, HKDF-SHA256, and ChaCha20-Poly1305. Its AEAD context and phone signature bind both

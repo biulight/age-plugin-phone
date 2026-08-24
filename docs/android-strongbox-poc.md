@@ -509,11 +509,15 @@ transcript fingerprint 展示模型和原子创建串成一次性状态机。fin
 确认、已有配对或落盘失败都会关闭 session；重试必须重新扫描。原始 signed transcript 只由
 未来的原生 QR transport controller 传入，不作为 Tauri command 参数，也不进入 WebView。
 
-同日在 Samsung `SM-F9660` 真机执行该 Doctor：上述七项布尔检查全部为 `true`，
-`errorCategory == null`。随后通过应用沙箱独立确认 Doctor 专用目录不存在；限定本次 App PID
-的设备端完整日志过滤未发现 key、payload、stanza、QR、alias 等禁止材料标记，也未发现崩溃
-标记。
+按 [`ADR 0005`](adr/0005-qr-framing.md) 增加原生 QR framing：规范 CBOR + unpadded base64url
+文本帧，最多 64 KiB、128 帧、每 chunk 600 bytes，首帧起 30 秒超时。乱序和相同重复帧可
+重组；冲突、超时、时钟回退、布局/长度或完整消息 digest 错误会清空并 poison assembly，
+必须显式 reset。Doctor 使用多帧 synthetic pairing transcript 验证乱序重复重组、损坏拒绝
+与超时拒绝，然后才进入 pairing confirmation；原始 QR 字符串不返回或记录。
 
-扩展 pairing confirmation 后在同一设备复测：transcript 验证、错误 fingerprint 拒绝、取消
-拒绝、确认提交和重复确认拒绝五项新增检查也全部为 `true`，连同原七项共十二项均通过，
-`errorCategory == null`；独立残留、敏感日志和崩溃检查继续为零。
+同日在 Samsung `SM-F9660` 真机逐步复测。最终报告中 QR 分片、逆序重复重组、损坏拒绝、
+超时拒绝，transcript 验证、错误 fingerprint 拒绝、取消拒绝、确认提交、重复确认拒绝，以及
+原子状态创建、consume 前验签、重启后 replay 拒绝、错误 scope 拒绝、删除后缺失、清理完成和
+no-backup 存储共十六项全部为 `true`，`errorCategory == null`。随后通过应用沙箱独立确认
+Doctor 专用目录不存在；限定本次 App PID 的完整日志过滤未发现 key、payload、stanza、QR、
+alias、signed transcript 或 encoded frame 等禁止材料标记，崩溃日志过滤也为空。
