@@ -1,0 +1,18 @@
+[package]
+name = "age-plugin-phone"
+description = "Offline phone-backed identity plugin for age"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+age-core.workspace = true
+age-plugin.workspace = true
+age-plugin-phone-protocol = { path = "../protocol" }
+clap.workspace = true
+
+[lints]
+workspace = true
+

@@ -1,0 +1,9 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "mobile",
+  "description": "Minimal capability set for the presentation-only mobile WebView",
+  "windows": ["main"],
+  "platforms": ["iOS", "android"],
+  "permissions": ["core:default"]
+}
+

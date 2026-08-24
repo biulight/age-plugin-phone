@@ -1,0 +1,1 @@
+{"mobile":{"identifier":"mobile","description":"Minimal capability set for the presentation-only mobile WebView","local":true,"windows":["main"],"permissions":["core:default"],"platforms":["iOS","android"]}}

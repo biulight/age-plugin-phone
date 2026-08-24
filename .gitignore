@@ -1,0 +1,17 @@
+/target/
+*.swp
+*.tmp
+.DS_Store
+.idea/
+
+# Web frontend build products
+/apps/mobile/node_modules/
+/apps/mobile/dist/
+
+# Mobile build products
+/mobile/android/.gradle/
+/mobile/android/**/build/
+/mobile/ios/DerivedData/
+
+# Local protocol captures may contain sensitive metadata.
+/captures/

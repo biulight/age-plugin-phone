@@ -1,0 +1,26 @@
+[workspace]
+members = ["apps/mobile/src-tauri", "crates/desktop", "crates/protocol"]
+resolver = "2"
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/biulight/age-plugin-phone"
+rust-version = "1.85"
+version = "0.0.1"
+
+[workspace.dependencies]
+age-core = { version = "0.11.0", features = ["plugin"] }
+age-plugin = "0.6.1"
+clap = { version = "4.5", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+tauri = "2"
+tauri-build = "2"
+thiserror = "2"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = "warn"
+pedantic = "warn"

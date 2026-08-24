@@ -1,0 +1,24 @@
+[package]
+name = "age-plugin-phone-mobile"
+description = "Tauri mobile application for age-plugin-phone"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[lib]
+name = "age_plugin_phone_mobile_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build.workspace = true
+
+[dependencies]
+age-plugin-phone-protocol = { path = "../../../crates/protocol" }
+serde.workspace = true
+tauri.workspace = true
+
+[lints]
+workspace = true
+
