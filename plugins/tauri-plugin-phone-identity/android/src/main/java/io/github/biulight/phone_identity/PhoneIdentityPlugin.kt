@@ -1,0 +1,361 @@
+package io.github.biulight.phone_identity
+
+import android.app.Activity
+import android.hardware.biometrics.BiometricPrompt
+import android.os.Build
+import android.os.CancellationSignal
+import android.os.Handler
+import android.os.Looper
+import android.security.keystore.KeyPermanentlyInvalidatedException
+import app.tauri.annotation.Command
+import app.tauri.annotation.TauriPlugin
+import app.tauri.plugin.Invoke
+import app.tauri.plugin.JSObject
+import app.tauri.plugin.Plugin
+import java.security.KeyPairGenerator
+import java.security.KeyPair
+import java.security.MessageDigest
+import java.security.PublicKey
+import java.security.SecureRandom
+import java.security.interfaces.ECPublicKey
+import java.security.spec.ECFieldFp
+import java.security.spec.ECGenParameterSpec
+import java.util.UUID
+import javax.crypto.KeyAgreement
+
+@TauriPlugin
+class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
+    private val keys = ProbeKeyStore(activity)
+    private val doctor = StrongBoxDoctor(activity, keys)
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private val stateLock = Any()
+    private var active: PendingAgreement? = null
+
+    @Command
+    fun doctorCapabilities(invoke: Invoke) {
+        invoke.resolve(doctor.capabilities())
+    }
+
+    @Command
+    fun doctorCreateProbe(invoke: Invoke) {
+        if (!doctor.strongBiometricAvailable()) {
+            invoke.resolve(ProbeKeyStore.emptyProbeReport("strong_biometric_unavailable"))
+            return
+        }
+        invoke.resolve(keys.createProbe())
+    }
+
+    @Command
+    fun doctorRunAgreement(invoke: Invoke) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !hasKeyAgreementCryptoObject()) {
+            invoke.resolve(agreementReport(false, false, "unsupported_api"))
+            return
+        }
+
+        val prepared = try {
+            prepareAgreement(invoke)
+        } catch (_: KeyPermanentlyInvalidatedException) {
+            invoke.resolve(agreementReport(false, false, "key_permanently_invalidated"))
+            return
+        } catch (_: Exception) {
+            invoke.resolve(agreementReport(false, false, "agreement_failed"))
+            return
+        }
+
+        if (prepared == null) return
+        activity.runOnUiThread { showPrompt(prepared) }
+    }
+
+    @Command
+    fun doctorCleanup(invoke: Invoke) {
+        cancelActive("authentication_failed")
+        invoke.resolve(keys.cleanup())
+    }
+
+    override fun onStop() {
+        cancelActive("authentication_failed")
+    }
+
+    override fun onDestroy(activity: androidx.appcompat.app.AppCompatActivity) {
+        cancelActive("authentication_failed")
+    }
+
+    private fun prepareAgreement(invoke: Invoke): PendingAgreement? {
+        if (!keys.hasTrackedProbe()) {
+            invoke.resolve(agreementReport(false, false, "key_not_found"))
+            return null
+        }
+        if (!keys.isUsableStrongBoxProbe()) {
+            invoke.resolve(agreementReport(false, false, "wrong_security_level"))
+            return null
+        }
+
+        val privateKey = keys.privateKey()
+        val probePublicKey = keys.publicKey()
+        if (privateKey == null || probePublicKey == null) {
+            invoke.resolve(agreementReport(false, false, "key_not_found"))
+            return null
+        }
+
+        val peerGenerator = KeyPairGenerator.getInstance("EC")
+        peerGenerator.initialize(ECGenParameterSpec("secp256r1"))
+        val ephemeralKeyPair = peerGenerator.generateKeyPair()
+        if (!isP256PublicKey(ephemeralKeyPair.public)) {
+            invoke.resolve(agreementReport(false, false, "invalid_peer_key"))
+            return null
+        }
+
+        val expectedFileKey = ByteArray(TaggedRecipientCrypto.FILE_KEY_BYTES)
+        SecureRandom().nextBytes(expectedFileKey)
+        val stanza = try {
+            TaggedRecipientCrypto.wrapForTest(
+                probePublicKey,
+                ephemeralKeyPair.private,
+                ephemeralKeyPair.public,
+                expectedFileKey,
+            )
+        } catch (_: Exception) {
+            expectedFileKey.fill(0)
+            invoke.resolve(agreementReport(false, false, "agreement_failed"))
+            return null
+        }
+        val protocolGenerator = KeyPairGenerator.getInstance("EC").apply {
+            initialize(ECGenParameterSpec("secp256r1"))
+        }
+        val desktopSigning = protocolGenerator.generateKeyPair()
+        val desktopSession = protocolGenerator.generateKeyPair()
+        val phoneSigning = protocolGenerator.generateKeyPair()
+        val verifiedRequest = try {
+            OfflineEnvelopeCrypto.createSignedRequest(
+                stanza,
+                desktopSigning,
+                desktopSession.public,
+                System.currentTimeMillis() / 1000,
+                SecureRandom(),
+            )
+        } catch (_: Exception) {
+            expectedFileKey.fill(0)
+            invoke.resolve(agreementReport(false, false, "agreement_failed"))
+            return null
+        }
+
+        val agreement = KeyAgreement.getInstance("ECDH", "AndroidKeyStore")
+        agreement.init(privateKey)
+        val pending = PendingAgreement(
+            token = UUID.randomUUID(),
+            invoke = invoke,
+            cancellation = CancellationSignal(),
+            agreement = agreement,
+            ephemeralPublicKey = ephemeralKeyPair.public,
+            probePublicKey = probePublicKey,
+            stanza = stanza,
+            expectedFileKey = expectedFileKey,
+            verifiedRequest = verifiedRequest,
+            phoneSigning = phoneSigning,
+            desktopSession = desktopSession,
+        )
+
+        synchronized(stateLock) {
+            if (active != null) {
+                expectedFileKey.fill(0)
+                invoke.resolve(agreementReport(false, false, "authentication_failed"))
+                return null
+            }
+            active = pending
+        }
+        return pending
+    }
+
+    private fun showPrompt(pending: PendingAgreement) {
+        if (!isActive(pending.token)) return
+        try {
+            val cryptoObject = BiometricPrompt.CryptoObject::class.java
+                .getConstructor(KeyAgreement::class.java)
+                .newInstance(pending.agreement)
+            val prompt = BiometricPrompt.Builder(activity)
+                .setTitle("Approve tagged-recipient probe")
+                .setSubtitle("Authorizes this disposable StrongBox unwrap only")
+                .setAllowedAuthenticators(BiometricManagerCompat.STRONG)
+                .setNegativeButton("Cancel", activity.mainExecutor) { _, _ ->
+                    complete(pending.token, false, false, "user_cancelled", true)
+                }
+                .build()
+
+            pending.timeout = Runnable {
+                complete(pending.token, false, false, "authentication_timeout", true)
+            }
+            mainHandler.postDelayed(pending.timeout!!, AUTHENTICATION_TIMEOUT_MILLIS)
+            prompt.authenticate(
+                cryptoObject,
+                pending.cancellation,
+                activity.mainExecutor,
+                authenticationCallback(pending),
+            )
+        } catch (_: Exception) {
+            complete(pending.token, false, false, "unsupported_api", true)
+        }
+    }
+
+    private fun authenticationCallback(pending: PendingAgreement) =
+        object : BiometricPrompt.AuthenticationCallback() {
+            override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                if (!isActive(pending.token)) return
+                val returnedAgreement = try {
+                    result.cryptoObject?.javaClass?.getMethod("getKeyAgreement")
+                        ?.invoke(result.cryptoObject) as? KeyAgreement
+                } catch (_: ReflectiveOperationException) {
+                    null
+                }
+                if (returnedAgreement !== pending.agreement) {
+                    complete(pending.token, false, false, "agreement_failed", true)
+                    return
+                }
+                performAgreement(pending, returnedAgreement)
+            }
+
+            override fun onAuthenticationFailed() {
+                complete(pending.token, false, false, "authentication_failed", true)
+            }
+
+            override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                val category = authenticationErrorCategory(errorCode)
+                complete(pending.token, false, false, category, false)
+            }
+        }
+
+    private fun performAgreement(pending: PendingAgreement, agreement: KeyAgreement) {
+        var phoneSecret: ByteArray? = null
+        var unwrappedFileKey: ByteArray? = null
+        try {
+            agreement.doPhase(pending.ephemeralPublicKey, true)
+            phoneSecret = agreement.generateSecret()
+            unwrappedFileKey = TaggedRecipientCrypto.unwrapWithSharedSecret(
+                pending.probePublicKey,
+                pending.stanza,
+                phoneSecret,
+            )
+            val matches = MessageDigest.isEqual(unwrappedFileKey, pending.expectedFileKey)
+            if (!matches) {
+                complete(pending.token, true, false, "agreement_mismatch", false)
+                return
+            }
+            val response = OfflineEnvelopeCrypto.sealResponse(
+                pending.verifiedRequest,
+                unwrappedFileKey,
+                pending.phoneSigning,
+                SecureRandom(),
+            )
+            val returnedFileKey = OfflineEnvelopeCrypto.openResponse(
+                response.encoded,
+                pending.verifiedRequest,
+                pending.phoneSigning.public,
+                pending.desktopSession.private,
+            )
+            val envelopeMatches = MessageDigest.isEqual(returnedFileKey, pending.expectedFileKey)
+            returnedFileKey.fill(0)
+            complete(
+                pending.token,
+                true,
+                envelopeMatches,
+                if (envelopeMatches) null else "agreement_mismatch",
+                false,
+            )
+        } catch (_: KeyPermanentlyInvalidatedException) {
+            complete(pending.token, true, false, "key_permanently_invalidated", false)
+        } catch (_: Exception) {
+            complete(pending.token, true, false, "agreement_failed", false)
+        } finally {
+            phoneSecret?.fill(0)
+            unwrappedFileKey?.fill(0)
+        }
+    }
+
+    private fun complete(
+        token: UUID,
+        authenticated: Boolean,
+        matches: Boolean,
+        error: String?,
+        cancel: Boolean,
+    ) {
+        val pending = synchronized(stateLock) {
+            val current = active
+            if (current?.token != token) null else current.also { active = null }
+        } ?: return
+        pending.timeout?.let(mainHandler::removeCallbacks)
+        if (cancel && !pending.cancellation.isCanceled) pending.cancellation.cancel()
+        pending.expectedFileKey.fill(0)
+        pending.invoke.resolve(agreementReport(authenticated, matches, error))
+    }
+
+    private fun cancelActive(error: String) {
+        val token = synchronized(stateLock) { active?.token } ?: return
+        complete(token, false, false, error, true)
+    }
+
+    private fun isActive(token: UUID): Boolean = synchronized(stateLock) { active?.token == token }
+
+    private data class PendingAgreement(
+        val token: UUID,
+        val invoke: Invoke,
+        val cancellation: CancellationSignal,
+        val agreement: KeyAgreement,
+        val ephemeralPublicKey: PublicKey,
+        val probePublicKey: PublicKey,
+        val stanza: TaggedRecipientCrypto.Stanza,
+        val expectedFileKey: ByteArray,
+        val verifiedRequest: OfflineEnvelopeCrypto.VerifiedRequest,
+        val phoneSigning: KeyPair,
+        val desktopSession: KeyPair,
+        var timeout: Runnable? = null,
+    )
+
+    companion object {
+        private const val AUTHENTICATION_TIMEOUT_MILLIS = 60_000L
+
+        private object BiometricManagerCompat {
+            const val STRONG = 0x000F
+        }
+
+        private fun hasKeyAgreementCryptoObject(): Boolean = try {
+            BiometricPrompt.CryptoObject::class.java.getConstructor(KeyAgreement::class.java)
+            BiometricPrompt.CryptoObject::class.java.getMethod("getKeyAgreement")
+            true
+        } catch (_: ReflectiveOperationException) {
+            false
+        }
+
+        internal fun isP256PublicKey(key: PublicKey): Boolean {
+            val ecKey = key as? ECPublicKey ?: return false
+            val field = ecKey.params.curve.field as? ECFieldFp ?: return false
+            val point = ecKey.w
+            if (field.fieldSize != 256 || ecKey.params.cofactor != 1) return false
+            if (point.affineX.signum() < 0 || point.affineX >= field.p) return false
+            if (point.affineY.signum() < 0 || point.affineY >= field.p) return false
+            val left = point.affineY.modPow(java.math.BigInteger.TWO, field.p)
+            val right = point.affineX.modPow(java.math.BigInteger.valueOf(3), field.p)
+                .add(ecKey.params.curve.a.multiply(point.affineX))
+                .add(ecKey.params.curve.b)
+                .mod(field.p)
+            return left == right
+        }
+
+        private fun agreementReport(
+            authenticated: Boolean,
+            match: Boolean,
+            error: String?,
+        ): JSObject = JSObject().apply {
+            put("authenticated", authenticated)
+            put("agreementMatch", match)
+            put("responseEnvelopeMatch", match)
+            put("errorCategory", error)
+        }
+
+        internal fun authenticationErrorCategory(errorCode: Int): String = when (errorCode) {
+            BiometricPrompt.BIOMETRIC_ERROR_USER_CANCELED,
+            BiometricPrompt.BIOMETRIC_ERROR_CANCELED,
+            -> "user_cancelled"
+            BiometricPrompt.BIOMETRIC_ERROR_TIMEOUT -> "authentication_timeout"
+            else -> "authentication_failed"
+        }
+    }
+}

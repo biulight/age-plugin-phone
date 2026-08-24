@@ -1,0 +1,25 @@
+{
+  "schema": "age-plugin-phone/p256-recipient-test-vector/v1",
+  "warning": "All scalar and file-key values are public deterministic test data. Never use them for real encryption or import them into Android Keystore.",
+  "identity_scalar_hex": "0000000000000000000000000000000000000000000000000000000000000001",
+  "ephemeral_scalar_hex": "0000000000000000000000000000000000000000000000000000000000000002",
+  "file_key_hex": "00112233445566778899aabbccddeeff",
+  "recipient_public_key_base64": "A2sX0fLhLEJH+Lzm5WOkQPJ3A32BLeszoPShOUXYmMKW",
+  "recipient": "age1phone1qypkk9737tsjcsj8lz7wdetr53q0yacr0kqjm6en5r62zw29mzvv99sa27n9c",
+  "stanza": {
+    "tag": "phone-p256-v1",
+    "args": [
+      "A3zyexiNA09+ilI4AwS1GsPAiWnid/IbNaYLSPxHZpl4"
+    ],
+    "body_base64": "M/C6Py9w0heuoZW5YzoAy2omBtVkWclipbgawuiN9/w"
+  },
+  "required_negative_mutations": [
+    "unknown stanza tag",
+    "zero or multiple stanza arguments",
+    "padded or otherwise non-canonical Base64",
+    "uncompressed, infinity, off-curve, or wrong-curve point",
+    "truncated or extended body",
+    "modified ciphertext or authentication tag",
+    "wrong identity"
+  ]
+}

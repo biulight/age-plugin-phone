@@ -1,0 +1,76 @@
+use age_plugin_phone_recipient_p256::{
+    Recipient, TaggedStanza, unwrap_file_key, wrap_file_key_with_ephemeral,
+};
+use base64::{Engine as _, engine::general_purpose::STANDARD_NO_PAD};
+use p256::{SecretKey, elliptic_curve::sec1::ToEncodedPoint as _};
+use serde::Deserialize;
+
+#[derive(Deserialize)]
+struct Vector {
+    schema: String,
+    identity_scalar_hex: String,
+    ephemeral_scalar_hex: String,
+    file_key_hex: String,
+    recipient_public_key_base64: String,
+    recipient: String,
+    stanza: VectorStanza,
+}
+
+#[derive(Deserialize)]
+struct VectorStanza {
+    tag: String,
+    args: Vec<String>,
+    body_base64: String,
+}
+
+#[test]
+fn rust_matches_public_vector() {
+    let vector: Vector = serde_json::from_str(include_str!(
+        "../../../docs/test-vectors/p256-recipient-v1.json"
+    ))
+    .unwrap();
+    assert_eq!(
+        vector.schema,
+        "age-plugin-phone/p256-recipient-test-vector/v1"
+    );
+
+    let identity = SecretKey::from_slice(&decode_hex::<32>(&vector.identity_scalar_hex)).unwrap();
+    let ephemeral = SecretKey::from_slice(&decode_hex::<32>(&vector.ephemeral_scalar_hex)).unwrap();
+    let file_key = decode_hex::<16>(&vector.file_key_hex);
+    let recipient =
+        Recipient::from_public_key_bytes(identity.public_key().to_encoded_point(true).as_bytes())
+            .unwrap();
+
+    assert_eq!(recipient.to_string().unwrap(), vector.recipient);
+    assert_eq!(
+        STANDARD_NO_PAD.encode(recipient.public_key_bytes()),
+        vector.recipient_public_key_base64
+    );
+
+    let stanza = wrap_file_key_with_ephemeral(&recipient, &file_key, &ephemeral).unwrap();
+    assert_eq!(stanza.tag, vector.stanza.tag);
+    assert_eq!(stanza.args, vector.stanza.args);
+    assert_eq!(
+        STANDARD_NO_PAD.encode(&stanza.body),
+        vector.stanza.body_base64
+    );
+
+    let vector_stanza = TaggedStanza {
+        tag: vector.stanza.tag,
+        args: vector.stanza.args,
+        body: STANDARD_NO_PAD.decode(vector.stanza.body_base64).unwrap(),
+    };
+    assert_eq!(
+        *unwrap_file_key(&identity, &vector_stanza).unwrap(),
+        file_key
+    );
+}
+
+fn decode_hex<const N: usize>(value: &str) -> [u8; N] {
+    assert_eq!(value.len(), N * 2);
+    let mut output = [0; N];
+    for (index, byte) in output.iter_mut().enumerate() {
+        *byte = u8::from_str_radix(&value[index * 2..index * 2 + 2], 16).unwrap();
+    }
+    output
+}

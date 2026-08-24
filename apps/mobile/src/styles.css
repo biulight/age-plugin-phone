@@ -27,7 +27,7 @@ body {
 }
 
 .shell {
-  width: min(100%, 34rem);
+  width: min(100%, 46rem);
 }
 
 .eyebrow {
@@ -91,3 +91,86 @@ h1 {
   line-height: 1.5;
 }
 
+.doctor {
+  margin-top: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid #374151;
+  border-radius: 1rem;
+  background: rgb(17 24 39 / 82%);
+}
+
+.doctor-heading {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.activity {
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  color: #a7f3d0;
+  background: #064e3b;
+  font-size: 0.78rem;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-top: 1.25rem;
+}
+
+button {
+  min-height: 2.8rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid #4b5563;
+  border-radius: 0.7rem;
+  color: #f9fafb;
+  background: #1f2937;
+  font: inherit;
+  font-weight: 650;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+button.danger {
+  border-color: #7f1d1d;
+  color: #fecaca;
+  background: #450a0a;
+}
+
+pre {
+  overflow: auto;
+  max-height: 24rem;
+  margin: 1rem 0 0;
+  padding: 1rem;
+  border-radius: 0.7rem;
+  color: #d1fae5;
+  background: #030712;
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+
+.copy {
+  width: 100%;
+  margin-top: 0.65rem;
+}
+
+@media (max-width: 34rem) {
+  #app {
+    padding: 1rem;
+  }
+
+  .actions {
+    grid-template-columns: 1fr;
+  }
+}

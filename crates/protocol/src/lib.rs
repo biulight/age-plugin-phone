@@ -1,185 +1,1011 @@
-//! Transport-independent data model for phone pairing and age file-key unwrap requests.
-//!
-//! This crate does not implement serialization, cryptography, QR framing, or BLE framing yet. The
-//! types are an reviewable boundary, not a frozen wire-format specification.
+//! Experimental canonical offline protocol described by ADR 0002.
 
-use serde::{Deserialize, Serialize};
+#![allow(clippy::missing_errors_doc)]
+
+use std::collections::HashSet;
+
+use age_plugin_phone_recipient_p256::{Recipient, TaggedStanza, validate_stanza};
+use chacha20poly1305::{
+    ChaCha20Poly1305, KeyInit as _, Nonce,
+    aead::{Aead as _, Payload},
+};
+use hkdf::Hkdf;
+use minicbor::{Decoder, Encoder, data::Type};
+use p256::{
+    PublicKey, SecretKey,
+    ecdh::{EphemeralSecret, diffie_hellman},
+    ecdsa::{
+        Signature, SigningKey, VerifyingKey,
+        signature::{Signer as _, Verifier as _},
+    },
+    elliptic_curve::sec1::ToEncodedPoint as _,
+};
+use rand_core::{CryptoRng, RngCore};
+use sha2::{Digest as _, Sha256};
 use thiserror::Error;
+use zeroize::{Zeroize as _, Zeroizing};
 
-/// The only protocol version understood by this scaffold.
 pub const PROTOCOL_VERSION: u16 = 1;
+pub const ALGORITHM_SUITE: u16 = 1;
+pub const MAX_REQUEST_LIFETIME_SECS: u64 = 300;
+pub type Id = [u8; 16];
+pub type ProtocolNonce = [u8; 32];
+pub type ProtocolDigest = [u8; 32];
+pub type EncodedPublicKey = [u8; 33];
 
-/// Pairing data displayed by the desktop and scanned by the phone.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PairingOffer {
-    /// Protocol version.
-    pub version: u16,
-    /// Random stable identifier for this desktop installation.
-    pub desktop_id: String,
-    /// Untrusted human-readable desktop label.
-    pub desktop_label: String,
-    /// Encoded desktop static public key.
-    pub desktop_public_key: String,
-    /// Fresh pairing nonce.
-    pub nonce: String,
-}
+const OFFER: u16 = 1;
+const PAIRING_RESPONSE: u16 = 2;
+const REQUEST: u16 = 3;
+const RESPONSE: u16 = 4;
+const OFFER_SIG: &[u8] = b"age-plugin-phone/pairing-offer-signature/v1";
+const PAIRING_SIG: &[u8] = b"age-plugin-phone/pairing-response-signature/v1";
+const REQUEST_SIG: &[u8] = b"age-plugin-phone/unwrap-request-signature/v1";
+const RESPONSE_SIG: &[u8] = b"age-plugin-phone/unwrap-response-signature/v1";
+const REQUEST_DIGEST: &[u8] = b"age-plugin-phone/request-digest/v1";
+const OFFER_DIGEST: &[u8] = b"age-plugin-phone/pairing-offer-digest/v1";
+const FINGERPRINT: &[u8] = b"age-plugin-phone/pairing-fingerprint/v1";
+const SESSION_INFO: &[u8] = b"age-plugin-phone/session-response/p256/v1";
 
-/// Pairing response displayed by the phone and scanned by the desktop.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PairingResponse {
-    /// Protocol version.
-    pub version: u16,
-    /// Stable identifier for the phone-held identity.
-    pub identity_id: String,
-    /// Public age recipient corresponding to the phone-held key.
-    pub recipient: String,
-    /// Encoded phone static public key.
-    pub phone_public_key: String,
-    /// Digest of the accepted pairing offer.
-    pub offer_digest: String,
-    /// Phone signature over all preceding fields.
-    pub signature: String,
-}
-
-/// A request to unwrap one matching age recipient stanza.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct UnwrapRequest {
-    /// Protocol version.
-    pub version: u16,
-    /// Unique random request identifier.
-    pub request_id: String,
-    /// Target phone-held identity.
-    pub identity_id: String,
-    /// Paired desktop identifier.
-    pub desktop_id: String,
-    /// Encoded one-time desktop session public key.
-    pub session_public_key: String,
-    /// Encoded age recipient stanza, including its type and arguments.
-    pub recipient_stanza: String,
-    /// Fresh request nonce.
-    pub nonce: String,
-    /// Short absolute expiry represented as Unix time.
-    pub expires_at_unix: u64,
-    /// Optional, untrusted label to display to the user.
-    pub caller_hint: Option<String>,
-    /// Desktop signature over all preceding fields.
-    pub signature: String,
-}
-
-/// A phone response containing only a request-bound encrypted age file key.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct UnwrapResponse {
-    /// Protocol version.
-    pub version: u16,
-    /// Identifier copied from the accepted request.
-    pub request_id: String,
-    /// Digest of the complete accepted request.
-    pub request_digest: String,
-    /// File key encrypted to the request's one-time session public key.
-    pub encrypted_file_key: String,
-    /// Response nonce.
-    pub nonce: String,
-    /// Phone signature over all preceding fields.
-    pub signature: String,
-}
-
-/// Structural validation failures detected before cryptographic verification.
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
-pub enum ValidationError {
-    /// The peer selected an unsupported protocol version.
-    #[error("unsupported protocol version {0}")]
-    UnsupportedVersion(u16),
-    /// A required textual field is empty.
-    #[error("required field {0} is empty")]
-    EmptyField(&'static str),
+pub enum Error {
+    #[error("malformed or non-canonical protocol message")]
+    Malformed,
+    #[error("unsupported protocol version")]
+    UnsupportedVersion,
+    #[error("unsupported algorithm suite")]
+    UnsupportedSuite,
+    #[error("unexpected message type")]
+    UnexpectedMessageType,
+    #[error("invalid public key")]
+    InvalidPublicKey,
+    #[error("invalid signature")]
+    InvalidSignature,
+    #[error("wrong paired desktop")]
+    WrongDesktop,
+    #[error("wrong phone identity")]
+    WrongIdentity,
+    #[error("request expired")]
+    Expired,
+    #[error("request lifetime exceeds policy")]
+    LifetimeTooLong,
+    #[error("replayed request or response")]
+    Replay,
+    #[error("invalid recipient stanza")]
+    InvalidRecipientStanza,
+    #[error("response binding mismatch")]
+    BindingMismatch,
+    #[error("response decryption failed")]
+    Decryption,
+    #[error("key derivation failed")]
+    KeyDerivation,
 }
 
-impl PairingOffer {
-    /// Checks version and required fields without treating labels as trusted data.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error for an unsupported version or an empty required field.
-    pub fn validate(&self) -> Result<(), ValidationError> {
-        validate_version(self.version)?;
-        require("desktop_id", &self.desktop_id)?;
-        require("desktop_public_key", &self.desktop_public_key)?;
-        require("nonce", &self.nonce)
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PairingOffer {
+    pub desktop_id: Id,
+    pub desktop_label: String,
+    pub desktop_signing_public_key: EncodedPublicKey,
+    pub nonce: ProtocolNonce,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SignedPairingOffer {
+    pub payload: PairingOffer,
+    pub signature: [u8; 64],
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PairingResponse {
+    pub identity_id: Id,
+    pub recipient: String,
+    pub phone_signing_public_key: EncodedPublicKey,
+    pub offer_digest: ProtocolDigest,
+    pub nonce: ProtocolNonce,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SignedPairingResponse {
+    pub payload: PairingResponse,
+    pub signature: [u8; 64],
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UnwrapRequest {
+    pub request_id: Id,
+    pub identity_id: Id,
+    pub desktop_id: Id,
+    pub session_public_key: EncodedPublicKey,
+    pub recipient_stanza: TaggedStanza,
+    pub nonce: ProtocolNonce,
+    pub expires_at_unix: u64,
+    pub caller_hint: Option<String>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SignedUnwrapRequest {
+    pub payload: UnwrapRequest,
+    pub signature: [u8; 64],
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct UnwrapResponse {
+    pub request_id: Id,
+    pub request_digest: ProtocolDigest,
+    pub identity_id: Id,
+    pub desktop_id: Id,
+    pub phone_session_public_key: EncodedPublicKey,
+    pub nonce: ProtocolNonce,
+    pub encrypted_file_key: [u8; 32],
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SignedUnwrapResponse {
+    pub payload: UnwrapResponse,
+    pub signature: [u8; 64],
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PairingRecord {
+    pub desktop_id: Id,
+    pub identity_id: Id,
+    pub desktop_signing_public_key: EncodedPublicKey,
+    pub phone_signing_public_key: EncodedPublicKey,
+}
+
+#[derive(Default)]
+pub struct ReplayGuard {
+    requests: HashSet<Id>,
+    nonces: HashSet<ProtocolNonce>,
+    responses: HashSet<ProtocolDigest>,
+}
+
+#[derive(Clone, Debug)]
+pub struct VerifiedRequest {
+    signed: SignedUnwrapRequest,
+    digest: ProtocolDigest,
+}
+
+impl SignedPairingOffer {
+    pub fn sign(payload: PairingOffer, key: &SigningKey) -> Result<Self, Error> {
+        label(&payload.desktop_label)?;
+        if public_signing(key.verifying_key()) != payload.desktop_signing_public_key {
+            return Err(Error::InvalidPublicKey);
+        }
+        let signature = sign(key, OFFER_SIG, &encode_offer(&payload));
+        Ok(Self { payload, signature })
+    }
+    pub fn verify(&self) -> Result<(), Error> {
+        label(&self.payload.desktop_label)?;
+        verify(
+            &verifying(&self.payload.desktop_signing_public_key)?,
+            OFFER_SIG,
+            &encode_offer(&self.payload),
+            &self.signature,
+        )
+    }
+    #[must_use]
+    pub fn encode(&self) -> Vec<u8> {
+        signed(&encode_offer(&self.payload), &self.signature)
+    }
+    pub fn decode(bytes: &[u8]) -> Result<Self, Error> {
+        let (p, signature) = decode_signed(bytes)?;
+        let value = Self {
+            payload: decode_offer(&p)?,
+            signature,
+        };
+        canonical(bytes, &value.encode())?;
+        Ok(value)
+    }
+    #[must_use]
+    pub fn digest(&self) -> ProtocolDigest {
+        hash(OFFER_DIGEST, &self.encode())
     }
 }
 
-impl UnwrapRequest {
-    /// Checks version and required fields before signature and expiry verification.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error for an unsupported version or an empty required field.
-    pub fn validate_structure(&self) -> Result<(), ValidationError> {
-        validate_version(self.version)?;
-        require("request_id", &self.request_id)?;
-        require("identity_id", &self.identity_id)?;
-        require("desktop_id", &self.desktop_id)?;
-        require("session_public_key", &self.session_public_key)?;
-        require("recipient_stanza", &self.recipient_stanza)?;
-        require("nonce", &self.nonce)?;
-        require("signature", &self.signature)
+impl SignedPairingResponse {
+    pub fn sign(payload: PairingResponse, key: &SigningKey) -> Result<Self, Error> {
+        validate_pairing_response(&payload)?;
+        if public_signing(key.verifying_key()) != payload.phone_signing_public_key {
+            return Err(Error::InvalidPublicKey);
+        }
+        let signature = sign(key, PAIRING_SIG, &encode_pairing_response(&payload));
+        Ok(Self { payload, signature })
+    }
+    pub fn verify(&self, offer: &SignedPairingOffer) -> Result<(), Error> {
+        offer.verify()?;
+        validate_pairing_response(&self.payload)?;
+        if self.payload.offer_digest != offer.digest() {
+            return Err(Error::BindingMismatch);
+        }
+        verify(
+            &verifying(&self.payload.phone_signing_public_key)?,
+            PAIRING_SIG,
+            &encode_pairing_response(&self.payload),
+            &self.signature,
+        )
+    }
+    #[must_use]
+    pub fn encode(&self) -> Vec<u8> {
+        signed(&encode_pairing_response(&self.payload), &self.signature)
+    }
+    pub fn decode(bytes: &[u8]) -> Result<Self, Error> {
+        let (p, signature) = decode_signed(bytes)?;
+        let value = Self {
+            payload: decode_pairing_response(&p)?,
+            signature,
+        };
+        canonical(bytes, &value.encode())?;
+        Ok(value)
     }
 }
 
-fn validate_version(version: u16) -> Result<(), ValidationError> {
-    if version == PROTOCOL_VERSION {
+#[must_use]
+pub fn pairing_fingerprint(
+    offer: &SignedPairingOffer,
+    response: &SignedPairingResponse,
+) -> ProtocolDigest {
+    let mut transcript = offer.encode();
+    transcript.extend(response.encode());
+    hash(FINGERPRINT, &transcript)
+}
+
+impl SignedUnwrapRequest {
+    pub fn sign(payload: UnwrapRequest, key: &SigningKey) -> Result<Self, Error> {
+        validate_request(&payload)?;
+        let signature = sign(key, REQUEST_SIG, &encode_request(&payload));
+        Ok(Self { payload, signature })
+    }
+    #[must_use]
+    pub fn encode(&self) -> Vec<u8> {
+        signed(&encode_request(&self.payload), &self.signature)
+    }
+    pub fn decode(bytes: &[u8]) -> Result<Self, Error> {
+        let (p, signature) = decode_signed(bytes)?;
+        let value = Self {
+            payload: decode_request(&p)?,
+            signature,
+        };
+        canonical(bytes, &value.encode())?;
+        Ok(value)
+    }
+}
+
+impl ReplayGuard {
+    pub fn verify_request(
+        &mut self,
+        request: SignedUnwrapRequest,
+        pairing: &PairingRecord,
+        now: u64,
+    ) -> Result<VerifiedRequest, Error> {
+        validate_request(&request.payload)?;
+        if request.payload.desktop_id != pairing.desktop_id {
+            return Err(Error::WrongDesktop);
+        }
+        if request.payload.identity_id != pairing.identity_id {
+            return Err(Error::WrongIdentity);
+        }
+        if request.payload.expires_at_unix < now {
+            return Err(Error::Expired);
+        }
+        if request.payload.expires_at_unix > now.saturating_add(MAX_REQUEST_LIFETIME_SECS) {
+            return Err(Error::LifetimeTooLong);
+        }
+        verify(
+            &verifying(&pairing.desktop_signing_public_key)?,
+            REQUEST_SIG,
+            &encode_request(&request.payload),
+            &request.signature,
+        )?;
+        if self.requests.contains(&request.payload.request_id)
+            || self.nonces.contains(&request.payload.nonce)
+        {
+            return Err(Error::Replay);
+        }
+        let digest = hash(REQUEST_DIGEST, &request.encode());
+        self.requests.insert(request.payload.request_id);
+        self.nonces.insert(request.payload.nonce);
+        Ok(VerifiedRequest {
+            signed: request,
+            digest,
+        })
+    }
+}
+
+impl VerifiedRequest {
+    #[must_use]
+    pub const fn digest(&self) -> ProtocolDigest {
+        self.digest
+    }
+    #[must_use]
+    pub const fn payload(&self) -> &UnwrapRequest {
+        &self.signed.payload
+    }
+}
+
+impl SignedUnwrapResponse {
+    #[must_use]
+    pub fn encode(&self) -> Vec<u8> {
+        signed(&encode_response(&self.payload), &self.signature)
+    }
+    pub fn decode(bytes: &[u8]) -> Result<Self, Error> {
+        let (p, signature) = decode_signed(bytes)?;
+        let value = Self {
+            payload: decode_response(&p)?,
+            signature,
+        };
+        canonical(bytes, &value.encode())?;
+        Ok(value)
+    }
+}
+
+pub fn seal_response(
+    request: &VerifiedRequest,
+    file_key: &[u8; 16],
+    phone_signing: &SigningKey,
+    rng: &mut (impl CryptoRng + RngCore),
+) -> Result<SignedUnwrapResponse, Error> {
+    let ephemeral = EphemeralSecret::random(&mut *rng);
+    let phone_public = PublicKey::from(&ephemeral);
+    let shared = ephemeral.diffie_hellman(&public(&request.payload().session_public_key)?);
+    let mut nonce = [0; 32];
+    rng.fill_bytes(&mut nonce);
+    seal_shared(
+        request,
+        file_key,
+        phone_signing,
+        &phone_public,
+        shared.raw_secret_bytes(),
+        nonce,
+    )
+}
+
+pub fn seal_response_with_ephemeral(
+    request: &VerifiedRequest,
+    file_key: &[u8; 16],
+    phone_signing: &SigningKey,
+    phone_session: &SecretKey,
+    nonce: ProtocolNonce,
+) -> Result<SignedUnwrapResponse, Error> {
+    let desktop = public(&request.payload().session_public_key)?;
+    let shared = diffie_hellman(phone_session.to_nonzero_scalar(), desktop.as_affine());
+    seal_shared(
+        request,
+        file_key,
+        phone_signing,
+        &phone_session.public_key(),
+        shared.raw_secret_bytes(),
+        nonce,
+    )
+}
+
+pub fn open_response(
+    response: &SignedUnwrapResponse,
+    request: &VerifiedRequest,
+    pairing: &PairingRecord,
+    desktop_session: &SecretKey,
+    replay: &mut ReplayGuard,
+) -> Result<Zeroizing<[u8; 16]>, Error> {
+    let p = &response.payload;
+    if p.request_id != request.payload().request_id
+        || p.request_digest != request.digest()
+        || p.identity_id != pairing.identity_id
+        || p.desktop_id != pairing.desktop_id
+    {
+        return Err(Error::BindingMismatch);
+    }
+    verify(
+        &verifying(&pairing.phone_signing_public_key)?,
+        RESPONSE_SIG,
+        &encode_response(p),
+        &response.signature,
+    )?;
+    let shared = diffie_hellman(
+        desktop_session.to_nonzero_scalar(),
+        public(&p.phone_session_public_key)?.as_affine(),
+    );
+    let key = session_key(shared.raw_secret_bytes(), &p.request_digest, &p.nonce)?;
+    let cipher =
+        ChaCha20Poly1305::new_from_slice(key.as_slice()).map_err(|_| Error::KeyDerivation)?;
+    let plaintext = cipher
+        .decrypt(
+            Nonce::from_slice(&[0; 12]),
+            Payload {
+                msg: &p.encrypted_file_key,
+                aad: &response_aad(p),
+            },
+        )
+        .map_err(|_| Error::Decryption)?;
+    let file_key = plaintext.try_into().map_err(|_| Error::Decryption)?;
+    if !replay
+        .responses
+        .insert(hash(RESPONSE_SIG, &response.encode()))
+    {
+        return Err(Error::Replay);
+    }
+    Ok(Zeroizing::new(file_key))
+}
+
+fn seal_shared(
+    request: &VerifiedRequest,
+    file_key: &[u8; 16],
+    phone_signing: &SigningKey,
+    phone_public: &PublicKey,
+    shared: &[u8],
+    nonce: ProtocolNonce,
+) -> Result<SignedUnwrapResponse, Error> {
+    let mut payload = UnwrapResponse {
+        request_id: request.payload().request_id,
+        request_digest: request.digest(),
+        identity_id: request.payload().identity_id,
+        desktop_id: request.payload().desktop_id,
+        phone_session_public_key: encode_public(phone_public),
+        nonce,
+        encrypted_file_key: [0; 32],
+    };
+    let key = session_key(shared, &payload.request_digest, &payload.nonce)?;
+    let cipher =
+        ChaCha20Poly1305::new_from_slice(key.as_slice()).map_err(|_| Error::KeyDerivation)?;
+    payload.encrypted_file_key = cipher
+        .encrypt(
+            Nonce::from_slice(&[0; 12]),
+            Payload {
+                msg: file_key,
+                aad: &response_aad(&payload),
+            },
+        )
+        .map_err(|_| Error::Decryption)?
+        .try_into()
+        .map_err(|_| Error::Decryption)?;
+    let signature = sign(phone_signing, RESPONSE_SIG, &encode_response(&payload));
+    Ok(SignedUnwrapResponse { payload, signature })
+}
+
+fn validate_request(value: &UnwrapRequest) -> Result<(), Error> {
+    public(&value.session_public_key)?;
+    validate_stanza(&value.recipient_stanza).map_err(|_| Error::InvalidRecipientStanza)?;
+    if let Some(v) = &value.caller_hint {
+        label(v)?;
+    }
+    Ok(())
+}
+fn validate_pairing_response(value: &PairingResponse) -> Result<(), Error> {
+    Recipient::parse(&value.recipient).map_err(|_| Error::InvalidRecipientStanza)?;
+    verifying(&value.phone_signing_public_key)?;
+    Ok(())
+}
+fn label(value: &str) -> Result<(), Error> {
+    if value.len() <= 64 {
         Ok(())
     } else {
-        Err(ValidationError::UnsupportedVersion(version))
+        Err(Error::Malformed)
     }
 }
 
-fn require(name: &'static str, value: &str) -> Result<(), ValidationError> {
-    if value.is_empty() {
-        Err(ValidationError::EmptyField(name))
-    } else {
-        Ok(())
+fn sign(key: &SigningKey, domain: &[u8], payload: &[u8]) -> [u8; 64] {
+    let signature: Signature = key.sign(&domain_input(domain, payload));
+    signature
+        .normalize_s()
+        .unwrap_or(signature)
+        .to_bytes()
+        .into()
+}
+fn verify(
+    key: &VerifyingKey,
+    domain: &[u8],
+    payload: &[u8],
+    bytes: &[u8; 64],
+) -> Result<(), Error> {
+    let signature = Signature::from_slice(bytes).map_err(|_| Error::InvalidSignature)?;
+    if signature.normalize_s().is_some() {
+        return Err(Error::InvalidSignature);
     }
+    key.verify(&domain_input(domain, payload), &signature)
+        .map_err(|_| Error::InvalidSignature)
+}
+fn domain_input(domain: &[u8], payload: &[u8]) -> Vec<u8> {
+    let mut v = domain.to_vec();
+    v.push(0);
+    v.extend(payload);
+    v
+}
+fn hash(domain: &[u8], payload: &[u8]) -> ProtocolDigest {
+    let mut h = Sha256::new();
+    h.update(domain);
+    h.update([0]);
+    h.update(payload);
+    h.finalize().into()
+}
+fn session_key(
+    shared: &[u8],
+    digest: &ProtocolDigest,
+    nonce: &ProtocolNonce,
+) -> Result<Zeroizing<[u8; 32]>, Error> {
+    let mut salt = [0; 64];
+    salt[..32].copy_from_slice(digest);
+    salt[32..].copy_from_slice(nonce);
+    let mut key = Zeroizing::new([0; 32]);
+    Hkdf::<Sha256>::new(Some(&salt), shared)
+        .expand(SESSION_INFO, key.as_mut())
+        .map_err(|_| Error::KeyDerivation)?;
+    salt.zeroize();
+    Ok(key)
+}
+fn public_signing(key: &VerifyingKey) -> EncodedPublicKey {
+    let mut b = [0; 33];
+    b.copy_from_slice(key.to_encoded_point(true).as_bytes());
+    b
+}
+fn verifying(bytes: &EncodedPublicKey) -> Result<VerifyingKey, Error> {
+    VerifyingKey::from_sec1_bytes(bytes).map_err(|_| Error::InvalidPublicKey)
+}
+fn encode_public(key: &PublicKey) -> EncodedPublicKey {
+    let mut b = [0; 33];
+    b.copy_from_slice(key.to_encoded_point(true).as_bytes());
+    b
+}
+fn public(bytes: &EncodedPublicKey) -> Result<PublicKey, Error> {
+    if !matches!(bytes[0], 2 | 3) {
+        return Err(Error::InvalidPublicKey);
+    }
+    let k = PublicKey::from_sec1_bytes(bytes).map_err(|_| Error::InvalidPublicKey)?;
+    if encode_public(&k) == *bytes {
+        Ok(k)
+    } else {
+        Err(Error::InvalidPublicKey)
+    }
+}
+
+fn enc() -> Encoder<Vec<u8>> {
+    Encoder::new(Vec::new())
+}
+fn done(e: Encoder<Vec<u8>>) -> Vec<u8> {
+    e.into_writer()
+}
+fn header(e: &mut Encoder<Vec<u8>>, len: u64, kind: u16) {
+    e.array(len)
+        .unwrap()
+        .u16(PROTOCOL_VERSION)
+        .unwrap()
+        .u16(kind)
+        .unwrap()
+        .u16(ALGORITHM_SUITE)
+        .unwrap();
+}
+fn encode_offer(v: &PairingOffer) -> Vec<u8> {
+    let mut e = enc();
+    header(&mut e, 7, OFFER);
+    e.bytes(&v.desktop_id)
+        .unwrap()
+        .str(&v.desktop_label)
+        .unwrap()
+        .bytes(&v.desktop_signing_public_key)
+        .unwrap()
+        .bytes(&v.nonce)
+        .unwrap();
+    done(e)
+}
+fn encode_pairing_response(v: &PairingResponse) -> Vec<u8> {
+    let mut e = enc();
+    header(&mut e, 8, PAIRING_RESPONSE);
+    e.bytes(&v.identity_id)
+        .unwrap()
+        .str(&v.recipient)
+        .unwrap()
+        .bytes(&v.phone_signing_public_key)
+        .unwrap()
+        .bytes(&v.offer_digest)
+        .unwrap()
+        .bytes(&v.nonce)
+        .unwrap();
+    done(e)
+}
+fn stanza(e: &mut Encoder<Vec<u8>>, v: &TaggedStanza) {
+    e.array(3)
+        .unwrap()
+        .str(&v.tag)
+        .unwrap()
+        .array(1)
+        .unwrap()
+        .str(&v.args[0])
+        .unwrap()
+        .bytes(&v.body)
+        .unwrap();
+}
+fn encode_request(v: &UnwrapRequest) -> Vec<u8> {
+    let mut e = enc();
+    header(&mut e, 11, REQUEST);
+    e.bytes(&v.request_id)
+        .unwrap()
+        .bytes(&v.identity_id)
+        .unwrap()
+        .bytes(&v.desktop_id)
+        .unwrap()
+        .bytes(&v.session_public_key)
+        .unwrap();
+    stanza(&mut e, &v.recipient_stanza);
+    e.bytes(&v.nonce).unwrap().u64(v.expires_at_unix).unwrap();
+    match &v.caller_hint {
+        Some(s) => {
+            e.str(s).unwrap();
+        }
+        None => {
+            e.null().unwrap();
+        }
+    }
+    done(e)
+}
+fn encode_response(v: &UnwrapResponse) -> Vec<u8> {
+    let mut e = enc();
+    header(&mut e, 10, RESPONSE);
+    e.bytes(&v.request_id)
+        .unwrap()
+        .bytes(&v.request_digest)
+        .unwrap()
+        .bytes(&v.identity_id)
+        .unwrap()
+        .bytes(&v.desktop_id)
+        .unwrap()
+        .bytes(&v.phone_session_public_key)
+        .unwrap()
+        .bytes(&v.nonce)
+        .unwrap()
+        .bytes(&v.encrypted_file_key)
+        .unwrap();
+    done(e)
+}
+fn response_aad(v: &UnwrapResponse) -> Vec<u8> {
+    let mut e = enc();
+    header(&mut e, 9, RESPONSE);
+    e.bytes(&v.request_id)
+        .unwrap()
+        .bytes(&v.request_digest)
+        .unwrap()
+        .bytes(&v.identity_id)
+        .unwrap()
+        .bytes(&v.desktop_id)
+        .unwrap()
+        .bytes(&v.phone_session_public_key)
+        .unwrap()
+        .bytes(&v.nonce)
+        .unwrap();
+    done(e)
+}
+fn signed(payload: &[u8], signature: &[u8; 64]) -> Vec<u8> {
+    let mut e = enc();
+    e.array(2)
+        .unwrap()
+        .bytes(payload)
+        .unwrap()
+        .bytes(signature)
+        .unwrap();
+    done(e)
+}
+
+fn arr(d: &mut Decoder<'_>, n: u64) -> Result<(), Error> {
+    if d.array().map_err(|_| Error::Malformed)? == Some(n) {
+        Ok(())
+    } else {
+        Err(Error::Malformed)
+    }
+}
+fn hdr(d: &mut Decoder<'_>, n: u64, kind: u16) -> Result<(), Error> {
+    arr(d, n)?;
+    if d.u16().map_err(|_| Error::Malformed)? != PROTOCOL_VERSION {
+        return Err(Error::UnsupportedVersion);
+    }
+    if d.u16().map_err(|_| Error::Malformed)? != kind {
+        return Err(Error::UnexpectedMessageType);
+    }
+    if d.u16().map_err(|_| Error::Malformed)? != ALGORITHM_SUITE {
+        return Err(Error::UnsupportedSuite);
+    }
+    Ok(())
+}
+fn fixed<const N: usize>(v: &[u8]) -> Result<[u8; N], Error> {
+    v.try_into().map_err(|_| Error::Malformed)
+}
+fn text(d: &mut Decoder<'_>, max: usize) -> Result<String, Error> {
+    let s = d.str().map_err(|_| Error::Malformed)?;
+    if s.len() > max {
+        Err(Error::Malformed)
+    } else {
+        Ok(s.into())
+    }
+}
+fn end(d: &Decoder<'_>, b: &[u8]) -> Result<(), Error> {
+    if d.position() == b.len() {
+        Ok(())
+    } else {
+        Err(Error::Malformed)
+    }
+}
+fn canonical(a: &[u8], b: &[u8]) -> Result<(), Error> {
+    if a == b {
+        Ok(())
+    } else {
+        Err(Error::Malformed)
+    }
+}
+fn decode_signed(b: &[u8]) -> Result<(Vec<u8>, [u8; 64]), Error> {
+    let mut d = Decoder::new(b);
+    arr(&mut d, 2)?;
+    let p = d.bytes().map_err(|_| Error::Malformed)?.to_vec();
+    let s = fixed(d.bytes().map_err(|_| Error::Malformed)?)?;
+    end(&d, b)?;
+    Ok((p, s))
+}
+fn decode_offer(b: &[u8]) -> Result<PairingOffer, Error> {
+    let mut d = Decoder::new(b);
+    hdr(&mut d, 7, OFFER)?;
+    let v = PairingOffer {
+        desktop_id: fixed(d.bytes().map_err(|_| Error::Malformed)?)?,
+        desktop_label: text(&mut d, 64)?,
+        desktop_signing_public_key: fixed(d.bytes().map_err(|_| Error::Malformed)?)?,
+        nonce: fixed(d.bytes().map_err(|_| Error::Malformed)?)?,
+    };
+    end(&d, b)?;
+    canonical(b, &encode_offer(&v))?;
+    Ok(v)
+}
+fn decode_pairing_response(b: &[u8]) -> Result<PairingResponse, Error> {
+    let mut d = Decoder::new(b);
+    hdr(&mut d, 8, PAIRING_RESPONSE)?;
+    let v = PairingResponse {
+        identity_id: fixed(d.bytes().map_err(|_| Error::Malformed)?)?,
+        recipient: text(&mut d, 160)?,
+        phone_signing_public_key: fixed(d.bytes().map_err(|_| Error::Malformed)?)?,
+        offer_digest: fixed(d.bytes().map_err(|_| Error::Malformed)?)?,
+        nonce: fixed(d.bytes().map_err(|_| Error::Malformed)?)?,
+    };
+    end(&d, b)?;
+    canonical(b, &encode_pairing_response(&v))?;
+    validate_pairing_response(&v)?;
+    Ok(v)
+}
+fn decode_stanza(d: &mut Decoder<'_>) -> Result<TaggedStanza, Error> {
+    arr(d, 3)?;
+    let tag = text(d, 64)?;
+    arr(d, 1)?;
+    let arg = text(d, 128)?;
+    let body = d.bytes().map_err(|_| Error::Malformed)?.to_vec();
+    Ok(TaggedStanza {
+        tag,
+        args: vec![arg],
+        body,
+    })
+}
+fn decode_request(b: &[u8]) -> Result<UnwrapRequest, Error> {
+    let mut d = Decoder::new(b);
+    hdr(&mut d, 11, REQUEST)?;
+    let request_id = fixed(d.bytes().map_err(|_| Error::Malformed)?)?;
+    let identity_id = fixed(d.bytes().map_err(|_| Error::Malformed)?)?;
+    let desktop_id = fixed(d.bytes().map_err(|_| Error::Malformed)?)?;
+    let session_public_key = fixed(d.bytes().map_err(|_| Error::Malformed)?)?;
+    let recipient_stanza = decode_stanza(&mut d)?;
+    let nonce = fixed(d.bytes().map_err(|_| Error::Malformed)?)?;
+    let expires_at_unix = d.u64().map_err(|_| Error::Malformed)?;
+    let caller_hint = match d.datatype().map_err(|_| Error::Malformed)? {
+        Type::Null => {
+            d.null().map_err(|_| Error::Malformed)?;
+            None
+        }
+        Type::String => Some(text(&mut d, 64)?),
+        _ => return Err(Error::Malformed),
+    };
+    let v = UnwrapRequest {
+        request_id,
+        identity_id,
+        desktop_id,
+        session_public_key,
+        recipient_stanza,
+        nonce,
+        expires_at_unix,
+        caller_hint,
+    };
+    end(&d, b)?;
+    canonical(b, &encode_request(&v))?;
+    validate_request(&v)?;
+    Ok(v)
+}
+fn decode_response(b: &[u8]) -> Result<UnwrapResponse, Error> {
+    let mut d = Decoder::new(b);
+    hdr(&mut d, 10, RESPONSE)?;
+    let v = UnwrapResponse {
+        request_id: fixed(d.bytes().map_err(|_| Error::Malformed)?)?,
+        request_digest: fixed(d.bytes().map_err(|_| Error::Malformed)?)?,
+        identity_id: fixed(d.bytes().map_err(|_| Error::Malformed)?)?,
+        desktop_id: fixed(d.bytes().map_err(|_| Error::Malformed)?)?,
+        phone_session_public_key: fixed(d.bytes().map_err(|_| Error::Malformed)?)?,
+        nonce: fixed(d.bytes().map_err(|_| Error::Malformed)?)?,
+        encrypted_file_key: fixed(d.bytes().map_err(|_| Error::Malformed)?)?,
+    };
+    end(&d, b)?;
+    canonical(b, &encode_response(&v))?;
+    public(&v.phone_session_public_key)?;
+    Ok(v)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn pairing_offer_rejects_unknown_version() {
-        let offer = PairingOffer {
-            version: PROTOCOL_VERSION + 1,
-            desktop_id: "desktop-1".into(),
-            desktop_label: "untrusted label".into(),
-            desktop_public_key: "public-key".into(),
-            nonce: "nonce".into(),
+    use age_plugin_phone_recipient_p256::{Recipient, wrap_file_key_with_ephemeral};
+    const D: Id = [0x11; 16];
+    const I: Id = [0x22; 16];
+    const R: Id = [0x33; 16];
+    const F: [u8; 16] = [0x55; 16];
+    fn sk(n: u8) -> SecretKey {
+        let mut b = [0; 32];
+        b[31] = n;
+        SecretKey::from_slice(&b).unwrap()
+    }
+    fn sig(n: u8) -> SigningKey {
+        SigningKey::from_bytes(
+            (&{
+                let mut b = [0; 32];
+                b[31] = n;
+                b
+            })
+                .into(),
+        )
+        .unwrap()
+    }
+    fn fixture() -> (SignedUnwrapRequest, PairingRecord, SecretKey, SigningKey) {
+        let ds = sig(1);
+        let ps = sig(2);
+        let identity = sk(3);
+        let recipient = Recipient::from_public_key_bytes(
+            identity.public_key().to_encoded_point(true).as_bytes(),
+        )
+        .unwrap();
+        let stanza = wrap_file_key_with_ephemeral(&recipient, &F, &sk(4)).unwrap();
+        let session = sk(5);
+        let request = SignedUnwrapRequest::sign(
+            UnwrapRequest {
+                request_id: R,
+                identity_id: I,
+                desktop_id: D,
+                session_public_key: encode_public(&session.public_key()),
+                recipient_stanza: stanza,
+                nonce: [0x44; 32],
+                expires_at_unix: 1_000_300,
+                caller_hint: Some("test caller".into()),
+            },
+            &ds,
+        )
+        .unwrap();
+        let pairing = PairingRecord {
+            desktop_id: D,
+            identity_id: I,
+            desktop_signing_public_key: public_signing(ds.verifying_key()),
+            phone_signing_public_key: public_signing(ps.verifying_key()),
         };
-
+        (request, pairing, session, ps)
+    }
+    #[test]
+    fn round_trip_and_replay() {
+        use base64::{Engine as _, engine::general_purpose::STANDARD_NO_PAD};
+        let (r, p, s, ps) = fixture();
+        let decoded = SignedUnwrapRequest::decode(&r.encode()).unwrap();
+        let mut g = ReplayGuard::default();
+        let verified = g.verify_request(decoded, &p, 1_000_000).unwrap();
+        let response =
+            seal_response_with_ephemeral(&verified, &F, &ps, &sk(6), [0x66; 32]).unwrap();
+        let response = SignedUnwrapResponse::decode(&response.encode()).unwrap();
+        let vector: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../docs/test-vectors/offline-envelope-v1.json"
+        ))
+        .unwrap();
         assert_eq!(
-            offer.validate(),
-            Err(ValidationError::UnsupportedVersion(PROTOCOL_VERSION + 1))
+            STANDARD_NO_PAD.encode(r.encode()),
+            vector["signed_request_base64"].as_str().unwrap()
+        );
+        assert_eq!(
+            STANDARD_NO_PAD.encode(verified.digest()),
+            vector["request_digest_base64"].as_str().unwrap()
+        );
+        assert_eq!(
+            STANDARD_NO_PAD.encode(response.encode()),
+            vector["signed_response_base64"].as_str().unwrap()
+        );
+        let mut rg = ReplayGuard::default();
+        assert_eq!(
+            *open_response(&response, &verified, &p, &s, &mut rg).unwrap(),
+            F
+        );
+        assert_eq!(
+            open_response(&response, &verified, &p, &s, &mut rg).unwrap_err(),
+            Error::Replay
         );
     }
-
     #[test]
-    fn unwrap_request_requires_a_recipient_stanza() {
-        let request = UnwrapRequest {
-            version: PROTOCOL_VERSION,
-            request_id: "request-1".into(),
-            identity_id: "identity-1".into(),
-            desktop_id: "desktop-1".into(),
-            session_public_key: "session-key".into(),
-            recipient_stanza: String::new(),
-            nonce: "nonce".into(),
-            expires_at_unix: 1,
-            caller_hint: None,
-            signature: "signature".into(),
-        };
-
+    fn rejects_wrong_expired_replay_and_tamper() {
+        let (r, p, s, ps) = fixture();
+        let mut g = ReplayGuard::default();
+        let mut wrong = p.clone();
+        wrong.desktop_id[0] ^= 1;
         assert_eq!(
-            request.validate_structure(),
-            Err(ValidationError::EmptyField("recipient_stanza"))
+            g.verify_request(r.clone(), &wrong, 1_000_000).unwrap_err(),
+            Error::WrongDesktop
         );
+        wrong = p.clone();
+        wrong.identity_id[0] ^= 1;
+        assert_eq!(
+            g.verify_request(r.clone(), &wrong, 1_000_000).unwrap_err(),
+            Error::WrongIdentity
+        );
+        assert_eq!(
+            g.verify_request(r.clone(), &p, 1_000_301).unwrap_err(),
+            Error::Expired
+        );
+        let verified = g.verify_request(r.clone(), &p, 1_000_000).unwrap();
+        assert_eq!(
+            g.verify_request(r, &p, 1_000_000).unwrap_err(),
+            Error::Replay
+        );
+        let mut response =
+            seal_response_with_ephemeral(&verified, &F, &ps, &sk(6), [0x66; 32]).unwrap();
+        response.payload.request_digest[0] ^= 1;
+        assert_eq!(
+            open_response(&response, &verified, &p, &s, &mut ReplayGuard::default()).unwrap_err(),
+            Error::BindingMismatch
+        );
+    }
+    #[test]
+    fn rejects_noncanonical_and_bad_signature() {
+        let (mut r, p, _, _) = fixture();
+        r.signature[0] ^= 1;
+        assert_eq!(
+            ReplayGuard::default()
+                .verify_request(r, &p, 1_000_000)
+                .unwrap_err(),
+            Error::InvalidSignature
+        );
+        let (r, _, _, _) = fixture();
+        let mut b = r.encode();
+        b.push(0);
+        assert_eq!(
+            SignedUnwrapRequest::decode(&b).unwrap_err(),
+            Error::Malformed
+        );
+    }
+    #[test]
+    fn pairing_transcript() {
+        let d = sig(1);
+        let p = sig(2);
+        let offer = SignedPairingOffer::sign(
+            PairingOffer {
+                desktop_id: D,
+                desktop_label: "desktop".into(),
+                desktop_signing_public_key: public_signing(d.verifying_key()),
+                nonce: [7; 32],
+            },
+            &d,
+        )
+        .unwrap();
+        let response = SignedPairingResponse::sign(
+            PairingResponse {
+                identity_id: I,
+                recipient: Recipient::from_public_key_bytes(
+                    sk(3).public_key().to_encoded_point(true).as_bytes(),
+                )
+                .unwrap()
+                .to_string()
+                .unwrap(),
+                phone_signing_public_key: public_signing(p.verifying_key()),
+                offer_digest: offer.digest(),
+                nonce: [8; 32],
+            },
+            &p,
+        )
+        .unwrap();
+        SignedPairingOffer::decode(&offer.encode())
+            .unwrap()
+            .verify()
+            .unwrap();
+        SignedPairingResponse::decode(&response.encode())
+            .unwrap()
+            .verify(&offer)
+            .unwrap();
+        assert_ne!(pairing_fingerprint(&offer, &response), [0; 32]);
     }
 }

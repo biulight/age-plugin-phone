@@ -1,0 +1,10 @@
+"$schema" = "schemas/schema.json"
+
+[default]
+description = "Allows the development-only StrongBox doctor commands."
+permissions = [
+    "allow-doctor-capabilities",
+    "allow-doctor-create-probe",
+    "allow-doctor-run-agreement",
+    "allow-doctor-cleanup",
+]

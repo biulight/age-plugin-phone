@@ -1,0 +1,21 @@
+[package]
+name = "tauri-plugin-phone-identity"
+description = "Android StrongBox capability probe for age-plugin-phone"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+build = "build.rs"
+links = "tauri-plugin-phone-identity"
+
+[dependencies]
+serde.workspace = true
+tauri.workspace = true
+thiserror.workspace = true
+
+[build-dependencies]
+tauri-plugin.workspace = true
+
+[lints]
+workspace = true

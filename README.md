@@ -33,6 +33,7 @@ user. It must never export the long-term private key to the desktop.
 
 - `crates/desktop`: the `age-plugin-phone` desktop binary and age plugin entry point.
 - `crates/protocol`: transport-independent pairing and unwrap message types.
+- `crates/recipient-p256`: experimental, transport-independent P-256 tagged-recipient reference.
 - `apps/mobile`: Tauri 2 mobile application with a deliberately non-sensitive TypeScript UI.
 - `docs`: architecture, protocol, threat model, and roadmap.
 
@@ -60,8 +61,10 @@ unsupported error until a reviewed phone transport and cryptographic backend exi
 - Replay, copied desktop state, cancellation, and transport failure all fail closed.
 - Standard age plugin and recipient behavior remains the only application integration boundary.
 
-See [the architecture](docs/architecture.md), [protocol draft](docs/protocol.md), and
-[threat model](docs/threat-model.md) before implementing a transport or cryptographic backend.
+Start with the [Android StrongBox PoC](docs/android-strongbox-poc.md), then read
+[the architecture](docs/architecture.md), [experimental P-256 recipient ADR](docs/adr/0001-experimental-p256-recipient.md),
+[protocol draft](docs/protocol.md), and [threat model](docs/threat-model.md) before implementing a
+transport or cryptographic backend.
 
 ## Why Tauri
 

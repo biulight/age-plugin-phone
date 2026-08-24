@@ -40,10 +40,24 @@ and is not part of the first milestone.
 
 ## Identity strategy
 
-The preferred production strategy is a hardware-native P-256 key compatible with age tagged
-recipients. A wrapped native X25519 identity is a fallback candidate only if the phone platform
-cannot expose a suitable non-exportable operation. The choice requires test vectors and review
-before the wire format is frozen.
+The Android production candidate is a hardware-native P-256 key compatible with age tagged
+recipients. The StrongBox PoC passed on a Samsung `SM-F9660` running Android 16: the non-exportable
+P-256 ECDH key was reported at the `STRONGBOX` security level, and every operation was bound to a
+fresh `BiometricPrompt.CryptoObject(KeyAgreement)` authorization. This selects the P-256 tagged
+recipient path for the next protocol PoC; it does not freeze the wire format.
+
+The experimental construction, strict parsing rules, and cross-language vector are recorded in
+[`ADR 0001`](adr/0001-experimental-p256-recipient.md). Its Rust reference implementation is kept
+transport-independent so QR and pairing cannot silently define the recipient cryptography.
+
+Canonical signed messages and the one-time desktop session response envelope are separately
+recorded in [`ADR 0002`](adr/0002-experimental-offline-envelope.md). The protocol crate owns this
+logic; transports carry opaque canonical bytes and do not redefine authentication or key binding.
+
+A wrapped native X25519 identity remains a separately reviewed fallback candidate for platforms
+that cannot expose a suitable non-exportable operation. It is not enabled on the verified Android
+path. Canonical pairing/request encoding, complete protocol test vectors, and independent review
+are still required before the wire format is stabilized.
 
 ## Transport strategy
 

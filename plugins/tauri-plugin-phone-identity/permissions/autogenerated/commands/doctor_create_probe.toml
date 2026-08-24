@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-doctor-create-probe"
+description = "Enables the doctor_create_probe command without any pre-configured scope."
+commands.allow = ["doctor_create_probe"]
+
+[[permission]]
+identifier = "deny-doctor-create-probe"
+description = "Denies the doctor_create_probe command without any pre-configured scope."
+commands.deny = ["doctor_create_probe"]

@@ -4,6 +4,5 @@
   "description": "Minimal capability set for the presentation-only mobile WebView",
   "windows": ["main"],
   "platforms": ["iOS", "android"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "phone-identity:default"]
 }
-

@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-doctor-run-agreement"
+description = "Enables the doctor_run_agreement command without any pre-configured scope."
+commands.allow = ["doctor_run_agreement"]
+
+[[permission]]
+identifier = "deny-doctor-run-agreement"
+description = "Denies the doctor_run_agreement command without any pre-configured scope."
+commands.deny = ["doctor_run_agreement"]

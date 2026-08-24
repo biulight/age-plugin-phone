@@ -9,9 +9,17 @@
 
 ## Milestone 1: protocol and test vectors
 
-- [ ] Select the phone hardware key and age recipient construction.
-- [ ] Specify canonical encoding, transcript hashes, key derivation, and AEAD contexts.
-- [ ] Publish non-secret deterministic pairing and unwrap test vectors.
+- [x] Implement the disposable Android StrongBox capability probe in `android-strongbox-poc.md`.
+- [x] Complete its on-device authentication, restart, cancellation, and cleanup matrix.
+- [x] Select StrongBox P-256 and an age tagged recipient as the Android production candidate.
+- [x] Specify the experimental P-256 recipient encoding, KDF, AEAD context, and strict parser.
+- [x] Publish and cross-check its non-secret deterministic Rust/Kotlin unwrap vector.
+- [x] Validate the exact tagged-recipient construction with a live auth-per-use StrongBox operation.
+- [x] Specify experimental canonical pairing/request encoding and transcript hashes.
+- [x] Publish a deterministic signed request/encrypted response test vector.
+- [x] Cross-check the canonical signed request/encrypted response vector in Kotlin.
+- [x] Validate a live StrongBox unwrap through the request-bound encrypted response path.
+- [ ] Publish and cross-check the complete pairing transcript vector in Kotlin.
 - [ ] Obtain independent cryptographic review before stabilizing version 1.
 
 ## Milestone 2: bidirectional QR prototype
@@ -25,7 +33,7 @@
 ## Milestone 3: mobile hardware backends
 
 - [ ] Implement a native Swift Tauri plugin that binds Secure Enclave operations to user verification.
-- [ ] Implement a native Kotlin Tauri plugin that binds Keystore/StrongBox operations to user verification.
+- [x] Implement a native Kotlin Tauri plugin that binds Keystore/StrongBox operations to user verification.
 - [ ] Define phone replacement, recovery recipient, and paired-device revocation flows.
 
 ## Milestone 4: BLE and packaging
