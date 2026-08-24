@@ -40,8 +40,11 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     private var active: PendingAgreement? = null
     private var activeQrScanner: NativeQrScannerController<*>? = null
     private var activePairingResponse: NativePairingResponseController? = null
+    private var activePhoneUnwrap: PendingPhoneUnwrap? = null
+    private var activeUnwrapResponse: NativeUnwrapResponseController? = null
     private var cameraPermissionPending = false
     private var pairingPermissionPending = false
+    private var unwrapPermissionPending = false
     private val pairingConfirmation = PairingConfirmationCoordinator(
         PairingSessionFactory { signedOffer, signedResponse ->
             PairingConfirmationSession.begin(activity, signedOffer, signedResponse)
@@ -103,7 +106,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     fun scanPairingOffer(invoke: Invoke) {
         val granted = getPermissionState("camera") == PermissionState.GRANTED
         synchronized(stateLock) {
-            if (activeQrScanner != null || cameraPermissionPending) {
+            if (nativeOperationActive()) {
                 invoke.resolve(pairingOfferScanReport(false, false, null, null, 0, "scan_active"))
                 return
             }
@@ -120,9 +123,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     fun pairPhone(invoke: Invoke) {
         val granted = getPermissionState("camera") == PermissionState.GRANTED
         synchronized(stateLock) {
-            if (activeQrScanner != null || activePairingResponse != null ||
-                cameraPermissionPending || pairingPermissionPending
-            ) {
+            if (nativeOperationActive()) {
                 invoke.resolve(phonePairingReport(false, null, null, "pairing_active"))
                 return
             }
@@ -132,6 +133,23 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             activity.runOnUiThread { startPhonePairingScanner(invoke) }
         } else {
             requestPermissionForAlias("camera", invoke, "pairingCameraPermissionGranted")
+        }
+    }
+
+    @Command
+    fun unwrapPhone(invoke: Invoke) {
+        val granted = getPermissionState("camera") == PermissionState.GRANTED
+        synchronized(stateLock) {
+            if (nativeOperationActive()) {
+                invoke.resolve(phoneUnwrapReport(false, false, null, "unwrap_active"))
+                return
+            }
+            unwrapPermissionPending = !granted
+        }
+        if (granted) {
+            activity.runOnUiThread { startPhoneUnwrapScanner(invoke) }
+        } else {
+            requestPermissionForAlias("camera", invoke, "unwrapCameraPermissionGranted")
         }
     }
 
@@ -157,11 +175,23 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
+    @PermissionCallback
+    fun unwrapCameraPermissionGranted(invoke: Invoke) {
+        synchronized(stateLock) { unwrapPermissionPending = false }
+        if (getPermissionState("camera") == PermissionState.GRANTED) {
+            activity.runOnUiThread { startPhoneUnwrapScanner(invoke) }
+        } else {
+            invoke.resolve(phoneUnwrapReport(false, false, null, "camera_permission_denied"))
+        }
+    }
+
     override fun onStop() {
         cancelActive("authentication_failed")
         cancelPendingPairing()
         cancelQrScanner()
         cancelPairingResponse()
+        cancelPhoneUnwrap("authentication_failed")
+        cancelUnwrapResponse()
     }
 
     override fun onDestroy(activity: androidx.appcompat.app.AppCompatActivity) {
@@ -169,11 +199,13 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         cancelPendingPairing()
         cancelQrScanner()
         cancelPairingResponse()
+        cancelPhoneUnwrap("authentication_failed")
+        cancelUnwrapResponse()
     }
 
     private fun startPairingOfferScanner(invoke: Invoke) {
         synchronized(stateLock) {
-            if (activeQrScanner != null) {
+            if (nativeOperationActive()) {
                 invoke.resolve(pairingOfferScanReport(false, false, null, null, 0, "scan_active"))
                 return
             }
@@ -211,7 +243,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
 
     private fun startPhonePairingScanner(invoke: Invoke) {
         synchronized(stateLock) {
-            if (activeQrScanner != null || activePairingResponse != null) {
+            if (nativeOperationActive()) {
                 invoke.resolve(phonePairingReport(false, null, null, "pairing_active"))
                 return
             }
@@ -280,6 +312,217 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     private fun cancelPairingResponse() {
         val controller = synchronized(stateLock) {
             activePairingResponse.also { activePairingResponse = null }
+        }
+        controller?.cancel()
+    }
+
+    private fun startPhoneUnwrapScanner(invoke: Invoke) {
+        synchronized(stateLock) {
+            if (nativeOperationActive()) {
+                invoke.resolve(phoneUnwrapReport(false, false, null, "unwrap_active"))
+                return
+            }
+            activeQrScanner = NativeQrScannerController(
+                activity,
+                CompletedQrMessageVerifier(::preparePhoneUnwrap),
+                onComplete = { pending, _ ->
+                    pending.invoke = invoke
+                    synchronized(stateLock) {
+                        activeQrScanner = null
+                        activePhoneUnwrap = pending
+                    }
+                    showPhoneUnwrapPrompt(pending, invoke)
+                },
+                onFailure = { category ->
+                    synchronized(stateLock) { activeQrScanner = null }
+                    invoke.resolve(phoneUnwrapReport(false, false, null, category))
+                },
+            )
+            activeQrScanner?.start()
+        }
+    }
+
+    private fun preparePhoneUnwrap(message: ByteArray): PendingPhoneUnwrap {
+        val scope = OfflineEnvelopeCrypto.requestScope(message)
+        var store: PairingStateStore? = null
+        try {
+            store = PairingStateStore.open(activity, scope.desktopId, scope.identityId)
+            val verified = OfflineEnvelopeCrypto.verifyRequestAndConsume(
+                message,
+                store,
+                System.currentTimeMillis() / 1_000,
+            )
+            val parsed = TaggedRecipientCrypto.parse(verified.request.stanza)
+            val prepared = productionIdentity.prepareIdentityAgreement(
+                verified.request.identityId,
+                parsed.ephemeralPublic,
+            )
+            return PendingPhoneUnwrap(
+                token = UUID.randomUUID(),
+                cancellation = CancellationSignal(),
+                agreement = prepared.agreement,
+                ephemeralPublicKey = parsed.ephemeralPublic,
+                identityPublicKey = prepared.identityPublicKey,
+                stanza = verified.request.stanza,
+                request = verified,
+                requestFingerprint = verified.digest.toHex(),
+                callerHint = verified.request.callerHint,
+            )
+        } finally {
+            store?.close()
+            scope.desktopId.fill(0)
+            scope.identityId.fill(0)
+        }
+    }
+
+    private fun showPhoneUnwrapPrompt(pending: PendingPhoneUnwrap, invoke: Invoke) {
+        if (!isPhoneUnwrapActive(pending.token)) return
+        try {
+            val cryptoObject = BiometricPrompt.CryptoObject::class.java
+                .getConstructor(KeyAgreement::class.java)
+                .newInstance(pending.agreement)
+            val hint = pending.callerHint?.take(80) ?: "No caller hint"
+            val prompt = BiometricPrompt.Builder(activity)
+                .setTitle("Approve one file-key unwrap")
+                .setSubtitle("Untrusted caller hint: $hint")
+                .setDescription("Request ${pending.requestFingerprint}")
+                .setAllowedAuthenticators(BiometricManagerCompat.STRONG)
+                .setNegativeButton("Cancel", activity.mainExecutor) { _, _ ->
+                    finishPhoneUnwrap(pending.token, invoke, "user_cancelled", true)
+                }
+                .build()
+            pending.timeout = Runnable {
+                finishPhoneUnwrap(pending.token, invoke, "authentication_timeout", true)
+            }
+            mainHandler.postDelayed(pending.timeout!!, AUTHENTICATION_TIMEOUT_MILLIS)
+            prompt.authenticate(
+                cryptoObject,
+                pending.cancellation,
+                activity.mainExecutor,
+                phoneUnwrapAuthenticationCallback(pending, invoke),
+            )
+        } catch (_: Exception) {
+            finishPhoneUnwrap(pending.token, invoke, "unsupported_api", true)
+        }
+    }
+
+    private fun phoneUnwrapAuthenticationCallback(
+        pending: PendingPhoneUnwrap,
+        invoke: Invoke,
+    ) = object : BiometricPrompt.AuthenticationCallback() {
+        override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+            if (!isPhoneUnwrapActive(pending.token)) return
+            val returned = try {
+                result.cryptoObject?.javaClass?.getMethod("getKeyAgreement")
+                    ?.invoke(result.cryptoObject) as? KeyAgreement
+            } catch (_: ReflectiveOperationException) {
+                null
+            }
+            if (returned !== pending.agreement) {
+                finishPhoneUnwrap(pending.token, invoke, "agreement_failed", true)
+                return
+            }
+            performPhoneUnwrap(pending, returned, invoke)
+        }
+
+        override fun onAuthenticationFailed() {
+            finishPhoneUnwrap(pending.token, invoke, "authentication_failed", true)
+        }
+
+        override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+            finishPhoneUnwrap(
+                pending.token,
+                invoke,
+                authenticationErrorCategory(errorCode),
+                false,
+            )
+        }
+    }
+
+    private fun performPhoneUnwrap(
+        pending: PendingPhoneUnwrap,
+        agreement: KeyAgreement,
+        invoke: Invoke,
+    ) {
+        var secret: ByteArray? = null
+        var fileKey: ByteArray? = null
+        var response: ByteArray? = null
+        try {
+            if (System.currentTimeMillis() / 1_000 > pending.request.request.expiresAtUnix) {
+                throw OfflineEnvelopeCrypto.ProtocolException()
+            }
+            agreement.doPhase(pending.ephemeralPublicKey, true)
+            secret = agreement.generateSecret()
+            fileKey = TaggedRecipientCrypto.unwrapWithSharedSecret(
+                pending.identityPublicKey,
+                pending.stanza,
+                secret,
+            )
+            response = productionIdentity.createUnwrapResponse(pending.request, fileKey)
+            val prepared = PreparedUnwrapResponse(
+                pending.requestFingerprint,
+                QrFraming.fragment(response, RESPONSE_QR_CHUNK_BYTES),
+            )
+            takePhoneUnwrap(pending.token)?.timeout?.let(mainHandler::removeCallbacks)
+            showUnwrapResponse(prepared, invoke)
+        } catch (_: KeyPermanentlyInvalidatedException) {
+            finishPhoneUnwrap(pending.token, invoke, "key_permanently_invalidated", false)
+        } catch (_: OfflineEnvelopeCrypto.ProtocolException) {
+            finishPhoneUnwrap(pending.token, invoke, "request_expired", false)
+        } catch (_: Exception) {
+            finishPhoneUnwrap(pending.token, invoke, "agreement_failed", false)
+        } finally {
+            secret?.fill(0)
+            fileKey?.fill(0)
+            response?.fill(0)
+        }
+    }
+
+    private fun showUnwrapResponse(prepared: PreparedUnwrapResponse, invoke: Invoke) {
+        synchronized(stateLock) {
+            activeUnwrapResponse = NativeUnwrapResponseController(
+                activity,
+                prepared,
+                onComplete = {
+                    synchronized(stateLock) { activeUnwrapResponse = null }
+                    invoke.resolve(phoneUnwrapReport(true, true, prepared.requestFingerprint, null))
+                },
+                onFailure = { category ->
+                    synchronized(stateLock) { activeUnwrapResponse = null }
+                    invoke.resolve(phoneUnwrapReport(true, false, prepared.requestFingerprint, category))
+                },
+            )
+            activeUnwrapResponse?.start()
+        }
+    }
+
+    private fun finishPhoneUnwrap(token: UUID, invoke: Invoke, error: String, cancel: Boolean) {
+        val pending = takePhoneUnwrap(token) ?: return
+        pending.timeout?.let(mainHandler::removeCallbacks)
+        if (cancel && !pending.cancellation.isCanceled) pending.cancellation.cancel()
+        invoke.resolve(phoneUnwrapReport(false, false, pending.requestFingerprint, error))
+    }
+
+    private fun takePhoneUnwrap(token: UUID): PendingPhoneUnwrap? = synchronized(stateLock) {
+        activePhoneUnwrap?.takeIf { it.token == token }?.also { activePhoneUnwrap = null }
+    }
+
+    private fun isPhoneUnwrapActive(token: UUID): Boolean = synchronized(stateLock) {
+        activePhoneUnwrap?.token == token
+    }
+
+    private fun cancelPhoneUnwrap(error: String) {
+        val pending = synchronized(stateLock) {
+            activePhoneUnwrap.also { activePhoneUnwrap = null }
+        } ?: return
+        pending.timeout?.let(mainHandler::removeCallbacks)
+        if (!pending.cancellation.isCanceled) pending.cancellation.cancel()
+        pending.invoke?.resolve(phoneUnwrapReport(false, false, pending.requestFingerprint, error))
+    }
+
+    private fun cancelUnwrapResponse() {
+        val controller = synchronized(stateLock) {
+            activeUnwrapResponse.also { activeUnwrapResponse = null }
         }
         controller?.cancel()
     }
@@ -393,7 +636,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         )
 
         synchronized(stateLock) {
-            if (active != null) {
+            if (nativeOperationActive()) {
                 expectedFileKey.fill(0)
                 invoke.resolve(agreementReport(false, false, "authentication_failed"))
                 return null
@@ -530,6 +773,11 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     private fun isActive(token: UUID): Boolean = synchronized(stateLock) { active?.token == token }
+
+    private fun nativeOperationActive(): Boolean =
+        active != null || activeQrScanner != null || activePairingResponse != null ||
+            activePhoneUnwrap != null || activeUnwrapResponse != null ||
+            cameraPermissionPending || pairingPermissionPending || unwrapPermissionPending
 
     private fun runPairingStorageDoctor(): JSObject {
         var store: PairingStateStore? = null
@@ -812,6 +1060,20 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         var timeout: Runnable? = null,
     )
 
+    private data class PendingPhoneUnwrap(
+        val token: UUID,
+        val cancellation: CancellationSignal,
+        val agreement: KeyAgreement,
+        val ephemeralPublicKey: PublicKey,
+        val identityPublicKey: PublicKey,
+        val stanza: TaggedRecipientCrypto.Stanza,
+        val request: OfflineEnvelopeCrypto.VerifiedRequest,
+        val requestFingerprint: String,
+        val callerHint: String?,
+        var invoke: Invoke? = null,
+        var timeout: Runnable? = null,
+    )
+
     companion object {
         private const val AUTHENTICATION_TIMEOUT_MILLIS = 60_000L
 
@@ -878,6 +1140,18 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             put("paired", paired)
             put("desktopLabel", desktopLabel)
             put("transcriptFingerprint", transcriptFingerprint)
+            put("errorCategory", errorCategory)
+        }
+
+        private fun phoneUnwrapReport(
+            authenticated: Boolean,
+            responseDisplayed: Boolean,
+            requestFingerprint: String?,
+            errorCategory: String?,
+        ): JSObject = JSObject().apply {
+            put("authenticated", authenticated)
+            put("responseDisplayed", responseDisplayed)
+            put("requestFingerprint", requestFingerprint)
             put("errorCategory", errorCategory)
         }
 

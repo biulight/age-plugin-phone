@@ -2,7 +2,8 @@ mod models;
 
 pub use models::{
     AgreementReport, CapabilityReport, CleanupReport, IdentityCustodyReport,
-    PairingOfferScanReport, PairingStorageReport, PhonePairingReport, ProbeKeyReport,
+    PairingOfferScanReport, PairingStorageReport, PhonePairingReport, PhoneUnwrapReport,
+    ProbeKeyReport,
 };
 
 #[cfg(not(target_os = "android"))]
@@ -225,6 +226,24 @@ fn pair_phone<R: Runtime>(
     })
 }
 
+#[tauri::command]
+#[allow(clippy::unnecessary_wraps)]
+fn unwrap_phone<R: Runtime>(
+    _app: AppHandle<R>,
+    _identity: State<'_, PhoneIdentity<R>>,
+) -> Result<PhoneUnwrapReport, Error> {
+    #[cfg(target_os = "android")]
+    return _identity.unwrap_phone();
+
+    #[cfg(not(target_os = "android"))]
+    Ok(PhoneUnwrapReport {
+        authenticated: false,
+        response_displayed: false,
+        request_fingerprint: None,
+        error_category: Some("unsupported_api".into()),
+    })
+}
+
 #[must_use]
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("phone-identity")
@@ -236,7 +255,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             doctor_cleanup,
             doctor_pairing_storage,
             scan_pairing_offer,
-            pair_phone
+            pair_phone,
+            unwrap_phone
         ])
         .setup(|app, _api| {
             #[cfg(target_os = "android")]

@@ -32,8 +32,8 @@
 - [x] Wire native camera capture and desktop animated-QR rendering to the framing layer.
 - [x] Provision separate production identity and phone-signing keys with crash-safe StrongBox custody.
 - [x] Implement desktop pairing and public identity stub creation.
-- [ ] Implement one request/response file-key unwrap with fresh user verification.
-- [ ] Test cancellation, replay, wrong device, wrong identity, expiry, and corrupted frames.
+- [x] Implement one request/response file-key unwrap with fresh user verification.
+- [x] Test cancellation, replay, wrong device, wrong identity, expiry, and corrupted frames.
 
 ## Milestone 3: mobile hardware backends
 

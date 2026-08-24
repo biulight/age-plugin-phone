@@ -212,6 +212,44 @@ class OfflineEnvelopeCryptoTest {
     }
 
     @Test
+    fun extractsOnlyUntrustedScopeAndSignsResponseWithSeparateKeyHandles() {
+        val desktopSigning = keyPair(vector["desktop_signing_scalar"].asInt())
+        val phoneSigning = keyPair(vector["phone_signing_scalar"].asInt())
+        val desktopSession = keyPair(vector["desktop_session_scalar"].asInt())
+        val requestBytes = base64(vector["signed_request_base64"].asText())
+        val scope = OfflineEnvelopeCrypto.requestScope(requestBytes)
+        assertArrayEquals(hex(vector["desktop_id_hex"].asText()), scope.desktopId)
+        assertArrayEquals(hex(vector["identity_id_hex"].asText()), scope.identityId)
+        val verified = OfflineEnvelopeCrypto.verifyRequest(
+            requestBytes,
+            scope.desktopId,
+            scope.identityId,
+            desktopSigning.public,
+            vector["now_unix"].asLong(),
+        )
+        val fileKey = hex(vector["file_key_hex"].asText())
+        val response = OfflineEnvelopeCrypto.sealResponse(
+            verified,
+            fileKey,
+            phoneSigning.private,
+            phoneSigning.public,
+            java.security.SecureRandom(),
+        )
+        assertArrayEquals(
+            fileKey,
+            OfflineEnvelopeCrypto.openResponse(
+                response.encoded,
+                verified,
+                phoneSigning.public,
+                desktopSession.private,
+            ),
+        )
+        assertThrows(OfflineEnvelopeCrypto.ProtocolException::class.java) {
+            OfflineEnvelopeCrypto.requestScope(requestBytes + byteArrayOf(0))
+        }
+    }
+
+    @Test
     fun rejectsTamperingWrongDeviceAndExpiry() {
         val desktopSigning = keyPair(vector["desktop_signing_scalar"].asInt())
         val request = base64(vector["signed_request_base64"].asText())

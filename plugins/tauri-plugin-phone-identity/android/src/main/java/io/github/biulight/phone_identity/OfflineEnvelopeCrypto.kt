@@ -81,6 +81,9 @@ internal object OfflineEnvelopeCrypto {
         val digest: ByteArray,
     )
 
+    /** Untrusted routing fields. Callers must verify the request against the opened pairing. */
+    data class RequestScope(val desktopId: ByteArray, val identityId: ByteArray)
+
     data class Response(
         val requestId: ByteArray,
         val requestDigest: ByteArray,
@@ -265,6 +268,12 @@ internal object OfflineEnvelopeCrypto {
         return VerifiedRequest(request, encoded.copyOf(), digest(requestDigestDomain, encoded))
     }
 
+    fun requestScope(encoded: ByteArray): RequestScope {
+        val (payload, _) = decodeSigned(encoded)
+        val request = decodeRequestPayload(payload)
+        return RequestScope(request.desktopId.copyOf(), request.identityId.copyOf())
+    }
+
     fun verifyRequestAndConsume(
         encoded: ByteArray,
         pairingState: PairingStateStore,
@@ -291,6 +300,20 @@ internal object OfflineEnvelopeCrypto {
         fileKey: ByteArray,
         phoneSigning: KeyPair,
         random: SecureRandom,
+    ): SignedResponse = sealResponse(
+        request,
+        fileKey,
+        phoneSigning.private,
+        phoneSigning.public,
+        random,
+    )
+
+    fun sealResponse(
+        request: VerifiedRequest,
+        fileKey: ByteArray,
+        phoneSigningPrivate: PrivateKey,
+        phoneSigningPublic: PublicKey,
+        random: SecureRandom,
     ): SignedResponse {
         if (fileKey.size != 16) throw ProtocolException()
         val generator = KeyPairGenerator.getInstance("EC")
@@ -314,7 +337,13 @@ internal object OfflineEnvelopeCrypto {
         }
         val completed = response.copy(encryptedFileKey = encrypted)
         val payload = encodeResponsePayload(completed)
-        return SignedResponse(completed, encodeSigned(payload, sign(phoneSigning.private, responseSignatureDomain, payload)))
+        val encoded = encodeSigned(
+            payload,
+            sign(phoneSigningPrivate, responseSignatureDomain, payload),
+        )
+        val (_, signature) = decodeSigned(encoded)
+        verify(phoneSigningPublic, responseSignatureDomain, payload, signature)
+        return SignedResponse(completed, encoded)
     }
 
     fun openResponse(

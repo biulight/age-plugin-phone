@@ -64,6 +64,7 @@ dependencies = [
  "qrcode",
  "rand_core",
  "thiserror 2.0.20",
+ "zeroize",
 ]
 
 [[package]]

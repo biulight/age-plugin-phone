@@ -16,14 +16,17 @@ use age_plugin::{
 use age_plugin_phone::pairing::PublicIdentityStub;
 use age_plugin_phone::pairing::{
     DesktopKeyState, DesktopPairingSession, MAX_PAIRING_SESSION_AGE_MS, create_identity_stub_file,
+    read_identity_stub_file,
 };
 use age_plugin_phone::qr_terminal::{
     DEFAULT_FRAME_INTERVAL_MS, FrameScheduler, render_offline_html, render_terminal_frame,
 };
+use age_plugin_phone::unwrap::{DesktopUnwrapSession, now_unix};
 use age_plugin_phone_protocol::{
-    PROTOCOL_VERSION, PairingOffer, SignedPairingOffer, fragment_qr_message,
+    DEFAULT_REPLAY_CAPACITY, FileReplayGuard, PROTOCOL_VERSION, PairingOffer, ReplayRole,
+    ReplayScope, SignedPairingOffer, fragment_qr_message,
 };
-use age_plugin_phone_recipient_p256::PLUGIN_NAME;
+use age_plugin_phone_recipient_p256::{PLUGIN_NAME, STANZA_TAG, TaggedStanza};
 use base64::{Engine as _, engine::general_purpose::STANDARD_NO_PAD};
 use clap::{Parser, Subcommand};
 use p256::ecdsa::SigningKey;
@@ -61,6 +64,31 @@ enum Command {
         /// New public age identity stub; an existing file is never overwritten.
         #[arg(long)]
         identity_output: PathBuf,
+        /// Durable desktop response-replay state; must be an absolute path.
+        #[arg(long)]
+        replay_state: PathBuf,
+    },
+    /// Exercise one real paired unwrap using external QR response capture.
+    Unwrap {
+        #[arg(long)]
+        identity_stub: PathBuf,
+        #[arg(long)]
+        desktop_state: PathBuf,
+        /// Durable response-replay state created during pairing.
+        #[arg(long)]
+        replay_state: PathBuf,
+        /// The single Base64 stanza argument from the age header.
+        #[arg(long)]
+        stanza_arg: String,
+        /// Unpadded Base64 stanza body from the age header.
+        #[arg(long)]
+        stanza_body: String,
+        /// File populated by QR capture with unpadded Base64 response bytes.
+        #[arg(long)]
+        response_file: PathBuf,
+        /// Untrusted application/caller display hint shown on the phone.
+        #[arg(long)]
+        caller_hint: Option<String>,
     },
     /// Display a signed, disposable pairing offer to exercise QR capture only.
     QrCaptureProbe {
@@ -131,10 +159,11 @@ fn main() -> io::Result<()> {
 
     match options.command.unwrap_or(Command::Status) {
         Command::Status => {
-            println!("status: scaffold-only");
+            println!("status: bidirectional-qr-unwrap-prototype");
             println!("protocol_version: {PROTOCOL_VERSION}");
             println!("qr_capture_probe: available");
             println!("pairing_transport: external_qr_capture");
+            println!("unwrap_transport: external_qr_capture");
             println!("ble_transport: not_implemented");
             println!("mobile_identity: android_strongbox_pairing");
             println!("secret_operations: fail_closed");
@@ -145,7 +174,31 @@ fn main() -> io::Result<()> {
             desktop_state,
             response_file,
             identity_output,
-        } => run_pair(label, &desktop_state, &response_file, &identity_output),
+            replay_state,
+        } => run_pair(
+            label,
+            &desktop_state,
+            &response_file,
+            &identity_output,
+            &replay_state,
+        ),
+        Command::Unwrap {
+            identity_stub,
+            desktop_state,
+            replay_state,
+            stanza_arg,
+            stanza_body,
+            response_file,
+            caller_hint,
+        } => run_unwrap(
+            &identity_stub,
+            &desktop_state,
+            &replay_state,
+            stanza_arg,
+            &stanza_body,
+            &response_file,
+            caller_hint,
+        ),
         Command::QrCaptureProbe {
             label,
             cycles,
@@ -159,11 +212,18 @@ fn run_pair(
     desktop_state: &std::path::Path,
     response_file: &std::path::Path,
     identity_output: &std::path::Path,
+    replay_state: &std::path::Path,
 ) -> io::Result<()> {
     if identity_output.exists() {
         return Err(io::Error::new(
             io::ErrorKind::AlreadyExists,
             "identity output already exists",
+        ));
+    }
+    if replay_state.exists() {
+        return Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            "response replay state already exists",
         ));
     }
     let state = DesktopKeyState::open_or_create(desktop_state, &mut OsRng)
@@ -222,6 +282,19 @@ fn run_pair(
     let stub = session
         .confirm(confirmation.trim(), elapsed_ms)
         .map_err(|_| io::Error::new(io::ErrorKind::PermissionDenied, "pairing not confirmed"))?;
+    let pairing = age_plugin_phone_protocol::PairingRecord {
+        desktop_id: stub.desktop_id,
+        identity_id: stub.identity_id,
+        desktop_signing_public_key: stub.desktop_signing_public_key,
+        phone_signing_public_key: stub.phone_signing_public_key,
+    };
+    FileReplayGuard::create(
+        replay_state,
+        ReplayScope::for_pairing(ReplayRole::DesktopResponses, &pairing),
+        DEFAULT_REPLAY_CAPACITY,
+        now_unix().map_err(|_| io::Error::other("system clock is unavailable"))?,
+    )
+    .map_err(|_| io::Error::other("failed to create durable response replay state"))?;
     create_identity_stub_file(identity_output, &stub)
         .map_err(|_| io::Error::other("failed to create public identity stub"))?;
     println!(
@@ -229,6 +302,96 @@ fn run_pair(
         identity_output.display()
     );
     println!("Recipient: {}", stub.recipient());
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn run_unwrap(
+    identity_stub: &std::path::Path,
+    desktop_state: &std::path::Path,
+    replay_state: &std::path::Path,
+    stanza_arg: String,
+    stanza_body: &str,
+    response_file: &std::path::Path,
+    caller_hint: Option<String>,
+) -> io::Result<()> {
+    let stub = read_identity_stub_file(identity_stub)
+        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid public identity stub"))?;
+    let desktop = DesktopKeyState::open(desktop_state)
+        .map_err(|_| io::Error::other("desktop authentication state is unavailable"))?;
+    let body = STANDARD_NO_PAD
+        .decode(stanza_body.trim())
+        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "malformed stanza body"))?;
+    let now = now_unix().map_err(|_| io::Error::other("system clock is unavailable"))?;
+    let mut session = DesktopUnwrapSession::begin(
+        &stub,
+        &desktop,
+        TaggedStanza {
+            tag: STANZA_TAG.to_owned(),
+            args: vec![stanza_arg],
+            body,
+        },
+        caller_hint,
+        now,
+        &mut OsRng,
+    )
+    .map_err(|_| io::Error::new(io::ErrorKind::PermissionDenied, "unwrap request rejected"))?;
+    let frames = fragment_qr_message(&session.signed_request(), 120, &mut OsRng)
+        .map_err(|_| io::Error::other("failed to fragment unwrap request"))?;
+    let mut scheduler = FrameScheduler::new(&frames, DEFAULT_FRAME_INTERVAL_MS)
+        .map_err(|_| io::Error::other("failed to schedule unwrap QR"))?;
+    let started = Instant::now();
+    let display = session.display();
+    let mut stdout = io::stdout().lock();
+    while !response_file.is_file() {
+        let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+        if now_unix().unwrap_or(u64::MAX) > display.expires_at_unix {
+            session.cancel();
+            return Err(io::Error::new(io::ErrorKind::TimedOut, "unwrap timed out"));
+        }
+        let (index, frame) = scheduler
+            .frame_at(elapsed_ms)
+            .map_err(|_| io::Error::other("unwrap QR clock failed"))?;
+        let rendered = render_terminal_frame(frame)
+            .map_err(|_| io::Error::other("failed to render unwrap QR"))?;
+        write!(
+            stdout,
+            "\x1b[2J\x1b[HApprove phone unwrap · request frame {}/{}\nRequest fingerprint: {}\nWaiting for captured phone response…\n\n{rendered}",
+            index + 1,
+            frames.len(),
+            display.request_fingerprint,
+        )?;
+        stdout.flush()?;
+        thread::sleep(Duration::from_millis(DEFAULT_FRAME_INTERVAL_MS));
+    }
+    let response_text = std::fs::read_to_string(response_file)?;
+    let response = STANDARD_NO_PAD
+        .decode(response_text.trim())
+        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "malformed unwrap response"))?;
+    let pairing = age_plugin_phone_protocol::PairingRecord {
+        desktop_id: stub.desktop_id,
+        identity_id: stub.identity_id,
+        desktop_signing_public_key: stub.desktop_signing_public_key,
+        phone_signing_public_key: stub.phone_signing_public_key,
+    };
+    let mut replay = FileReplayGuard::open(
+        replay_state,
+        ReplayScope::for_pairing(ReplayRole::DesktopResponses, &pairing),
+        DEFAULT_REPLAY_CAPACITY,
+    )
+    .map_err(|_| io::Error::other("durable response replay state is unavailable"))?;
+    let file_key = session
+        .receive_response(
+            &response,
+            &mut replay,
+            now_unix().map_err(|_| io::Error::other("system clock is unavailable"))?,
+        )
+        .map_err(|_| io::Error::new(io::ErrorKind::PermissionDenied, "unwrap response rejected"))?;
+    drop(file_key);
+    writeln!(
+        stdout,
+        "\x1b[2J\x1b[HAuthenticated one-time unwrap completed."
+    )?;
     Ok(())
 }
 

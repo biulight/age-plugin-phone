@@ -116,3 +116,12 @@ pub struct PhonePairingReport {
     pub transcript_fingerprint: Option<String>,
     pub error_category: Option<String>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PhoneUnwrapReport {
+    pub authenticated: bool,
+    pub response_displayed: bool,
+    pub request_fingerprint: Option<String>,
+    pub error_category: Option<String>,
+}

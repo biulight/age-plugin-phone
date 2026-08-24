@@ -7,7 +7,7 @@ use age_plugin_phone_protocol::{
     SignedPairingOffer, SignedPairingResponse, pairing_fingerprint,
 };
 use age_plugin_phone_recipient_p256::{PLUGIN_NAME, Recipient};
-use bech32::{ToBase32 as _, Variant};
+use bech32::{FromBase32 as _, ToBase32 as _, Variant};
 use minicbor::{Decoder, Encoder};
 use p256::ecdsa::SigningKey;
 use rand_core::{CryptoRng, RngCore};
@@ -248,6 +248,22 @@ pub fn create_identity_stub_file(
         return Err(PairingError::StubStorage);
     }
     Ok(())
+}
+
+pub fn read_identity_stub_file(path: &Path) -> Result<PublicIdentityStub, PairingError> {
+    let text = std::fs::read_to_string(path).map_err(|_| PairingError::StubStorage)?;
+    let identity = text
+        .lines()
+        .map(str::trim)
+        .find(|line| !line.is_empty() && !line.starts_with('#'))
+        .ok_or(PairingError::MalformedStub)?;
+    let (hrp, data, variant) =
+        bech32::decode(&identity.to_ascii_lowercase()).map_err(|_| PairingError::MalformedStub)?;
+    if hrp != "age-plugin-phone-" || variant != Variant::Bech32 {
+        return Err(PairingError::MalformedStub);
+    }
+    let bytes = Vec::<u8>::from_base32(&data).map_err(|_| PairingError::MalformedStub)?;
+    PublicIdentityStub::decode(&bytes)
 }
 
 enum State {
@@ -624,6 +640,7 @@ mod tests {
             .confirm(&display.transcript_fingerprint, 12)
             .unwrap();
         create_identity_stub_file(&identity_path, &stub).unwrap();
+        assert_eq!(read_identity_stub_file(&identity_path).unwrap(), stub);
         assert_eq!(
             create_identity_stub_file(&identity_path, &stub),
             Err(PairingError::StubStorage),

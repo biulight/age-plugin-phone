@@ -60,6 +60,12 @@ The desktop rejects a response if any binding, signature, expiry, algorithm, ide
 request digest differs. After authenticating the ciphertext it durably consumes the response digest
 before returning the file key. A response is consumed at most once.
 
+The one-shot native implementation is recorded in
+[`ADR 0009`](adr/0009-one-shot-qr-unwrap.md). Android prepares a new auth-per-use StrongBox
+`KeyAgreement` only after durable request consumption and accepts only that exact object back from
+`BiometricPrompt`. Cancellation never restores the consumed request. The signed encrypted response
+is converted to native QR frames before all transient secret buffers are cleared.
+
 ## Replay state
 
 Persistent consumption is specified in

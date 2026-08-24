@@ -1,6 +1,6 @@
 ## Default Permission
 
-Allows the development-only StrongBox doctor commands.
+Allows the native pairing, one-shot unwrap, and development Doctor commands.
 
 #### This default permission set includes the following:
 
@@ -12,6 +12,7 @@ Allows the development-only StrongBox doctor commands.
 - `allow-doctor-pairing-storage`
 - `allow-scan-pairing-offer`
 - `allow-pair-phone`
+- `allow-unwrap-phone`
 
 ## Permission Table
 
@@ -226,6 +227,32 @@ Enables the scan_pairing_offer command without any pre-configured scope.
 <td>
 
 Denies the scan_pairing_offer command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:allow-unwrap-phone`
+
+</td>
+<td>
+
+Enables the unwrap_phone command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:deny-unwrap-phone`
+
+</td>
+<td>
+
+Denies the unwrap_phone command without any pre-configured scope.
 
 </td>
 </tr>

@@ -86,6 +86,12 @@ desktop verifies the response, compares the same full transcript fingerprint, an
 canonical public identity stub only after confirmation. Independent review is still required before
 the wire format is stabilized.
 
+[`ADR 0009`](adr/0009-one-shot-qr-unwrap.md) connects that pairing to one production-key Android
+unwrap. Untrusted request identifiers route to candidate state only; the stored desktop key then
+verifies the request and durable replay consumption precedes a new native biometric authorization.
+The response remains encrypted and signed below the WebView boundary. The desktop prototype uses
+external response capture until native desktop scanning and reference-age integration are added.
+
 ## Transport strategy
 
 QR is the first implementation target because it is observable, offline, and independent of radio

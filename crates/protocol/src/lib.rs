@@ -278,6 +278,35 @@ impl SignedUnwrapRequest {
     }
 }
 
+/// Creates a request on the paired desktop and returns its verified transcript representation.
+/// This path does not consume phone replay state; the phone must still durably consume it before
+/// authorization.
+pub fn create_request(
+    payload: UnwrapRequest,
+    signing_key: &SigningKey,
+    pairing: &PairingRecord,
+    now: u64,
+) -> Result<VerifiedRequest, Error> {
+    if payload.desktop_id != pairing.desktop_id {
+        return Err(Error::WrongDesktop);
+    }
+    if payload.identity_id != pairing.identity_id {
+        return Err(Error::WrongIdentity);
+    }
+    if public_signing(signing_key.verifying_key()) != pairing.desktop_signing_public_key {
+        return Err(Error::InvalidPublicKey);
+    }
+    if payload.expires_at_unix < now {
+        return Err(Error::Expired);
+    }
+    if payload.expires_at_unix > now.saturating_add(MAX_REQUEST_LIFETIME_SECS) {
+        return Err(Error::LifetimeTooLong);
+    }
+    let signed = SignedUnwrapRequest::sign(payload, signing_key)?;
+    let digest = hash(REQUEST_DIGEST, &signed.encode());
+    Ok(VerifiedRequest { signed, digest })
+}
+
 impl ReplayGuard {
     pub fn verify_request(
         &mut self,
@@ -337,6 +366,10 @@ impl VerifiedRequest {
     #[must_use]
     pub const fn payload(&self) -> &UnwrapRequest {
         &self.signed.payload
+    }
+    #[must_use]
+    pub fn encode(&self) -> Vec<u8> {
+        self.signed.encode()
     }
 }
 
@@ -1025,6 +1058,31 @@ mod tests {
         assert_eq!(
             open_response(&response, &verified, &p, &s, &mut rg, 1_000_000).unwrap_err(),
             Error::Replay
+        );
+    }
+    #[test]
+    fn desktop_request_creation_checks_pairing_key_scope_and_lifetime() {
+        let (request, pairing, _, _) = fixture();
+        let desktop = sig(1);
+        let created =
+            create_request(request.payload.clone(), &desktop, &pairing, 1_000_000).unwrap();
+        assert_eq!(created.digest(), hash(REQUEST_DIGEST, &request.encode()));
+
+        let mut wrong_scope = request.payload.clone();
+        wrong_scope.desktop_id[0] ^= 1;
+        assert_eq!(
+            create_request(wrong_scope, &desktop, &pairing, 1_000_000).unwrap_err(),
+            Error::WrongDesktop,
+        );
+        assert_eq!(
+            create_request(request.payload.clone(), &sig(9), &pairing, 1_000_000).unwrap_err(),
+            Error::InvalidPublicKey,
+        );
+        let mut expired = request.payload;
+        expired.expires_at_unix = 999_999;
+        assert_eq!(
+            create_request(expired, &desktop, &pairing, 1_000_000).unwrap_err(),
+            Error::Expired,
         );
     }
     #[test]

@@ -22,6 +22,7 @@ import java.security.PrivateKey
 import java.security.PublicKey
 import java.security.SecureRandom
 import java.security.spec.ECGenParameterSpec
+import javax.crypto.KeyAgreement
 
 internal data class PhoneIdentityPublic(
     val identityId: ByteArray,
@@ -51,6 +52,11 @@ internal data class PhoneIdentityProvision(
     val public: PhoneIdentityPublic,
     val inspection: PhoneKeyInspection,
     val recoveredPreparingState: Boolean,
+)
+
+internal data class PreparedIdentityAgreement(
+    val agreement: KeyAgreement,
+    val identityPublicKey: PublicKey,
 )
 
 internal class PhoneIdentityKeyStore private constructor(
@@ -139,6 +145,51 @@ internal class PhoneIdentityKeyStore private constructor(
             offer.digest.fill(0)
             offer.offer.desktopId.fill(0)
             offer.offer.nonce.fill(0)
+        }
+    }
+
+    fun prepareIdentityAgreement(
+        expectedIdentityId: ByteArray,
+        peerPublicKey: PublicKey,
+    ): PreparedIdentityAgreement = synchronized(processLock) {
+        TaggedRecipientCrypto.encodeCompressed(peerPublicKey)
+        val provision = open()
+        if (!MessageDigest.isEqual(provision.public.identityId, expectedIdentityId)) {
+            throw KeyStoreException(Category.MALFORMED)
+        }
+        val store = keyStore()
+        val identityPrivate = store.getKey(identityAlias(provision.public.identityId), null) as? PrivateKey
+            ?: throw KeyStoreException(Category.MISSING)
+        val identityPublic = store.getCertificate(identityAlias(provision.public.identityId))?.publicKey
+            ?: throw KeyStoreException(Category.MISSING)
+        val agreement = KeyAgreement.getInstance("ECDH", ANDROID_KEY_STORE)
+        agreement.init(identityPrivate)
+        PreparedIdentityAgreement(agreement, identityPublic)
+    }
+
+    fun createUnwrapResponse(
+        request: OfflineEnvelopeCrypto.VerifiedRequest,
+        fileKey: ByteArray,
+    ): ByteArray = synchronized(processLock) {
+        val provision = open()
+        if (!MessageDigest.isEqual(provision.public.identityId, request.request.identityId)) {
+            throw KeyStoreException(Category.MALFORMED)
+        }
+        val store = keyStore()
+        val signingPrivate = store.getKey(signingAlias(provision.public.identityId), null) as? PrivateKey
+            ?: throw KeyStoreException(Category.MISSING)
+        val signingPublic = store.getCertificate(signingAlias(provision.public.identityId))?.publicKey
+            ?: throw KeyStoreException(Category.MISSING)
+        try {
+            OfflineEnvelopeCrypto.sealResponse(
+                request,
+                fileKey,
+                signingPrivate,
+                signingPublic,
+                SecureRandom(),
+            ).encoded
+        } catch (_: Exception) {
+            throw KeyStoreException(Category.GENERATION_FAILED)
         }
     }
 

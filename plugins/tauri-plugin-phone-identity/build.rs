@@ -7,6 +7,7 @@ const COMMANDS: &[&str] = &[
     "doctor_pairing_storage",
     "scan_pairing_offer",
     "pair_phone",
+    "unwrap_phone",
 ];
 
 fn main() {

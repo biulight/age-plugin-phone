@@ -391,10 +391,22 @@
           "markdownDescription": "Denies the scan_pairing_offer command without any pre-configured scope."
         },
         {
-          "description": "Allows the development-only StrongBox doctor commands.\n#### This default permission set includes:\n\n- `allow-doctor-capabilities`\n- `allow-doctor-identity-custody`\n- `allow-doctor-create-probe`\n- `allow-doctor-run-agreement`\n- `allow-doctor-cleanup`\n- `allow-doctor-pairing-storage`\n- `allow-scan-pairing-offer`\n- `allow-pair-phone`",
+          "description": "Enables the unwrap_phone command without any pre-configured scope.",
+          "type": "string",
+          "const": "allow-unwrap-phone",
+          "markdownDescription": "Enables the unwrap_phone command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the unwrap_phone command without any pre-configured scope.",
+          "type": "string",
+          "const": "deny-unwrap-phone",
+          "markdownDescription": "Denies the unwrap_phone command without any pre-configured scope."
+        },
+        {
+          "description": "Allows the native pairing, one-shot unwrap, and development Doctor commands.\n#### This default permission set includes:\n\n- `allow-doctor-capabilities`\n- `allow-doctor-identity-custody`\n- `allow-doctor-create-probe`\n- `allow-doctor-run-agreement`\n- `allow-doctor-cleanup`\n- `allow-doctor-pairing-storage`\n- `allow-scan-pairing-offer`\n- `allow-pair-phone`\n- `allow-unwrap-phone`",
           "type": "string",
           "const": "default",
-          "markdownDescription": "Allows the development-only StrongBox doctor commands.\n#### This default permission set includes:\n\n- `allow-doctor-capabilities`\n- `allow-doctor-identity-custody`\n- `allow-doctor-create-probe`\n- `allow-doctor-run-agreement`\n- `allow-doctor-cleanup`\n- `allow-doctor-pairing-storage`\n- `allow-scan-pairing-offer`\n- `allow-pair-phone`"
+          "markdownDescription": "Allows the native pairing, one-shot unwrap, and development Doctor commands.\n#### This default permission set includes:\n\n- `allow-doctor-capabilities`\n- `allow-doctor-identity-custody`\n- `allow-doctor-create-probe`\n- `allow-doctor-run-agreement`\n- `allow-doctor-cleanup`\n- `allow-doctor-pairing-storage`\n- `allow-scan-pairing-offer`\n- `allow-pair-phone`\n- `allow-unwrap-phone`"
         }
       ]
     }
