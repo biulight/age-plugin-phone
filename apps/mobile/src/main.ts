@@ -52,6 +52,11 @@ interface CleanupReport {
 
 interface PairingStorageReport {
   noBackupStorage: boolean;
+  transcriptVerified: boolean;
+  fingerprintMismatchRejected: boolean;
+  cancellationRejected: boolean;
+  confirmationCommitted: boolean;
+  duplicateConfirmationRejected: boolean;
   atomicStateCreated: boolean;
   verifiedBeforeConsume: boolean;
   replayRejectedAfterReopen: boolean;
@@ -181,6 +186,11 @@ actionButtons.forEach((button) => {
       if (action === "pairingStorage") {
         showReport(action, {
           noBackupStorage: false,
+          transcriptVerified: false,
+          fingerprintMismatchRejected: false,
+          cancellationRejected: false,
+          confirmationCommitted: false,
+          duplicateConfirmationRejected: false,
           atomicStateCreated: false,
           verifiedBeforeConsume: false,
           replayRejectedAfterReopen: false,

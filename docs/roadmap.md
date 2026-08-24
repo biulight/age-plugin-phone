@@ -27,7 +27,7 @@
 
 - [x] Select Tauri 2 as the mobile application shell with an untrusted, presentation-only WebView.
 - [x] Commit pairing state and its replay scope atomically in app-private, non-backed-up storage.
-- [ ] Connect verified QR pairing confirmation to native pairing-state creation.
+- [x] Add a one-shot native confirmation session that creates pairing state from a verified transcript.
 - [ ] Implement QR fragmentation and animated-frame handling.
 - [ ] Implement desktop pairing and public identity stub creation.
 - [ ] Implement one request/response file-key unwrap with fresh user verification.

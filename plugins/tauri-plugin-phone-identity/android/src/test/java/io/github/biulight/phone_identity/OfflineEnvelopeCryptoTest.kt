@@ -23,6 +23,39 @@ class OfflineEnvelopeCryptoTest {
     )
 
     @Test
+    fun createsAndVerifiesSyntheticPairingTranscript() {
+        val generator = java.security.KeyPairGenerator.getInstance("EC").apply {
+            initialize(java.security.spec.ECGenParameterSpec("secp256r1"))
+        }
+        val identity = generator.generateKeyPair()
+        val desktopSigning = generator.generateKeyPair()
+        val phoneSigning = generator.generateKeyPair()
+        val transcript = OfflineEnvelopeCrypto.createSyntheticPairingTranscript(
+            identity.public,
+            desktopSigning,
+            phoneSigning,
+            java.security.SecureRandom(),
+        )
+
+        val offer = OfflineEnvelopeCrypto.verifyPairingOffer(transcript.signedOffer)
+        val response = OfflineEnvelopeCrypto.verifyPairingResponse(transcript.signedResponse, offer)
+        org.junit.Assert.assertEquals("Pairing confirmation Doctor", offer.offer.desktopLabel)
+        org.junit.Assert.assertEquals(
+            TaggedRecipientCrypto.encodeRecipient(identity.public),
+            response.response.recipient,
+        )
+        assertArrayEquals(
+            TaggedRecipientCrypto.encodeCompressed(desktopSigning.public),
+            TaggedRecipientCrypto.encodeCompressed(offer.offer.desktopSigningPublicKey),
+        )
+        assertArrayEquals(
+            TaggedRecipientCrypto.encodeCompressed(phoneSigning.public),
+            TaggedRecipientCrypto.encodeCompressed(response.response.phoneSigningPublicKey),
+        )
+        org.junit.Assert.assertEquals(32, OfflineEnvelopeCrypto.pairingFingerprint(offer, response).size)
+    }
+
+    @Test
     fun verifiesSharedRustPairingTranscriptVector() {
         val offer = OfflineEnvelopeCrypto.verifyPairingOffer(
             base64(pairingVector["signed_offer_base64"].asText()),

@@ -65,11 +65,19 @@ closed, and native request verification returns only after the combined state re
 durable. A separate synthetic-data Doctor exercises create, consume, reopen, replay rejection,
 wrong scope, deletion, and cleanup without exposing paths or protocol material to the WebView.
 
+The native pairing-confirmation session accepts canonical signed offer/response bytes only from a
+native transport controller. It verifies the complete transcript before producing a presentation
+model containing just the untrusted desktop label and full transcript fingerprint. Confirmation is
+one-shot: cancellation, a different or non-canonical fingerprint, duplicate confirmation, process
+lifecycle loss, or failed persistence closes the session without retrying it. Raw QR and signed
+protocol bytes are not Tauri command arguments and never enter JavaScript.
+
 A wrapped native X25519 identity remains a separately reviewed fallback candidate for platforms
 that cannot expose a suitable non-exportable operation. It is not enabled on the verified Android
 path. Canonical pairing/request encoding and complete Rust/Kotlin protocol vectors now exist;
-the remaining integration work is to connect verified QR pairing confirmation to the native
-pairing-state lifecycle. Independent review is still required before the wire format is stabilized.
+The native confirmation-to-persistence boundary now exists; the remaining QR work is framing,
+capture, and wiring a reviewed native transport controller to that boundary. Independent review is
+still required before the wire format is stabilized.
 
 ## Transport strategy
 

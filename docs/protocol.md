@@ -17,6 +17,12 @@ Pairing is a bidirectional QR exchange that authenticates the desktop and phone 
 Both screens show a short fingerprint derived from the complete transcript before either endpoint
 persists the peer.
 
+On Android, a one-shot native confirmation session strictly verifies both signed messages before it
+returns the untrusted desktop label and canonical full transcript fingerprint for display. The
+native controller may persist only when the compared fingerprint exactly matches that transcript.
+Cancellation, mismatch, duplicate confirmation, lifecycle loss, or a storage error terminates the
+session. A retry requires rescanning and re-verifying the complete transcript.
+
 Desktop state contains only public keys, identity identifiers, recipients, and transport metadata.
 Phone state contains the private identity, paired desktop public keys, counters, and revocation
 state.

@@ -37,6 +37,16 @@ Creation is explicit and allowed only after both pairing signatures and the user
 succeeded. The initial empty replay scope and the pairing record are encoded and committed in one
 atomic write. Creation never overwrites an existing scope.
 
+Android enforces this with a one-shot native pairing-confirmation session. It strictly verifies the
+canonical signed offer and response, derives the stored record and full transcript fingerprint, and
+returns only the untrusted desktop label and fingerprint as presentation data. The native transport
+controller supplies the fingerprint shown in its explicit user-confirmation action. A mismatch,
+non-canonical fingerprint, cancellation, duplicate action, lifecycle loss, existing pairing, or
+write failure makes that session terminal; the caller must rescan rather than retry it.
+
+Raw signed messages are accepted only by this internal native API. They are not plugin command
+arguments and are not returned to the Rust or WebView layers.
+
 Opening requires the expected desktop and identity identifiers and an existing state file. Missing,
 corrupt, non-canonical, oversized, wrong-scope, or unsupported state fails closed. It is never
 interpreted as a new pairing.
@@ -85,11 +95,18 @@ The Kotlin implementation strictly decodes the combined canonical CBOR state, ch
 separation and private file modes, rejects symbolic-link lock files before opening them, and exposes
 one verify-then-durably-consume entry point. JVM tests cover restart replay, wrong scope, expiry
 pruning, capacity, clock rollback, corruption, non-canonical bytes, permissions, lock-file symlinks,
-duplicate creation, deletion, and injected replacement failure. The Android Doctor uses only fresh
-synthetic keys and file-key material and removes its exact, separately named no-backup directory.
+duplicate creation, deletion, injected replacement failure, malformed transcripts, cancellation,
+fingerprint mismatch, duplicate confirmation, and terminal write failure. The Android Doctor uses
+only fresh synthetic keys and file-key material and removes its exact, separately named no-backup
+directory.
 
 On 2026-08-24, the Doctor passed on the Samsung `SM-F9660`: all storage, atomic creation,
 verify-before-consume, replay-after-reopen, wrong-scope, missing-after-delete, and cleanup checks
 were true with no error category. An independent app-sandbox check found no Doctor directory after
 the run, and a PID-scoped device log filter found no prohibited key, payload, stanza, QR, or alias
 markers and no crash markers.
+
+The extended native-confirmation run on the same device additionally passed transcript verification,
+fingerprint-mismatch rejection, cancellation rejection, confirmation commit, and duplicate-action
+rejection. All twelve report booleans were true with no error category. The independent residual,
+sensitive-log, and crash checks remained clean.

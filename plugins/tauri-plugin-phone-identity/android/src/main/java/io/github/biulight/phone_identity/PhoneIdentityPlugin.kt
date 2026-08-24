@@ -31,6 +31,11 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     private val stateLock = Any()
     private val pairingDoctorLock = Any()
     private var active: PendingAgreement? = null
+    private val pairingConfirmation = PairingConfirmationCoordinator(
+        PairingSessionFactory { signedOffer, signedResponse ->
+            PairingConfirmationSession.begin(activity, signedOffer, signedResponse)
+        },
+    )
 
     @Command
     fun doctorCapabilities(invoke: Invoke) {
@@ -80,10 +85,26 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
 
     override fun onStop() {
         cancelActive("authentication_failed")
+        cancelPendingPairing()
     }
 
     override fun onDestroy(activity: androidx.appcompat.app.AppCompatActivity) {
         cancelActive("authentication_failed")
+        cancelPendingPairing()
+    }
+
+    internal fun beginNativePairingConfirmation(
+        signedOffer: ByteArray,
+        signedResponse: ByteArray,
+    ): PairingConfirmationDisplay = pairingConfirmation.begin(signedOffer, signedResponse)
+
+    internal fun confirmNativePairing(
+        displayedFingerprint: String,
+        nowUnix: Long,
+    ): CommittedPairingDisplay = pairingConfirmation.confirm(displayedFingerprint, nowUnix)
+
+    internal fun cancelPendingPairing() {
+        pairingConfirmation.cancel()
     }
 
     private fun prepareAgreement(invoke: Invoke): PendingAgreement? {
@@ -304,6 +325,11 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         var store: PairingStateStore? = null
         var syntheticFileKey: ByteArray? = null
         var noBackupStorage = PairingStateStore.doctorRootIsNoBackup(activity)
+        var transcriptVerified = false
+        var fingerprintMismatchRejected = false
+        var cancellationRejected = false
+        var confirmationCommitted = false
+        var duplicateConfirmationRejected = false
         var atomicStateCreated = false
         var verifiedBeforeConsume = false
         var replayRejectedAfterReopen = false
@@ -323,8 +349,68 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             val desktopSigning = generator.generateKeyPair()
             val desktopSession = generator.generateKeyPair()
             val phoneSigning = generator.generateKeyPair()
+            val random = SecureRandom()
+            val transcript = OfflineEnvelopeCrypto.createSyntheticPairingTranscript(
+                identity.public,
+                desktopSigning,
+                phoneSigning,
+                random,
+            )
+            val creator = PairingStateCreator { record, nowUnix ->
+                PairingStateStore.createDoctor(activity, record, nowUnix)
+            }
+            val mismatch = PairingConfirmationSession.beginWithCreator(
+                transcript.signedOffer,
+                transcript.signedResponse,
+                creator,
+            )
+            transcriptVerified = mismatch.display.desktopLabel == "Pairing confirmation Doctor" &&
+                mismatch.display.transcriptFingerprint.length == 64
+            val wrongFingerprint = mismatch.display.transcriptFingerprint.let { value ->
+                (if (value[0] == '0') '1' else '0') + value.drop(1)
+            }
+            fingerprintMismatchRejected = try {
+                mismatch.confirm(wrongFingerprint, System.currentTimeMillis() / 1000)
+                false
+            } catch (error: PairingConfirmationSession.PairingConfirmationException) {
+                error.category == PairingConfirmationSession.Category.FINGERPRINT_MISMATCH
+            }
+            val cancelled = PairingConfirmationSession.beginWithCreator(
+                transcript.signedOffer,
+                transcript.signedResponse,
+                creator,
+            )
+            cancelled.cancel()
+            cancellationRejected = try {
+                cancelled.confirm(cancelled.display.transcriptFingerprint, System.currentTimeMillis() / 1000)
+                false
+            } catch (error: PairingConfirmationSession.PairingConfirmationException) {
+                error.category == PairingConfirmationSession.Category.SESSION_CLOSED
+            }
+            val confirmation = PairingConfirmationSession.beginWithCreator(
+                transcript.signedOffer,
+                transcript.signedResponse,
+                creator,
+            )
+            val nowUnix = System.currentTimeMillis() / 1000
+            val committed = confirmation.confirm(confirmation.display.transcriptFingerprint, nowUnix)
+            confirmationCommitted = committed == confirmation.display.let {
+                CommittedPairingDisplay(it.desktopLabel, it.transcriptFingerprint)
+            }
+            duplicateConfirmationRejected = try {
+                confirmation.confirm(confirmation.display.transcriptFingerprint, nowUnix)
+                false
+            } catch (error: PairingConfirmationSession.PairingConfirmationException) {
+                error.category == PairingConfirmationSession.Category.SESSION_CLOSED
+            }
+            val verifiedOffer = OfflineEnvelopeCrypto.verifyPairingOffer(transcript.signedOffer)
+            val verifiedResponse = OfflineEnvelopeCrypto.verifyPairingResponse(
+                transcript.signedResponse,
+                verifiedOffer,
+            )
+            val record = StoredPairingRecord.fromVerifiedTranscript(verifiedOffer, verifiedResponse)
             syntheticFileKey = ByteArray(TaggedRecipientCrypto.FILE_KEY_BYTES).also {
-                SecureRandom().nextBytes(it)
+                random.nextBytes(it)
             }
             val stanza = TaggedRecipientCrypto.wrapForTest(
                 identity.public,
@@ -332,25 +418,16 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 ephemeral.public,
                 syntheticFileKey,
             )
-            val nowUnix = System.currentTimeMillis() / 1000
-            val request = OfflineEnvelopeCrypto.createSignedRequest(
+            val request = OfflineEnvelopeCrypto.createSignedRequestForPairing(
                 stanza,
                 desktopSigning,
                 desktopSession.public,
+                record.desktopId,
+                record.identityId,
                 nowUnix,
-                SecureRandom(),
+                random,
             )
-            val record = StoredPairingRecord(
-                desktopId = request.request.desktopId.copyOf(),
-                identityId = request.request.identityId.copyOf(),
-                desktopLabel = "Pairing storage Doctor",
-                recipient = TaggedRecipientCrypto.encodeRecipient(identity.public),
-                desktopSigningPublicKey = TaggedRecipientCrypto.encodeCompressed(desktopSigning.public),
-                phoneSigningPublicKey = TaggedRecipientCrypto.encodeCompressed(phoneSigning.public),
-                offerDigest = ByteArray(32).also { SecureRandom().nextBytes(it) },
-                transcriptFingerprint = ByteArray(32).also { SecureRandom().nextBytes(it) },
-            )
-            store = PairingStateStore.createDoctor(activity, record, nowUnix)
+            store = PairingStateStore.openDoctor(activity, record.desktopId, record.identityId)
             val stored = store.pairingRecord()
             atomicStateCreated = MessageDigest.isEqual(stored.desktopId, record.desktopId) &&
                 MessageDigest.isEqual(stored.identityId, record.identityId) &&
@@ -412,6 +489,11 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         }
         return JSObject().apply {
             put("noBackupStorage", noBackupStorage)
+            put("transcriptVerified", transcriptVerified)
+            put("fingerprintMismatchRejected", fingerprintMismatchRejected)
+            put("cancellationRejected", cancellationRejected)
+            put("confirmationCommitted", confirmationCommitted)
+            put("duplicateConfirmationRejected", duplicateConfirmationRejected)
             put("atomicStateCreated", atomicStateCreated)
             put("verifiedBeforeConsume", verifiedBeforeConsume)
             put("replayRejectedAfterReopen", replayRejectedAfterReopen)

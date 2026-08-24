@@ -283,6 +283,10 @@ internal class PairingStateStore private constructor(
             }
         }
 
+        internal fun validateRecordForCreation(record: StoredPairingRecord) {
+            validateRecord(record)
+        }
+
         internal fun openAt(
             root: File,
             desktopId: ByteArray,

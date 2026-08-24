@@ -504,7 +504,16 @@ decision: Result A
 consume、关闭并重开后的 replay 拒绝、错误 scope、删除后缺失以及精确清理。WebView 仅接收
 非敏感布尔结果和错误分类；路径、标识符、alias、请求、stanza 与 QR 内容均不返回。
 
+原生 pairing confirmation session 进一步把规范 signed offer/response 的完整验签、完整
+transcript fingerprint 展示模型和原子创建串成一次性状态机。fingerprint 不匹配、取消、重复
+确认、已有配对或落盘失败都会关闭 session；重试必须重新扫描。原始 signed transcript 只由
+未来的原生 QR transport controller 传入，不作为 Tauri command 参数，也不进入 WebView。
+
 同日在 Samsung `SM-F9660` 真机执行该 Doctor：上述七项布尔检查全部为 `true`，
 `errorCategory == null`。随后通过应用沙箱独立确认 Doctor 专用目录不存在；限定本次 App PID
 的设备端完整日志过滤未发现 key、payload、stanza、QR、alias 等禁止材料标记，也未发现崩溃
 标记。
+
+扩展 pairing confirmation 后在同一设备复测：transcript 验证、错误 fingerprint 拒绝、取消
+拒绝、确认提交和重复确认拒绝五项新增检查也全部为 `true`，连同原七项共十二项均通过，
+`errorCategory == null`；独立残留、敏感日志和崩溃检查继续为零。

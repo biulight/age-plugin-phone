@@ -222,7 +222,7 @@ class PairingStateStoreTest {
     private fun hex(value: String): ByteArray = value.chunked(2).map { it.toInt(16).toByte() }.toByteArray()
 }
 
-private object JvmDurableFileOperations : DurableFileOperations {
+internal object JvmDurableFileOperations : DurableFileOperations {
     private val ownerDirectoryPermissions = setOf(
         PosixFilePermission.OWNER_READ,
         PosixFilePermission.OWNER_WRITE,
