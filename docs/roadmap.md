@@ -41,7 +41,8 @@
 - [x] Implement `identity-v1` one-shot unwrap with private pairing locators.
 - [x] Handle multiple files, unknown stanzas, malformed supported stanzas, cancellation, and bad responses.
 - [x] Replace external response capture and paste with a desktop-native scanner.
-- [ ] Resolve private selection among multiple phone identities and phone stanzas.
+- [x] Fail closed before authorization on ambiguous multiple phone identities or phone stanzas.
+- [ ] Design a versioned, privacy-preserving multi-phone stanza selection scheme.
 
 ## Milestone 3: mobile hardware backends
 

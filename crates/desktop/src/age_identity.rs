@@ -163,8 +163,27 @@ where
             results.insert(file_index, Err(errors));
             continue;
         };
-        // Version 1 stanzas intentionally contain no recipient identifier. Trying several phone
-        // identities would create ambiguous prompts, so this prototype uses the first identity.
+        if identities.len() != 1 {
+            errors.extend(identities.iter().map(|(index, _)| {
+                identity_error(
+                    *index,
+                    "multiple anonymous phone identities cannot be selected safely",
+                )
+            }));
+            results.insert(file_index, Err(errors));
+            continue;
+        }
+        if candidates.len() != 1 {
+            errors.extend(candidates.iter().map(|(stanza_index, _)| {
+                stanza_error(
+                    file_index,
+                    *stanza_index,
+                    "multiple anonymous phone stanzas cannot be selected safely",
+                )
+            }));
+            results.insert(file_index, Err(errors));
+            continue;
+        }
         let (stanza_index, stanza) = candidates.remove(0);
         let Ok(locator) = open_pairing_locator(root, stub) else {
             errors.push(identity_error(
@@ -499,6 +518,46 @@ mod tests {
         )
         .unwrap();
         assert!(matches!(results.get(&0), Some(Err(_))));
+    }
+
+    #[test]
+    fn ambiguous_identities_and_stanzas_fail_before_authorization() {
+        let fixture = Fixture::new();
+        let mut other_stub = fixture.stub.clone();
+        other_stub.identity_id = [0x91; 16];
+        let identities = vec![(0, fixture.stub.clone()), (1, other_stub)];
+        let files = vec![
+            vec![fixture.stanza([7; 16])],
+            vec![fixture.stanza([8; 16]), fixture.stanza([9; 16])],
+        ];
+        let mut exchanges = 0;
+        let results = unwrap_with_exchange(&identities, files, &fixture.config, |_, _| {
+            exchanges += 1;
+            Ok(Err(ExchangeError::Failed))
+        })
+        .unwrap();
+        assert_eq!(exchanges, 0);
+        for file_index in [0, 1] {
+            assert!(matches!(results.get(&file_index), Some(Err(_))));
+        }
+
+        let single_identity = vec![(0, fixture.stub.clone())];
+        let mut exchanges = 0;
+        let results = unwrap_with_exchange(
+            &single_identity,
+            vec![vec![fixture.stanza([10; 16]), fixture.stanza([11; 16])]],
+            &fixture.config,
+            |_, _| {
+                exchanges += 1;
+                Ok(Err(ExchangeError::Failed))
+            },
+        )
+        .unwrap();
+        assert_eq!(exchanges, 0);
+        let Some(Err(errors)) = results.get(&0) else {
+            panic!("ambiguous stanzas must fail");
+        };
+        assert_eq!(errors.len(), 2);
     }
 
     #[test]

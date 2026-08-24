@@ -41,9 +41,10 @@ phone recipient.
 
 Version 1 phone stanzas deliberately reveal no recipient identifier. If several phone identities or
 several `phone-p256-v1` stanzas are supplied together, the desktop cannot select the correct pair
-without trying private operations. This prototype therefore uses the first phone identity and first
-valid phone stanza. A privacy-preserving selection design is required before claiming general
-multi-phone-recipient interoperability.
+without trying private operations. The plugin therefore rejects either ambiguity before opening
+the camera or requesting phone authorization; it never silently chooses by list order. A versioned,
+privacy-preserving selection design is required before claiming general multi-phone-recipient
+interoperability.
 
 ## Consequences
 
@@ -51,3 +52,4 @@ multi-phone-recipient interoperability.
 - Reference age can invoke the paired one-shot unwrap through `identity-v1`.
 - The long-term phone identity remains non-exportable and the desktop still stores no age identity.
 - Desktop camera permission and device interoperability require packaged-binary validation.
+- Anonymous multi-phone ciphertext fails closed instead of causing wrong-phone authorization.
