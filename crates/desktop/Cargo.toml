@@ -16,11 +16,22 @@ base64.workspace = true
 bech32.workspace = true
 clap.workspace = true
 minicbor.workspace = true
+nokhwa.workspace = true
 p256.workspace = true
 qrcode.workspace = true
 rand_core.workspace = true
+rqrr.workspace = true
 thiserror.workspace = true
 zeroize.workspace = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+nokhwa = { workspace = true, features = ["input-avfoundation"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+nokhwa = { workspace = true, features = ["input-v4l"] }
+
+[target.'cfg(target_os = "windows")'.dependencies]
+nokhwa = { workspace = true, features = ["input-msmf"] }
 
 
 [lints]

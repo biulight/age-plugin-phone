@@ -30,11 +30,11 @@ on its first response attempt or cancellation.
 
 ## Prototype transport
 
-Android scanning and response rendering are fully native. The current desktop prototype renders
-requests itself but still relies on an external QR capture helper to populate the response file.
-This file is an opaque transport artifact, not trusted protocol state. The standard age state
-machines are now connected by [`ADR 0010`](0010-reference-age-state-machines.md); a desktop-native
-response scanner remains interoperability work.
+Android scanning and response rendering are fully native. The desktop renders requests and scans
+response frames directly from its default camera. Pixels, frame strings, partial assemblies, and
+completed encrypted responses are never persisted or logged. The standard age state machines are
+connected by [`ADR 0010`](0010-reference-age-state-machines.md); signed-binary camera permission UX
+and hardware interoperability remain packaging validation work.
 
 ## Consequences
 

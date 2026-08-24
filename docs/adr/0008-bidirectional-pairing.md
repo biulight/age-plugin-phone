@@ -34,9 +34,9 @@ response, mismatch, and duplicate confirmation close the session.
 After successful confirmation, the desktop creates a new standard `AGE-PLUGIN-PHONE-...` identity
 stub. Its fixed-field canonical CBOR payload contains only identifiers, the canonical recipient,
 both signing public keys, offer digest, and transcript fingerprint. It never contains either private
-key. Creation uses create-new semantics and never overwrites an existing identity file. The current
-CLI accepts response bytes from an external QR capture helper through an unpadded-Base64 file; the
-helper transports opaque bytes and is not trusted for authentication.
+key. Creation uses create-new semantics and never overwrites an existing identity file. The CLI
+scans response frames directly from the default desktop camera, reassembles them in bounded
+zeroizing memory, and passes only complete bytes to the response verifier.
 
 ## Consequences
 
@@ -46,8 +46,8 @@ helper transports opaque bytes and is not trusted for authentication.
 - Copying the public identity stub cannot decrypt or impersonate either endpoint.
 - Desktop authentication-state loss requires explicit re-pairing; it never falls back to an age
   private identity on the desktop.
-- A bundled desktop camera adapter remains packaging work. Its output will enter the same strict
-  response verifier and cannot weaken transcript authentication.
+- Desktop camera output enters the same strict response verifier and cannot weaken transcript
+  authentication. Signed-binary permission UX remains packaging work.
 
 ## Validation
 

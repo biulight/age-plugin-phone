@@ -12,12 +12,13 @@ use age_plugin_phone_protocol::{
     fragment_qr_message,
 };
 use age_plugin_phone_recipient_p256::{STANZA_TAG, TaggedStanza, validate_stanza};
-use base64::{Engine as _, engine::general_purpose::STANDARD_NO_PAD};
 use rand_core::OsRng;
+use zeroize::Zeroizing;
 
 use crate::{
     locator::{default_config_root, open_pairing_locator},
     pairing::{DesktopKeyState, PublicIdentityStub},
+    qr_scanner::{DEFAULT_SCAN_TIMEOUT, ScanError, ScannerHandle},
     qr_terminal::render_terminal_frame,
     unwrap::{DesktopUnwrapSession, UnwrapDisplay, now_unix},
 };
@@ -82,16 +83,17 @@ impl IdentityPluginV1 for PhoneIdentityPlugin {
                 Ok(prompt) => prompt,
                 Err(error) => return Ok(Err(error)),
             };
-            let Ok(input) = callbacks.request_public(&prompt)? else {
+            let Ok(()) = callbacks.message(&prompt)? else {
                 return Ok(Err(ExchangeError::Cancelled));
             };
-            let input = input.trim();
-            let response = STANDARD_NO_PAD
-                .decode(input)
-                .ok()
-                .filter(|decoded| STANDARD_NO_PAD.encode(decoded) == input)
-                .ok_or(ExchangeError::InvalidResponse);
-            Ok(response)
+            let scanner = ScannerHandle::start_default_camera(DEFAULT_SCAN_TIMEOUT);
+            Ok(scanner.wait().map_err(|error| match error {
+                ScanError::Cancelled => ExchangeError::Cancelled,
+                ScanError::InvalidTransfer => ExchangeError::InvalidResponse,
+                ScanError::CameraUnavailable | ScanError::UnsupportedFrame | ScanError::Timeout => {
+                    ExchangeError::Failed
+                }
+            }))
         })
     }
 }
@@ -111,7 +113,7 @@ fn render_request_prompt(request: &[u8], display: &UnwrapDisplay) -> Result<Stri
     };
     let qr = render_terminal_frame(frame).map_err(|_| ExchangeError::Failed)?;
     Ok(format!(
-        "Scan this one-time request with the paired phone.\n\n{qr}\nRequest fingerprint: {}\n\nAfter scanning the phone response with the desktop capture helper, paste its unpadded Base64 value:",
+        "Scan this one-time request with the paired phone.\n\n{qr}\nRequest fingerprint: {}\n\nThe desktop camera is waiting for the phone response QR. Press Ctrl-C to cancel.",
         display.request_fingerprint,
     ))
 }
@@ -124,7 +126,7 @@ fn unwrap_with_exchange<F>(
     mut exchange: F,
 ) -> io::Result<HashMap<usize, Result<FileKey, Vec<identity::Error>>>>
 where
-    F: FnMut(&[u8], &UnwrapDisplay) -> io::Result<Result<Vec<u8>, ExchangeError>>,
+    F: FnMut(&[u8], &UnwrapDisplay) -> io::Result<Result<Zeroizing<Vec<u8>>, ExchangeError>>,
 {
     let mut results = HashMap::new();
     for (file_index, stanzas) in files.into_iter().enumerate() {
@@ -319,12 +321,13 @@ mod tests {
     impl Fixture {
         fn new() -> Self {
             let root = std::env::temp_dir().join(format!(
-                "age-phone-identity-v1-{}-{}",
+                "age-phone-identity-v1-{}-{}-{}",
                 std::process::id(),
                 std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
                     .unwrap()
                     .as_nanos(),
+                rand_core::RngCore::next_u64(&mut OsRng),
             ));
             std::fs::create_dir(&root).unwrap();
             let desktop_path = root.join("desktop.key");
@@ -434,7 +437,9 @@ mod tests {
                 let prompt = render_request_prompt(request, display).unwrap();
                 assert!(!prompt.contains("age-phone:qr1:"));
                 assert!(prompt.contains(&display.request_fingerprint));
-                Ok(Ok(fixture.respond(request, now_unix().unwrap())))
+                Ok(Ok(Zeroizing::new(
+                    fixture.respond(request, now_unix().unwrap()),
+                )))
             })
             .unwrap();
         assert_eq!(results.len(), 2);
@@ -489,7 +494,7 @@ mod tests {
                 let mut response = fixture.respond(request, now_unix().unwrap());
                 let last = response.last_mut().unwrap();
                 *last ^= 1;
-                Ok(Ok(response))
+                Ok(Ok(Zeroizing::new(response)))
             },
         )
         .unwrap();

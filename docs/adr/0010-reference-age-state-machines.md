@@ -26,11 +26,12 @@ and tests; it does not weaken any cryptographic binding.
 
 ## QR interaction
 
-The identity state machine renders the complete request as one maximum-size framed terminal QR and
-uses the standard `request-public` callback to ask for the strict unpadded Base64 response produced
-by the external desktop capture helper. Raw requests, responses, stanza bodies, and file keys are
-never written to messages or logs. Callback cancellation closes the session and stops further
-authorization attempts.
+The identity state machine renders the complete request as one maximum-size framed terminal QR
+through the standard `message` callback, then opens the default desktop camera. Decoded transport
+frames are bounded and reassembled in zeroizing memory; only a complete digest-checked response is
+passed to protocol verification. Raw requests, responses, stanza bodies, file keys, camera frames,
+and QR text are never written to messages, files, or logs. Callback cancellation, scanner
+cancellation, camera failure, and timeout close the session.
 
 ## Multiple inputs
 
@@ -49,4 +50,4 @@ multi-phone-recipient interoperability.
 - Reference age can encrypt to the public phone recipient without contacting the phone.
 - Reference age can invoke the paired one-shot unwrap through `identity-v1`.
 - The long-term phone identity remains non-exportable and the desktop still stores no age identity.
-- Desktop-native response scanning remains required to remove the capture-helper/paste step.
+- Desktop camera permission and device interoperability require packaged-binary validation.

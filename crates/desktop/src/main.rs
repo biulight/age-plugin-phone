@@ -13,6 +13,7 @@ use age_plugin_phone::pairing::{
     DesktopKeyState, DesktopPairingSession, MAX_PAIRING_SESSION_AGE_MS, create_identity_stub_file,
     read_identity_stub_file,
 };
+use age_plugin_phone::qr_scanner::{DEFAULT_SCAN_TIMEOUT, ScannerHandle};
 use age_plugin_phone::qr_terminal::{
     DEFAULT_FRAME_INTERVAL_MS, FrameScheduler, render_offline_html, render_terminal_frame,
 };
@@ -42,7 +43,7 @@ struct Options {
 enum Command {
     /// Report scaffold and protocol status without probing devices.
     Status,
-    /// Complete an authenticated pairing using an external QR response capture.
+    /// Complete an authenticated pairing using the desktop camera.
     Pair {
         /// Untrusted desktop label shown on both endpoints.
         #[arg(long)]
@@ -50,9 +51,6 @@ enum Command {
         /// Persistent desktop authentication state (contains no age identity key).
         #[arg(long)]
         desktop_state: PathBuf,
-        /// File populated by the QR capture helper with unpadded Base64 response bytes.
-        #[arg(long)]
-        response_file: PathBuf,
         /// New public age identity stub; an existing file is never overwritten.
         #[arg(long)]
         identity_output: PathBuf,
@@ -60,7 +58,7 @@ enum Command {
         #[arg(long)]
         replay_state: PathBuf,
     },
-    /// Exercise one real paired unwrap using external QR response capture.
+    /// Exercise one real paired unwrap using the desktop camera.
     Unwrap {
         #[arg(long)]
         identity_stub: PathBuf,
@@ -75,9 +73,6 @@ enum Command {
         /// Unpadded Base64 stanza body from the age header.
         #[arg(long)]
         stanza_body: String,
-        /// File populated by QR capture with unpadded Base64 response bytes.
-        #[arg(long)]
-        response_file: PathBuf,
         /// Untrusted application/caller display hint shown on the phone.
         #[arg(long)]
         caller_hint: Option<String>,
@@ -123,8 +118,8 @@ fn main() -> io::Result<()> {
             println!("status: bidirectional-qr-unwrap-prototype");
             println!("protocol_version: {PROTOCOL_VERSION}");
             println!("qr_capture_probe: available");
-            println!("pairing_transport: external_qr_capture");
-            println!("unwrap_transport: external_qr_capture");
+            println!("pairing_transport: desktop_camera_qr");
+            println!("unwrap_transport: desktop_camera_qr");
             println!("ble_transport: not_implemented");
             println!("mobile_identity: android_strongbox_pairing");
             println!("age_recipient_v1: available");
@@ -134,23 +129,15 @@ fn main() -> io::Result<()> {
         Command::Pair {
             label,
             desktop_state,
-            response_file,
             identity_output,
             replay_state,
-        } => run_pair(
-            label,
-            &desktop_state,
-            &response_file,
-            &identity_output,
-            &replay_state,
-        ),
+        } => run_pair(label, &desktop_state, &identity_output, &replay_state),
         Command::Unwrap {
             identity_stub,
             desktop_state,
             replay_state,
             stanza_arg,
             stanza_body,
-            response_file,
             caller_hint,
         } => run_unwrap(
             &identity_stub,
@@ -158,7 +145,6 @@ fn main() -> io::Result<()> {
             &replay_state,
             stanza_arg,
             &stanza_body,
-            &response_file,
             caller_hint,
         ),
         Command::QrCaptureProbe {
@@ -172,22 +158,10 @@ fn main() -> io::Result<()> {
 fn run_pair(
     label: String,
     desktop_state: &std::path::Path,
-    response_file: &std::path::Path,
     identity_output: &std::path::Path,
     replay_state: &std::path::Path,
 ) -> io::Result<()> {
-    if identity_output.exists() {
-        return Err(io::Error::new(
-            io::ErrorKind::AlreadyExists,
-            "identity output already exists",
-        ));
-    }
-    if replay_state.exists() {
-        return Err(io::Error::new(
-            io::ErrorKind::AlreadyExists,
-            "response replay state already exists",
-        ));
-    }
+    ensure_pairing_outputs_available(identity_output, replay_state)?;
     let state = DesktopKeyState::open_or_create(desktop_state, &mut OsRng)
         .map_err(|_| io::Error::other("desktop authentication state is unavailable"))?;
     let mut session =
@@ -198,9 +172,18 @@ fn run_pair(
     let mut scheduler = FrameScheduler::new(&frames, DEFAULT_FRAME_INTERVAL_MS)
         .map_err(|_| io::Error::other("failed to schedule pairing QR"))?;
     let started = Instant::now();
+    let scanner = ScannerHandle::start_default_camera(DEFAULT_SCAN_TIMEOUT);
     let mut stdout = io::stdout().lock();
 
-    while !response_file.is_file() {
+    let response = loop {
+        match scanner.try_result() {
+            Ok(Some(response)) => break response,
+            Ok(None) => {}
+            Err(_) => {
+                session.cancel();
+                return Err(io::Error::other("desktop QR scanner is unavailable"));
+            }
+        }
         let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
         if elapsed_ms > MAX_PAIRING_SESSION_AGE_MS {
             session.cancel();
@@ -219,12 +202,7 @@ fn run_pair(
         )?;
         stdout.flush()?;
         thread::sleep(Duration::from_millis(DEFAULT_FRAME_INTERVAL_MS));
-    }
-
-    let encoded_response = std::fs::read_to_string(response_file)?;
-    let response = STANDARD_NO_PAD
-        .decode(encoded_response.trim())
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "malformed pairing response"))?;
+    };
     let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
     let display = session
         .receive_response(&response, elapsed_ms)
@@ -277,6 +255,25 @@ fn run_pair(
     Ok(())
 }
 
+fn ensure_pairing_outputs_available(
+    identity_output: &std::path::Path,
+    replay_state: &std::path::Path,
+) -> io::Result<()> {
+    if identity_output.exists() {
+        return Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            "identity output already exists",
+        ));
+    }
+    if replay_state.exists() {
+        return Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            "response replay state already exists",
+        ));
+    }
+    Ok(())
+}
+
 #[allow(clippy::too_many_arguments)]
 fn run_unwrap(
     identity_stub: &std::path::Path,
@@ -284,7 +281,6 @@ fn run_unwrap(
     replay_state: &std::path::Path,
     stanza_arg: String,
     stanza_body: &str,
-    response_file: &std::path::Path,
     caller_hint: Option<String>,
 ) -> io::Result<()> {
     let stub = read_identity_stub_file(identity_stub)
@@ -313,9 +309,18 @@ fn run_unwrap(
     let mut scheduler = FrameScheduler::new(&frames, DEFAULT_FRAME_INTERVAL_MS)
         .map_err(|_| io::Error::other("failed to schedule unwrap QR"))?;
     let started = Instant::now();
+    let scanner = ScannerHandle::start_default_camera(DEFAULT_SCAN_TIMEOUT);
     let display = session.display();
     let mut stdout = io::stdout().lock();
-    while !response_file.is_file() {
+    let response = loop {
+        match scanner.try_result() {
+            Ok(Some(response)) => break response,
+            Ok(None) => {}
+            Err(_) => {
+                session.cancel();
+                return Err(io::Error::other("desktop QR scanner is unavailable"));
+            }
+        }
         let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
         if now_unix().unwrap_or(u64::MAX) > display.expires_at_unix {
             session.cancel();
@@ -335,11 +340,7 @@ fn run_unwrap(
         )?;
         stdout.flush()?;
         thread::sleep(Duration::from_millis(DEFAULT_FRAME_INTERVAL_MS));
-    }
-    let response_text = std::fs::read_to_string(response_file)?;
-    let response = STANDARD_NO_PAD
-        .decode(response_text.trim())
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "malformed unwrap response"))?;
+    };
     let pairing = age_plugin_phone_protocol::PairingRecord {
         desktop_id: stub.desktop_id,
         identity_id: stub.identity_id,

@@ -89,8 +89,9 @@ the wire format is stabilized.
 [`ADR 0009`](adr/0009-one-shot-qr-unwrap.md) connects that pairing to one production-key Android
 unwrap. Untrusted request identifiers route to candidate state only; the stored desktop key then
 verifies the request and durable replay consumption precedes a new native biometric authorization.
-The response remains encrypted and signed below the WebView boundary. The desktop prototype uses
-external response capture until native desktop scanning is added.
+The response remains encrypted and signed below the WebView boundary. The desktop uses a bounded
+native camera worker to decode and reassemble response QR frames entirely in memory before passing
+complete bytes to the same strict response verifier.
 
 [`ADR 0010`](adr/0010-reference-age-state-machines.md) connects the public recipient and identity
 stub to standard age `recipient-v1` and `identity-v1` state machines. A separate private,
@@ -109,7 +110,8 @@ The Android native scanner path owns raw frame strings, clears partial assemblie
 cancellation, and passes only a complete digest-checked byte message to the native protocol parser.
 Its Tauri result contains only a verified untrusted desktop label, offer digest, frame count, and
 coarse error category. The desktop renderer writes QR modules and safe progress metadata, never the
-frame text.
+frame text. The desktop scanner likewise keeps camera pixels, decoded frame text, partial chunks,
+and complete responses in memory; only digest-checked complete bytes reach protocol verification.
 
 ## Integration invariant
 

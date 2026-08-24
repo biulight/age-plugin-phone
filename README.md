@@ -9,8 +9,8 @@ Shine environments, or define a Shine-specific ciphertext format.
 
 > [!WARNING]
 > This repository is an experimental prototype. Reference age recipient and identity state machines
-> are connected to the one-shot QR flow, but desktop response capture is still external and the
-> protocol has not received independent review. Do not use it to protect real secrets.
+> are connected to the one-shot QR flow with native desktop camera capture, but the protocol and
+> camera path have not received independent review. Do not use it to protect real secrets.
 
 ## Intended boundary
 
@@ -55,16 +55,16 @@ bun run tauri ios init
 
 The Android development build's **Pair this phone** action scans the desktop offer, signs and
 renders the phone response entirely in native UI, and shows the full transcript fingerprint. The
-desktop `pair` command waits for an external QR capture helper to write that response as strict
-unpadded Base64, verifies it, asks for the same full fingerprint, and then creates the public stub.
-The capture helper is transport-only; its bytes are never trusted without protocol verification.
+desktop `pair` command scans that response directly from camera index 0, verifies it, asks for the
+same full fingerprint, and then creates the public stub. Camera frames and QR text remain in memory
+and are never trusted without protocol verification.
 
 The plugin implements standard age `recipient-v1` and `identity-v1`. Encryption to an `age1phone`
-recipient is public-only. During decryption, the age client displays a terminal request QR and asks
-for the strict unpadded Base64 response from the external desktop capture helper. Pairing creates a
-private locator in the platform configuration directory so the public identity stub contains no
-private-key path. Set `AGE_PLUGIN_PHONE_CONFIG_DIR` to the same absolute directory for pairing and
-age invocations only when an isolated non-default location is required.
+recipient is public-only. During decryption, the age client displays a terminal request QR while
+the desktop camera scans and reassembles the phone response. Pairing creates a private locator in
+the platform configuration directory so the public identity stub contains no private-key path. Set
+`AGE_PLUGIN_PHONE_CONFIG_DIR` to the same absolute directory for pairing and age invocations only
+when an isolated non-default location is required.
 
 ## Design goals
 
@@ -86,6 +86,7 @@ Start with the [Android StrongBox PoC](docs/android-strongbox-poc.md), then read
 [bidirectional pairing ADR](docs/adr/0008-bidirectional-pairing.md),
 [one-shot unwrap ADR](docs/adr/0009-one-shot-qr-unwrap.md),
 [reference age integration ADR](docs/adr/0010-reference-age-state-machines.md),
+[desktop-native scanner ADR](docs/adr/0011-desktop-native-qr-scanner.md),
 [protocol draft](docs/protocol.md), and [threat model](docs/threat-model.md) before implementing a
 transport or cryptographic backend.
 

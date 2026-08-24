@@ -40,7 +40,7 @@
 - [x] Implement standard `recipient-v1` wrapping for `age1phone` recipients and public identity stubs.
 - [x] Implement `identity-v1` one-shot unwrap with private pairing locators.
 - [x] Handle multiple files, unknown stanzas, malformed supported stanzas, cancellation, and bad responses.
-- [ ] Replace external response capture and paste with a desktop-native scanner.
+- [x] Replace external response capture and paste with a desktop-native scanner.
 - [ ] Resolve private selection among multiple phone identities and phone stanzas.
 
 ## Milestone 3: mobile hardware backends
