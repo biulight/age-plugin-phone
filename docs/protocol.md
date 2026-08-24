@@ -104,6 +104,14 @@ The response file key is encrypted to the request's one-time P-256 session key w
 session key, HKDF-SHA256, and ChaCha20-Poly1305. Its AEAD context and phone signature bind both
 paired identifiers, request ID and digest, response nonce, and both session participants.
 
+## Standard age integration
+
+[`ADR 0010`](adr/0010-reference-age-state-machines.md) maps `age1phone` recipients to the standard
+`recipient-v1` plugin state machine and maps public phone identity stubs to `identity-v1`. Unknown
+stanza types are ignored. A supported stanza is returned to the age client only after a fresh phone
+authorization and durable response consumption. Protocol payloads and stanza bodies never appear in
+age callback messages; the request callback displays only the rendered QR and its public digest.
+
 ## BLE
 
 BLE transports the same application messages after mutually authenticated ephemeral key agreement.

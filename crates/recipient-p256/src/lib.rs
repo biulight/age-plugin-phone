@@ -20,6 +20,8 @@ use sha2::Sha256;
 use thiserror::Error;
 use zeroize::{Zeroize as _, Zeroizing};
 
+mod plugin;
+
 /// Plugin name used by age recipient dispatch.
 pub const PLUGIN_NAME: &str = "phone";
 /// Bech32 HRP for the plugin recipient.
@@ -398,6 +400,12 @@ mod tests {
                 .unwrap()
                 .public_key_bytes(),
             recipient.public_key_bytes()
+        );
+        assert_eq!(
+            Recipient::from_plugin_bytes(&recipient.plugin_bytes())
+                .unwrap()
+                .public_key_bytes(),
+            recipient.public_key_bytes(),
         );
     }
 

@@ -8,9 +8,9 @@ It is intended to work with any compatible age client. It does not depend on Shi
 Shine environments, or define a Shine-specific ciphertext format.
 
 > [!WARNING]
-> This repository is an experimental prototype. It can create a paired public identity stub, but
-> file-key unwrap is still fail-closed and the protocol has not received independent review. Do not
-> use it to protect real secrets.
+> This repository is an experimental prototype. Reference age recipient and identity state machines
+> are connected to the one-shot QR flow, but desktop response capture is still external and the
+> protocol has not received independent review. Do not use it to protect real secrets.
 
 ## Intended boundary
 
@@ -43,6 +43,7 @@ user. It must never export the long-term private key to the desktop.
 ```console
 cargo run -p age-plugin-phone -- status
 cargo run -p age-plugin-phone -- pair --help
+cargo run -p age-plugin-phone -- unwrap --help
 cargo run -p age-plugin-phone -- qr-capture-probe
 cargo test --workspace
 
@@ -58,8 +59,12 @@ desktop `pair` command waits for an external QR capture helper to write that res
 unpadded Base64, verifies it, asks for the same full fingerprint, and then creates the public stub.
 The capture helper is transport-only; its bytes are never trusted without protocol verification.
 
-The plugin accepts the age `--age-plugin=identity-v1` entry point, but deliberately returns an
-unsupported error until a reviewed phone transport and cryptographic backend exist.
+The plugin implements standard age `recipient-v1` and `identity-v1`. Encryption to an `age1phone`
+recipient is public-only. During decryption, the age client displays a terminal request QR and asks
+for the strict unpadded Base64 response from the external desktop capture helper. Pairing creates a
+private locator in the platform configuration directory so the public identity stub contains no
+private-key path. Set `AGE_PLUGIN_PHONE_CONFIG_DIR` to the same absolute directory for pairing and
+age invocations only when an isolated non-default location is required.
 
 ## Design goals
 
@@ -79,6 +84,8 @@ Start with the [Android StrongBox PoC](docs/android-strongbox-poc.md), then read
 [native QR capture ADR](docs/adr/0006-native-qr-capture.md),
 [Android production key-custody ADR](docs/adr/0007-android-production-key-custody.md),
 [bidirectional pairing ADR](docs/adr/0008-bidirectional-pairing.md),
+[one-shot unwrap ADR](docs/adr/0009-one-shot-qr-unwrap.md),
+[reference age integration ADR](docs/adr/0010-reference-age-state-machines.md),
 [protocol draft](docs/protocol.md), and [threat model](docs/threat-model.md) before implementing a
 transport or cryptographic backend.
 

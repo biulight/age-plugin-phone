@@ -32,8 +32,9 @@ on its first response attempt or cancellation.
 
 Android scanning and response rendering are fully native. The current desktop prototype renders
 requests itself but still relies on an external QR capture helper to populate the response file.
-This file is an opaque transport artifact, not trusted protocol state. Reference-age state-machine
-integration and a desktop-native response scanner remain Milestone 4 interoperability work.
+This file is an opaque transport artifact, not trusted protocol state. The standard age state
+machines are now connected by [`ADR 0010`](0010-reference-age-state-machines.md); a desktop-native
+response scanner remains interoperability work.
 
 ## Consequences
 
@@ -42,4 +43,3 @@ integration and a desktop-native response scanner remain Milestone 4 interoperab
 - A phone response cannot be moved to another request, desktop, identity, session key, or nonce.
 - Caller labels are truncated, explicitly marked untrusted, and never used for authorization.
 - The desktop never stores a long-term age identity or writes a plaintext file key.
-

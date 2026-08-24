@@ -35,6 +35,14 @@
 - [x] Implement one request/response file-key unwrap with fresh user verification.
 - [x] Test cancellation, replay, wrong device, wrong identity, expiry, and corrupted frames.
 
+## Milestone 2.5: reference age integration
+
+- [x] Implement standard `recipient-v1` wrapping for `age1phone` recipients and public identity stubs.
+- [x] Implement `identity-v1` one-shot unwrap with private pairing locators.
+- [x] Handle multiple files, unknown stanzas, malformed supported stanzas, cancellation, and bad responses.
+- [ ] Replace external response capture and paste with a desktop-native scanner.
+- [ ] Resolve private selection among multiple phone identities and phone stanzas.
+
 ## Milestone 3: mobile hardware backends
 
 - [ ] Implement a native Swift Tauri plugin that binds Secure Enclave operations to user verification.
@@ -45,4 +53,4 @@
 
 - [ ] Implement a native BLE Tauri plugin and reuse the reviewed application protocol over it.
 - [ ] Package signed desktop binaries and mobile applications.
-- [ ] Verify interoperability with reference age, rage, multi-recipient files, and downstream tools.
+- [ ] Complete interoperability with reference age, rage, multiple phone recipients, and downstream tools.

@@ -1,19 +1,14 @@
 use std::{
-    collections::HashMap,
-    convert::Infallible,
     io::{self, Write as _},
     path::PathBuf,
     thread,
     time::{Duration, Instant},
 };
 
-use age_core::format::{FileKey, Stanza};
-use age_plugin::{
-    Callbacks, PluginHandler,
-    identity::{self, IdentityPluginV1},
-    run_state_machine,
-};
-use age_plugin_phone::pairing::PublicIdentityStub;
+use age_plugin::{PluginHandler, run_state_machine};
+use age_plugin_phone::age_identity::PhoneIdentityPlugin;
+use age_plugin_phone::age_recipient::PhoneRecipientPlugin;
+use age_plugin_phone::locator::{create_pairing_locator, default_config_root};
 use age_plugin_phone::pairing::{
     DesktopKeyState, DesktopPairingSession, MAX_PAIRING_SESSION_AGE_MS, create_identity_stub_file,
     read_identity_stub_file,
@@ -26,14 +21,11 @@ use age_plugin_phone_protocol::{
     DEFAULT_REPLAY_CAPACITY, FileReplayGuard, PROTOCOL_VERSION, PairingOffer, ReplayRole,
     ReplayScope, SignedPairingOffer, fragment_qr_message,
 };
-use age_plugin_phone_recipient_p256::{PLUGIN_NAME, STANZA_TAG, TaggedStanza};
+use age_plugin_phone_recipient_p256::{STANZA_TAG, TaggedStanza};
 use base64::{Engine as _, engine::general_purpose::STANDARD_NO_PAD};
 use clap::{Parser, Subcommand};
 use p256::ecdsa::SigningKey;
 use rand_core::{OsRng, RngCore as _};
-
-const NOT_IMPLEMENTED: &str =
-    "phone transport is not implemented; refusing to release an age file key";
 
 #[derive(Debug, Parser)]
 #[command(name = "age-plugin-phone", version, about)]
@@ -107,46 +99,15 @@ enum Command {
 struct Handler;
 
 impl PluginHandler for Handler {
-    type RecipientV1 = Infallible;
+    type RecipientV1 = PhoneRecipientPlugin;
     type IdentityV1 = PhoneIdentityPlugin;
+
+    fn recipient_v1(self) -> io::Result<Self::RecipientV1> {
+        Ok(PhoneRecipientPlugin::default())
+    }
 
     fn identity_v1(self) -> io::Result<Self::IdentityV1> {
         Ok(PhoneIdentityPlugin::default())
-    }
-}
-
-#[derive(Default)]
-struct PhoneIdentityPlugin {
-    identities: Vec<(usize, PublicIdentityStub)>,
-}
-
-impl IdentityPluginV1 for PhoneIdentityPlugin {
-    fn add_identity(
-        &mut self,
-        index: usize,
-        plugin_name: &str,
-        bytes: &[u8],
-    ) -> Result<(), identity::Error> {
-        if plugin_name != PLUGIN_NAME {
-            return Err(identity::Error::Identity {
-                index,
-                message: "identity was routed to the wrong plugin".into(),
-            });
-        }
-        let stub = PublicIdentityStub::decode(bytes).map_err(|_| identity::Error::Identity {
-            index,
-            message: "malformed or unsupported public phone identity stub".into(),
-        })?;
-        self.identities.push((index, stub));
-        Ok(())
-    }
-
-    fn unwrap_file_keys(
-        &mut self,
-        _files: Vec<Vec<Stanza>>,
-        _callbacks: impl Callbacks<identity::Error>,
-    ) -> io::Result<HashMap<usize, Result<FileKey, Vec<identity::Error>>>> {
-        Err(io::Error::new(io::ErrorKind::Unsupported, NOT_IMPLEMENTED))
     }
 }
 
@@ -166,7 +127,8 @@ fn main() -> io::Result<()> {
             println!("unwrap_transport: external_qr_capture");
             println!("ble_transport: not_implemented");
             println!("mobile_identity: android_strongbox_pairing");
-            println!("secret_operations: fail_closed");
+            println!("age_recipient_v1: available");
+            println!("age_identity_v1: available");
             Ok(())
         }
         Command::Pair {
@@ -295,8 +257,18 @@ fn run_pair(
         now_unix().map_err(|_| io::Error::other("system clock is unavailable"))?,
     )
     .map_err(|_| io::Error::other("failed to create durable response replay state"))?;
-    create_identity_stub_file(identity_output, &stub)
-        .map_err(|_| io::Error::other("failed to create public identity stub"))?;
+    let locator_path = create_pairing_locator(
+        &default_config_root()
+            .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?,
+        &stub,
+        desktop_state,
+        replay_state,
+    )
+    .map_err(|_| io::Error::other("failed to create private pairing locator"))?;
+    if create_identity_stub_file(identity_output, &stub).is_err() {
+        let _ = std::fs::remove_file(locator_path);
+        return Err(io::Error::other("failed to create public identity stub"));
+    }
     println!(
         "Public identity stub created: {}",
         identity_output.display()

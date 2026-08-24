@@ -90,7 +90,13 @@ the wire format is stabilized.
 unwrap. Untrusted request identifiers route to candidate state only; the stored desktop key then
 verifies the request and durable replay consumption precedes a new native biometric authorization.
 The response remains encrypted and signed below the WebView boundary. The desktop prototype uses
-external response capture until native desktop scanning and reference-age integration are added.
+external response capture until native desktop scanning is added.
+
+[`ADR 0010`](adr/0010-reference-age-state-machines.md) connects the public recipient and identity
+stub to standard age `recipient-v1` and `identity-v1` state machines. A separate private,
+transcript-bound locator resolves the desktop authentication and replay files; those paths are not
+embedded in the public identity. Reference age can now create tagged stanzas and request a one-shot
+phone unwrap without learning or storing a long-term age identity.
 
 ## Transport strategy
 
