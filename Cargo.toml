@@ -4,6 +4,7 @@ members = [
     "crates/desktop",
     "crates/protocol",
     "crates/recipient-p256",
+    "crates/windows-cng",
     "plugins/tauri-plugin-phone-identity",
 ]
 resolver = "2"
@@ -38,6 +39,7 @@ tauri-build = "2"
 tauri-plugin = { version = "2", features = ["build"] }
 thiserror = "2"
 zeroize = "1.9.0"
+windows-sys = "0.61.2"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

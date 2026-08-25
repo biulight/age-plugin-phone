@@ -12,10 +12,7 @@ use minicbor::{Decoder, Encoder, data::Type};
 use p256::{
     PublicKey, SecretKey,
     ecdh::{EphemeralSecret, diffie_hellman},
-    ecdsa::{
-        Signature, SigningKey, VerifyingKey,
-        signature::{Signer as _, Verifier as _},
-    },
+    ecdsa::{Signature, SigningKey, VerifyingKey, signature::Verifier as _},
     elliptic_curve::sec1::ToEncodedPoint as _,
 };
 use rand_core::{CryptoRng, RngCore};
@@ -41,6 +38,37 @@ pub type Id = [u8; 16];
 pub type ProtocolNonce = [u8; 32];
 pub type ProtocolDigest = [u8; 32];
 pub type EncodedPublicKey = [u8; 33];
+
+/// Role-agnostic P-256 signing boundary for software test keys and platform-backed keys.
+///
+/// Implementations receive an already hashed SHA-256 digest and must return a fixed-width,
+/// low-S IEEE P1363 signature. Production desktop implementations must keep the private key in
+/// platform hardware; [`SigningKey`] is retained for deterministic vectors and tests.
+pub trait P256Signer {
+    /// Returns the canonical compressed SEC1 public key.
+    fn public_key(&self) -> Result<EncodedPublicKey, Error>;
+
+    /// Signs one SHA-256 digest and returns canonical `r || s` bytes.
+    fn sign_prehash(&self, digest: &ProtocolDigest) -> Result<[u8; 64], Error>;
+}
+
+impl P256Signer for SigningKey {
+    fn public_key(&self) -> Result<EncodedPublicKey, Error> {
+        Ok(public_signing(self.verifying_key()))
+    }
+
+    fn sign_prehash(&self, digest: &ProtocolDigest) -> Result<[u8; 64], Error> {
+        let signature: Signature = <SigningKey as p256::ecdsa::signature::hazmat::PrehashSigner<
+            Signature,
+        >>::sign_prehash(self, digest)
+        .map_err(|_| Error::KeyOperation)?;
+        Ok(signature
+            .normalize_s()
+            .unwrap_or(signature)
+            .to_bytes()
+            .into())
+    }
+}
 
 const OFFER: u16 = 1;
 const PAIRING_RESPONSE: u16 = 2;
@@ -93,6 +121,8 @@ pub enum Error {
     Decryption,
     #[error("key derivation failed")]
     KeyDerivation,
+    #[error("platform signing or key-agreement operation failed")]
+    KeyOperation,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -174,12 +204,12 @@ pub struct VerifiedRequest {
 }
 
 impl SignedPairingOffer {
-    pub fn sign(payload: PairingOffer, key: &SigningKey) -> Result<Self, Error> {
+    pub fn sign(payload: PairingOffer, key: &impl P256Signer) -> Result<Self, Error> {
         label(&payload.desktop_label)?;
-        if public_signing(key.verifying_key()) != payload.desktop_signing_public_key {
+        if key.public_key()? != payload.desktop_signing_public_key {
             return Err(Error::InvalidPublicKey);
         }
-        let signature = sign(key, OFFER_SIG, &encode_offer(&payload));
+        let signature = sign(key, OFFER_SIG, &encode_offer(&payload))?;
         Ok(Self { payload, signature })
     }
     pub fn verify(&self) -> Result<(), Error> {
@@ -211,12 +241,12 @@ impl SignedPairingOffer {
 }
 
 impl SignedPairingResponse {
-    pub fn sign(payload: PairingResponse, key: &SigningKey) -> Result<Self, Error> {
+    pub fn sign(payload: PairingResponse, key: &impl P256Signer) -> Result<Self, Error> {
         validate_pairing_response(&payload)?;
-        if public_signing(key.verifying_key()) != payload.phone_signing_public_key {
+        if key.public_key()? != payload.phone_signing_public_key {
             return Err(Error::InvalidPublicKey);
         }
-        let signature = sign(key, PAIRING_SIG, &encode_pairing_response(&payload));
+        let signature = sign(key, PAIRING_SIG, &encode_pairing_response(&payload))?;
         Ok(Self { payload, signature })
     }
     pub fn verify(&self, offer: &SignedPairingOffer) -> Result<(), Error> {
@@ -258,9 +288,9 @@ pub fn pairing_fingerprint(
 }
 
 impl SignedUnwrapRequest {
-    pub fn sign(payload: UnwrapRequest, key: &SigningKey) -> Result<Self, Error> {
+    pub fn sign(payload: UnwrapRequest, key: &impl P256Signer) -> Result<Self, Error> {
         validate_request(&payload)?;
-        let signature = sign(key, REQUEST_SIG, &encode_request(&payload));
+        let signature = sign(key, REQUEST_SIG, &encode_request(&payload))?;
         Ok(Self { payload, signature })
     }
     #[must_use]
@@ -283,7 +313,7 @@ impl SignedUnwrapRequest {
 /// authorization.
 pub fn create_request(
     payload: UnwrapRequest,
-    signing_key: &SigningKey,
+    signing_key: &impl P256Signer,
     pairing: &PairingRecord,
     now: u64,
 ) -> Result<VerifiedRequest, Error> {
@@ -293,7 +323,7 @@ pub fn create_request(
     if payload.identity_id != pairing.identity_id {
         return Err(Error::WrongIdentity);
     }
-    if public_signing(signing_key.verifying_key()) != pairing.desktop_signing_public_key {
+    if signing_key.public_key()? != pairing.desktop_signing_public_key {
         return Err(Error::InvalidPublicKey);
     }
     if payload.expires_at_unix < now {
@@ -392,7 +422,7 @@ impl SignedUnwrapResponse {
 pub fn seal_response(
     request: &VerifiedRequest,
     file_key: &[u8; 16],
-    phone_signing: &SigningKey,
+    phone_signing: &impl P256Signer,
     rng: &mut (impl CryptoRng + RngCore),
 ) -> Result<SignedUnwrapResponse, Error> {
     let ephemeral = EphemeralSecret::random(&mut *rng);
@@ -413,7 +443,7 @@ pub fn seal_response(
 pub fn seal_response_with_ephemeral(
     request: &VerifiedRequest,
     file_key: &[u8; 16],
-    phone_signing: &SigningKey,
+    phone_signing: &impl P256Signer,
     phone_session: &SecretKey,
     nonce: ProtocolNonce,
 ) -> Result<SignedUnwrapResponse, Error> {
@@ -490,7 +520,7 @@ pub fn open_response(
 fn seal_shared(
     request: &VerifiedRequest,
     file_key: &[u8; 16],
-    phone_signing: &SigningKey,
+    phone_signing: &impl P256Signer,
     phone_public: &PublicKey,
     shared: &[u8],
     nonce: ProtocolNonce,
@@ -518,7 +548,7 @@ fn seal_shared(
         .map_err(|_| Error::Decryption)?
         .try_into()
         .map_err(|_| Error::Decryption)?;
-    let signature = sign(phone_signing, RESPONSE_SIG, &encode_response(&payload));
+    let signature = sign(phone_signing, RESPONSE_SIG, &encode_response(&payload))?;
     Ok(SignedUnwrapResponse { payload, signature })
 }
 
@@ -543,13 +573,8 @@ fn label(value: &str) -> Result<(), Error> {
     }
 }
 
-fn sign(key: &SigningKey, domain: &[u8], payload: &[u8]) -> [u8; 64] {
-    let signature: Signature = key.sign(&domain_input(domain, payload));
-    signature
-        .normalize_s()
-        .unwrap_or(signature)
-        .to_bytes()
-        .into()
+fn sign(key: &impl P256Signer, domain: &[u8], payload: &[u8]) -> Result<[u8; 64], Error> {
+    key.sign_prehash(&hash(domain, payload))
 }
 fn verify(
     key: &VerifyingKey,

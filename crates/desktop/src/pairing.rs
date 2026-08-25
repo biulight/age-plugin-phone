@@ -3,7 +3,7 @@
 #![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
 
 use age_plugin_phone_protocol::{
-    ALGORITHM_SUITE, EncodedPublicKey, Id, PairingOffer, ProtocolDigest, ProtocolNonce,
+    ALGORITHM_SUITE, EncodedPublicKey, Id, P256Signer, PairingOffer, ProtocolDigest, ProtocolNonce,
     SignedPairingOffer, SignedPairingResponse, pairing_fingerprint,
 };
 use age_plugin_phone_recipient_p256::{PLUGIN_NAME, PairedRecipient, Recipient};
@@ -304,21 +304,20 @@ impl DesktopPairingSession {
     pub fn begin(
         desktop_id: Id,
         desktop_label: String,
-        signing_key: &SigningKey,
+        signing_key: &impl P256Signer,
         now_ms: u64,
         random: &mut (impl CryptoRng + RngCore),
     ) -> Result<Self, PairingError> {
         let mut nonce: ProtocolNonce = [0; 32];
         random.fill_bytes(&mut nonce);
-        let public_key = signing_key.verifying_key().to_encoded_point(true);
+        let public_key = signing_key
+            .public_key()
+            .map_err(|_| PairingError::InvalidResponse)?;
         let offer = SignedPairingOffer::sign(
             PairingOffer {
                 desktop_id,
                 desktop_label,
-                desktop_signing_public_key: public_key
-                    .as_bytes()
-                    .try_into()
-                    .map_err(|_| PairingError::InvalidResponse)?,
+                desktop_signing_public_key: public_key,
                 nonce,
             },
             signing_key,

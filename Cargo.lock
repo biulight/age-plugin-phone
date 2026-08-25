@@ -117,6 +117,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "age-plugin-phone-windows-cng"
+version = "0.0.1"
+dependencies = [
+ "age-plugin-phone-protocol",
+ "age-plugin-phone-recipient-p256",
+ "p256",
+ "rand_core",
+ "thiserror 2.0.20",
+ "windows-sys 0.61.2",
+ "zeroize",
+]
+
+[[package]]
 name = "aho-corasick"
 version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"

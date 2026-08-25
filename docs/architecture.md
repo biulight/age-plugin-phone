@@ -105,6 +105,13 @@ under a domain separate from the phone file-key wrap. The desktop can therefore 
 stanzas to the correct local pairing without a phone private operation or a public stable tag; the
 desktop key still cannot decrypt the age file key.
 
+[`ADR 0013`](adr/0013-windows-cng-key-boundaries.md) begins the Windows custody upgrade by
+separating portable P-256 signing and key-agreement operations from concrete software scalars. A
+dedicated CNG boundary provisions distinct non-exportable ECDSA and ECDH keys only through Microsoft
+Platform Crypto Provider and fails closed on partial or exportable state. It is not connected to
+pairing yet: the next protocol version must bind both public roles and reject all old state before
+Windows support can be enabled.
+
 ## Transport strategy
 
 QR is the first implementation target because it is observable, offline, and independent of radio

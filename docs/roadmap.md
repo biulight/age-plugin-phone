@@ -75,10 +75,12 @@
 
 - [ ] Support Windows 11 x64 with TPM 2.0 as a hard requirement; do not add a software, DPAPI, or
   file-private-key fallback.
-- [ ] Use Microsoft Platform Crypto Provider to provision distinct non-exportable P-256 keys for
+- [x] Use Microsoft Platform Crypto Provider to provision distinct non-exportable P-256 keys for
   ECDSA desktop request signing and ECDH private stanza selection.
-- [ ] Separate hardware signing and key-agreement interfaces from the software keys retained only
-  for deterministic vectors and tests.
+- [x] Add platform-neutral P-256 signing and key-agreement operation boundaries plus an isolated
+  Microsoft Platform Crypto Provider implementation with no software-provider fallback.
+- [ ] Route production desktop operations through those hardware boundaries and retain software
+  keys only for deterministic vectors and tests.
 - [ ] Upgrade the experimental pairing transcript, public identity stub, and v2 paired recipient to
   bind the desktop signing and selection public keys independently.
 - [ ] Update and cross-check Rust/Kotlin vectors, strictly reject old experimental state, and require

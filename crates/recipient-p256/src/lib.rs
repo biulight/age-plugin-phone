@@ -69,6 +69,44 @@ pub struct TaggedStanza {
     pub body: Vec<u8>,
 }
 
+/// P-256 ECDH boundary used for private desktop stanza selection.
+///
+/// Production implementations keep the private scalar in platform hardware. The software
+/// [`p256::ecdsa::SigningKey`] implementation exists for deterministic vectors and tests.
+pub trait P256KeyAgreement {
+    /// Returns the canonical compressed SEC1 public key for this agreement key.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when the platform cannot open or validate the public key.
+    fn public_key(&self) -> Result<[u8; COMPRESSED_POINT_BYTES], Error>;
+
+    /// Derives the raw, big-endian P-256 ECDH x-coordinate for a canonical peer key.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an invalid peer key or a failed platform key operation.
+    fn agree(&self, peer: &[u8; COMPRESSED_POINT_BYTES]) -> Result<Zeroizing<[u8; 32]>, Error>;
+}
+
+impl P256KeyAgreement for p256::ecdsa::SigningKey {
+    fn public_key(&self) -> Result<[u8; COMPRESSED_POINT_BYTES], Error> {
+        self.verifying_key()
+            .to_encoded_point(true)
+            .as_bytes()
+            .try_into()
+            .map_err(|_| Error::InvalidPublicKey)
+    }
+
+    fn agree(&self, peer: &[u8; COMPRESSED_POINT_BYTES]) -> Result<Zeroizing<[u8; 32]>, Error> {
+        let peer = PublicKey::from_sec1_bytes(peer).map_err(|_| Error::InvalidPublicKey)?;
+        let shared = diffie_hellman(self.as_nonzero_scalar(), peer.as_affine());
+        let mut output = Zeroizing::new([0_u8; 32]);
+        output.copy_from_slice(shared.raw_secret_bytes());
+        Ok(output)
+    }
+}
+
 /// Strict recipient or stanza processing failure.
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum Error {
@@ -111,6 +149,9 @@ pub enum Error {
     /// The supplied desktop private key does not match the paired recipient.
     #[error("desktop selection key does not match recipient")]
     WrongSelectionKey,
+    /// A platform-backed key agreement operation failed.
+    #[error("platform P-256 key agreement failed")]
+    KeyAgreement,
 }
 
 impl Recipient {
@@ -419,29 +460,21 @@ pub fn unwrap_file_key(
 /// Authentication failure is a non-match and returns `Ok(false)`.
 pub fn matches_stanza_v2(
     recipient: &PairedRecipient,
-    desktop_selection_private: &p256::ecdsa::SigningKey,
+    desktop_selection_private: &impl P256KeyAgreement,
     stanza: &TaggedStanza,
 ) -> Result<bool, Error> {
-    if desktop_selection_private
-        .verifying_key()
-        .to_encoded_point(true)
-        .as_bytes()
-        != recipient.desktop_selection_public_key()
-    {
+    if desktop_selection_private.public_key()? != recipient.desktop_selection_public_key() {
         return Err(Error::WrongSelectionKey);
     }
     let parsed = ParsedStanza::parse(stanza)?;
     if parsed.version != StanzaVersion::V2 {
         return Ok(false);
     }
-    let shared = diffie_hellman(
-        desktop_selection_private.as_nonzero_scalar(),
-        parsed.ephemeral.as_affine(),
-    );
+    let shared = desktop_selection_private.agree(&parsed.ephemeral_bytes)?;
     let desktop_bytes = recipient.desktop_selection_public_key();
     let phone_bytes = recipient.phone_identity_public_key();
     let selection_key = derive_key(
-        shared.raw_secret_bytes().as_slice(),
+        shared.as_slice(),
         &parsed.ephemeral_bytes,
         &desktop_bytes,
         SELECTION_KDF_INFO_V2,
