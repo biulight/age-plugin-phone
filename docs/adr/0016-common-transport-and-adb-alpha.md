@@ -86,5 +86,7 @@ An Android 16 / API 36 physical device has also completed authenticated pairing 
 `age --decrypt` unwrap through ADB reverse against a macOS desktop build. The recovered plaintext
 matched byte-for-byte and the exact reverse rule was absent afterward. This interoperability check
 also verified connection timeout, successful reconnect, explicit Android biometric cancellation,
-and caller Ctrl-C. Each failure produced no plaintext and removed the exact reverse rule; reconnect
-then completed an authenticated unwrap. This does not satisfy the remaining Windows desktop matrix.
+caller Ctrl-C, ADB daemon termination and restart, and physical USB cable removal and reconnect.
+Each failure produced no plaintext; after the transport returned, no reverse rule remained and the
+next authenticated unwrap recovered the expected plaintext byte-for-byte. This does not satisfy the
+remaining Windows desktop matrix.
