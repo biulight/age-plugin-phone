@@ -56,6 +56,7 @@ dependencies = [
  "age-plugin",
  "age-plugin-phone-protocol",
  "age-plugin-phone-recipient-p256",
+ "age-plugin-phone-transport",
  "age-plugin-phone-windows-cng",
  "age-plugin-phone-windows-storage",
  "base64 0.22.1",
@@ -115,6 +116,15 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "thiserror 2.0.20",
+ "zeroize",
+]
+
+[[package]]
+name = "age-plugin-phone-transport"
+version = "0.0.1"
+dependencies = [
+ "rand_core",
  "thiserror 2.0.20",
  "zeroize",
 ]

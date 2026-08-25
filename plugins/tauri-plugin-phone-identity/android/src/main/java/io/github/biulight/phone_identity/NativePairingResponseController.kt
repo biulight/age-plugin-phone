@@ -49,10 +49,6 @@ internal class NativePairingResponseController(
     private val timeout = Runnable { fail("confirmation_timeout") }
 
     fun start() {
-        if (prepared.responseFrames.isEmpty()) {
-            fail("response_qr_failed")
-            return
-        }
         val root = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_HORIZONTAL
@@ -60,7 +56,11 @@ internal class NativePairingResponseController(
             setBackgroundColor(Color.WHITE)
         }
         root.addView(TextView(activity).apply {
-            text = "Scan this response on the desktop"
+            text = if (prepared.responseFrames.isEmpty()) {
+                "Developer USB response sent to the desktop"
+            } else {
+                "Scan this response on the desktop"
+            }
             textSize = 21f
             setTextColor(Color.BLACK)
             gravity = Gravity.CENTER
@@ -77,15 +77,17 @@ internal class NativePairingResponseController(
             setTextColor(Color.BLACK)
             gravity = Gravity.CENTER
         })
-        image = ImageView(activity).also {
-            root.addView(
-                it,
-                LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    0,
-                    1f,
-                ),
-            )
+        if (prepared.responseFrames.isNotEmpty()) {
+            image = ImageView(activity).also {
+                root.addView(
+                    it,
+                    LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        0,
+                        1f,
+                    ),
+                )
+            }
         }
         root.addView(TextView(activity).apply {
             text = "Compare the full transcript fingerprint on both screens:"
@@ -113,13 +115,15 @@ internal class NativePairingResponseController(
             setCancelable(false)
             show()
         }
-        try {
-            renderFrame()
-        } catch (_: Exception) {
-            fail("response_qr_failed")
-            return
+        if (prepared.responseFrames.isNotEmpty()) {
+            try {
+                renderFrame()
+            } catch (_: Exception) {
+                fail("response_qr_failed")
+                return
+            }
+            handler.postDelayed(advance, FRAME_INTERVAL_MS)
         }
-        handler.postDelayed(advance, FRAME_INTERVAL_MS)
         handler.postDelayed(timeout, CONFIRMATION_TIMEOUT_MS)
     }
 

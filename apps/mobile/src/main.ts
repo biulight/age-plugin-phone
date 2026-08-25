@@ -5,6 +5,7 @@ interface ProjectStatus {
   stage: string;
   protocolVersion: number;
   qrTransport: string;
+  usbTransport: string;
   bleTransport: string;
   keyBackend: string;
   doctorEnabled: boolean;
@@ -163,7 +164,9 @@ app.innerHTML = `
         <button data-action="pairingStorage">Test pairing QR + replay</button>
         <button data-action="scanPairingOffer">Scan pairing offer</button>
         <button data-action="pairPhone">Pair this phone</button>
+        <button data-action="pairPhoneUsb">Pair via Developer USB</button>
         <button data-action="unwrapPhone">Scan and approve unwrap</button>
+        <button data-action="unwrapPhoneUsb">Approve via Developer USB</button>
         <button class="danger" data-action="cleanup">Delete probe key</button>
       </div>
       <pre id="doctor-report" aria-live="polite">No probe has run.</pre>
@@ -188,6 +191,7 @@ function renderStatus(status: ProjectStatus): void {
     ["Stage", status.stage],
     ["Protocol", `v${status.protocolVersion}`],
     ["QR", status.qrTransport],
+    ["Developer USB", status.usbTransport],
     ["BLE", status.bleTransport],
     ["Hardware key", status.keyBackend],
   ];
@@ -237,7 +241,9 @@ actionButtons.forEach((button) => {
       pairingStorage: "doctor_pairing_storage",
       scanPairingOffer: "scan_pairing_offer",
       pairPhone: "pair_phone",
+      pairPhoneUsb: "pair_phone_usb",
       unwrapPhone: "unwrap_phone",
+      unwrapPhoneUsb: "unwrap_phone_usb",
       cleanup: "doctor_cleanup",
     };
     if (!action || !commands[action]) return;
@@ -253,7 +259,7 @@ actionButtons.forEach((button) => {
         });
         return;
       }
-      if (action === "pairPhone") {
+      if (action === "pairPhone" || action === "pairPhoneUsb") {
         showReport(action, {
           paired: false,
           desktopLabel: null,
@@ -262,7 +268,7 @@ actionButtons.forEach((button) => {
         });
         return;
       }
-      if (action === "unwrapPhone") {
+      if (action === "unwrapPhone" || action === "unwrapPhoneUsb") {
         showReport(action, {
           authenticated: false,
           responseDisplayed: false,
@@ -343,6 +349,7 @@ invoke<ProjectStatus>("project_status")
       stage: "unavailable",
       protocolVersion: 1,
       qrTransport: "disabled",
+      usbTransport: "disabled",
       bleTransport: "disabled",
       keyBackend: "disabled",
       doctorEnabled: false,

@@ -1,5 +1,6 @@
 //! Desktop transport presentation primitives.
 
+pub mod adb;
 pub mod age_identity;
 pub mod age_recipient;
 pub mod locator;

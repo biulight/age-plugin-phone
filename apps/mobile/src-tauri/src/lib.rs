@@ -7,6 +7,7 @@ struct ProjectStatus {
     stage: &'static str,
     protocol_version: u16,
     qr_transport: &'static str,
+    usb_transport: &'static str,
     ble_transport: &'static str,
     key_backend: &'static str,
     doctor_enabled: bool,
@@ -16,12 +17,13 @@ struct ProjectStatus {
 fn project_status() -> ProjectStatus {
     ProjectStatus {
         stage: if cfg!(debug_assertions) {
-            "bidirectional-pairing"
+            "common-transport-adb-alpha"
         } else {
             "scaffold-only"
         },
         protocol_version: PROTOCOL_VERSION,
         qr_transport: "native bidirectional pairing prototype",
+        usb_transport: "Developer USB ADB reverse Alpha",
         ble_transport: "not implemented",
         key_backend: "StrongBox dual-key custody validated",
         doctor_enabled: cfg!(debug_assertions),

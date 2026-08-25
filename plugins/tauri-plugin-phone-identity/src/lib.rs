@@ -245,6 +245,42 @@ fn unwrap_phone<R: Runtime>(
     })
 }
 
+#[tauri::command]
+#[allow(clippy::unnecessary_wraps)]
+fn pair_phone_usb<R: Runtime>(
+    _app: AppHandle<R>,
+    _identity: State<'_, PhoneIdentity<R>>,
+) -> Result<PhonePairingReport, Error> {
+    #[cfg(target_os = "android")]
+    return _identity.pair_phone_usb();
+
+    #[cfg(not(target_os = "android"))]
+    Ok(PhonePairingReport {
+        paired: false,
+        desktop_label: None,
+        transcript_fingerprint: None,
+        error_category: Some("unsupported_api".into()),
+    })
+}
+
+#[tauri::command]
+#[allow(clippy::unnecessary_wraps)]
+fn unwrap_phone_usb<R: Runtime>(
+    _app: AppHandle<R>,
+    _identity: State<'_, PhoneIdentity<R>>,
+) -> Result<PhoneUnwrapReport, Error> {
+    #[cfg(target_os = "android")]
+    return _identity.unwrap_phone_usb();
+
+    #[cfg(not(target_os = "android"))]
+    Ok(PhoneUnwrapReport {
+        authenticated: false,
+        response_displayed: false,
+        request_fingerprint: None,
+        error_category: Some("unsupported_api".into()),
+    })
+}
+
 #[must_use]
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("phone-identity")
@@ -257,7 +293,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             doctor_pairing_storage,
             scan_pairing_offer,
             pair_phone,
-            unwrap_phone
+            pair_phone_usb,
+            unwrap_phone,
+            unwrap_phone_usb
         ])
         .setup(|app, _api| {
             #[cfg(target_os = "android")]

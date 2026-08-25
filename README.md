@@ -35,6 +35,7 @@ user. It must never export the long-term private key to the desktop.
 - `crates/desktop`: the `age-plugin-phone` desktop binary and age plugin entry point.
 - `crates/protocol`: transport-independent pairing and unwrap message types.
 - `crates/recipient-p256`: experimental, transport-independent P-256 tagged-recipient reference.
+- `crates/transport`: bounded, one-shot opaque request/response session boundary.
 - `apps/mobile`: Tauri 2 mobile application with a deliberately non-sensitive TypeScript UI.
 - `docs`: architecture, protocol, threat model, and roadmap.
 
@@ -74,6 +75,18 @@ state contains only a TPM key locator ID: signing and private stanza selection u
 non-exportable P-256 keys in Microsoft Platform Crypto Provider, with no software or DPAPI fallback.
 Locator, metadata, replay, temporary, and lock files use protected current-user ACLs.
 
+Windows now defaults to the Developer USB ADB Alpha for `pair`, `unwrap`, and standard age identity
+operations. Start the desktop operation, then choose **Pair via Developer USB** or **Approve via
+Developer USB** in the Android development build. Use `--adb-serial SERIAL` when multiple devices
+are listed by ADB. `--transport qr` selects the camera fallback without changing the pairing.
+For standard age invocations, set `AGE_PLUGIN_PHONE_TRANSPORT=qr` for that fallback or
+`AGE_PLUGIN_PHONE_ADB_SERIAL=SERIAL` for explicit device selection.
+
+> [!CAUTION]
+> Developer USB requires Android USB debugging and ADB authorization. An ADB-authorized desktop has
+> much broader access to the phone than this application needs. ADB identity, device state, and the
+> cable are not trusted by the protocol and do not replace the fresh phone biometric operation.
+
 ## Design goals
 
 - No server, account, cloud rendezvous, or online authorization dependency.
@@ -99,6 +112,7 @@ Start with the [Android StrongBox PoC](docs/android-strongbox-poc.md), then read
 [Windows CNG boundary ADR](docs/adr/0013-windows-cng-key-boundaries.md),
 [split desktop-key protocol ADR](docs/adr/0014-split-desktop-key-protocol-v2.md),
 [Windows private storage ADR](docs/adr/0015-windows-private-storage.md),
+[common transport and ADB Alpha ADR](docs/adr/0016-common-transport-and-adb-alpha.md),
 [protocol draft](docs/protocol.md), and [threat model](docs/threat-model.md) before implementing a
 transport or cryptographic backend.
 

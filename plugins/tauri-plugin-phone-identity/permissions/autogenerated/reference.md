@@ -12,7 +12,9 @@ Allows the native pairing, one-shot unwrap, and development Doctor commands.
 - `allow-doctor-pairing-storage`
 - `allow-scan-pairing-offer`
 - `allow-pair-phone`
+- `allow-pair-phone-usb`
 - `allow-unwrap-phone`
+- `allow-unwrap-phone-usb`
 
 ## Permission Table
 
@@ -208,6 +210,32 @@ Denies the pair_phone command without any pre-configured scope.
 <tr>
 <td>
 
+`phone-identity:allow-pair-phone-usb`
+
+</td>
+<td>
+
+Enables the pair_phone_usb command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:deny-pair-phone-usb`
+
+</td>
+<td>
+
+Denies the pair_phone_usb command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `phone-identity:allow-scan-pairing-offer`
 
 </td>
@@ -253,6 +281,32 @@ Enables the unwrap_phone command without any pre-configured scope.
 <td>
 
 Denies the unwrap_phone command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:allow-unwrap-phone-usb`
+
+</td>
+<td>
+
+Enables the unwrap_phone_usb command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:deny-unwrap-phone-usb`
+
+</td>
+<td>
+
+Denies the unwrap_phone_usb command without any pre-configured scope.
 
 </td>
 </tr>

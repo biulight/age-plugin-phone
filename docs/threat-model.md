@@ -15,6 +15,10 @@ Assume an AI agent or same-user malware can invoke the plugin, read and modify u
 QR code, use permitted BLE devices, and observe plaintext after the user approves decryption on the
 compromised desktop.
 
+In Developer USB mode, assume the ADB-authorized desktop can create, replace, observe, delay,
+truncate, and replay loopback stream connections and can exercise unrelated broad ADB capabilities.
+ADB authorization, serial numbers, connection state, and the USB cable provide no protocol trust.
+
 The phone operating system, hardware-backed key implementation, and user-verification UI are trusted
 within their documented guarantees.
 
@@ -45,3 +49,5 @@ and resealing to a newly generated phone recipient.
 - Trusting application labels, BLE pairing, or device names as authorization.
 - Logging protocol payloads, recipient stanza bodies, file keys, or plaintext.
 - Treating missing, corrupt, mismatched, or full replay state as an empty store.
+- Treating ADB authorization, a selected serial, or a successful reverse connection as peer
+  authentication or phone user authorization.

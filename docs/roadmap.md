@@ -92,21 +92,21 @@
 
 ## Milestone 4: common transport boundary and Windows ADB Alpha
 
-- [ ] Define one bounded bidirectional transport-session interface for pairing and unwrap, and keep
+- [x] Define one bounded bidirectional transport-session interface for pairing and unwrap, and keep
   QR as the reference and fallback implementation.
-- [ ] Implement Windows loopback plus Android `adb reverse` using short-lived in-memory streams;
+- [x] Implement Windows loopback plus Android `adb reverse` using short-lived in-memory streams;
   never pass protocol payloads through shell arguments, files, shared storage, or logs.
-- [ ] Make ADB the Windows Alpha default and allow the same new-version pairing to switch between
+- [x] Make ADB the Windows Alpha default and allow the same new-version pairing to switch between
   ADB and QR without migrating or weakening its identity.
-- [ ] Require explicit device selection when more than one Android device is connected, and fail
+- [x] Require explicit device selection when more than one Android device is connected, and fail
   closed on unauthorized, offline, replaced, disconnected, or mid-session switched devices.
 - [ ] Enforce hard connection, message, byte, and time limits and remove the exact ADB reverse rule
   on success, cancellation, failure, timeout, and process exit.
-- [ ] Keep peer authentication, transcript comparison, request binding, phone user verification,
+- [x] Keep peer authentication, transcript comparison, request binding, phone user verification,
   and replay consumption above ADB; treat every ADB property as an untrusted display hint.
 - [ ] Device-test pairing and unwrap across cancellation, timeout, cable removal, reconnect,
   multiple devices, wrong device, malformed frames, replay, and QR fallback.
-- [ ] Document ADB as a Developer USB mode that requires USB debugging and grants the authorized
+- [x] Document ADB as a Developer USB mode that requires USB debugging and grants the authorized
   desktop broader Android capabilities than this application needs.
 
 ## Milestone 5: lifecycle design and security review

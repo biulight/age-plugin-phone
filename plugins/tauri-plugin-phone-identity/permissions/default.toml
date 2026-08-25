@@ -11,5 +11,7 @@ permissions = [
     "allow-doctor-pairing-storage",
     "allow-scan-pairing-offer",
     "allow-pair-phone",
+    "allow-pair-phone-usb",
     "allow-unwrap-phone",
+    "allow-unwrap-phone-usb",
 ]

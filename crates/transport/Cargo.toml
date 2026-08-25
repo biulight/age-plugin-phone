@@ -1,0 +1,16 @@
+[package]
+name = "age-plugin-phone-transport"
+description = "Bounded, protocol-independent transport sessions for age-plugin-phone"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+rand_core.workspace = true
+thiserror.workspace = true
+zeroize.workspace = true
+
+[lints]
+workspace = true

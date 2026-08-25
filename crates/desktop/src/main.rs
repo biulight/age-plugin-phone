@@ -6,6 +6,9 @@ use std::{
 };
 
 use age_plugin::{PluginHandler, run_state_machine};
+use age_plugin_phone::adb::{
+    AdbReverseSession, DEFAULT_CONNECT_TIMEOUT, DEFAULT_MESSAGE_TIMEOUT, SystemAdb,
+};
 use age_plugin_phone::age_identity::PhoneIdentityPlugin;
 use age_plugin_phone::age_recipient::PhoneRecipientPlugin;
 use age_plugin_phone::locator::{create_pairing_locator, default_config_root, prepare_config_root};
@@ -23,10 +26,12 @@ use age_plugin_phone_protocol::{
     ReplayScope, SignedPairingOffer, fragment_qr_message,
 };
 use age_plugin_phone_recipient_p256::{STANZA_TAG, TaggedStanza};
+use age_plugin_phone_transport::{DesktopTransport, SessionPurpose, TransportLimits};
 use base64::{Engine as _, engine::general_purpose::STANDARD_NO_PAD};
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use p256::ecdsa::SigningKey;
 use rand_core::{OsRng, RngCore as _};
+use zeroize::Zeroizing;
 
 #[derive(Debug, Parser)]
 #[command(name = "age-plugin-phone", version, about)]
@@ -43,7 +48,7 @@ struct Options {
 enum Command {
     /// Report scaffold and protocol status without probing devices.
     Status,
-    /// Complete an authenticated pairing using the desktop camera.
+    /// Complete an authenticated pairing over Developer USB or QR.
     Pair {
         /// Untrusted desktop label shown on both endpoints.
         #[arg(long)]
@@ -57,8 +62,14 @@ enum Command {
         /// Durable desktop response-replay state; must be an absolute path.
         #[arg(long)]
         replay_state: PathBuf,
+        /// Bidirectional message transport. ADB is the Windows Alpha default; QR remains fallback.
+        #[arg(long, value_enum, default_value_t = TransportChoice::default())]
+        transport: TransportChoice,
+        /// Explicit ADB device serial. Required when multiple devices are listed by ADB.
+        #[arg(long, requires = "transport")]
+        adb_serial: Option<String>,
     },
-    /// Exercise one real paired unwrap using the desktop camera.
+    /// Exercise one real paired unwrap over Developer USB or QR.
     Unwrap {
         #[arg(long)]
         identity_stub: PathBuf,
@@ -76,6 +87,12 @@ enum Command {
         /// Untrusted application/caller display hint shown on the phone.
         #[arg(long)]
         caller_hint: Option<String>,
+        /// Bidirectional message transport. ADB is the Windows Alpha default; QR remains fallback.
+        #[arg(long, value_enum, default_value_t = TransportChoice::default())]
+        transport: TransportChoice,
+        /// Explicit ADB device serial. Required when multiple devices are listed by ADB.
+        #[arg(long, requires = "transport")]
+        adb_serial: Option<String>,
     },
     /// Display a signed, disposable pairing offer to exercise QR capture only.
     QrCaptureProbe {
@@ -89,6 +106,18 @@ enum Command {
         #[arg(long)]
         html_output: Option<PathBuf>,
     },
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+enum TransportChoice {
+    Adb,
+    Qr,
+}
+
+impl Default for TransportChoice {
+    fn default() -> Self {
+        if cfg!(windows) { Self::Adb } else { Self::Qr }
+    }
 }
 
 struct Handler;
@@ -115,11 +144,11 @@ fn main() -> io::Result<()> {
 
     match options.command.unwrap_or(Command::Status) {
         Command::Status => {
-            println!("status: bidirectional-qr-unwrap-prototype");
+            println!("status: common-transport-adb-alpha");
             println!("protocol_version: {PROTOCOL_VERSION}");
             println!("qr_capture_probe: available");
-            println!("pairing_transport: desktop_camera_qr");
-            println!("unwrap_transport: desktop_camera_qr");
+            println!("pairing_transport: adb_reverse_or_desktop_camera_qr");
+            println!("unwrap_transport: adb_reverse_or_desktop_camera_qr");
             println!("ble_transport: not_implemented");
             println!("mobile_identity: android_strongbox_pairing");
             println!("age_recipient_v1: available");
@@ -131,7 +160,16 @@ fn main() -> io::Result<()> {
             desktop_state,
             identity_output,
             replay_state,
-        } => run_pair(label, &desktop_state, &identity_output, &replay_state),
+            transport,
+            adb_serial,
+        } => run_pair(
+            label,
+            &desktop_state,
+            &identity_output,
+            &replay_state,
+            transport,
+            adb_serial.as_deref(),
+        ),
         Command::Unwrap {
             identity_stub,
             desktop_state,
@@ -139,6 +177,8 @@ fn main() -> io::Result<()> {
             stanza_arg,
             stanza_body,
             caller_hint,
+            transport,
+            adb_serial,
         } => run_unwrap(
             &identity_stub,
             &desktop_state,
@@ -146,6 +186,8 @@ fn main() -> io::Result<()> {
             stanza_arg,
             &stanza_body,
             caller_hint,
+            transport,
+            adb_serial.as_deref(),
         ),
         Command::QrCaptureProbe {
             label,
@@ -160,7 +202,10 @@ fn run_pair(
     desktop_state: &std::path::Path,
     identity_output: &std::path::Path,
     replay_state: &std::path::Path,
+    transport: TransportChoice,
+    adb_serial: Option<&str>,
 ) -> io::Result<()> {
+    validate_transport_options(transport, adb_serial)?;
     ensure_pairing_outputs_available(identity_output, replay_state)?;
     let config_root = default_config_root()
         .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
@@ -185,41 +230,20 @@ fn run_pair(
         &mut OsRng,
     )
     .map_err(|_| io::Error::other("failed to create pairing offer"))?;
-    let frames = fragment_qr_message(&session.signed_offer(), 120, &mut OsRng)
-        .map_err(|_| io::Error::other("failed to fragment pairing offer"))?;
-    let mut scheduler = FrameScheduler::new(&frames, DEFAULT_FRAME_INTERVAL_MS)
-        .map_err(|_| io::Error::other("failed to schedule pairing QR"))?;
     let started = Instant::now();
-    let scanner = ScannerHandle::start_default_camera(DEFAULT_SCAN_TIMEOUT);
     let mut stdout = io::stdout().lock();
-
-    let response = loop {
-        match scanner.try_result() {
-            Ok(Some(response)) => break response,
-            Ok(None) => {}
-            Err(_) => {
-                session.cancel();
-                return Err(io::Error::other("desktop QR scanner is unavailable"));
-            }
+    let response = match transport {
+        TransportChoice::Adb => {
+            exchange_adb(SessionPurpose::Pairing, &session.signed_offer(), adb_serial)
         }
-        let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
-        if elapsed_ms > MAX_PAIRING_SESSION_AGE_MS {
+        TransportChoice::Qr => exchange_pairing_qr(&session.signed_offer(), started, &mut stdout),
+    };
+    let response = match response {
+        Ok(response) => response,
+        Err(error) => {
             session.cancel();
-            return Err(io::Error::new(io::ErrorKind::TimedOut, "pairing timed out"));
+            return Err(error);
         }
-        let (index, frame) = scheduler
-            .frame_at(elapsed_ms)
-            .map_err(|_| io::Error::other("pairing QR clock failed"))?;
-        let rendered = render_terminal_frame(frame)
-            .map_err(|_| io::Error::other("failed to render pairing QR"))?;
-        write!(
-            stdout,
-            "\x1b[2J\x1b[HPair phone · offer frame {}/{}\nWaiting for captured phone response…\n\n{rendered}",
-            index + 1,
-            frames.len(),
-        )?;
-        stdout.flush()?;
-        thread::sleep(Duration::from_millis(DEFAULT_FRAME_INTERVAL_MS));
     };
     let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
     let display = session
@@ -329,7 +353,10 @@ fn run_unwrap(
     stanza_arg: String,
     stanza_body: &str,
     caller_hint: Option<String>,
+    transport: TransportChoice,
+    adb_serial: Option<&str>,
 ) -> io::Result<()> {
+    validate_transport_options(transport, adb_serial)?;
     let stub = read_identity_stub_file(identity_stub)
         .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid public identity stub"))?;
     let desktop = DesktopKeyState::open(desktop_state)
@@ -351,42 +378,25 @@ fn run_unwrap(
         &mut OsRng,
     )
     .map_err(|_| io::Error::new(io::ErrorKind::PermissionDenied, "unwrap request rejected"))?;
-    let frames = fragment_qr_message(&session.signed_request(), 120, &mut OsRng)
-        .map_err(|_| io::Error::other("failed to fragment unwrap request"))?;
-    let mut scheduler = FrameScheduler::new(&frames, DEFAULT_FRAME_INTERVAL_MS)
-        .map_err(|_| io::Error::other("failed to schedule unwrap QR"))?;
     let started = Instant::now();
-    let scanner = ScannerHandle::start_default_camera(DEFAULT_SCAN_TIMEOUT);
     let display = session.display();
     let mut stdout = io::stdout().lock();
-    let response = loop {
-        match scanner.try_result() {
-            Ok(Some(response)) => break response,
-            Ok(None) => {}
-            Err(_) => {
-                session.cancel();
-                return Err(io::Error::other("desktop QR scanner is unavailable"));
-            }
+    let response = match transport {
+        TransportChoice::Adb => exchange_adb(
+            SessionPurpose::Unwrap,
+            &session.signed_request(),
+            adb_serial,
+        ),
+        TransportChoice::Qr => {
+            exchange_unwrap_qr(&session.signed_request(), &display, started, &mut stdout)
         }
-        let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
-        if now_unix().unwrap_or(u64::MAX) > display.expires_at_unix {
+    };
+    let response = match response {
+        Ok(response) => response,
+        Err(error) => {
             session.cancel();
-            return Err(io::Error::new(io::ErrorKind::TimedOut, "unwrap timed out"));
+            return Err(error);
         }
-        let (index, frame) = scheduler
-            .frame_at(elapsed_ms)
-            .map_err(|_| io::Error::other("unwrap QR clock failed"))?;
-        let rendered = render_terminal_frame(frame)
-            .map_err(|_| io::Error::other("failed to render unwrap QR"))?;
-        write!(
-            stdout,
-            "\x1b[2J\x1b[HApprove phone unwrap · request frame {}/{}\nRequest fingerprint: {}\nWaiting for captured phone response…\n\n{rendered}",
-            index + 1,
-            frames.len(),
-            display.request_fingerprint,
-        )?;
-        stdout.flush()?;
-        thread::sleep(Duration::from_millis(DEFAULT_FRAME_INTERVAL_MS));
     };
     let pairing = age_plugin_phone_protocol::PairingRecord {
         desktop_id: stub.desktop_id,
@@ -414,6 +424,112 @@ fn run_unwrap(
         "\x1b[2J\x1b[HAuthenticated one-time unwrap completed."
     )?;
     Ok(())
+}
+
+fn validate_transport_options(
+    transport: TransportChoice,
+    adb_serial: Option<&str>,
+) -> io::Result<()> {
+    if transport == TransportChoice::Qr && adb_serial.is_some() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "--adb-serial is valid only with --transport adb",
+        ));
+    }
+    Ok(())
+}
+
+fn exchange_adb(
+    purpose: SessionPurpose,
+    request: &[u8],
+    serial: Option<&str>,
+) -> io::Result<Zeroizing<Vec<u8>>> {
+    let mut transport = AdbReverseSession::connect(
+        SystemAdb::default(),
+        serial,
+        DEFAULT_CONNECT_TIMEOUT,
+        DEFAULT_MESSAGE_TIMEOUT,
+        TransportLimits::default(),
+        &mut OsRng,
+    )
+    .map_err(|error| io::Error::other(error.to_string()))?;
+    transport
+        .exchange(purpose, request)
+        .map_err(|_| io::Error::other("ADB transport session failed closed"))
+}
+
+fn exchange_pairing_qr(
+    request: &[u8],
+    started: Instant,
+    output: &mut impl io::Write,
+) -> io::Result<Zeroizing<Vec<u8>>> {
+    let frames = fragment_qr_message(request, 120, &mut OsRng)
+        .map_err(|_| io::Error::other("failed to fragment pairing offer"))?;
+    let mut scheduler = FrameScheduler::new(&frames, DEFAULT_FRAME_INTERVAL_MS)
+        .map_err(|_| io::Error::other("failed to schedule pairing QR"))?;
+    let scanner = ScannerHandle::start_default_camera(DEFAULT_SCAN_TIMEOUT);
+    loop {
+        match scanner.try_result() {
+            Ok(Some(response)) => return Ok(response),
+            Ok(None) => {}
+            Err(_) => return Err(io::Error::other("desktop QR scanner is unavailable")),
+        }
+        let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+        if elapsed_ms > MAX_PAIRING_SESSION_AGE_MS {
+            return Err(io::Error::new(io::ErrorKind::TimedOut, "pairing timed out"));
+        }
+        let (index, frame) = scheduler
+            .frame_at(elapsed_ms)
+            .map_err(|_| io::Error::other("pairing QR clock failed"))?;
+        let rendered = render_terminal_frame(frame)
+            .map_err(|_| io::Error::other("failed to render pairing QR"))?;
+        write!(
+            output,
+            "\x1b[2J\x1b[HPair phone · offer frame {}/{}\nWaiting for captured phone response…\n\n{rendered}",
+            index + 1,
+            frames.len(),
+        )?;
+        output.flush()?;
+        thread::sleep(Duration::from_millis(DEFAULT_FRAME_INTERVAL_MS));
+    }
+}
+
+fn exchange_unwrap_qr(
+    request: &[u8],
+    display: &age_plugin_phone::unwrap::UnwrapDisplay,
+    started: Instant,
+    output: &mut impl io::Write,
+) -> io::Result<Zeroizing<Vec<u8>>> {
+    let frames = fragment_qr_message(request, 120, &mut OsRng)
+        .map_err(|_| io::Error::other("failed to fragment unwrap request"))?;
+    let mut scheduler = FrameScheduler::new(&frames, DEFAULT_FRAME_INTERVAL_MS)
+        .map_err(|_| io::Error::other("failed to schedule unwrap QR"))?;
+    let scanner = ScannerHandle::start_default_camera(DEFAULT_SCAN_TIMEOUT);
+    loop {
+        match scanner.try_result() {
+            Ok(Some(response)) => return Ok(response),
+            Ok(None) => {}
+            Err(_) => return Err(io::Error::other("desktop QR scanner is unavailable")),
+        }
+        let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+        if now_unix().unwrap_or(u64::MAX) > display.expires_at_unix {
+            return Err(io::Error::new(io::ErrorKind::TimedOut, "unwrap timed out"));
+        }
+        let (index, frame) = scheduler
+            .frame_at(elapsed_ms)
+            .map_err(|_| io::Error::other("unwrap QR clock failed"))?;
+        let rendered = render_terminal_frame(frame)
+            .map_err(|_| io::Error::other("failed to render unwrap QR"))?;
+        write!(
+            output,
+            "\x1b[2J\x1b[HApprove phone unwrap · request frame {}/{}\nRequest fingerprint: {}\nWaiting for captured phone response…\n\n{rendered}",
+            index + 1,
+            frames.len(),
+            display.request_fingerprint,
+        )?;
+        output.flush()?;
+        thread::sleep(Duration::from_millis(DEFAULT_FRAME_INTERVAL_MS));
+    }
 }
 
 fn encoded_public_key(key: &SigningKey) -> io::Result<[u8; 33]> {

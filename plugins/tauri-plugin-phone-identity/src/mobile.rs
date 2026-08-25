@@ -71,9 +71,21 @@ impl<R: Runtime> PhoneIdentity<R> {
             .map_err(Into::into)
     }
 
+    pub fn pair_phone_usb(&self) -> Result<PhonePairingReport, Error> {
+        self.0
+            .run_mobile_plugin("pairPhoneUsb", ())
+            .map_err(Into::into)
+    }
+
     pub fn unwrap_phone(&self) -> Result<PhoneUnwrapReport, Error> {
         self.0
             .run_mobile_plugin("unwrapPhone", ())
+            .map_err(Into::into)
+    }
+
+    pub fn unwrap_phone_usb(&self) -> Result<PhoneUnwrapReport, Error> {
+        self.0
+            .run_mobile_plugin("unwrapPhoneUsb", ())
             .map_err(Into::into)
     }
 }

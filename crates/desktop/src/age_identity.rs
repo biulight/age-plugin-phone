@@ -14,10 +14,12 @@ use age_plugin_phone_protocol::{
 use age_plugin_phone_recipient_p256::{
     PairedRecipient, STANZA_TAG, STANZA_TAG_V2, TaggedStanza, matches_stanza_v2, validate_stanza,
 };
+use age_plugin_phone_transport::{DesktopTransport, SessionPurpose, TransportLimits};
 use rand_core::OsRng;
 use zeroize::Zeroizing;
 
 use crate::{
+    adb::{AdbReverseSession, DEFAULT_CONNECT_TIMEOUT, DEFAULT_MESSAGE_TIMEOUT, SystemAdb},
     locator::{PairingLocator, default_config_root, open_pairing_locator},
     pairing::{DesktopKeyState, PublicIdentityStub},
     qr_scanner::{DEFAULT_SCAN_TIMEOUT, ScanError, ScannerHandle},
@@ -80,7 +82,45 @@ impl IdentityPluginV1 for PhoneIdentityPlugin {
             Ok(root) => root,
             Err(error) => return Ok(all_supported_files_error(&files, error)),
         };
+        let Some(transport) = identity_transport() else {
+            return Ok(all_supported_files_error(
+                &files,
+                internal("unsupported phone transport selection"),
+            ));
+        };
+        let adb_serial = match std::env::var("AGE_PLUGIN_PHONE_ADB_SERIAL") {
+            Ok(serial) => Some(serial),
+            Err(std::env::VarError::NotPresent) => None,
+            Err(std::env::VarError::NotUnicode(_)) => {
+                return Ok(all_supported_files_error(
+                    &files,
+                    internal("ADB device selection is malformed"),
+                ));
+            }
+        };
         unwrap_with_exchange(&self.identities, files, &root, |request, display| {
+            if transport == IdentityTransport::Adb {
+                let prompt = format!(
+                    "On the paired phone, choose Approve via Developer USB.\nRequest fingerprint: {}\nADB is an untrusted transport; phone verification and protocol authentication remain required.",
+                    display.request_fingerprint,
+                );
+                let Ok(()) = callbacks.message(&prompt)? else {
+                    return Ok(Err(ExchangeError::Cancelled));
+                };
+                let Ok(mut session) = AdbReverseSession::connect(
+                    SystemAdb::default(),
+                    adb_serial.as_deref(),
+                    DEFAULT_CONNECT_TIMEOUT,
+                    DEFAULT_MESSAGE_TIMEOUT,
+                    TransportLimits::default(),
+                    &mut OsRng,
+                ) else {
+                    return Ok(Err(ExchangeError::Failed));
+                };
+                return Ok(session
+                    .exchange(SessionPurpose::Unwrap, request)
+                    .map_err(|_| ExchangeError::Failed));
+            }
             let prompt = match render_request_prompt(request, display) {
                 Ok(prompt) => prompt,
                 Err(error) => return Ok(Err(error)),
@@ -97,6 +137,25 @@ impl IdentityPluginV1 for PhoneIdentityPlugin {
                 }
             }))
         })
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum IdentityTransport {
+    Adb,
+    Qr,
+}
+
+fn identity_transport() -> Option<IdentityTransport> {
+    match std::env::var("AGE_PLUGIN_PHONE_TRANSPORT").as_deref() {
+        Ok("adb") => Some(IdentityTransport::Adb),
+        Ok("qr") => Some(IdentityTransport::Qr),
+        Err(std::env::VarError::NotPresent) => Some(if cfg!(windows) {
+            IdentityTransport::Adb
+        } else {
+            IdentityTransport::Qr
+        }),
+        Ok(_) | Err(std::env::VarError::NotUnicode(_)) => None,
     }
 }
 

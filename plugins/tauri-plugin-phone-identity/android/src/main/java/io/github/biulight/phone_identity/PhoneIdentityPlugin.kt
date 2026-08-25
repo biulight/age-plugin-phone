@@ -42,6 +42,8 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     private var activePairingResponse: NativePairingResponseController? = null
     private var activePhoneUnwrap: PendingPhoneUnwrap? = null
     private var activeUnwrapResponse: NativeUnwrapResponseController? = null
+    private var activeUsbSession: PhoneStreamSession? = null
+    private var activeUsbToken: UUID? = null
     private var cameraPermissionPending = false
     private var pairingPermissionPending = false
     private var unwrapPermissionPending = false
@@ -153,6 +155,32 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
+    @Command
+    fun pairPhoneUsb(invoke: Invoke) {
+        val token = UUID.randomUUID()
+        synchronized(stateLock) {
+            if (nativeOperationActive()) {
+                invoke.resolve(phonePairingReport(false, null, null, "pairing_active"))
+                return
+            }
+            activeUsbToken = token
+        }
+        Thread({ runUsbPairing(token, invoke) }, "phone-adb-pairing").start()
+    }
+
+    @Command
+    fun unwrapPhoneUsb(invoke: Invoke) {
+        val token = UUID.randomUUID()
+        synchronized(stateLock) {
+            if (nativeOperationActive()) {
+                invoke.resolve(phoneUnwrapReport(false, false, null, "unwrap_active"))
+                return
+            }
+            activeUsbToken = token
+        }
+        Thread({ runUsbUnwrap(token, invoke) }, "phone-adb-unwrap").start()
+    }
+
     @PermissionCallback
     fun cameraPermissionGranted(invoke: Invoke) {
         synchronized(stateLock) { cameraPermissionPending = false }
@@ -192,6 +220,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         cancelPairingResponse()
         cancelPhoneUnwrap("authentication_failed")
         cancelUnwrapResponse()
+        cancelUsbSession()
     }
 
     override fun onDestroy(activity: androidx.appcompat.app.AppCompatActivity) {
@@ -201,6 +230,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         cancelPairingResponse()
         cancelPhoneUnwrap("authentication_failed")
         cancelUnwrapResponse()
+        cancelUsbSession()
     }
 
     private fun startPairingOfferScanner(invoke: Invoke) {
@@ -261,6 +291,63 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 },
             )
             activeQrScanner?.start()
+        }
+    }
+
+    private fun runUsbPairing(token: UUID, invoke: Invoke) {
+        var session: PhoneStreamSession? = null
+        var request: ByteArray? = null
+        try {
+            session = PhoneStreamSession.connect(PhoneStreamSession.Purpose.PAIRING)
+            synchronized(stateLock) {
+                if (activeUsbToken != token) throw StreamTransportException()
+                activeUsbSession = session
+            }
+            request = session.receiveRequest()
+            val prepared = preparePhonePairingUsb(request, session)
+            synchronized(stateLock) { activeUsbSession = null }
+            session = null
+            activity.runOnUiThread {
+                val stillActive = synchronized(stateLock) {
+                    (activeUsbToken == token).also { activeUsbToken = null }
+                }
+                if (stillActive) {
+                    showPairingResponse(prepared, invoke)
+                } else {
+                    cancelPendingPairing()
+                    invoke.resolve(phonePairingReport(false, null, null, "usb_transport_failed"))
+                }
+            }
+        } catch (_: Exception) {
+            cancelPendingPairing()
+            synchronized(stateLock) {
+                if (activeUsbToken == token) activeUsbToken = null
+                if (activeUsbSession === session) activeUsbSession = null
+            }
+            session?.close()
+            invoke.resolve(phonePairingReport(false, null, null, "usb_transport_failed"))
+        } finally {
+            request?.fill(0)
+        }
+    }
+
+    private fun preparePhonePairingUsb(
+        message: ByteArray,
+        session: PhoneStreamSession,
+    ): PreparedPhonePairing {
+        try {
+            productionIdentity.open()
+        } catch (error: PhoneIdentityKeyStore.KeyStoreException) {
+            if (error.category != PhoneIdentityKeyStore.Category.MISSING) throw error
+            productionIdentity.provision()
+        }
+        val signedResponse = productionIdentity.createPairingResponse(message)
+        return try {
+            val display = pairingConfirmation.begin(message, signedResponse)
+            session.sendResponse(signedResponse)
+            PreparedPhonePairing(display, emptyList())
+        } finally {
+            signedResponse.fill(0)
         }
     }
 
@@ -339,6 +426,40 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 },
             )
             activeQrScanner?.start()
+        }
+    }
+
+    private fun runUsbUnwrap(token: UUID, invoke: Invoke) {
+        var session: PhoneStreamSession? = null
+        var request: ByteArray? = null
+        try {
+            session = PhoneStreamSession.connect(PhoneStreamSession.Purpose.UNWRAP)
+            synchronized(stateLock) {
+                if (activeUsbToken != token) throw StreamTransportException()
+                activeUsbSession = session
+            }
+            request = session.receiveRequest()
+            val pending = preparePhoneUnwrap(request).also {
+                it.invoke = invoke
+                it.streamSession = session
+            }
+            synchronized(stateLock) {
+                if (activeUsbToken != token) throw StreamTransportException()
+                activeUsbToken = null
+                activeUsbSession = null
+                activePhoneUnwrap = pending
+            }
+            session = null
+            activity.runOnUiThread { showPhoneUnwrapPrompt(pending, invoke) }
+        } catch (_: Exception) {
+            synchronized(stateLock) {
+                if (activeUsbToken == token) activeUsbToken = null
+                if (activeUsbSession === session) activeUsbSession = null
+            }
+            session?.close()
+            invoke.resolve(phoneUnwrapReport(false, false, null, "usb_transport_failed"))
+        } finally {
+            request?.fill(0)
         }
     }
 
@@ -459,6 +580,15 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 secret,
             )
             response = productionIdentity.createUnwrapResponse(pending.request, fileKey)
+            val streamSession = pending.streamSession
+            if (streamSession != null) {
+                streamSession.sendResponse(response)
+                takePhoneUnwrap(pending.token)?.timeout?.let(mainHandler::removeCallbacks)
+                pending.invoke?.resolve(
+                    phoneUnwrapReport(true, true, pending.requestFingerprint, null),
+                )
+                return
+            }
             val prepared = PreparedUnwrapResponse(
                 pending.requestFingerprint,
                 QrFraming.fragment(response, RESPONSE_QR_CHUNK_BYTES),
@@ -500,6 +630,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         val pending = takePhoneUnwrap(token) ?: return
         pending.timeout?.let(mainHandler::removeCallbacks)
         if (cancel && !pending.cancellation.isCanceled) pending.cancellation.cancel()
+        pending.streamSession?.close()
         invoke.resolve(phoneUnwrapReport(false, false, pending.requestFingerprint, error))
     }
 
@@ -517,6 +648,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         } ?: return
         pending.timeout?.let(mainHandler::removeCallbacks)
         if (!pending.cancellation.isCanceled) pending.cancellation.cancel()
+        pending.streamSession?.close()
         pending.invoke?.resolve(phoneUnwrapReport(false, false, pending.requestFingerprint, error))
     }
 
@@ -525,6 +657,14 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             activeUnwrapResponse.also { activeUnwrapResponse = null }
         }
         controller?.cancel()
+    }
+
+    private fun cancelUsbSession() {
+        val session = synchronized(stateLock) {
+            activeUsbToken = null
+            activeUsbSession.also { activeUsbSession = null }
+        }
+        session?.close()
     }
 
     private fun verifyPairingOfferForScan(message: ByteArray): PairingOfferScanDisplay {
@@ -786,7 +926,8 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     private fun nativeOperationActive(): Boolean =
         active != null || activeQrScanner != null || activePairingResponse != null ||
             activePhoneUnwrap != null || activeUnwrapResponse != null ||
-            cameraPermissionPending || pairingPermissionPending || unwrapPermissionPending
+            activeUsbSession != null || activeUsbToken != null || cameraPermissionPending ||
+            pairingPermissionPending || unwrapPermissionPending
 
     private fun runPairingStorageDoctor(): JSObject {
         var store: PairingStateStore? = null
@@ -1082,6 +1223,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         val requestFingerprint: String,
         val callerHint: String?,
         var invoke: Invoke? = null,
+        var streamSession: PhoneStreamSession? = null,
         var timeout: Runnable? = null,
     )
 

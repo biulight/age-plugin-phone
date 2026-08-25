@@ -4,6 +4,7 @@ members = [
     "crates/desktop",
     "crates/protocol",
     "crates/recipient-p256",
+    "crates/transport",
     "crates/windows-cng",
     "crates/windows-storage",
     "plugins/tauri-plugin-phone-identity",

@@ -126,6 +126,12 @@ metadata, and response replay state live under `%LOCALAPPDATA%\age-plugin-phone`
 current-user ACLs. Missing or copied TPM keys, insecure files, concurrent replay owners, corrupt
 state, and failed replacement all fail closed.
 
+The common one-request/one-response transport boundary and Developer USB ADB reverse Alpha are
+specified by [`ADR 0016`](adr/0016-common-transport-and-adb-alpha.md). Stream framing binds a random
+session ID, purpose, direction, and bounded body length but provides no authentication. Windows
+defaults to ADB while QR remains a pairing-independent fallback. Android loopback stream bytes stay
+inside the native Kotlin plugin and enter the same strict pairing and unwrap controllers as QR.
+
 ## Transport strategy
 
 QR is the first implementation target because it is observable, offline, and independent of radio
@@ -139,6 +145,10 @@ Its Tauri result contains only a verified untrusted desktop label, offer digest,
 coarse error category. The desktop renderer writes QR modules and safe progress metadata, never the
 frame text. The desktop scanner likewise keeps camera pixels, decoded frame text, partial chunks,
 and complete responses in memory; only digest-checked complete bytes reach protocol verification.
+
+ADB reverse is explicitly Developer USB mode. ADB device state and serials are untrusted endpoint
+selection data only. The desktop uses an ephemeral loopback listener, passes no protocol bytes to
+the ADB process, rejects an existing reverse rule, and removes only the exact rule it created.
 
 ## Integration invariant
 

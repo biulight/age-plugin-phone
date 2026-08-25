@@ -129,3 +129,12 @@ when exactly one phone identity and one v1 stanza are present.
 BLE transports the same application messages after mutually authenticated ephemeral key agreement.
 Advertisements, OS-level BLE pairing, device names, and MAC addresses are discovery hints only and
 are never authentication inputs.
+
+## Common stream transport
+
+[`ADR 0016`](adr/0016-common-transport-and-adb-alpha.md) defines a protocol-independent, one-shot
+stream envelope for ADB and future byte streams. Its random session ID, purpose, direction, and
+length fields prevent accidental stream confusion and bound allocation; they are not signed peer
+identity. Pairing offers, pairing responses, unwrap requests, and unwrap responses remain unchanged
+canonical signed messages. A transport failure never permits replay rollback, cached authorization,
+or a weaker cryptographic path.
