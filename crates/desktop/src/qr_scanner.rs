@@ -11,6 +11,8 @@ use std::{
 };
 
 use age_plugin_phone_protocol::{QrAssemblyStatus, QrError, QrReassembler};
+#[cfg(target_os = "macos")]
+use nokhwa::utils::{CameraFormat, FrameFormat};
 use nokhwa::{
     Camera,
     pixel_format::LumaFormat,
@@ -202,17 +204,12 @@ fn scan_default_camera(
     timeout: Duration,
     cancelled: &AtomicBool,
 ) -> Result<Zeroizing<Vec<u8>>, ScanError> {
-    let requested = RequestedFormat::new::<LumaFormat>(RequestedFormatType::None);
-    let mut camera =
-        Camera::new(CameraIndex::Index(0), requested).map_err(|_| ScanError::CameraUnavailable)?;
+    let mut camera = open_default_camera_stream()?;
     let resolution = camera.resolution();
     let pixels = u64::from(resolution.width_x).saturating_mul(u64::from(resolution.height_y));
     if pixels == 0 || pixels > MAX_FRAME_PIXELS {
         return Err(ScanError::UnsupportedFrame);
     }
-    camera
-        .open_stream()
-        .map_err(|_| ScanError::CameraUnavailable)?;
 
     let started = Instant::now();
     let mut session = ScanSession::new(0, timeout);
@@ -235,6 +232,40 @@ fn scan_default_camera(
             }
         }
     }
+}
+
+#[cfg(target_os = "macos")]
+fn open_default_camera_stream() -> Result<Camera, ScanError> {
+    // `RequestedFormatType::None` currently selects a rejected 1080p/15fps YUYV mode on some
+    // FaceTime cameras. Keep AVFoundation negotiation explicit and bounded instead.
+    let candidates = [
+        CameraFormat::new_from(1280, 720, FrameFormat::NV12, 30),
+        CameraFormat::new_from(640, 480, FrameFormat::NV12, 30),
+        CameraFormat::new_from(1920, 1080, FrameFormat::NV12, 30),
+        CameraFormat::new_from(1280, 720, FrameFormat::YUYV, 30),
+        CameraFormat::new_from(640, 480, FrameFormat::YUYV, 30),
+    ];
+    for format in candidates {
+        let requested = RequestedFormat::new::<LumaFormat>(RequestedFormatType::Exact(format));
+        let Ok(mut camera) = Camera::new(CameraIndex::Index(0), requested) else {
+            continue;
+        };
+        if camera.open_stream().is_ok() {
+            return Ok(camera);
+        }
+    }
+    Err(ScanError::CameraUnavailable)
+}
+
+#[cfg(not(target_os = "macos"))]
+fn open_default_camera_stream() -> Result<Camera, ScanError> {
+    let requested = RequestedFormat::new::<LumaFormat>(RequestedFormatType::None);
+    let mut camera =
+        Camera::new(CameraIndex::Index(0), requested).map_err(|_| ScanError::CameraUnavailable)?;
+    camera
+        .open_stream()
+        .map_err(|_| ScanError::CameraUnavailable)?;
+    Ok(camera)
 }
 
 fn decode_qr_texts(width: usize, height: usize, greyscale: &[u8]) -> Vec<Zeroizing<String>> {
