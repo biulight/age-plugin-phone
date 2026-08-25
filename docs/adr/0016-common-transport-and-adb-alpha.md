@@ -36,6 +36,14 @@ is removed after success, cancellation, failure, connection timeout, message tim
 process unwinding. A hard process or OS termination can prevent cleanup; the next operation detects
 the stale rule and fails closed until it is explicitly removed.
 
+Immediately before creating the rule, the desktop starts a hidden copy of its own binary as a
+cleanup guardian, closing the post-creation/pre-guard exit window. The guardian receives only the
+selected serial as an argument and waits on an inherited pipe; it never receives protocol bytes.
+Normal cleanup sends a one-byte disarm signal. Parent exit,
+including Ctrl-C or a crash that closes the pipe, makes the guardian remove only `tcp:47139` for
+that serial with the same bounded ADB command runner. Killing the entire process tree, power loss,
+or an unavailable ADB daemon can still leave a stale rule, which the next session rejects.
+
 `adb devices` output is used only for transport selection. With more than one online device the
 caller must supply a serial. Unauthorized, offline, missing, malformed, or changed selection fails
 closed before accepting a protocol result. Serial numbers and other ADB properties never enter a
@@ -67,6 +75,12 @@ selectable without changing the pairing or identity stub. Non-Windows builds def
 
 Portable Rust and Kotlin tests cover wrong purpose, direction, session ID, version, oversize,
 truncation, cancellation, device ambiguity, offline and unauthorized devices, stale reverse rules,
-and timeout cleanup. The remaining Alpha gate is the physical Windows/Android matrix: successful
+real loopback success, silent-peer timeout, device switching, exact-rule cleanup, and cleanup-guard
+EOF/disarm behavior. The remaining Alpha gate is the physical Windows/Android matrix: successful
 pairing and unwrap, cable removal, reconnect, multiple devices, wrong device, daemon restart,
 timeouts, replay, cancellation, process exit, and QR fallback.
+
+An Android 16 / API 36 physical device has also completed authenticated pairing and a standard
+`age --decrypt` unwrap through ADB reverse against a macOS desktop build. The recovered plaintext
+matched byte-for-byte and the exact reverse rule was absent afterward. This interoperability check
+does not satisfy the remaining Windows desktop matrix.

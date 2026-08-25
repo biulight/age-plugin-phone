@@ -100,7 +100,7 @@
   ADB and QR without migrating or weakening its identity.
 - [x] Require explicit device selection when more than one Android device is connected, and fail
   closed on unauthorized, offline, replaced, disconnected, or mid-session switched devices.
-- [ ] Enforce hard connection, message, byte, and time limits and remove the exact ADB reverse rule
+- [x] Enforce hard connection, message, byte, and time limits and remove the exact ADB reverse rule
   on success, cancellation, failure, timeout, and process exit.
 - [x] Keep peer authentication, transcript comparison, request binding, phone user verification,
   and replay consumption above ADB; treat every ADB property as an untrusted display hint.

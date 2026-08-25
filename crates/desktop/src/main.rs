@@ -8,6 +8,7 @@ use std::{
 use age_plugin::{PluginHandler, run_state_machine};
 use age_plugin_phone::adb::{
     AdbReverseSession, DEFAULT_CONNECT_TIMEOUT, DEFAULT_MESSAGE_TIMEOUT, SystemAdb,
+    run_cleanup_guard,
 };
 use age_plugin_phone::age_identity::PhoneIdentityPlugin;
 use age_plugin_phone::age_recipient::PhoneRecipientPlugin;
@@ -46,6 +47,11 @@ struct Options {
 
 #[derive(Debug, Subcommand)]
 enum Command {
+    #[command(name = "__adb-cleanup-guard", hide = true)]
+    AdbCleanupGuard {
+        #[arg(long)]
+        serial: String,
+    },
     /// Report scaffold and protocol status without probing devices.
     Status,
     /// Complete an authenticated pairing over Developer USB or QR.
@@ -143,6 +149,7 @@ fn main() -> io::Result<()> {
     }
 
     match options.command.unwrap_or(Command::Status) {
+        Command::AdbCleanupGuard { serial } => run_cleanup_guard(&serial),
         Command::Status => {
             println!("status: common-transport-adb-alpha");
             println!("protocol_version: {PROTOCOL_VERSION}");

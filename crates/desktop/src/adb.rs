@@ -6,9 +6,9 @@
 #![allow(clippy::missing_errors_doc)]
 
 use std::{
-    io::{self, Read as _},
+    io::{self, Read as _, Write as _},
     net::{IpAddr, Ipv4Addr, SocketAddr, TcpListener, TcpStream},
-    process::{Command, Stdio},
+    process::{Child, ChildStdin, Command, Stdio},
     thread,
     time::{Duration, Instant},
 };
@@ -25,6 +25,7 @@ pub const DEFAULT_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 pub const DEFAULT_MESSAGE_TIMEOUT: Duration = Duration::from_secs(90);
 const ACCEPT_POLL_INTERVAL: Duration = Duration::from_millis(20);
 const DEFAULT_ADB_COMMAND_TIMEOUT: Duration = Duration::from_secs(10);
+const CLEANUP_GUARD_EXIT_TIMEOUT: Duration = Duration::from_secs(1);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct Device {
@@ -56,6 +57,79 @@ pub enum AdbError {
 
 pub trait AdbRunner {
     fn run(&mut self, args: &[&str]) -> io::Result<String>;
+
+    fn arm_cleanup_guard(&self, _serial: &str) -> io::Result<Option<CleanupGuardian>> {
+        Ok(None)
+    }
+}
+
+/// Child-process guard used only to remove the fixed Developer USB reverse rule after parent exit.
+pub struct CleanupGuardian {
+    child: Child,
+    input: Option<ChildStdin>,
+    armed: bool,
+}
+
+impl CleanupGuardian {
+    fn spawn(serial: &str) -> io::Result<Self> {
+        if !valid_serial(serial) {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "invalid ADB serial",
+            ));
+        }
+        let mut child = Command::new(std::env::current_exe()?)
+            .args(["__adb-cleanup-guard", "--serial", serial])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()?;
+        let input = child
+            .stdin
+            .take()
+            .ok_or_else(|| io::Error::other("cleanup guard pipe unavailable"))?;
+        Ok(Self {
+            child,
+            input: Some(input),
+            armed: true,
+        })
+    }
+
+    fn disarm(&mut self) -> io::Result<()> {
+        if !self.armed {
+            return Ok(());
+        }
+        let mut input = self
+            .input
+            .take()
+            .ok_or_else(|| io::Error::other("cleanup guard pipe unavailable"))?;
+        input.write_all(b"D")?;
+        input.flush()?;
+        drop(input);
+        self.armed = false;
+        let started = Instant::now();
+        loop {
+            if self.child.try_wait()?.is_some() {
+                return Ok(());
+            }
+            if started.elapsed() >= CLEANUP_GUARD_EXIT_TIMEOUT {
+                let _ = self.child.kill();
+                let _ = self.child.wait();
+                return Err(io::Error::new(
+                    io::ErrorKind::TimedOut,
+                    "cleanup guard did not exit",
+                ));
+            }
+            thread::sleep(ACCEPT_POLL_INTERVAL);
+        }
+    }
+}
+
+impl Drop for CleanupGuardian {
+    fn drop(&mut self) {
+        self.input.take();
+        let _ = self.child.try_wait();
+    }
 }
 
 pub struct SystemAdb {
@@ -112,6 +186,10 @@ impl AdbRunner for SystemAdb {
             .read_to_end(&mut stdout)?;
         String::from_utf8(stdout).map_err(|_| io::Error::other("ADB output was not UTF-8"))
     }
+
+    fn arm_cleanup_guard(&self, serial: &str) -> io::Result<Option<CleanupGuardian>> {
+        CleanupGuardian::spawn(serial).map(Some)
+    }
 }
 
 pub struct AdbReverseSession<R: AdbRunner> {
@@ -119,6 +197,7 @@ pub struct AdbReverseSession<R: AdbRunner> {
     serial: String,
     reverse_spec: String,
     stream: DesktopStreamSession<TcpStream>,
+    cleanup_guard: Option<CleanupGuardian>,
     rule_active: bool,
     closed: bool,
 }
@@ -148,11 +227,14 @@ impl<R: AdbRunner> AdbReverseSession<R> {
                 .map_err(|_| AdbError::Unavailable)?
                 .port()
         );
+        let Ok(mut cleanup_guard) = runner.arm_cleanup_guard(&serial) else {
+            return Err(AdbError::ReverseRule);
+        };
         if runner
             .run(&["-s", &serial, "reverse", &reverse_spec, &desktop_spec])
             .is_err()
         {
-            let _ = remove_reverse_rule(&mut runner, &serial, &reverse_spec);
+            cleanup_created_rule(&mut runner, &serial, &reverse_spec, cleanup_guard.as_mut());
             return Err(AdbError::ReverseRule);
         }
 
@@ -160,15 +242,18 @@ impl<R: AdbRunner> AdbReverseSession<R> {
         let (stream, peer) = match accepted {
             Ok(value) => value,
             Err(error) => {
-                let _ = remove_reverse_rule(&mut runner, &serial, &reverse_spec);
+                cleanup_created_rule(&mut runner, &serial, &reverse_spec, cleanup_guard.as_mut());
                 return Err(error);
             }
         };
         if !peer.ip().is_loopback() {
-            let _ = remove_reverse_rule(&mut runner, &serial, &reverse_spec);
+            cleanup_created_rule(&mut runner, &serial, &reverse_spec, cleanup_guard.as_mut());
             return Err(AdbError::InvalidPeer);
         }
         let configured = (|| {
+            stream
+                .set_nonblocking(false)
+                .map_err(|_| AdbError::Unavailable)?;
             stream
                 .set_read_timeout(Some(message_timeout))
                 .map_err(|_| AdbError::Unavailable)?;
@@ -181,7 +266,7 @@ impl<R: AdbRunner> AdbReverseSession<R> {
         let stream = match configured {
             Ok(stream) => stream,
             Err(error) => {
-                let _ = remove_reverse_rule(&mut runner, &serial, &reverse_spec);
+                cleanup_created_rule(&mut runner, &serial, &reverse_spec, cleanup_guard.as_mut());
                 return Err(error);
             }
         };
@@ -190,6 +275,7 @@ impl<R: AdbRunner> AdbReverseSession<R> {
             serial,
             reverse_spec,
             stream,
+            cleanup_guard,
             rule_active: true,
             closed: false,
         })
@@ -206,6 +292,9 @@ impl<R: AdbRunner> AdbReverseSession<R> {
         }
         remove_reverse_rule(&mut self.runner, &self.serial, &self.reverse_spec)?;
         self.rule_active = false;
+        if let Some(guard) = self.cleanup_guard.as_mut() {
+            guard.disarm().map_err(|_| AdbError::ReverseRule)?;
+        }
         Ok(())
     }
 }
@@ -359,6 +448,44 @@ fn remove_reverse_rule(
         .map_err(|_| AdbError::ReverseRule)
 }
 
+fn cleanup_created_rule(
+    runner: &mut impl AdbRunner,
+    serial: &str,
+    reverse_spec: &str,
+    guard: Option<&mut CleanupGuardian>,
+) {
+    if remove_reverse_rule(runner, serial, reverse_spec).is_ok() {
+        if let Some(guard) = guard {
+            let _ = guard.disarm();
+        }
+    }
+}
+
+/// Waits for the parent pipe and removes only the fixed Developer USB rule if the parent exits.
+pub fn run_cleanup_guard(serial: &str) -> io::Result<()> {
+    let stdin = io::stdin();
+    cleanup_guard_from_reader(stdin.lock(), SystemAdb::default(), serial)
+}
+
+fn cleanup_guard_from_reader(
+    mut input: impl io::Read,
+    mut runner: impl AdbRunner,
+    serial: &str,
+) -> io::Result<()> {
+    if !valid_serial(serial) {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "invalid ADB serial",
+        ));
+    }
+    let mut signal = [0_u8; 1];
+    if matches!(input.read(&mut signal), Ok(1)) && signal == *b"D" {
+        return Ok(());
+    }
+    remove_reverse_rule(&mut runner, serial, &format!("tcp:{ANDROID_LOOPBACK_PORT}"))
+        .map_err(|_| io::Error::other("failed to remove ADB reverse rule after parent exit"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -390,6 +517,203 @@ mod tests {
                 .pop_front()
                 .unwrap_or_else(|| Err(io::Error::other("unexpected command")))
         }
+    }
+
+    #[derive(Clone, Copy)]
+    enum PhoneBehavior {
+        Valid,
+        WrongSession,
+        Silent,
+        NoConnect,
+    }
+
+    struct LoopbackRunner {
+        behavior: PhoneBehavior,
+        calls: Arc<Mutex<Vec<Vec<String>>>>,
+        device_checks: usize,
+        switch_device: bool,
+    }
+
+    impl LoopbackRunner {
+        fn new(behavior: PhoneBehavior) -> Self {
+            Self {
+                behavior,
+                calls: Arc::default(),
+                device_checks: 0,
+                switch_device: false,
+            }
+        }
+    }
+
+    impl AdbRunner for LoopbackRunner {
+        fn run(&mut self, args: &[&str]) -> io::Result<String> {
+            self.calls
+                .lock()
+                .unwrap()
+                .push(args.iter().map(|value| (*value).to_owned()).collect());
+            if args == ["devices"] {
+                self.device_checks += 1;
+                let serial = if self.switch_device && self.device_checks > 1 {
+                    "phone-b"
+                } else {
+                    "phone-a"
+                };
+                return Ok(format!("List of devices attached\n{serial}\tdevice\n"));
+            }
+            if args.len() == 4 && args[0] == "-s" && args[2] == "reverse" && args[3] == "--list" {
+                return Ok(String::new());
+            }
+            if args.len() == 5 && args[2] == "reverse" && args[3] == "tcp:47139" {
+                if !matches!(self.behavior, PhoneBehavior::NoConnect) {
+                    let port = args[4]
+                        .strip_prefix("tcp:")
+                        .unwrap()
+                        .parse::<u16>()
+                        .unwrap();
+                    let behavior = self.behavior;
+                    thread::spawn(move || emulate_phone(port, behavior));
+                }
+                return Ok(String::new());
+            }
+            if args == ["-s", "phone-a", "reverse", "--remove", "tcp:47139"] {
+                return Ok(String::new());
+            }
+            Err(io::Error::other("unexpected ADB command"))
+        }
+    }
+
+    fn emulate_phone(port: u16, behavior: PhoneBehavior) {
+        let mut stream = TcpStream::connect((Ipv4Addr::LOCALHOST, port)).unwrap();
+        if matches!(behavior, PhoneBehavior::Silent) {
+            thread::sleep(Duration::from_millis(100));
+            return;
+        }
+        let mut header = [0_u8; 28];
+        stream.read_exact(&mut header).unwrap();
+        let length = u32::from_be_bytes(header[24..].try_into().unwrap()) as usize;
+        let mut request = vec![0_u8; length];
+        stream.read_exact(&mut request).unwrap();
+        header[7] = 2;
+        if matches!(behavior, PhoneBehavior::WrongSession) {
+            header[8] ^= 1;
+        }
+        let response = b"phone response";
+        header[24..].copy_from_slice(&u32::try_from(response.len()).unwrap().to_be_bytes());
+        stream.write_all(&header).unwrap();
+        stream.write_all(response).unwrap();
+        stream.flush().unwrap();
+        thread::sleep(Duration::from_millis(50));
+        request.fill(0);
+    }
+
+    fn removal_count(calls: &Arc<Mutex<Vec<Vec<String>>>>) -> usize {
+        calls
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|args| args.as_slice() == ["-s", "phone-a", "reverse", "--remove", "tcp:47139"])
+            .count()
+    }
+
+    #[test]
+    fn loopback_exchange_succeeds_and_removes_exact_rule() {
+        let runner = LoopbackRunner::new(PhoneBehavior::Valid);
+        let calls = Arc::clone(&runner.calls);
+        let mut session = AdbReverseSession::connect(
+            runner,
+            Some("phone-a"),
+            Duration::from_secs(1),
+            Duration::from_secs(1),
+            TransportLimits::default(),
+            &mut rand_core::OsRng,
+        )
+        .unwrap_or_else(|error| panic!("{error:?}: {:?}", calls.lock().unwrap()));
+        let response = session
+            .exchange(SessionPurpose::Pairing, b"desktop request")
+            .unwrap_or_else(|error| panic!("{error:?}: {:?}", calls.lock().unwrap()));
+        assert_eq!(response.as_slice(), b"phone response");
+        assert_eq!(removal_count(&calls), 1);
+    }
+
+    #[test]
+    fn loopback_wrong_session_and_silent_phone_fail_and_cleanup() {
+        for (behavior, timeout) in [
+            (PhoneBehavior::WrongSession, Duration::from_secs(1)),
+            (PhoneBehavior::Silent, Duration::from_millis(20)),
+        ] {
+            let runner = LoopbackRunner::new(behavior);
+            let calls = Arc::clone(&runner.calls);
+            let mut session = AdbReverseSession::connect(
+                runner,
+                Some("phone-a"),
+                Duration::from_secs(1),
+                timeout,
+                TransportLimits::default(),
+                &mut rand_core::OsRng,
+            )
+            .unwrap();
+            assert!(
+                session
+                    .exchange(SessionPurpose::Pairing, b"desktop request")
+                    .is_err()
+            );
+            assert_eq!(removal_count(&calls), 1);
+        }
+    }
+
+    #[test]
+    fn loopback_cancellation_removes_exact_rule() {
+        let runner = LoopbackRunner::new(PhoneBehavior::Silent);
+        let calls = Arc::clone(&runner.calls);
+        let mut session = AdbReverseSession::connect(
+            runner,
+            Some("phone-a"),
+            Duration::from_secs(1),
+            Duration::from_secs(1),
+            TransportLimits::default(),
+            &mut rand_core::OsRng,
+        )
+        .unwrap();
+        session.cancel();
+        assert_eq!(removal_count(&calls), 1);
+    }
+
+    #[test]
+    fn connection_timeout_and_mid_session_device_switch_cleanup() {
+        let runner = LoopbackRunner::new(PhoneBehavior::NoConnect);
+        let calls = Arc::clone(&runner.calls);
+        assert_eq!(
+            AdbReverseSession::connect(
+                runner,
+                Some("phone-a"),
+                Duration::from_millis(20),
+                Duration::from_secs(1),
+                TransportLimits::default(),
+                &mut rand_core::OsRng,
+            )
+            .err()
+            .unwrap(),
+            AdbError::ConnectionTimeout
+        );
+        assert_eq!(removal_count(&calls), 1);
+
+        let mut runner = LoopbackRunner::new(PhoneBehavior::Valid);
+        runner.switch_device = true;
+        let calls = Arc::clone(&runner.calls);
+        assert_eq!(
+            AdbReverseSession::connect(
+                runner,
+                Some("phone-a"),
+                Duration::from_secs(1),
+                Duration::from_secs(1),
+                TransportLimits::default(),
+                &mut rand_core::OsRng,
+            )
+            .err()
+            .unwrap(),
+            AdbError::DeviceUnavailable
+        );
+        assert_eq!(removal_count(&calls), 1);
     }
 
     #[test]
@@ -446,5 +770,32 @@ mod tests {
             calls.lock().unwrap().last().unwrap(),
             &["-s", "phone-a", "reverse", "--remove", "tcp:47139"]
         );
+    }
+
+    #[test]
+    fn cleanup_guard_removes_on_parent_eof() {
+        let runner = FakeRunner::with("");
+        let calls = Arc::clone(&runner.calls);
+        cleanup_guard_from_reader(io::empty(), runner, "phone-a").unwrap();
+        assert_eq!(
+            calls.lock().unwrap().as_slice(),
+            &[vec!["-s", "phone-a", "reverse", "--remove", "tcp:47139"]]
+        );
+    }
+
+    #[test]
+    fn cleanup_guard_disarm_does_not_touch_adb() {
+        let runner = FakeRunner::default();
+        let calls = Arc::clone(&runner.calls);
+        cleanup_guard_from_reader(&b"D"[..], runner, "phone-a").unwrap();
+        assert!(calls.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn cleanup_guard_rejects_malformed_serial_without_touching_adb() {
+        let runner = FakeRunner::default();
+        let calls = Arc::clone(&runner.calls);
+        assert!(cleanup_guard_from_reader(io::empty(), runner, "bad serial").is_err());
+        assert!(calls.lock().unwrap().is_empty());
     }
 }
