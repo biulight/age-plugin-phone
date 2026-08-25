@@ -1,6 +1,6 @@
 # Offline protocol draft
 
-Status: design draft; not a stable wire format and not suitable for real secrets.
+Status: version 2 design draft; not a stable wire format and not suitable for real secrets.
 
 The experimental P-256 file-key wrapping construction is specified separately by
 [`ADR 0001`](adr/0001-experimental-p256-recipient.md). It does not select the pairing, request, or
@@ -34,6 +34,10 @@ and writes a fixed-field canonical public plugin identity stub only after exact 
 confirmation. The stub contains no private key, and existing state is never silently overwritten.
 
 ## Unwrap request
+
+Each version 2 pairing offer binds distinct desktop ECDSA signing and ECDH private-selection public
+keys. The response's offer digest and full transcript fingerprint therefore cover both roles. Old
+experimental messages and state are not migrated.
 
 Each request contains:
 
@@ -114,7 +118,7 @@ age callback messages; the request callback displays only the rendered QR and it
 
 New pairing-specific recipients use the v2 private selector specified by
 [`ADR 0012`](adr/0012-private-stanza-selection.md). The recipient payload binds the phone identity,
-paired desktop public key, and identity ID. Each v2 stanza carries a second authenticated ciphertext
+paired desktop selection public key, and identity ID. Each v2 stanza carries a second authenticated ciphertext
 that the paired desktop can open to select the correct identity and stanza before any QR or phone
 authorization. The selection HKDF/AEAD domain is independent from the phone file-key domain and the
 selector is bound to the complete encrypted file-key body. Legacy v1 stanzas remain supported only

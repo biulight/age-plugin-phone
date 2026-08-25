@@ -121,12 +121,15 @@ vector. It strictly re-encoded the canonical CBOR, verified the fixed-width low-
 signatures, reproduced the request digest, and decrypted the response with the fixed desktop
 session key. Wrong desktop, expiry, signature mutation, and non-canonical input failed closed.
 
-The committed `pairing-transcript-v1.json` vector covers the complete signed offer and response,
+The original `pairing-transcript-v1.json` vector covered the complete signed offer and response,
 offer digest, both static signing public keys, canonical `age1phone` recipient, and transcript
 fingerprint. Rust and Kotlin reproduce the same bytes and fingerprint. Both implementations reject
 signature mutation and high-S signatures, response binding to another offer, malformed or
 non-canonical envelopes, unknown versions, invalid recipients, and oversized display labels in
 their applicable parsing paths.
+
+ADR 0014 supersedes this version 1 layout and replaces the committed pairing and envelope vectors
+with `pairing-transcript-v2.json` and `offline-envelope-v2.json`.
 
 The Android Doctor now builds a synthetic signed request in native memory, validates it before
 authorization, unwraps the synthetic stanza only through the authenticated StrongBox operation,

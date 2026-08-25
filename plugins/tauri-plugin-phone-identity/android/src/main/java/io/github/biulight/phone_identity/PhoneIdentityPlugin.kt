@@ -820,12 +820,14 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             val identity = generator.generateKeyPair()
             val ephemeral = generator.generateKeyPair()
             val desktopSigning = generator.generateKeyPair()
+            val desktopSelection = generator.generateKeyPair()
             val desktopSession = generator.generateKeyPair()
             val phoneSigning = generator.generateKeyPair()
             val random = SecureRandom()
             val transcript = OfflineEnvelopeCrypto.createSyntheticPairingTranscript(
                 identity.public,
                 desktopSigning,
+                desktopSelection.public,
                 phoneSigning,
                 random,
             )

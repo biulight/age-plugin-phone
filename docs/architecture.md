@@ -112,6 +112,12 @@ Platform Crypto Provider and fails closed on partial or exportable state. It is 
 pairing yet: the next protocol version must bind both public roles and reject all old state before
 Windows support can be enabled.
 
+[`ADR 0014`](adr/0014-split-desktop-key-protocol-v2.md) upgrades the experimental protocol and all
+pairing state to version 2. The signed offer, transcript fingerprint, public identity stub, and v2
+paired recipient now bind distinct desktop signing and selection public keys. Version 1 messages,
+stubs, desktop key files, locators, replay files, and Android pairing state are rejected rather than
+migrated; users must pair again.
+
 ## Transport strategy
 
 QR is the first implementation target because it is observable, offline, and independent of radio

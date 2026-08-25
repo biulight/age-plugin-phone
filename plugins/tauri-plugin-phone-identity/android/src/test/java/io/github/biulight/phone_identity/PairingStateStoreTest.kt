@@ -20,10 +20,10 @@ class PairingStateStoreTest {
     val temporary = TemporaryFolder()
 
     private val pairingVector = ObjectMapper().readTree(
-        requireNotNull(javaClass.classLoader?.getResourceAsStream("pairing-transcript-v1.json")),
+        requireNotNull(javaClass.classLoader?.getResourceAsStream("pairing-transcript-v2.json")),
     )
     private val requestVector = ObjectMapper().readTree(
-        requireNotNull(javaClass.classLoader?.getResourceAsStream("offline-envelope-v1.json")),
+        requireNotNull(javaClass.classLoader?.getResourceAsStream("offline-envelope-v2.json")),
     )
 
     @Test
@@ -129,6 +129,21 @@ class PairingStateStoreTest {
     }
 
     @Test
+    fun rejectsVersionOnePairingStateWithoutMigration() {
+        val root = temporary.newFolder("old-version")
+        val record = record()
+        PairingStateStore.createAt(root, record, now(), 2, JvmDurableFileOperations).close()
+        val stateFile = stateFiles(root).single()
+        val encoded = stateFile.readBytes()
+        assertEquals(2, encoded[1].toInt())
+        encoded[1] = 1
+        stateFile.writeBytes(encoded)
+        assertCategory(PairingStateStore.Category.MALFORMED) {
+            PairingStateStore.openAt(root, record.desktopId, record.identityId, JvmDurableFileOperations)
+        }
+    }
+
+    @Test
     fun rejectsSymlinkBeforeOpeningLockFile() {
         val root = temporary.newFolder("symlink-lock")
         val record = record()
@@ -196,6 +211,7 @@ class PairingStateStoreTest {
         desktopLabel = pairingVector["desktop_label"].asText(),
         recipient = pairingVector["recipient"].asText(),
         desktopSigningPublicKey = base64(pairingVector["desktop_signing_public_key_base64"].asText()),
+        desktopSelectionPublicKey = base64(pairingVector["desktop_selection_public_key_base64"].asText()),
         phoneSigningPublicKey = base64(pairingVector["phone_signing_public_key_base64"].asText()),
         offerDigest = base64(pairingVector["offer_digest_base64"].asText()),
         transcriptFingerprint = base64(pairingVector["fingerprint_base64"].asText()),

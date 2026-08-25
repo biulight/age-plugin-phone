@@ -6,7 +6,7 @@ use minicbor::{Decoder, Encoder};
 
 use crate::{Error, Id, MAX_REQUEST_LIFETIME_SECS, PairingRecord, ProtocolDigest, ProtocolNonce};
 
-const STATE_VERSION: u16 = 1;
+const STATE_VERSION: u16 = 2;
 const REQUEST_ENTRY: u16 = 1;
 const RESPONSE_ENTRY: u16 = 2;
 // A worst-case request entry is 62 bytes, keeping the largest accepted state below 1 MiB.
@@ -781,9 +781,16 @@ mod tests {
         let empty = ReplayState::new(scope, 100).encode();
 
         let mut unknown_version = empty.clone();
-        unknown_version[1] = 2;
+        unknown_version[1] = 3;
         assert_eq!(
             ReplayState::decode(&unknown_version, 2).unwrap_err(),
+            Error::ReplayState
+        );
+
+        let mut old_version = empty.clone();
+        old_version[1] = 1;
+        assert_eq!(
+            ReplayState::decode(&old_version, 2).unwrap_err(),
             Error::ReplayState
         );
 

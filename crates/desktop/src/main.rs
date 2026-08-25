@@ -164,9 +164,16 @@ fn run_pair(
     ensure_pairing_outputs_available(identity_output, replay_state)?;
     let state = DesktopKeyState::open_or_create(desktop_state, &mut OsRng)
         .map_err(|_| io::Error::other("desktop authentication state is unavailable"))?;
-    let mut session =
-        DesktopPairingSession::begin(state.desktop_id, label, state.signing_key(), 0, &mut OsRng)
-            .map_err(|_| io::Error::other("failed to create pairing offer"))?;
+    let selection_public = encoded_public_key(state.selection_key())?;
+    let mut session = DesktopPairingSession::begin(
+        state.desktop_id,
+        label,
+        state.signing_key(),
+        selection_public,
+        0,
+        &mut OsRng,
+    )
+    .map_err(|_| io::Error::other("failed to create pairing offer"))?;
     let frames = fragment_qr_message(&session.signed_offer(), 120, &mut OsRng)
         .map_err(|_| io::Error::other("failed to fragment pairing offer"))?;
     let mut scheduler = FrameScheduler::new(&frames, DEFAULT_FRAME_INTERVAL_MS)
@@ -226,6 +233,7 @@ fn run_pair(
         desktop_id: stub.desktop_id,
         identity_id: stub.identity_id,
         desktop_signing_public_key: stub.desktop_signing_public_key,
+        desktop_selection_public_key: stub.desktop_selection_public_key,
         phone_signing_public_key: stub.phone_signing_public_key,
     };
     FileReplayGuard::create(
@@ -247,6 +255,13 @@ fn run_pair(
         let _ = std::fs::remove_file(locator_path);
         return Err(io::Error::other("failed to create public identity stub"));
     }
+    print_pairing_outputs(identity_output, &stub)
+}
+
+fn print_pairing_outputs(
+    identity_output: &std::path::Path,
+    stub: &age_plugin_phone::pairing::PublicIdentityStub,
+) -> io::Result<()> {
     println!(
         "Public identity stub created: {}",
         identity_output.display()
@@ -349,6 +364,7 @@ fn run_unwrap(
         desktop_id: stub.desktop_id,
         identity_id: stub.identity_id,
         desktop_signing_public_key: stub.desktop_signing_public_key,
+        desktop_selection_public_key: stub.desktop_selection_public_key,
         phone_signing_public_key: stub.phone_signing_public_key,
     };
     let mut replay = FileReplayGuard::open(
@@ -372,6 +388,14 @@ fn run_unwrap(
     Ok(())
 }
 
+fn encoded_public_key(key: &SigningKey) -> io::Result<[u8; 33]> {
+    key.verifying_key()
+        .to_encoded_point(true)
+        .as_bytes()
+        .try_into()
+        .map_err(|_| io::Error::other("invalid desktop P-256 public key"))
+}
+
 fn run_qr_capture_probe(
     label: String,
     cycles: u16,
@@ -384,11 +408,9 @@ fn run_qr_capture_probe(
         ));
     }
     let signing_key = SigningKey::random(&mut OsRng);
-    let encoded_public = signing_key.verifying_key().to_encoded_point(true);
-    let desktop_signing_public_key = encoded_public
-        .as_bytes()
-        .try_into()
-        .map_err(|_| io::Error::other("failed to encode disposable signing public key"))?;
+    let desktop_signing_public_key = encoded_public_key(&signing_key)?;
+    let selection_key = SigningKey::random(&mut OsRng);
+    let desktop_selection_public_key = encoded_public_key(&selection_key)?;
     let mut desktop_id = [0_u8; 16];
     let mut nonce = [0_u8; 32];
     OsRng.fill_bytes(&mut desktop_id);
@@ -398,6 +420,7 @@ fn run_qr_capture_probe(
             desktop_id,
             desktop_label: label,
             desktop_signing_public_key,
+            desktop_selection_public_key,
             nonce,
         },
         &signing_key,

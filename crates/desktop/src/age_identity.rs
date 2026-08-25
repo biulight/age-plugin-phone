@@ -179,6 +179,7 @@ where
             desktop_id: stub.desktop_id,
             identity_id: stub.identity_id,
             desktop_signing_public_key: stub.desktop_signing_public_key,
+            desktop_selection_public_key: stub.desktop_selection_public_key,
             phone_signing_public_key: stub.phone_signing_public_key,
         };
         let Ok(mut replay) = FileReplayGuard::open(
@@ -322,7 +323,11 @@ fn select_candidate<'a>(
     let mut selected = None;
     'identities: for (opened_position, identity) in opened.iter().enumerate() {
         for (candidate_position, (_, stanza)) in candidates.iter().enumerate() {
-            match matches_stanza_v2(&identity.recipient, identity.desktop.signing_key(), stanza) {
+            match matches_stanza_v2(
+                &identity.recipient,
+                identity.desktop.selection_key(),
+                stanza,
+            ) {
                 Ok(true) => {
                     selected = Some((opened_position, candidate_position));
                     break 'identities;
@@ -495,6 +500,13 @@ mod tests {
                     .as_bytes()
                     .try_into()
                     .unwrap(),
+                desktop_selection_public_key: desktop
+                    .selection_key()
+                    .verifying_key()
+                    .to_encoded_point(true)
+                    .as_bytes()
+                    .try_into()
+                    .unwrap(),
                 phone_signing_public_key: phone
                     .verifying_key()
                     .to_encoded_point(true)
@@ -508,6 +520,7 @@ mod tests {
                 desktop_id: stub.desktop_id,
                 identity_id: stub.identity_id,
                 desktop_signing_public_key: stub.desktop_signing_public_key,
+                desktop_selection_public_key: stub.desktop_selection_public_key,
                 phone_signing_public_key: stub.phone_signing_public_key,
             };
             let replay_path = root.join("responses.cbor");

@@ -13,7 +13,7 @@ use thiserror::Error;
 
 use crate::pairing::PublicIdentityStub;
 
-const LOCATOR_VERSION: u16 = 1;
+const LOCATOR_VERSION: u16 = 2;
 const MAX_LOCATOR_BYTES: u64 = 4_096;
 const CONFIG_OVERRIDE: &str = "AGE_PLUGIN_PHONE_CONFIG_DIR";
 
@@ -311,6 +311,13 @@ mod tests {
                 .as_bytes()
                 .try_into()
                 .unwrap(),
+            desktop_selection_public_key: desktop
+                .selection_key()
+                .verifying_key()
+                .to_encoded_point(true)
+                .as_bytes()
+                .try_into()
+                .unwrap(),
             phone_signing_public_key: phone
                 .verifying_key()
                 .to_encoded_point(true)
@@ -325,6 +332,7 @@ mod tests {
             desktop_id: stub.desktop_id,
             identity_id: stub.identity_id,
             desktop_signing_public_key: stub.desktop_signing_public_key,
+            desktop_selection_public_key: stub.desktop_selection_public_key,
             phone_signing_public_key: stub.phone_signing_public_key,
         };
         drop(
@@ -360,7 +368,7 @@ mod tests {
             0o700,
         );
         assert_eq!(
-            std::fs::metadata(locator_path)
+            std::fs::metadata(&locator_path)
                 .unwrap()
                 .permissions()
                 .mode()
@@ -382,6 +390,13 @@ mod tests {
         wrong.transcript_fingerprint[0] ^= 1;
         assert_eq!(
             open_pairing_locator(&state, &wrong),
+            Err(LocatorError::Invalid),
+        );
+        let mut old_locator = std::fs::read(&locator_path).unwrap();
+        old_locator[1] = 1;
+        std::fs::write(&locator_path, old_locator).unwrap();
+        assert_eq!(
+            open_pairing_locator(&state, &stub),
             Err(LocatorError::Invalid),
         );
         std::fs::remove_dir_all(root).unwrap();

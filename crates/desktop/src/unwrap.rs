@@ -54,8 +54,13 @@ impl DesktopUnwrapSession {
         random: &mut (impl CryptoRng + RngCore),
     ) -> Result<Self, UnwrapError> {
         let desktop_public = desktop.signing_key().verifying_key().to_encoded_point(true);
+        let selection_public = desktop
+            .selection_key()
+            .verifying_key()
+            .to_encoded_point(true);
         if desktop.desktop_id != stub.desktop_id
             || desktop_public.as_bytes() != stub.desktop_signing_public_key
+            || selection_public.as_bytes() != stub.desktop_selection_public_key
         {
             return Err(UnwrapError::WrongDesktopState);
         }
@@ -63,6 +68,7 @@ impl DesktopUnwrapSession {
             desktop_id: stub.desktop_id,
             identity_id: stub.identity_id,
             desktop_signing_public_key: stub.desktop_signing_public_key,
+            desktop_selection_public_key: stub.desktop_selection_public_key,
             phone_signing_public_key: stub.phone_signing_public_key,
         };
         let desktop_session = SecretKey::random(&mut *random);
@@ -203,6 +209,13 @@ mod tests {
                 .as_bytes()
                 .try_into()
                 .unwrap(),
+            desktop_selection_public_key: desktop
+                .selection_key()
+                .verifying_key()
+                .to_encoded_point(true)
+                .as_bytes()
+                .try_into()
+                .unwrap(),
             phone_signing_public_key: phone
                 .verifying_key()
                 .to_encoded_point(true)
@@ -222,6 +235,7 @@ mod tests {
             desktop_id: stub.desktop_id,
             identity_id: stub.identity_id,
             desktop_signing_public_key: stub.desktop_signing_public_key,
+            desktop_selection_public_key: stub.desktop_selection_public_key,
             phone_signing_public_key: stub.phone_signing_public_key,
         }
     }

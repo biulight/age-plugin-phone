@@ -24,6 +24,7 @@ internal data class StoredPairingRecord(
     val desktopLabel: String,
     val recipient: String,
     val desktopSigningPublicKey: ByteArray,
+    val desktopSelectionPublicKey: ByteArray,
     val phoneSigningPublicKey: ByteArray,
     val offerDigest: ByteArray,
     val transcriptFingerprint: ByteArray,
@@ -32,6 +33,7 @@ internal data class StoredPairingRecord(
         desktopId = desktopId.copyOf(),
         identityId = identityId.copyOf(),
         desktopSigningPublicKey = desktopSigningPublicKey.copyOf(),
+        desktopSelectionPublicKey = desktopSelectionPublicKey.copyOf(),
         phoneSigningPublicKey = phoneSigningPublicKey.copyOf(),
         offerDigest = offerDigest.copyOf(),
         transcriptFingerprint = transcriptFingerprint.copyOf(),
@@ -51,6 +53,9 @@ internal data class StoredPairingRecord(
             recipient = response.response.recipient,
             desktopSigningPublicKey = TaggedRecipientCrypto.encodeCompressed(
                 offer.offer.desktopSigningPublicKey,
+            ),
+            desktopSelectionPublicKey = TaggedRecipientCrypto.encodeCompressed(
+                offer.offer.desktopSelectionPublicKey,
             ),
             phoneSigningPublicKey = TaggedRecipientCrypto.encodeCompressed(
                 response.response.phoneSigningPublicKey,
@@ -161,10 +166,10 @@ internal class PairingStateStore private constructor(
         const val DEFAULT_CAPACITY = 1_024
         private const val MAX_CAPACITY = 16_384
         private const val MAX_STATE_BYTES = 1_048_576
-        private const val STATE_VERSION = 1
-        private const val ROOT_NAME = "age-plugin-phone-pairings-v1"
-        private const val DOCTOR_ROOT_NAME = "age-plugin-phone-pairing-doctor-v1"
-        private val stateDomain = "age-plugin-phone/android-pairing-state-scope/v1"
+        private const val STATE_VERSION = 2
+        private const val ROOT_NAME = "age-plugin-phone-pairings-v2"
+        private const val DOCTOR_ROOT_NAME = "age-plugin-phone-pairing-doctor-v2"
+        private val stateDomain = "age-plugin-phone/android-pairing-state-scope/v2"
             .toByteArray(Charsets.US_ASCII)
         private val cbor = ObjectMapper(CBORFactory())
         private val entryComparator = Comparator<Entry> { left, right ->
@@ -382,6 +387,7 @@ internal class PairingStateStore private constructor(
             add(state.record.desktopLabel)
             add(state.record.recipient)
             add(state.record.desktopSigningPublicKey)
+            add(state.record.desktopSelectionPublicKey)
             add(state.record.phoneSigningPublicKey)
             add(state.record.offerDigest)
             add(state.record.transcriptFingerprint)
@@ -400,7 +406,7 @@ internal class PairingStateStore private constructor(
         }
 
         private fun decode(encoded: ByteArray): State {
-            val node = strictArray(encoded, 13)
+            val node = strictArray(encoded, 14)
             if (node[0].asInt(-1) != STATE_VERSION) throw PairingStateException(Category.MALFORMED)
             val record = StoredPairingRecord(
                 bytes(node[1], 16),
@@ -409,15 +415,16 @@ internal class PairingStateStore private constructor(
                 text(node[4], 160),
                 bytes(node[5], 33),
                 bytes(node[6], 33),
-                bytes(node[7], 32),
+                bytes(node[7], 33),
                 bytes(node[8], 32),
+                bytes(node[9], 32),
             )
-            val createdAtUnix = unsignedLong(node[9])
-            val lastSeenUnix = unsignedLong(node[10])
-            val capacity = unsignedInt(node[11])
+            val createdAtUnix = unsignedLong(node[10])
+            val lastSeenUnix = unsignedLong(node[11])
+            val capacity = unsignedInt(node[12])
             validateRecord(record)
             validateCapacity(capacity)
-            val entriesNode = node[12] as? ArrayNode ?: throw PairingStateException(Category.MALFORMED)
+            val entriesNode = node[13] as? ArrayNode ?: throw PairingStateException(Category.MALFORMED)
             if (entriesNode.size() > capacity) throw PairingStateException(Category.CAPACITY)
             val entries = entriesNode.map { entryNode ->
                 val entry = entryNode as? ArrayNode ?: throw PairingStateException(Category.MALFORMED)
@@ -468,12 +475,16 @@ internal class PairingStateStore private constructor(
             }
             try {
                 TaggedRecipientCrypto.decodeCompressed(record.desktopSigningPublicKey)
+                TaggedRecipientCrypto.decodeCompressed(record.desktopSelectionPublicKey)
                 TaggedRecipientCrypto.decodeCompressed(record.phoneSigningPublicKey)
             } catch (_: Exception) {
                 throw PairingStateException(Category.MALFORMED)
             }
             if (MessageDigest.isEqual(identityPublic, record.desktopSigningPublicKey) ||
+                MessageDigest.isEqual(identityPublic, record.desktopSelectionPublicKey) ||
                 MessageDigest.isEqual(identityPublic, record.phoneSigningPublicKey) ||
+                MessageDigest.isEqual(record.desktopSigningPublicKey, record.desktopSelectionPublicKey) ||
+                MessageDigest.isEqual(record.desktopSelectionPublicKey, record.phoneSigningPublicKey) ||
                 MessageDigest.isEqual(record.desktopSigningPublicKey, record.phoneSigningPublicKey)
             ) {
                 throw PairingStateException(Category.MALFORMED)

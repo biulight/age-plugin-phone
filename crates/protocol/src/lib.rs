@@ -31,7 +31,7 @@ pub use qr::{
 pub use replay::FileReplayGuard;
 pub use replay::{DEFAULT_REPLAY_CAPACITY, ReplayGuard, ReplayRole, ReplayScope, ReplayStore};
 
-pub const PROTOCOL_VERSION: u16 = 1;
+pub const PROTOCOL_VERSION: u16 = 2;
 pub const ALGORITHM_SUITE: u16 = 1;
 pub const MAX_REQUEST_LIFETIME_SECS: u64 = 300;
 pub type Id = [u8; 16];
@@ -74,14 +74,14 @@ const OFFER: u16 = 1;
 const PAIRING_RESPONSE: u16 = 2;
 const REQUEST: u16 = 3;
 const RESPONSE: u16 = 4;
-const OFFER_SIG: &[u8] = b"age-plugin-phone/pairing-offer-signature/v1";
-const PAIRING_SIG: &[u8] = b"age-plugin-phone/pairing-response-signature/v1";
-const REQUEST_SIG: &[u8] = b"age-plugin-phone/unwrap-request-signature/v1";
-const RESPONSE_SIG: &[u8] = b"age-plugin-phone/unwrap-response-signature/v1";
-const REQUEST_DIGEST: &[u8] = b"age-plugin-phone/request-digest/v1";
-const OFFER_DIGEST: &[u8] = b"age-plugin-phone/pairing-offer-digest/v1";
-const FINGERPRINT: &[u8] = b"age-plugin-phone/pairing-fingerprint/v1";
-const SESSION_INFO: &[u8] = b"age-plugin-phone/session-response/p256/v1";
+const OFFER_SIG: &[u8] = b"age-plugin-phone/pairing-offer-signature/v2";
+const PAIRING_SIG: &[u8] = b"age-plugin-phone/pairing-response-signature/v2";
+const REQUEST_SIG: &[u8] = b"age-plugin-phone/unwrap-request-signature/v2";
+const RESPONSE_SIG: &[u8] = b"age-plugin-phone/unwrap-response-signature/v2";
+const REQUEST_DIGEST: &[u8] = b"age-plugin-phone/request-digest/v2";
+const OFFER_DIGEST: &[u8] = b"age-plugin-phone/pairing-offer-digest/v2";
+const FINGERPRINT: &[u8] = b"age-plugin-phone/pairing-fingerprint/v2";
+const SESSION_INFO: &[u8] = b"age-plugin-phone/session-response/p256/v2";
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum Error {
@@ -130,6 +130,7 @@ pub struct PairingOffer {
     pub desktop_id: Id,
     pub desktop_label: String,
     pub desktop_signing_public_key: EncodedPublicKey,
+    pub desktop_selection_public_key: EncodedPublicKey,
     pub nonce: ProtocolNonce,
 }
 
@@ -194,6 +195,7 @@ pub struct PairingRecord {
     pub desktop_id: Id,
     pub identity_id: Id,
     pub desktop_signing_public_key: EncodedPublicKey,
+    pub desktop_selection_public_key: EncodedPublicKey,
     pub phone_signing_public_key: EncodedPublicKey,
 }
 
@@ -209,11 +211,19 @@ impl SignedPairingOffer {
         if key.public_key()? != payload.desktop_signing_public_key {
             return Err(Error::InvalidPublicKey);
         }
+        public(&payload.desktop_selection_public_key)?;
+        if payload.desktop_selection_public_key == payload.desktop_signing_public_key {
+            return Err(Error::InvalidPublicKey);
+        }
         let signature = sign(key, OFFER_SIG, &encode_offer(&payload))?;
         Ok(Self { payload, signature })
     }
     pub fn verify(&self) -> Result<(), Error> {
         label(&self.payload.desktop_label)?;
+        public(&self.payload.desktop_selection_public_key)?;
+        if self.payload.desktop_selection_public_key == self.payload.desktop_signing_public_key {
+            return Err(Error::InvalidPublicKey);
+        }
         verify(
             &verifying(&self.payload.desktop_signing_public_key)?,
             OFFER_SIG,
@@ -660,12 +670,14 @@ fn header(e: &mut Encoder<Vec<u8>>, len: u64, kind: u16) {
 }
 fn encode_offer(v: &PairingOffer) -> Vec<u8> {
     let mut e = enc();
-    header(&mut e, 7, OFFER);
+    header(&mut e, 8, OFFER);
     e.bytes(&v.desktop_id)
         .unwrap()
         .str(&v.desktop_label)
         .unwrap()
         .bytes(&v.desktop_signing_public_key)
+        .unwrap()
+        .bytes(&v.desktop_selection_public_key)
         .unwrap()
         .bytes(&v.nonce)
         .unwrap();
@@ -823,11 +835,12 @@ fn decode_signed(b: &[u8]) -> Result<(Vec<u8>, [u8; 64]), Error> {
 }
 fn decode_offer(b: &[u8]) -> Result<PairingOffer, Error> {
     let mut d = Decoder::new(b);
-    hdr(&mut d, 7, OFFER)?;
+    hdr(&mut d, 8, OFFER)?;
     let v = PairingOffer {
         desktop_id: fixed(d.bytes().map_err(|_| Error::Malformed)?)?,
         desktop_label: text(&mut d, 64)?,
         desktop_signing_public_key: fixed(d.bytes().map_err(|_| Error::Malformed)?)?,
+        desktop_selection_public_key: fixed(d.bytes().map_err(|_| Error::Malformed)?)?,
         nonce: fixed(d.bytes().map_err(|_| Error::Malformed)?)?,
     };
     end(&d, b)?;
@@ -967,6 +980,7 @@ mod tests {
             desktop_id: D,
             identity_id: I,
             desktop_signing_public_key: public_signing(ds.verifying_key()),
+            desktop_selection_public_key: public_signing(sig(7).verifying_key()),
             phone_signing_public_key: public_signing(ps.verifying_key()),
         };
         (request, pairing, session, ps)
@@ -984,6 +998,7 @@ mod tests {
                 desktop_id: D,
                 desktop_label: "desktop".into(),
                 desktop_signing_public_key: public_signing(desktop.verifying_key()),
+                desktop_selection_public_key: public_signing(sig(7).verifying_key()),
                 nonce: [7; 32],
             },
             &desktop,
@@ -1063,7 +1078,7 @@ mod tests {
             seal_response_with_ephemeral(&verified, &F, &ps, &sk(6), [0x66; 32]).unwrap();
         let response = SignedUnwrapResponse::decode(&response.encode()).unwrap();
         let vector: serde_json::Value = serde_json::from_str(include_str!(
-            "../../../docs/test-vectors/offline-envelope-v1.json"
+            "../../../docs/test-vectors/offline-envelope-v2.json"
         ))
         .unwrap();
         assert_eq!(
@@ -1256,7 +1271,7 @@ mod tests {
             .verify(&offer)
             .unwrap();
         let vector: serde_json::Value = serde_json::from_str(include_str!(
-            "../../../docs/test-vectors/pairing-transcript-v1.json"
+            "../../../docs/test-vectors/pairing-transcript-v2.json"
         ))
         .unwrap();
         assert_eq!(
@@ -1278,6 +1293,12 @@ mod tests {
         assert_eq!(
             STANDARD_NO_PAD.encode(public_signing(desktop.verifying_key())),
             vector["desktop_signing_public_key_base64"]
+                .as_str()
+                .unwrap()
+        );
+        assert_eq!(
+            STANDARD_NO_PAD.encode(offer.payload.desktop_selection_public_key),
+            vector["desktop_selection_public_key_base64"]
                 .as_str()
                 .unwrap()
         );
@@ -1307,6 +1328,13 @@ mod tests {
         assert_eq!(
             SignedPairingOffer::decode(&trailing).unwrap_err(),
             Error::Malformed
+        );
+
+        let mut old_version = offer.encode();
+        old_version[4] = 1;
+        assert_eq!(
+            SignedPairingOffer::decode(&old_version).unwrap_err(),
+            Error::UnsupportedVersion
         );
 
         let other_offer = SignedPairingOffer::sign(

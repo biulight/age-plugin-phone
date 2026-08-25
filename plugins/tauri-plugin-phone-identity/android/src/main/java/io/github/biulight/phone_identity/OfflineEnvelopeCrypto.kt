@@ -20,21 +20,21 @@ import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 
 internal object OfflineEnvelopeCrypto {
-    private const val VERSION = 1
+    private const val VERSION = 2
     private const val SUITE = 1
     private const val OFFER_TYPE = 1
     private const val PAIRING_RESPONSE_TYPE = 2
     private const val REQUEST_TYPE = 3
     private const val RESPONSE_TYPE = 4
     private const val MAX_LIFETIME_SECONDS = 300L
-    private val offerSignatureDomain = ascii("age-plugin-phone/pairing-offer-signature/v1")
-    private val pairingSignatureDomain = ascii("age-plugin-phone/pairing-response-signature/v1")
-    private val requestSignatureDomain = ascii("age-plugin-phone/unwrap-request-signature/v1")
-    private val responseSignatureDomain = ascii("age-plugin-phone/unwrap-response-signature/v1")
-    private val offerDigestDomain = ascii("age-plugin-phone/pairing-offer-digest/v1")
-    private val fingerprintDomain = ascii("age-plugin-phone/pairing-fingerprint/v1")
-    private val requestDigestDomain = ascii("age-plugin-phone/request-digest/v1")
-    private val sessionInfo = ascii("age-plugin-phone/session-response/p256/v1")
+    private val offerSignatureDomain = ascii("age-plugin-phone/pairing-offer-signature/v2")
+    private val pairingSignatureDomain = ascii("age-plugin-phone/pairing-response-signature/v2")
+    private val requestSignatureDomain = ascii("age-plugin-phone/unwrap-request-signature/v2")
+    private val responseSignatureDomain = ascii("age-plugin-phone/unwrap-response-signature/v2")
+    private val offerDigestDomain = ascii("age-plugin-phone/pairing-offer-digest/v2")
+    private val fingerprintDomain = ascii("age-plugin-phone/pairing-fingerprint/v2")
+    private val requestDigestDomain = ascii("age-plugin-phone/request-digest/v2")
+    private val sessionInfo = ascii("age-plugin-phone/session-response/p256/v2")
     private val cbor = ObjectMapper(CBORFactory())
     private val zeroNonce = ByteArray(12)
 
@@ -42,6 +42,7 @@ internal object OfflineEnvelopeCrypto {
         val desktopId: ByteArray,
         val desktopLabel: String,
         val desktopSigningPublicKey: PublicKey,
+        val desktopSelectionPublicKey: PublicKey,
         val nonce: ByteArray,
     )
 
@@ -104,6 +105,11 @@ internal object OfflineEnvelopeCrypto {
     fun verifyPairingOffer(encoded: ByteArray): VerifiedPairingOffer {
         val (payload, signature) = decodeSigned(encoded)
         val offer = decodePairingOfferPayload(payload)
+        if (MessageDigest.isEqual(
+                TaggedRecipientCrypto.encodeCompressed(offer.desktopSigningPublicKey),
+                TaggedRecipientCrypto.encodeCompressed(offer.desktopSelectionPublicKey),
+            )
+        ) throw ProtocolException()
         verify(offer.desktopSigningPublicKey, offerSignatureDomain, payload, signature)
         return VerifiedPairingOffer(offer, encoded.copyOf(), digest(offerDigestDomain, encoded))
     }
@@ -158,6 +164,7 @@ internal object OfflineEnvelopeCrypto {
     fun createSyntheticPairingTranscript(
         identityPublicKey: PublicKey,
         desktopSigning: KeyPair,
+        desktopSelectionPublicKey: PublicKey,
         phoneSigning: KeyPair,
         random: SecureRandom,
     ): SignedPairingTranscript {
@@ -165,6 +172,7 @@ internal object OfflineEnvelopeCrypto {
             desktopId = randomBytes(16, random),
             desktopLabel = "Pairing confirmation Doctor",
             desktopSigningPublicKey = desktopSigning.public,
+            desktopSelectionPublicKey = desktopSelectionPublicKey,
             nonce = randomBytes(32, random),
         )
         val offerPayload = encodePairingOfferPayload(offer)
@@ -375,19 +383,21 @@ internal object OfflineEnvelopeCrypto {
     }
 
     private fun decodePairingOfferPayload(encoded: ByteArray): PairingOffer {
-        val n = strictArray(encoded, 7)
+        val n = strictArray(encoded, 8)
         header(n, OFFER_TYPE)
         return PairingOffer(
             bytes(n[3], 16),
             text(n[4], 64),
             TaggedRecipientCrypto.decodeCompressed(bytes(n[5], 33)),
-            bytes(n[6], 32),
+            TaggedRecipientCrypto.decodeCompressed(bytes(n[6], 33)),
+            bytes(n[7], 32),
         )
     }
 
     private fun encodePairingOfferPayload(value: PairingOffer): ByteArray = encodeArray {
         add(VERSION); add(OFFER_TYPE); add(SUITE); add(value.desktopId); add(value.desktopLabel)
-        add(TaggedRecipientCrypto.encodeCompressed(value.desktopSigningPublicKey)); add(value.nonce)
+        add(TaggedRecipientCrypto.encodeCompressed(value.desktopSigningPublicKey))
+        add(TaggedRecipientCrypto.encodeCompressed(value.desktopSelectionPublicKey)); add(value.nonce)
     }
 
     private fun decodePairingResponsePayload(encoded: ByteArray): PairingResponse {

@@ -16,10 +16,10 @@ import org.junit.Test
 
 class OfflineEnvelopeCryptoTest {
     private val vector = ObjectMapper().readTree(
-        requireNotNull(javaClass.classLoader?.getResourceAsStream("offline-envelope-v1.json")),
+        requireNotNull(javaClass.classLoader?.getResourceAsStream("offline-envelope-v2.json")),
     )
     private val pairingVector = ObjectMapper().readTree(
-        requireNotNull(javaClass.classLoader?.getResourceAsStream("pairing-transcript-v1.json")),
+        requireNotNull(javaClass.classLoader?.getResourceAsStream("pairing-transcript-v2.json")),
     )
 
     @Test
@@ -29,10 +29,12 @@ class OfflineEnvelopeCryptoTest {
         }
         val identity = generator.generateKeyPair()
         val desktopSigning = generator.generateKeyPair()
+        val desktopSelection = generator.generateKeyPair()
         val phoneSigning = generator.generateKeyPair()
         val transcript = OfflineEnvelopeCrypto.createSyntheticPairingTranscript(
             identity.public,
             desktopSigning,
+            desktopSelection.public,
             phoneSigning,
             java.security.SecureRandom(),
         )
@@ -49,6 +51,10 @@ class OfflineEnvelopeCryptoTest {
             TaggedRecipientCrypto.encodeCompressed(offer.offer.desktopSigningPublicKey),
         )
         assertArrayEquals(
+            TaggedRecipientCrypto.encodeCompressed(desktopSelection.public),
+            TaggedRecipientCrypto.encodeCompressed(offer.offer.desktopSelectionPublicKey),
+        )
+        assertArrayEquals(
             TaggedRecipientCrypto.encodeCompressed(phoneSigning.public),
             TaggedRecipientCrypto.encodeCompressed(response.response.phoneSigningPublicKey),
         )
@@ -62,10 +68,12 @@ class OfflineEnvelopeCryptoTest {
         }
         val identityKey = generator.generateKeyPair()
         val desktopSigning = generator.generateKeyPair()
+        val desktopSelection = generator.generateKeyPair()
         val phoneSigning = generator.generateKeyPair()
         val first = OfflineEnvelopeCrypto.createSyntheticPairingTranscript(
             identityKey.public,
             desktopSigning,
+            desktopSelection.public,
             phoneSigning,
             java.security.SecureRandom(),
         )
@@ -97,6 +105,7 @@ class OfflineEnvelopeCryptoTest {
             OfflineEnvelopeCrypto.createSyntheticPairingTranscript(
                 identityKey.public,
                 desktopSigning,
+                desktopSelection.public,
                 phoneSigning,
                 java.security.SecureRandom(),
             ).signedOffer,
@@ -119,6 +128,10 @@ class OfflineEnvelopeCryptoTest {
         assertArrayEquals(
             base64(pairingVector["desktop_signing_public_key_base64"].asText()),
             TaggedRecipientCrypto.encodeCompressed(offer.offer.desktopSigningPublicKey),
+        )
+        assertArrayEquals(
+            base64(pairingVector["desktop_selection_public_key_base64"].asText()),
+            TaggedRecipientCrypto.encodeCompressed(offer.offer.desktopSelectionPublicKey),
         )
         assertArrayEquals(base64(pairingVector["offer_digest_base64"].asText()), offer.digest)
         assertArrayEquals(hex(pairingVector["identity_id_hex"].asText()), response.response.identityId)
@@ -146,6 +159,10 @@ class OfflineEnvelopeCryptoTest {
             record.desktopSigningPublicKey,
         )
         assertArrayEquals(
+            TaggedRecipientCrypto.encodeCompressed(offer.offer.desktopSelectionPublicKey),
+            record.desktopSelectionPublicKey,
+        )
+        assertArrayEquals(
             TaggedRecipientCrypto.encodeCompressed(response.response.phoneSigningPublicKey),
             record.phoneSigningPublicKey,
         )
@@ -164,10 +181,10 @@ class OfflineEnvelopeCryptoTest {
         assertProtocolFailure(makeHighS(offerBytes), true)
 
         val unknownVersion = offerBytes.copyOf()
-        val header = byteArrayOf(0x87.toByte(), 0x01, 0x01, 0x01)
+        val header = byteArrayOf(0x88.toByte(), 0x02, 0x01, 0x01)
         val headerOffset = indexOf(unknownVersion, header)
         org.junit.Assert.assertTrue(headerOffset >= 0)
-        unknownVersion[headerOffset + 1] = 2
+        unknownVersion[headerOffset + 1] = 1
         assertProtocolFailure(unknownVersion, true)
 
         assertThrows(OfflineEnvelopeCrypto.ProtocolException::class.java) {

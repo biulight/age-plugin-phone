@@ -81,9 +81,9 @@
   Microsoft Platform Crypto Provider implementation with no software-provider fallback.
 - [ ] Route production desktop operations through those hardware boundaries and retain software
   keys only for deterministic vectors and tests.
-- [ ] Upgrade the experimental pairing transcript, public identity stub, and v2 paired recipient to
+- [x] Upgrade the experimental pairing transcript, public identity stub, and v2 paired recipient to
   bind the desktop signing and selection public keys independently.
-- [ ] Update and cross-check Rust/Kotlin vectors, strictly reject old experimental state, and require
+- [x] Update and cross-check Rust/Kotlin vectors, strictly reject old experimental state, and require
   users to pair again rather than migrate an old pairing.
 - [ ] Implement the Windows locator and replay backend under `%LOCALAPPDATA%` with private ACLs,
   reparse-point and hard-link rejection, exclusive locking, bounded reads, and atomic replacement.

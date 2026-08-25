@@ -16,7 +16,7 @@ class PairingConfirmationSessionTest {
     val temporary = TemporaryFolder()
 
     private val vector = ObjectMapper().readTree(
-        requireNotNull(javaClass.classLoader?.getResourceAsStream("pairing-transcript-v1.json")),
+        requireNotNull(javaClass.classLoader?.getResourceAsStream("pairing-transcript-v2.json")),
     )
 
     @Test

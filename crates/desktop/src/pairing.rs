@@ -20,8 +20,8 @@ use thiserror::Error;
 
 /// Pairing sessions are deliberately short lived and never resume after a terminal action.
 pub const MAX_PAIRING_SESSION_AGE_MS: u64 = 5 * 60 * 1_000;
-const STUB_VERSION: u16 = 1;
-const DESKTOP_KEY_MAGIC: &[u8; 5] = b"APDK1";
+const STUB_VERSION: u16 = 2;
+const DESKTOP_KEY_MAGIC: &[u8; 5] = b"APDK2";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PublicIdentityStub {
@@ -29,6 +29,7 @@ pub struct PublicIdentityStub {
     pub identity_id: Id,
     pub recipient: String,
     pub desktop_signing_public_key: EncodedPublicKey,
+    pub desktop_selection_public_key: EncodedPublicKey,
     pub phone_signing_public_key: EncodedPublicKey,
     pub offer_digest: ProtocolDigest,
     pub transcript_fingerprint: ProtocolDigest,
@@ -39,7 +40,7 @@ impl PublicIdentityStub {
     pub fn encode(&self) -> Vec<u8> {
         let mut encoder = Encoder::new(Vec::new());
         encoder
-            .array(10)
+            .array(11)
             .unwrap()
             .u16(STUB_VERSION)
             .unwrap()
@@ -52,6 +53,8 @@ impl PublicIdentityStub {
             .str(&self.recipient)
             .unwrap()
             .bytes(&self.desktop_signing_public_key)
+            .unwrap()
+            .bytes(&self.desktop_selection_public_key)
             .unwrap()
             .bytes(&self.phone_signing_public_key)
             .unwrap()
@@ -66,7 +69,7 @@ impl PublicIdentityStub {
 
     pub fn decode(bytes: &[u8]) -> Result<Self, PairingError> {
         let mut decoder = Decoder::new(bytes);
-        if decoder.array().map_err(|_| PairingError::MalformedStub)? != Some(10) {
+        if decoder.array().map_err(|_| PairingError::MalformedStub)? != Some(11) {
             return Err(PairingError::MalformedStub);
         }
         if decoder.u16().map_err(|_| PairingError::MalformedStub)? != STUB_VERSION {
@@ -85,6 +88,9 @@ impl PublicIdentityStub {
             desktop_signing_public_key: fixed(
                 decoder.bytes().map_err(|_| PairingError::MalformedStub)?,
             )?,
+            desktop_selection_public_key: fixed(
+                decoder.bytes().map_err(|_| PairingError::MalformedStub)?,
+            )?,
             phone_signing_public_key: fixed(
                 decoder.bytes().map_err(|_| PairingError::MalformedStub)?,
             )?,
@@ -99,6 +105,8 @@ impl PublicIdentityStub {
             || Recipient::parse(&value.recipient).is_err()
             || p256::ecdsa::VerifyingKey::from_sec1_bytes(&value.desktop_signing_public_key)
                 .is_err()
+            || p256::PublicKey::from_sec1_bytes(&value.desktop_selection_public_key).is_err()
+            || value.desktop_selection_public_key == value.desktop_signing_public_key
             || p256::ecdsa::VerifyingKey::from_sec1_bytes(&value.phone_signing_public_key).is_err()
         {
             return Err(PairingError::MalformedStub);
@@ -117,7 +125,7 @@ impl PublicIdentityStub {
         let phone = Recipient::parse(&self.recipient).map_err(|_| PairingError::MalformedStub)?;
         PairedRecipient::from_public_fields(
             &phone.public_key_bytes(),
-            &self.desktop_signing_public_key,
+            &self.desktop_selection_public_key,
             self.identity_id,
         )
         .map_err(|_| PairingError::MalformedStub)
@@ -161,6 +169,7 @@ pub struct PairingDisplay {
 pub struct DesktopKeyState {
     pub desktop_id: Id,
     signing_key: SigningKey,
+    selection_key: SigningKey,
 }
 
 impl DesktopKeyState {
@@ -184,7 +193,7 @@ impl DesktopKeyState {
             }
         })?;
         validate_private_file(&file)?;
-        let mut encoded = [0_u8; 53];
+        let mut encoded = [0_u8; 85];
         file.read_exact(&mut encoded)
             .map_err(|_| PairingError::State)?;
         let mut trailing = [0_u8; 1];
@@ -195,11 +204,18 @@ impl DesktopKeyState {
         }
         let desktop_id = encoded[5..21].try_into().map_err(|_| PairingError::State)?;
         let signing_key =
-            SigningKey::from_slice(&encoded[21..]).map_err(|_| PairingError::State)?;
+            SigningKey::from_slice(&encoded[21..53]).map_err(|_| PairingError::State)?;
+        let selection_key =
+            SigningKey::from_slice(&encoded[53..]).map_err(|_| PairingError::State)?;
+        if signing_key.verifying_key() == selection_key.verifying_key() {
+            encoded[21..].fill(0);
+            return Err(PairingError::State);
+        }
         encoded[21..].fill(0);
         Ok(Self {
             desktop_id,
             signing_key,
+            selection_key,
         })
     }
 
@@ -207,22 +223,33 @@ impl DesktopKeyState {
         let mut desktop_id = [0; 16];
         random.fill_bytes(&mut desktop_id);
         let signing_key = SigningKey::random(random);
-        let mut encoded = [0_u8; 53];
+        let selection_key = SigningKey::random(&mut *random);
+        if signing_key.verifying_key() == selection_key.verifying_key() {
+            return Err(PairingError::State);
+        }
+        let mut encoded = [0_u8; 85];
         encoded[..5].copy_from_slice(DESKTOP_KEY_MAGIC);
         encoded[5..21].copy_from_slice(&desktop_id);
-        encoded[21..].copy_from_slice(&signing_key.to_bytes());
+        encoded[21..53].copy_from_slice(&signing_key.to_bytes());
+        encoded[53..].copy_from_slice(&selection_key.to_bytes());
         let result = create_private_file(path, &encoded);
         encoded[21..].fill(0);
         result?;
         Ok(Self {
             desktop_id,
             signing_key,
+            selection_key,
         })
     }
 
     #[must_use]
     pub fn signing_key(&self) -> &SigningKey {
         &self.signing_key
+    }
+
+    #[must_use]
+    pub fn selection_key(&self) -> &SigningKey {
+        &self.selection_key
     }
 }
 
@@ -305,6 +332,7 @@ impl DesktopPairingSession {
         desktop_id: Id,
         desktop_label: String,
         signing_key: &impl P256Signer,
+        desktop_selection_public_key: EncodedPublicKey,
         now_ms: u64,
         random: &mut (impl CryptoRng + RngCore),
     ) -> Result<Self, PairingError> {
@@ -318,6 +346,7 @@ impl DesktopPairingSession {
                 desktop_id,
                 desktop_label,
                 desktop_signing_public_key: public_key,
+                desktop_selection_public_key,
                 nonce,
             },
             signing_key,
@@ -388,6 +417,7 @@ impl DesktopPairingSession {
             identity_id: response.payload.identity_id,
             recipient: response.payload.recipient,
             desktop_signing_public_key: self.offer.payload.desktop_signing_public_key,
+            desktop_selection_public_key: self.offer.payload.desktop_selection_public_key,
             phone_signing_public_key: response.payload.phone_signing_public_key,
             offer_digest: self.offer.digest(),
             transcript_fingerprint: fingerprint,
@@ -477,6 +507,15 @@ mod tests {
         SigningKey::from_bytes((&bytes).into()).unwrap()
     }
 
+    fn selection_public() -> EncodedPublicKey {
+        signing(9)
+            .verifying_key()
+            .to_encoded_point(true)
+            .as_bytes()
+            .try_into()
+            .unwrap()
+    }
+
     fn response(session: &DesktopPairingSession, phone: &SigningKey) -> SignedPairingResponse {
         let identity = SecretKey::random(&mut OsRng);
         SignedPairingResponse::sign(
@@ -510,6 +549,7 @@ mod tests {
             [1; 16],
             "untrusted desktop".into(),
             &desktop,
+            selection_public(),
             100,
             &mut OsRng,
         )
@@ -538,25 +578,53 @@ mod tests {
     fn cancellation_timeout_wrong_device_malformed_and_mismatch_fail_closed() {
         let desktop = signing(1);
         let phone = signing(2);
-        let mut cancelled =
-            DesktopPairingSession::begin([1; 16], "d".into(), &desktop, 10, &mut OsRng).unwrap();
+        let mut cancelled = DesktopPairingSession::begin(
+            [1; 16],
+            "d".into(),
+            &desktop,
+            selection_public(),
+            10,
+            &mut OsRng,
+        )
+        .unwrap();
         cancelled.cancel();
         assert_eq!(
             cancelled.receive_response(&[], 11),
             Err(PairingError::SessionClosed)
         );
 
-        let mut timed =
-            DesktopPairingSession::begin([1; 16], "d".into(), &desktop, 10, &mut OsRng).unwrap();
+        let mut timed = DesktopPairingSession::begin(
+            [1; 16],
+            "d".into(),
+            &desktop,
+            selection_public(),
+            10,
+            &mut OsRng,
+        )
+        .unwrap();
         assert_eq!(
             timed.receive_response(&[], 10 + MAX_PAIRING_SESSION_AGE_MS + 1),
             Err(PairingError::Timeout)
         );
 
-        let mut target =
-            DesktopPairingSession::begin([1; 16], "d".into(), &desktop, 10, &mut OsRng).unwrap();
-        let other = DesktopPairingSession::begin([9; 16], "other".into(), &desktop, 10, &mut OsRng)
-            .unwrap();
+        let mut target = DesktopPairingSession::begin(
+            [1; 16],
+            "d".into(),
+            &desktop,
+            selection_public(),
+            10,
+            &mut OsRng,
+        )
+        .unwrap();
+        let other = DesktopPairingSession::begin(
+            [9; 16],
+            "other".into(),
+            &desktop,
+            selection_public(),
+            10,
+            &mut OsRng,
+        )
+        .unwrap();
         assert_eq!(
             target.receive_response(&response(&other, &phone).encode(), 11),
             Err(PairingError::InvalidResponse)
@@ -566,15 +634,29 @@ mod tests {
             Err(PairingError::SessionClosed)
         );
 
-        let mut malformed =
-            DesktopPairingSession::begin([1; 16], "d".into(), &desktop, 10, &mut OsRng).unwrap();
+        let mut malformed = DesktopPairingSession::begin(
+            [1; 16],
+            "d".into(),
+            &desktop,
+            selection_public(),
+            10,
+            &mut OsRng,
+        )
+        .unwrap();
         assert_eq!(
             malformed.receive_response(&[0xff], 11),
             Err(PairingError::InvalidResponse)
         );
 
-        let mut mismatch =
-            DesktopPairingSession::begin([1; 16], "d".into(), &desktop, 10, &mut OsRng).unwrap();
+        let mut mismatch = DesktopPairingSession::begin(
+            [1; 16],
+            "d".into(),
+            &desktop,
+            selection_public(),
+            10,
+            &mut OsRng,
+        )
+        .unwrap();
         mismatch
             .receive_response(&response(&mismatch, &phone).encode(), 11)
             .unwrap();
@@ -592,8 +674,15 @@ mod tests {
     fn stub_rejects_extra_unknown_and_private_material() {
         let desktop = signing(1);
         let phone = signing(2);
-        let mut session =
-            DesktopPairingSession::begin([1; 16], "d".into(), &desktop, 10, &mut OsRng).unwrap();
+        let mut session = DesktopPairingSession::begin(
+            [1; 16],
+            "d".into(),
+            &desktop,
+            selection_public(),
+            10,
+            &mut OsRng,
+        )
+        .unwrap();
         let display = session
             .receive_response(&response(&session, &phone).encode(), 11)
             .unwrap();
@@ -605,6 +694,12 @@ mod tests {
         assert_eq!(
             PublicIdentityStub::decode(&trailing),
             Err(PairingError::MalformedStub)
+        );
+        let mut old_stub = stub.encode();
+        old_stub[1] = 1;
+        assert_eq!(
+            PublicIdentityStub::decode(&old_stub),
+            Err(PairingError::UnsupportedStub)
         );
         assert!(
             !stub
@@ -638,15 +733,40 @@ mod tests {
             reopened.signing_key.to_bytes()
         );
         assert_eq!(
+            first.selection_key.to_bytes(),
+            reopened.selection_key.to_bytes()
+        );
+        assert_ne!(
+            first.signing_key.verifying_key(),
+            first.selection_key.verifying_key()
+        );
+        assert_eq!(
             std::fs::metadata(&key_path).unwrap().permissions().mode() & 0o777,
             0o600,
         );
+        let old_key_path = root.join("desktop-v1.key");
+        let mut old_state = std::fs::read(&key_path).unwrap();
+        old_state[..5].copy_from_slice(b"APDK1");
+        old_state.truncate(53);
+        create_private_file(&old_key_path, &old_state).unwrap();
+        old_state[21..].fill(0);
+        assert!(matches!(
+            DesktopKeyState::open(&old_key_path),
+            Err(PairingError::State)
+        ));
 
         let phone = signing(2);
         let mut session = DesktopPairingSession::begin(
             first.desktop_id,
             "d".into(),
             first.signing_key(),
+            first
+                .selection_key()
+                .verifying_key()
+                .to_encoded_point(true)
+                .as_bytes()
+                .try_into()
+                .unwrap(),
             10,
             &mut OsRng,
         )
@@ -664,6 +784,7 @@ mod tests {
         );
 
         std::fs::remove_file(identity_path).unwrap();
+        std::fs::remove_file(old_key_path).unwrap();
         std::fs::remove_file(key_path).unwrap();
         std::fs::remove_dir(root).unwrap();
     }
