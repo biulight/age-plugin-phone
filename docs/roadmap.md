@@ -79,15 +79,15 @@
   ECDSA desktop request signing and ECDH private stanza selection.
 - [x] Add platform-neutral P-256 signing and key-agreement operation boundaries plus an isolated
   Microsoft Platform Crypto Provider implementation with no software-provider fallback.
-- [ ] Route production desktop operations through those hardware boundaries and retain software
+- [x] Route production desktop operations through those hardware boundaries and retain software
   keys only for deterministic vectors and tests.
 - [x] Upgrade the experimental pairing transcript, public identity stub, and v2 paired recipient to
   bind the desktop signing and selection public keys independently.
 - [x] Update and cross-check Rust/Kotlin vectors, strictly reject old experimental state, and require
   users to pair again rather than migrate an old pairing.
-- [ ] Implement the Windows locator and replay backend under `%LOCALAPPDATA%` with private ACLs,
+- [x] Implement the Windows locator and replay backend under `%LOCALAPPDATA%` with private ACLs,
   reparse-point and hard-link rejection, exclusive locking, bounded reads, and atomic replacement.
-- [ ] Test copied desktop files, missing or wrong TPM keys, corrupt state, concurrent access, failed
+- [x] Test copied desktop files, missing or wrong TPM keys, corrupt state, concurrent access, failed
   persistence, and restart; every unsupported or ambiguous state must fail closed.
 
 ## Milestone 4: common transport boundary and Windows ADB Alpha

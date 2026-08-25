@@ -5,6 +5,7 @@ members = [
     "crates/protocol",
     "crates/recipient-p256",
     "crates/windows-cng",
+    "crates/windows-storage",
     "plugins/tauri-plugin-phone-identity",
 ]
 resolver = "2"

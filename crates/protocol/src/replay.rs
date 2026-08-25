@@ -1,5 +1,3 @@
-#![cfg_attr(not(unix), allow(dead_code))]
-
 use std::collections::HashSet;
 
 use minicbor::{Decoder, Encoder};
@@ -705,6 +703,161 @@ mod file {
 #[cfg(unix)]
 pub use file::FileReplayGuard;
 
+#[cfg(windows)]
+mod windows_file {
+    use std::{
+        ffi::OsString,
+        path::{Path, PathBuf},
+    };
+
+    use age_plugin_phone_windows_storage::{
+        PrivateLock, atomic_create, atomic_replace, open_private_lock, read_private_file,
+    };
+
+    use super::{ReplayRole, ReplayScope, ReplayState, ReplayStore, validate_capacity};
+    use crate::{Error, Id, ProtocolDigest, ProtocolNonce};
+
+    const MAX_STATE_BYTES: u64 = 1_048_576;
+
+    pub struct FileReplayGuard {
+        path: PathBuf,
+        state: ReplayState,
+        capacity: usize,
+        poisoned: bool,
+        _lock: PrivateLock,
+    }
+
+    impl FileReplayGuard {
+        pub fn create(
+            path: impl AsRef<Path>,
+            scope: ReplayScope,
+            capacity: usize,
+            now_unix: u64,
+        ) -> Result<Self, Error> {
+            validate_capacity(capacity)?;
+            let path = checked_path(path.as_ref())?;
+            let lock = acquire_lock(&path)?;
+            let state = ReplayState::new(scope, now_unix);
+            atomic_create(&path, &state.encode()).map_err(|_| Error::ReplayState)?;
+            Ok(Self {
+                path,
+                state,
+                capacity,
+                poisoned: false,
+                _lock: lock,
+            })
+        }
+
+        pub fn open(
+            path: impl AsRef<Path>,
+            expected_scope: ReplayScope,
+            capacity: usize,
+        ) -> Result<Self, Error> {
+            validate_capacity(capacity)?;
+            let path = checked_path(path.as_ref())?;
+            let lock = acquire_lock(&path)?;
+            let encoded =
+                read_private_file(&path, MAX_STATE_BYTES).map_err(|_| Error::ReplayState)?;
+            let state = ReplayState::decode(&encoded, capacity)?;
+            if state.scope != expected_scope {
+                return Err(Error::ReplayState);
+            }
+            Ok(Self {
+                path,
+                state,
+                capacity,
+                poisoned: false,
+                _lock: lock,
+            })
+        }
+
+        #[must_use]
+        pub const fn scope(&self) -> ReplayScope {
+            self.state.scope
+        }
+
+        fn commit(&mut self, next: ReplayState) -> Result<(), Error> {
+            if self.poisoned {
+                return Err(Error::ReplayState);
+            }
+            if atomic_replace(&self.path, &next.encode()).is_err() {
+                self.poisoned = true;
+                return Err(Error::ReplayState);
+            }
+            self.state = next;
+            Ok(())
+        }
+    }
+
+    impl ReplayStore for FileReplayGuard {
+        fn consume_request(
+            &mut self,
+            desktop_id: Id,
+            identity_id: Id,
+            request_id: Id,
+            nonce: ProtocolNonce,
+            expires_at_unix: u64,
+            now_unix: u64,
+        ) -> Result<(), Error> {
+            if self.poisoned {
+                return Err(Error::ReplayState);
+            }
+            let mut next = self.state.clone();
+            next.consume_request(
+                ReplayScope::new(ReplayRole::PhoneRequests, desktop_id, identity_id),
+                request_id,
+                nonce,
+                expires_at_unix,
+                now_unix,
+                self.capacity,
+            )?;
+            self.commit(next)
+        }
+
+        fn consume_response(
+            &mut self,
+            desktop_id: Id,
+            identity_id: Id,
+            response_digest: ProtocolDigest,
+            expires_at_unix: u64,
+            now_unix: u64,
+        ) -> Result<(), Error> {
+            if self.poisoned {
+                return Err(Error::ReplayState);
+            }
+            let mut next = self.state.clone();
+            next.consume_response(
+                ReplayScope::new(ReplayRole::DesktopResponses, desktop_id, identity_id),
+                response_digest,
+                expires_at_unix,
+                now_unix,
+                self.capacity,
+            )?;
+            self.commit(next)
+        }
+    }
+
+    fn checked_path(path: &Path) -> Result<PathBuf, Error> {
+        if !path.is_absolute() || path.file_name().is_none() {
+            return Err(Error::ReplayState);
+        }
+        Ok(path.to_path_buf())
+    }
+
+    fn acquire_lock(path: &Path) -> Result<PrivateLock, Error> {
+        open_private_lock(&sibling_path(path, ".lock")?).map_err(|_| Error::ReplayState)
+    }
+
+    fn sibling_path(path: &Path, suffix: &str) -> Result<PathBuf, Error> {
+        let mut name = OsString::from(path.file_name().ok_or(Error::ReplayState)?);
+        name.push(suffix);
+        Ok(path.parent().ok_or(Error::ReplayState)?.join(name))
+    }
+}
+
+#[cfg(windows)]
+pub use windows_file::FileReplayGuard;
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1027,6 +1180,116 @@ mod tests {
             reopened
                 .consume_request(DESKTOP, IDENTITY, [1; 16], [2; 32], 110, 100)
                 .unwrap();
+        }
+    }
+
+    #[cfg(windows)]
+    mod windows {
+        use std::{
+            path::PathBuf,
+            sync::atomic::{AtomicU64, Ordering},
+        };
+
+        use age_plugin_phone_windows_storage::ensure_private_directory;
+
+        use super::*;
+        use crate::FileReplayGuard;
+
+        static DIRECTORY_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+        struct TestDirectory(PathBuf);
+
+        impl TestDirectory {
+            fn new() -> Self {
+                let path = PathBuf::from(std::env::var_os("LOCALAPPDATA").unwrap()).join(format!(
+                    "age-plugin-phone-replay-test-{}-{}",
+                    std::process::id(),
+                    DIRECTORY_COUNTER.fetch_add(1, Ordering::Relaxed),
+                ));
+                ensure_private_directory(&path).unwrap();
+                Self(path)
+            }
+
+            fn state_path(&self) -> PathBuf {
+                self.0.join("replay.cbor")
+            }
+        }
+
+        impl Drop for TestDirectory {
+            fn drop(&mut self) {
+                let _ = std::fs::remove_dir_all(&self.0);
+            }
+        }
+
+        #[test]
+        fn state_survives_restart_and_rejects_concurrent_or_wrong_scope() {
+            let directory = TestDirectory::new();
+            let path = directory.state_path();
+            let scope = ReplayScope::new(ReplayRole::DesktopResponses, DESKTOP, IDENTITY);
+            let mut first = FileReplayGuard::create(&path, scope, 2, 100).unwrap();
+            assert_eq!(
+                FileReplayGuard::open(&path, scope, 2).err().unwrap(),
+                Error::ReplayState
+            );
+            first
+                .consume_response(DESKTOP, IDENTITY, [5; 32], 110, 100)
+                .unwrap();
+            drop(first);
+
+            let mut reopened = FileReplayGuard::open(&path, scope, 2).unwrap();
+            assert_eq!(
+                reopened
+                    .consume_response(DESKTOP, IDENTITY, [5; 32], 110, 100)
+                    .unwrap_err(),
+                Error::Replay
+            );
+            drop(reopened);
+            let wrong = ReplayScope::new(ReplayRole::DesktopResponses, [9; 16], IDENTITY);
+            assert_eq!(
+                FileReplayGuard::open(&path, wrong, 2).err().unwrap(),
+                Error::ReplayState
+            );
+        }
+
+        #[test]
+        fn missing_corrupt_and_hard_linked_state_fail_closed() {
+            let directory = TestDirectory::new();
+            let path = directory.state_path();
+            let alias = directory.0.join("alias.cbor");
+            let scope = ReplayScope::new(ReplayRole::DesktopResponses, DESKTOP, IDENTITY);
+            assert!(FileReplayGuard::open(&path, scope, 1).is_err());
+
+            drop(FileReplayGuard::create(&path, scope, 1, 100).unwrap());
+            std::fs::write(&path, [0xff]).unwrap();
+            assert!(FileReplayGuard::open(&path, scope, 1).is_err());
+
+            std::fs::remove_file(&path).unwrap();
+            drop(FileReplayGuard::create(&path, scope, 1, 100).unwrap());
+            std::fs::hard_link(&path, &alias).unwrap();
+            assert!(FileReplayGuard::open(&path, scope, 1).is_err());
+        }
+
+        #[test]
+        fn failed_replacement_poisons_guard_without_consuming_in_memory() {
+            let directory = TestDirectory::new();
+            let path = directory.state_path();
+            let scope = ReplayScope::new(ReplayRole::DesktopResponses, DESKTOP, IDENTITY);
+            let mut guard = FileReplayGuard::create(&path, scope, 1, 100).unwrap();
+            std::fs::remove_file(&path).unwrap();
+            ensure_private_directory(&path).unwrap();
+            assert_eq!(
+                guard
+                    .consume_response(DESKTOP, IDENTITY, [7; 32], 110, 100)
+                    .unwrap_err(),
+                Error::ReplayState
+            );
+            std::fs::remove_dir(&path).unwrap();
+            assert_eq!(
+                guard
+                    .consume_response(DESKTOP, IDENTITY, [7; 32], 110, 100)
+                    .unwrap_err(),
+                Error::ReplayState
+            );
         }
     }
 }

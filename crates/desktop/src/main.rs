@@ -8,7 +8,7 @@ use std::{
 use age_plugin::{PluginHandler, run_state_machine};
 use age_plugin_phone::age_identity::PhoneIdentityPlugin;
 use age_plugin_phone::age_recipient::PhoneRecipientPlugin;
-use age_plugin_phone::locator::{create_pairing_locator, default_config_root};
+use age_plugin_phone::locator::{create_pairing_locator, default_config_root, prepare_config_root};
 use age_plugin_phone::pairing::{
     DesktopKeyState, DesktopPairingSession, MAX_PAIRING_SESSION_AGE_MS, create_identity_stub_file,
     read_identity_stub_file,
@@ -162,13 +162,24 @@ fn run_pair(
     replay_state: &std::path::Path,
 ) -> io::Result<()> {
     ensure_pairing_outputs_available(identity_output, replay_state)?;
+    let config_root = default_config_root()
+        .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
+    prepare_config_root(&config_root)
+        .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
+    #[cfg(windows)]
+    {
+        ensure_windows_private_state_path(&config_root, desktop_state)?;
+        ensure_windows_private_state_path(&config_root, replay_state)?;
+    }
     let state = DesktopKeyState::open_or_create(desktop_state, &mut OsRng)
         .map_err(|_| io::Error::other("desktop authentication state is unavailable"))?;
-    let selection_public = encoded_public_key(state.selection_key())?;
+    let selection_public = state
+        .selection_public_key()
+        .map_err(|_| io::Error::other("desktop selection key is unavailable"))?;
     let mut session = DesktopPairingSession::begin(
         state.desktop_id,
         label,
-        state.signing_key(),
+        state.signer(),
         selection_public,
         0,
         &mut OsRng,
@@ -243,19 +254,36 @@ fn run_pair(
         now_unix().map_err(|_| io::Error::other("system clock is unavailable"))?,
     )
     .map_err(|_| io::Error::other("failed to create durable response replay state"))?;
-    let locator_path = create_pairing_locator(
-        &default_config_root()
-            .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?,
-        &stub,
-        desktop_state,
-        replay_state,
-    )
-    .map_err(|_| io::Error::other("failed to create private pairing locator"))?;
+    let locator_path = create_pairing_locator(&config_root, &stub, desktop_state, replay_state)
+        .map_err(|_| io::Error::other("failed to create private pairing locator"))?;
     if create_identity_stub_file(identity_output, &stub).is_err() {
         let _ = std::fs::remove_file(locator_path);
         return Err(io::Error::other("failed to create public identity stub"));
     }
     print_pairing_outputs(identity_output, &stub)
+}
+
+#[cfg(windows)]
+fn ensure_windows_private_state_path(
+    root: &std::path::Path,
+    path: &std::path::Path,
+) -> io::Result<()> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| io::Error::other("private state path is unavailable"))?;
+    let root = root
+        .canonicalize()
+        .map_err(|_| io::Error::other("private configuration root is unavailable"))?;
+    let parent = parent
+        .canonicalize()
+        .map_err(|_| io::Error::other("private state parent is unavailable"))?;
+    if !path.is_absolute() || parent != root || path.file_name().is_none() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "Windows private state must be directly under the selected private configuration root",
+        ));
+    }
+    Ok(())
 }
 
 fn print_pairing_outputs(

@@ -56,6 +56,8 @@ dependencies = [
  "age-plugin",
  "age-plugin-phone-protocol",
  "age-plugin-phone-recipient-p256",
+ "age-plugin-phone-windows-cng",
+ "age-plugin-phone-windows-storage",
  "base64 0.22.1",
  "bech32",
  "clap",
@@ -85,6 +87,7 @@ name = "age-plugin-phone-protocol"
 version = "0.0.1"
 dependencies = [
  "age-plugin-phone-recipient-p256",
+ "age-plugin-phone-windows-storage",
  "base64 0.22.1",
  "chacha20poly1305",
  "hkdf",
@@ -127,6 +130,14 @@ dependencies = [
  "thiserror 2.0.20",
  "windows-sys 0.61.2",
  "zeroize",
+]
+
+[[package]]
+name = "age-plugin-phone-windows-storage"
+version = "0.0.1"
+dependencies = [
+ "thiserror 2.0.20",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

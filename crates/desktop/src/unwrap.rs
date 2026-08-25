@@ -53,14 +53,15 @@ impl DesktopUnwrapSession {
         now_unix: u64,
         random: &mut (impl CryptoRng + RngCore),
     ) -> Result<Self, UnwrapError> {
-        let desktop_public = desktop.signing_key().verifying_key().to_encoded_point(true);
-        let selection_public = desktop
-            .selection_key()
-            .verifying_key()
-            .to_encoded_point(true);
         if desktop.desktop_id != stub.desktop_id
-            || desktop_public.as_bytes() != stub.desktop_signing_public_key
-            || selection_public.as_bytes() != stub.desktop_selection_public_key
+            || desktop
+                .signing_public_key()
+                .map_err(|_| UnwrapError::WrongDesktopState)?
+                != stub.desktop_signing_public_key
+            || desktop
+                .selection_public_key()
+                .map_err(|_| UnwrapError::WrongDesktopState)?
+                != stub.desktop_selection_public_key
         {
             return Err(UnwrapError::WrongDesktopState);
         }
@@ -91,7 +92,7 @@ impl DesktopUnwrapSession {
                 expires_at_unix: now_unix.saturating_add(MAX_REQUEST_LIFETIME_SECS),
                 caller_hint,
             },
-            desktop.signing_key(),
+            desktop.signer(),
             &pairing,
             now_unix,
         )
@@ -162,7 +163,7 @@ fn hex(bytes: &[u8]) -> String {
         })
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(windows)))]
 mod tests {
     use super::*;
     use age_plugin_phone_protocol::{

@@ -31,6 +31,8 @@ nokhwa = { workspace = true, features = ["input-avfoundation"] }
 nokhwa = { workspace = true, features = ["input-v4l"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
+age-plugin-phone-windows-cng = { path = "../windows-cng" }
+age-plugin-phone-windows-storage = { path = "../windows-storage" }
 nokhwa = { workspace = true, features = ["input-msmf"] }
 
 

@@ -1,6 +1,6 @@
 # ADR 0013: Windows CNG key-operation boundaries
 
-- Status: implemented and TPM-validated; not integrated with the experimental wire protocol
+- Status: implemented, TPM-validated, and integrated with desktop protocol version 2
 - Date: 2026-08-25
 - Scope: desktop signing and private-selection key custody on Windows 11 x64
 
@@ -35,10 +35,12 @@ The `age-plugin-phone-windows-cng` crate is the only desktop CNG FFI boundary. I
 Key names contain only the desktop identifier and fixed role suffixes. Caller labels and protocol
 payloads never enter a key name, Windows property, file, shell argument, or log.
 
-The existing version 1 desktop state is not migrated. The CNG key set is deliberately not wired to
-pairing or unwrap until the new transcript, public stub, paired recipient, locator, and replay state
-all bind both public roles and reject version 1 state atomically. Existing Windows pairing remains
-fail-closed rather than falling back to a file private key.
+The existing version 1 desktop state is not migrated. On Windows, production pairing, private v2
+stanza selection, and request signing now use this operation boundary. The only desktop key file is
+an ACL-protected `APTM2` record containing the random desktop identifier used to locate the two CNG
+keys; it contains no scalar. Opening an existing pairing never provisions missing TPM keys. A
+missing, partial, wrong, exportable, or unavailable key set fails closed without a software or
+DPAPI fallback.
 
 ## Consequences
 
@@ -46,7 +48,8 @@ fail-closed rather than falling back to a file private key.
 - Deterministic vectors can continue using software keys through the same operation boundaries.
 - A TPM-backed signer cannot accidentally be used for private selection because CNG provisions
   different algorithm-specific handles.
-- This slice does not yet make Windows pairing usable and does not change the wire version.
+- The same portable software implementation remains available only on non-Windows prototypes,
+  deterministic vectors, and tests; Windows production paths cannot select it.
 - Partial provisioning requires explicit cleanup or repair work; it is never silently completed on
   a later open.
 

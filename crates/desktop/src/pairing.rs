@@ -6,22 +6,26 @@ use age_plugin_phone_protocol::{
     ALGORITHM_SUITE, EncodedPublicKey, Id, P256Signer, PairingOffer, ProtocolDigest, ProtocolNonce,
     SignedPairingOffer, SignedPairingResponse, pairing_fingerprint,
 };
-use age_plugin_phone_recipient_p256::{PLUGIN_NAME, PairedRecipient, Recipient};
+use age_plugin_phone_recipient_p256::{P256KeyAgreement, PLUGIN_NAME, PairedRecipient, Recipient};
 use bech32::{FromBase32 as _, ToBase32 as _, Variant};
 use minicbor::{Decoder, Encoder};
+#[cfg(not(windows))]
 use p256::ecdsa::SigningKey;
 use rand_core::{CryptoRng, RngCore};
-use std::{
-    fs::{File, OpenOptions},
-    io::{Read as _, Write as _},
-    path::Path,
-};
+#[cfg(not(windows))]
+use std::fs::File;
+#[cfg(not(windows))]
+use std::io::Read as _;
+use std::{fs::OpenOptions, io::Write as _, path::Path};
 use thiserror::Error;
 
 /// Pairing sessions are deliberately short lived and never resume after a terminal action.
 pub const MAX_PAIRING_SESSION_AGE_MS: u64 = 5 * 60 * 1_000;
 const STUB_VERSION: u16 = 2;
+#[cfg(not(windows))]
 const DESKTOP_KEY_MAGIC: &[u8; 5] = b"APDK2";
+#[cfg(windows)]
+const DESKTOP_TPM_STATE_MAGIC: &[u8; 5] = b"APTM2";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PublicIdentityStub {
@@ -166,12 +170,14 @@ pub struct PairingDisplay {
 }
 
 /// Persistent desktop authentication state. This is role-separated from the phone age identity.
+#[cfg(not(windows))]
 pub struct DesktopKeyState {
     pub desktop_id: Id,
     signing_key: SigningKey,
     selection_key: SigningKey,
 }
 
+#[cfg(not(windows))]
 impl DesktopKeyState {
     pub fn open_or_create(
         path: &Path,
@@ -250,6 +256,99 @@ impl DesktopKeyState {
     #[must_use]
     pub fn selection_key(&self) -> &SigningKey {
         &self.selection_key
+    }
+
+    #[must_use]
+    pub fn signer(&self) -> &dyn P256Signer {
+        &self.signing_key
+    }
+
+    #[must_use]
+    pub fn agreement(&self) -> &dyn P256KeyAgreement {
+        &self.selection_key
+    }
+
+    pub fn signing_public_key(&self) -> Result<EncodedPublicKey, PairingError> {
+        self.signer().public_key().map_err(|_| PairingError::State)
+    }
+
+    pub fn selection_public_key(&self) -> Result<EncodedPublicKey, PairingError> {
+        self.agreement()
+            .public_key()
+            .map_err(|_| PairingError::State)
+    }
+}
+
+/// Windows stores only this public desktop identifier in the filesystem. Both private operations
+/// stay behind non-exportable Microsoft Platform Crypto Provider handles.
+#[cfg(windows)]
+pub struct DesktopKeyState {
+    pub desktop_id: Id,
+    keys: age_plugin_phone_windows_cng::WindowsCngKeySet,
+}
+
+#[cfg(windows)]
+impl DesktopKeyState {
+    pub fn open_or_create(
+        path: &Path,
+        random: &mut (impl CryptoRng + RngCore),
+    ) -> Result<Self, PairingError> {
+        match Self::open(path) {
+            Ok(value) => Ok(value),
+            Err(PairingError::StateMissing) => {
+                let mut desktop_id = [0_u8; 16];
+                random.fill_bytes(&mut desktop_id);
+                let mut encoded = [0_u8; 21];
+                encoded[..5].copy_from_slice(DESKTOP_TPM_STATE_MAGIC);
+                encoded[5..].copy_from_slice(&desktop_id);
+                age_plugin_phone_windows_storage::atomic_create(path, &encoded)
+                    .map_err(|_| PairingError::State)?;
+                let keys =
+                    age_plugin_phone_windows_cng::WindowsCngKeySet::open_or_create(desktop_id)
+                        .map_err(|_| PairingError::State)?;
+                Ok(Self { desktop_id, keys })
+            }
+            Err(error) => Err(error),
+        }
+    }
+
+    pub fn open(path: &Path) -> Result<Self, PairingError> {
+        let encoded =
+            age_plugin_phone_windows_storage::read_private_file(path, 21).map_err(|error| {
+                match error {
+                    age_plugin_phone_windows_storage::Error::Missing => PairingError::StateMissing,
+                    _ => PairingError::State,
+                }
+            })?;
+        if encoded.len() != 21 || &encoded[..5] != DESKTOP_TPM_STATE_MAGIC {
+            return Err(PairingError::State);
+        }
+        let desktop_id = encoded[5..].try_into().map_err(|_| PairingError::State)?;
+        let keys = age_plugin_phone_windows_cng::WindowsCngKeySet::open(desktop_id)
+            .map_err(|_| PairingError::State)?;
+        Ok(Self { desktop_id, keys })
+    }
+
+    #[must_use]
+    pub fn signer(&self) -> &dyn P256Signer {
+        &self.keys
+    }
+
+    #[must_use]
+    pub fn agreement(&self) -> &dyn P256KeyAgreement {
+        &self.keys
+    }
+
+    pub fn signing_public_key(&self) -> Result<EncodedPublicKey, PairingError> {
+        self.keys
+            .signing_public_key()
+            .map_err(|_| PairingError::State)
+    }
+
+    pub fn selection_public_key(&self) -> Result<EncodedPublicKey, PairingError> {
+        self.keys
+            .selection_public_key()
+            .map_err(|_| PairingError::State)
     }
 }
 
@@ -331,7 +430,7 @@ impl DesktopPairingSession {
     pub fn begin(
         desktop_id: Id,
         desktop_label: String,
-        signing_key: &impl P256Signer,
+        signing_key: &(impl P256Signer + ?Sized),
         desktop_selection_public_key: EncodedPublicKey,
         now_ms: u64,
         random: &mut (impl CryptoRng + RngCore),
@@ -471,7 +570,7 @@ fn create_private_file(path: &Path, bytes: &[u8]) -> Result<(), PairingError> {
     validate_private_file(&file)
 }
 
-#[cfg(not(unix))]
+#[cfg(not(any(unix, windows)))]
 fn create_private_file(_path: &Path, _bytes: &[u8]) -> Result<(), PairingError> {
     Err(PairingError::State)
 }
@@ -489,12 +588,12 @@ fn validate_private_file(file: &File) -> Result<(), PairingError> {
     Ok(())
 }
 
-#[cfg(not(unix))]
+#[cfg(not(any(unix, windows)))]
 fn validate_private_file(_file: &File) -> Result<(), PairingError> {
     Err(PairingError::State)
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(windows)))]
 mod tests {
     use super::*;
     use age_plugin_phone_protocol::{PairingResponse, SignedPairingResponse};

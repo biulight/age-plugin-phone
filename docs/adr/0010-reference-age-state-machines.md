@@ -20,6 +20,10 @@ state. Locator files are mode `0600`, live under a mode `0700` directory, reject
 links, are never overwritten, and are treated only as locators: the referenced cryptographic state
 must still match the public identity stub.
 
+On Windows the equivalent locator and replay boundary uses a protected current-user-only ACL under
+`%LOCALAPPDATA%\age-plugin-phone`, rejects reparse points and hard links, and uses the locking and
+atomic replacement rules in [`ADR 0015`](0015-windows-private-storage.md).
+
 The configuration directory defaults to the platform user configuration location. The
 `AGE_PLUGIN_PHONE_CONFIG_DIR` override must be absolute and is intended for isolated installations
 and tests; it does not weaken any cryptographic binding.

@@ -68,6 +68,12 @@ the platform configuration directory so the public identity stub contains no pri
 `AGE_PLUGIN_PHONE_CONFIG_DIR` to the same absolute directory for pairing and age invocations only
 when an isolated non-default location is required.
 
+On Windows, the configuration directory is `%LOCALAPPDATA%\age-plugin-phone`. Pairing requires the
+`--desktop-state` and `--replay-state` paths to be direct children of that directory. The desktop
+state contains only a TPM key locator ID: signing and private stanza selection use distinct,
+non-exportable P-256 keys in Microsoft Platform Crypto Provider, with no software or DPAPI fallback.
+Locator, metadata, replay, temporary, and lock files use protected current-user ACLs.
+
 ## Design goals
 
 - No server, account, cloud rendezvous, or online authorization dependency.
@@ -90,6 +96,9 @@ Start with the [Android StrongBox PoC](docs/android-strongbox-poc.md), then read
 [reference age integration ADR](docs/adr/0010-reference-age-state-machines.md),
 [desktop-native scanner ADR](docs/adr/0011-desktop-native-qr-scanner.md),
 [private stanza selection ADR](docs/adr/0012-private-stanza-selection.md),
+[Windows CNG boundary ADR](docs/adr/0013-windows-cng-key-boundaries.md),
+[split desktop-key protocol ADR](docs/adr/0014-split-desktop-key-protocol-v2.md),
+[Windows private storage ADR](docs/adr/0015-windows-private-storage.md),
 [protocol draft](docs/protocol.md), and [threat model](docs/threat-model.md) before implementing a
 transport or cryptographic backend.
 

@@ -57,6 +57,22 @@ pub struct WindowsCngKeySet {
 }
 
 impl WindowsCngKeySet {
+    /// Opens an existing complete key pair without provisioning missing keys.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if either or both TPM keys are missing, partial, or insecure.
+    pub fn open(desktop_id: [u8; 16]) -> Result<Self, Error> {
+        let provider = open_provider()?;
+        let (signing_name, selection_name) = key_names(desktop_id);
+        let signing = open_key(provider.raw(), &signing_name)?;
+        let selection = open_key(provider.raw(), &selection_name)?;
+        let (Some(signing), Some(selection)) = (signing, selection) else {
+            return Err(Error::PartialState);
+        };
+        Self::validate(provider, signing, selection)
+    }
+
     /// Opens an existing pair or provisions both keys when neither exists.
     ///
     /// # Errors
@@ -87,6 +103,14 @@ impl WindowsCngKeySet {
                 return Err(Error::PartialState);
             }
         };
+        Self::validate(provider, signing, selection)
+    }
+
+    fn validate(
+        provider: OwnedHandle,
+        signing: OwnedHandle,
+        selection: OwnedHandle,
+    ) -> Result<Self, Error> {
         validate_non_exportable(signing.raw())?;
         validate_non_exportable(selection.raw())?;
         let value = Self {
@@ -419,6 +443,10 @@ mod tests {
     fn provisions_distinct_non_exportable_keys_and_reopens_them() {
         let id = unique_id();
         let _cleanup = Cleanup(id);
+        assert_eq!(
+            WindowsCngKeySet::open(id).err().unwrap(),
+            Error::PartialState
+        );
         let keys = WindowsCngKeySet::open_or_create(id).unwrap();
         let signing_public = keys.signing_public_key().unwrap();
         let selection_public = keys.selection_public_key().unwrap();
@@ -450,5 +478,31 @@ mod tests {
         assert_eq!(reopened.signing_public_key().unwrap(), signing_public);
         assert_eq!(reopened.selection_public_key().unwrap(), selection_public);
         drop(reopened);
+
+        let wrong_id = unique_id();
+        let _wrong_cleanup = Cleanup(wrong_id);
+        assert_eq!(
+            WindowsCngKeySet::open(wrong_id).err().unwrap(),
+            Error::PartialState
+        );
+    }
+
+    #[test]
+    fn partial_key_pair_fails_closed_without_repair() {
+        let id = unique_id();
+        let _cleanup = Cleanup(id);
+        let provider = open_provider().unwrap();
+        let (signing_name, _) = key_names(id);
+        let signing =
+            create_key(provider.raw(), &signing_name, NCRYPT_ECDSA_P256_ALGORITHM).unwrap();
+        drop(signing);
+        assert_eq!(
+            WindowsCngKeySet::open_or_create(id).err().unwrap(),
+            Error::PartialState
+        );
+        assert_eq!(
+            WindowsCngKeySet::open(id).err().unwrap(),
+            Error::PartialState
+        );
     }
 }

@@ -69,12 +69,12 @@ evicted to make room.
 
 ### Platform boundary
 
-The initial file backend targets Unix-family app-private storage, including Android and the first
-desktop prototype. Its advisory lock and filesystem durability assumptions must be re-evaluated for
-each platform filesystem. Mobile integration must place the file in non-backed-up app-private
-storage. Restoring or replacing replay state independently of pairing state is unsupported. Android
-implements that lifecycle by embedding request-replay entries in the pairing record's atomic
-storage unit; see [ADR 0004](0004-android-pairing-state.md).
+The Unix file backend targets Unix-family app-private storage. Windows uses the separate ACL,
+zero-share-mode lock, reparse/hard-link validation, and write-through replacement boundary in
+[ADR 0015](0015-windows-private-storage.md). Mobile integration must place state in non-backed-up
+app-private storage. Restoring or replacing replay state independently of pairing state is
+unsupported. Android implements that lifecycle by embedding request-replay entries in the pairing
+record's atomic storage unit; see [ADR 0004](0004-android-pairing-state.md).
 
 An in-memory guard remains available only for deterministic tests. It does not satisfy this ADR.
 

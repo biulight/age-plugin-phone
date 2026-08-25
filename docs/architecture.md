@@ -56,8 +56,10 @@ recorded in [`ADR 0002`](adr/0002-experimental-offline-envelope.md). The protoco
 logic; transports carry opaque canonical bytes and do not redefine authentication or key binding.
 
 Durable replay consumption is specified in
-[`ADR 0003`](adr/0003-persistent-replay-state.md). The protocol crate provides a scoped, bounded,
-atomically replaced Unix file backend; the in-memory guard is test-only.
+[`ADR 0003`](adr/0003-persistent-replay-state.md). The protocol crate provides scoped, bounded,
+atomically replaced Unix and Windows file backends; the in-memory guard is test-only. Windows
+locator, TPM metadata, ACL, locking, and replacement rules are specified by
+[`ADR 0015`](adr/0015-windows-private-storage.md).
 
 Android binds each public pairing record and its request-replay scope into one canonical state file
 under `Context.noBackupFilesDir`, as specified in
@@ -117,6 +119,12 @@ pairing state to version 2. The signed offer, transcript fingerprint, public ide
 paired recipient now bind distinct desktop signing and selection public keys. Version 1 messages,
 stubs, desktop key files, locators, replay files, and Android pairing state are rejected rather than
 migrated; users must pair again.
+
+On Windows, production pairing and unwrap open the distinct CNG keys through operation traits;
+software scalars are not compiled into that desktop state path. Private locator, public TPM-key
+metadata, and response replay state live under `%LOCALAPPDATA%\age-plugin-phone` with protected
+current-user ACLs. Missing or copied TPM keys, insecure files, concurrent replay owners, corrupt
+state, and failed replacement all fail closed.
 
 ## Transport strategy
 

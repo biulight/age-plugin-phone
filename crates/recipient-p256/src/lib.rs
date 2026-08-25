@@ -460,7 +460,7 @@ pub fn unwrap_file_key(
 /// Authentication failure is a non-match and returns `Ok(false)`.
 pub fn matches_stanza_v2(
     recipient: &PairedRecipient,
-    desktop_selection_private: &impl P256KeyAgreement,
+    desktop_selection_private: &(impl P256KeyAgreement + ?Sized),
     stanza: &TaggedStanza,
 ) -> Result<bool, Error> {
     if desktop_selection_private.public_key()? != recipient.desktop_selection_public_key() {

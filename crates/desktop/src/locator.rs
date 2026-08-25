@@ -2,11 +2,11 @@
 
 #![allow(clippy::missing_errors_doc)]
 
-use std::{
-    fs::{File, OpenOptions},
-    io::{Read as _, Write as _},
-    path::{Path, PathBuf},
-};
+#[cfg(not(windows))]
+use std::fs::File;
+use std::path::{Path, PathBuf};
+#[cfg(unix)]
+use std::{fs::OpenOptions, io::Write as _};
 
 use minicbor::{Decoder, Encoder};
 use thiserror::Error;
@@ -45,6 +45,13 @@ pub fn default_config_root() -> Result<PathBuf, LocatorError> {
             .then_some(path)
             .ok_or(LocatorError::Config);
     }
+    #[cfg(windows)]
+    return std::env::var_os("LOCALAPPDATA")
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute())
+        .map(|path| path.join("age-plugin-phone"))
+        .ok_or(LocatorError::Config);
+    #[cfg(not(windows))]
     let home = std::env::var_os("HOME")
         .map(PathBuf::from)
         .filter(|path| path.is_absolute())
@@ -54,7 +61,7 @@ pub fn default_config_root() -> Result<PathBuf, LocatorError> {
         .join("Library")
         .join("Application Support")
         .join("age-plugin-phone"));
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(all(not(target_os = "macos"), not(windows)))]
     {
         Ok(std::env::var_os("XDG_CONFIG_HOME")
             .map(PathBuf::from)
@@ -62,6 +69,11 @@ pub fn default_config_root() -> Result<PathBuf, LocatorError> {
             .unwrap_or_else(|| home.join(".config"))
             .join("age-plugin-phone"))
     }
+}
+
+/// Creates the platform-private configuration root or validates an existing one.
+pub fn prepare_config_root(root: &Path) -> Result<PathBuf, LocatorError> {
+    prepare_directory(root)
 }
 
 pub fn create_pairing_locator(
@@ -78,6 +90,7 @@ pub fn create_pairing_locator(
     };
     let encoded = encode(stub, &locator)?;
     create_private_file(&path, &encoded)?;
+    #[cfg(not(windows))]
     sync_directory(&directory)?;
     Ok(path)
 }
@@ -88,8 +101,15 @@ pub fn open_pairing_locator(
 ) -> Result<PairingLocator, LocatorError> {
     let directory = checked_directory(root)?;
     let path = directory.join(locator_name(stub));
-    reject_symlink(&path)?;
-    let file = File::open(&path).map_err(|error| {
+    let bytes = read_locator_file(&path)?;
+    decode(stub, &bytes)
+}
+
+#[cfg(unix)]
+fn read_locator_file(path: &Path) -> Result<Vec<u8>, LocatorError> {
+    use std::io::Read as _;
+    reject_symlink(path)?;
+    let file = File::open(path).map_err(|error| {
         if error.kind() == std::io::ErrorKind::NotFound {
             LocatorError::Missing
         } else {
@@ -107,7 +127,22 @@ pub fn open_pairing_locator(
     if bytes.is_empty() || u64::try_from(bytes.len()).unwrap_or(u64::MAX) > MAX_LOCATOR_BYTES {
         return Err(LocatorError::Invalid);
     }
-    decode(stub, &bytes)
+    Ok(bytes)
+}
+
+#[cfg(windows)]
+fn read_locator_file(path: &Path) -> Result<Vec<u8>, LocatorError> {
+    age_plugin_phone_windows_storage::read_private_file(path, MAX_LOCATOR_BYTES).map_err(|error| {
+        match error {
+            age_plugin_phone_windows_storage::Error::Missing => LocatorError::Missing,
+            _ => LocatorError::Invalid,
+        }
+    })
+}
+
+#[cfg(not(any(unix, windows)))]
+fn read_locator_file(_path: &Path) -> Result<Vec<u8>, LocatorError> {
+    Err(LocatorError::Invalid)
 }
 
 fn encode(stub: &PublicIdentityStub, locator: &PairingLocator) -> Result<Vec<u8>, LocatorError> {
@@ -192,8 +227,16 @@ fn prepare_directory(root: &Path) -> Result<PathBuf, LocatorError> {
 }
 
 #[cfg(not(unix))]
+#[cfg(not(windows))]
 fn prepare_directory(_root: &Path) -> Result<PathBuf, LocatorError> {
     Err(LocatorError::Config)
+}
+
+#[cfg(windows)]
+fn prepare_directory(root: &Path) -> Result<PathBuf, LocatorError> {
+    age_plugin_phone_windows_storage::ensure_private_directory(root)
+        .map_err(|_| LocatorError::Config)?;
+    checked_directory(root)
 }
 
 #[cfg(unix)]
@@ -208,8 +251,16 @@ fn checked_directory(root: &Path) -> Result<PathBuf, LocatorError> {
 }
 
 #[cfg(not(unix))]
+#[cfg(not(windows))]
 fn checked_directory(_root: &Path) -> Result<PathBuf, LocatorError> {
     Err(LocatorError::Config)
+}
+
+#[cfg(windows)]
+fn checked_directory(root: &Path) -> Result<PathBuf, LocatorError> {
+    age_plugin_phone_windows_storage::validate_private_directory(root)
+        .map_err(|_| LocatorError::Config)?;
+    Ok(root.to_path_buf())
 }
 
 #[cfg(unix)]
@@ -236,8 +287,17 @@ fn create_private_file(path: &Path, bytes: &[u8]) -> Result<(), LocatorError> {
 }
 
 #[cfg(not(unix))]
+#[cfg(not(windows))]
 fn create_private_file(_path: &Path, _bytes: &[u8]) -> Result<(), LocatorError> {
     Err(LocatorError::Storage)
+}
+
+#[cfg(windows)]
+fn create_private_file(path: &Path, bytes: &[u8]) -> Result<(), LocatorError> {
+    age_plugin_phone_windows_storage::atomic_create(path, bytes).map_err(|error| match error {
+        age_plugin_phone_windows_storage::Error::AlreadyExists => LocatorError::AlreadyExists,
+        _ => LocatorError::Storage,
+    })
 }
 
 #[cfg(unix)]
@@ -250,11 +310,7 @@ fn validate_private_file(file: &File) -> Result<(), LocatorError> {
     Ok(())
 }
 
-#[cfg(not(unix))]
-fn validate_private_file(_file: &File) -> Result<(), LocatorError> {
-    Err(LocatorError::Invalid)
-}
-
+#[cfg(unix)]
 fn reject_symlink(path: &Path) -> Result<(), LocatorError> {
     match std::fs::symlink_metadata(path) {
         Ok(metadata) if metadata.file_type().is_symlink() => Err(LocatorError::Invalid),
@@ -264,6 +320,7 @@ fn reject_symlink(path: &Path) -> Result<(), LocatorError> {
     }
 }
 
+#[cfg(not(windows))]
 fn sync_directory(path: &Path) -> Result<(), LocatorError> {
     File::open(path)
         .and_then(|directory| directory.sync_all())
@@ -280,7 +337,7 @@ fn hex(bytes: &[u8]) -> String {
         })
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
     use crate::pairing::DesktopKeyState;

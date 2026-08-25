@@ -34,7 +34,7 @@ pub struct PhoneIdentityPlugin {
 }
 
 impl PhoneIdentityPlugin {
-    #[cfg(test)]
+    #[cfg(all(test, not(windows)))]
     fn with_config_root(config_root: PathBuf) -> Self {
         Self {
             identities: Vec::new(),
@@ -323,11 +323,7 @@ fn select_candidate<'a>(
     let mut selected = None;
     'identities: for (opened_position, identity) in opened.iter().enumerate() {
         for (candidate_position, (_, stanza)) in candidates.iter().enumerate() {
-            match matches_stanza_v2(
-                &identity.recipient,
-                identity.desktop.selection_key(),
-                stanza,
-            ) {
+            match matches_stanza_v2(&identity.recipient, identity.desktop.agreement(), stanza) {
                 Ok(true) => {
                     selected = Some((opened_position, candidate_position));
                     break 'identities;
@@ -443,7 +439,7 @@ fn internal(message: &str) -> identity::Error {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(windows)))]
 mod tests {
     use super::*;
     use crate::{

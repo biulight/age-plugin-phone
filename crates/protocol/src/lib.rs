@@ -27,7 +27,7 @@ pub use qr::{
     DEFAULT_QR_CHUNK_BYTES, EncodedQrFrame, MAX_QR_ASSEMBLY_AGE_MS, MAX_QR_FRAGMENTS,
     MAX_QR_MESSAGE_BYTES, QrAssemblyStatus, QrError, QrReassembler, fragment_qr_message,
 };
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 pub use replay::FileReplayGuard;
 pub use replay::{DEFAULT_REPLAY_CAPACITY, ReplayGuard, ReplayRole, ReplayScope, ReplayStore};
 
@@ -206,7 +206,7 @@ pub struct VerifiedRequest {
 }
 
 impl SignedPairingOffer {
-    pub fn sign(payload: PairingOffer, key: &impl P256Signer) -> Result<Self, Error> {
+    pub fn sign(payload: PairingOffer, key: &(impl P256Signer + ?Sized)) -> Result<Self, Error> {
         label(&payload.desktop_label)?;
         if key.public_key()? != payload.desktop_signing_public_key {
             return Err(Error::InvalidPublicKey);
@@ -251,7 +251,7 @@ impl SignedPairingOffer {
 }
 
 impl SignedPairingResponse {
-    pub fn sign(payload: PairingResponse, key: &impl P256Signer) -> Result<Self, Error> {
+    pub fn sign(payload: PairingResponse, key: &(impl P256Signer + ?Sized)) -> Result<Self, Error> {
         validate_pairing_response(&payload)?;
         if key.public_key()? != payload.phone_signing_public_key {
             return Err(Error::InvalidPublicKey);
@@ -298,7 +298,7 @@ pub fn pairing_fingerprint(
 }
 
 impl SignedUnwrapRequest {
-    pub fn sign(payload: UnwrapRequest, key: &impl P256Signer) -> Result<Self, Error> {
+    pub fn sign(payload: UnwrapRequest, key: &(impl P256Signer + ?Sized)) -> Result<Self, Error> {
         validate_request(&payload)?;
         let signature = sign(key, REQUEST_SIG, &encode_request(&payload))?;
         Ok(Self { payload, signature })
@@ -323,7 +323,7 @@ impl SignedUnwrapRequest {
 /// authorization.
 pub fn create_request(
     payload: UnwrapRequest,
-    signing_key: &impl P256Signer,
+    signing_key: &(impl P256Signer + ?Sized),
     pairing: &PairingRecord,
     now: u64,
 ) -> Result<VerifiedRequest, Error> {
@@ -432,7 +432,7 @@ impl SignedUnwrapResponse {
 pub fn seal_response(
     request: &VerifiedRequest,
     file_key: &[u8; 16],
-    phone_signing: &impl P256Signer,
+    phone_signing: &(impl P256Signer + ?Sized),
     rng: &mut (impl CryptoRng + RngCore),
 ) -> Result<SignedUnwrapResponse, Error> {
     let ephemeral = EphemeralSecret::random(&mut *rng);
@@ -453,7 +453,7 @@ pub fn seal_response(
 pub fn seal_response_with_ephemeral(
     request: &VerifiedRequest,
     file_key: &[u8; 16],
-    phone_signing: &impl P256Signer,
+    phone_signing: &(impl P256Signer + ?Sized),
     phone_session: &SecretKey,
     nonce: ProtocolNonce,
 ) -> Result<SignedUnwrapResponse, Error> {
@@ -530,7 +530,7 @@ pub fn open_response(
 fn seal_shared(
     request: &VerifiedRequest,
     file_key: &[u8; 16],
-    phone_signing: &impl P256Signer,
+    phone_signing: &(impl P256Signer + ?Sized),
     phone_public: &PublicKey,
     shared: &[u8],
     nonce: ProtocolNonce,
@@ -583,7 +583,11 @@ fn label(value: &str) -> Result<(), Error> {
     }
 }
 
-fn sign(key: &impl P256Signer, domain: &[u8], payload: &[u8]) -> Result<[u8; 64], Error> {
+fn sign(
+    key: &(impl P256Signer + ?Sized),
+    domain: &[u8],
+    payload: &[u8],
+) -> Result<[u8; 64], Error> {
     key.sign_prehash(&hash(domain, payload))
 }
 fn verify(
