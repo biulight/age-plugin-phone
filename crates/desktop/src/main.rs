@@ -251,7 +251,11 @@ fn run_pair(
         "Public identity stub created: {}",
         identity_output.display()
     );
-    println!("Recipient: {}", stub.recipient());
+    println!(
+        "Recipient: {}",
+        stub.selectable_recipient()
+            .map_err(|_| io::Error::other("failed to encode selectable recipient"))?
+    );
     Ok(())
 }
 

@@ -99,6 +99,12 @@ transcript-bound locator resolves the desktop authentication and replay files; t
 embedded in the public identity. Reference age can now create tagged stanzas and request a one-shot
 phone unwrap without learning or storing a long-term age identity.
 
+[`ADR 0012`](adr/0012-private-stanza-selection.md) adds pairing-specific v2 recipients. Each stanza
+contains an authenticated identity selector encrypted to the paired desktop authentication key
+under a domain separate from the phone file-key wrap. The desktop can therefore map anonymous
+stanzas to the correct local pairing without a phone private operation or a public stable tag; the
+desktop key still cannot decrypt the age file key.
+
 ## Transport strategy
 
 QR is the first implementation target because it is observable, offline, and independent of radio

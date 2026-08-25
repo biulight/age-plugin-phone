@@ -6,7 +6,7 @@ use age_plugin_phone_protocol::{
     ALGORITHM_SUITE, EncodedPublicKey, Id, PairingOffer, ProtocolDigest, ProtocolNonce,
     SignedPairingOffer, SignedPairingResponse, pairing_fingerprint,
 };
-use age_plugin_phone_recipient_p256::{PLUGIN_NAME, Recipient};
+use age_plugin_phone_recipient_p256::{PLUGIN_NAME, PairedRecipient, Recipient};
 use bech32::{FromBase32 as _, ToBase32 as _, Variant};
 use minicbor::{Decoder, Encoder};
 use p256::ecdsa::SigningKey;
@@ -112,6 +112,24 @@ impl PublicIdentityStub {
         &self.recipient
     }
 
+    /// Pairing-specific recipient that enables private desktop stanza selection.
+    pub fn paired_recipient(&self) -> Result<PairedRecipient, PairingError> {
+        let phone = Recipient::parse(&self.recipient).map_err(|_| PairingError::MalformedStub)?;
+        PairedRecipient::from_public_fields(
+            &phone.public_key_bytes(),
+            &self.desktop_signing_public_key,
+            self.identity_id,
+        )
+        .map_err(|_| PairingError::MalformedStub)
+    }
+
+    /// Canonical v2 public recipient for new encryption.
+    pub fn selectable_recipient(&self) -> Result<String, PairingError> {
+        self.paired_recipient()?
+            .to_string()
+            .map_err(|_| PairingError::StubEncoding)
+    }
+
     /// Public age-plugin identity stub. It contains no desktop or phone private key.
     pub fn plugin_identity(&self) -> Result<String, PairingError> {
         bech32::encode(
@@ -127,7 +145,7 @@ impl PublicIdentityStub {
     pub fn identity_file(&self) -> Result<String, PairingError> {
         Ok(format!(
             "# public age-plugin-phone identity stub\n# recipient: {}\n{}\n",
-            self.recipient(),
+            self.selectable_recipient()?,
             self.plugin_identity()?,
         ))
     }
@@ -509,7 +527,7 @@ mod tests {
             stub.plugin_identity().unwrap().to_uppercase()
         );
         let identity_file = stub.identity_file().unwrap();
-        assert!(identity_file.contains(stub.recipient()));
+        assert!(identity_file.contains(&stub.selectable_recipient().unwrap()));
         assert!(identity_file.contains(&stub.plugin_identity().unwrap()));
         assert_eq!(
             session.confirm(&display.transcript_fingerprint, 103),

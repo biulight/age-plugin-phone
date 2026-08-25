@@ -11,12 +11,14 @@ use age_plugin_phone_protocol::{
     DEFAULT_REPLAY_CAPACITY, FileReplayGuard, PairingRecord, ReplayRole, ReplayScope,
     fragment_qr_message,
 };
-use age_plugin_phone_recipient_p256::{STANZA_TAG, TaggedStanza, validate_stanza};
+use age_plugin_phone_recipient_p256::{
+    PairedRecipient, STANZA_TAG, STANZA_TAG_V2, TaggedStanza, matches_stanza_v2, validate_stanza,
+};
 use rand_core::OsRng;
 use zeroize::Zeroizing;
 
 use crate::{
-    locator::{default_config_root, open_pairing_locator},
+    locator::{PairingLocator, default_config_root, open_pairing_locator},
     pairing::{DesktopKeyState, PublicIdentityStub},
     qr_scanner::{DEFAULT_SCAN_TIMEOUT, ScanError, ScannerHandle},
     qr_terminal::render_terminal_frame,
@@ -133,7 +135,7 @@ where
         let mut errors = Vec::new();
         let mut candidates = Vec::new();
         for (stanza_index, stanza) in stanzas.into_iter().enumerate() {
-            if stanza.tag != STANZA_TAG {
+            if stanza.tag != STANZA_TAG && stanza.tag != STANZA_TAG_V2 {
                 continue;
             }
             let tagged = TaggedStanza {
@@ -158,48 +160,20 @@ where
             continue;
         }
 
-        let Some((identity_index, stub)) = identities.first() else {
-            errors.push(internal("no phone identity was provided"));
-            results.insert(file_index, Err(errors));
-            continue;
-        };
-        if identities.len() != 1 {
-            errors.extend(identities.iter().map(|(index, _)| {
-                identity_error(
-                    *index,
-                    "multiple anonymous phone identities cannot be selected safely",
-                )
-            }));
-            results.insert(file_index, Err(errors));
-            continue;
-        }
-        if candidates.len() != 1 {
-            errors.extend(candidates.iter().map(|(stanza_index, _)| {
-                stanza_error(
-                    file_index,
-                    *stanza_index,
-                    "multiple anonymous phone stanzas cannot be selected safely",
-                )
-            }));
-            results.insert(file_index, Err(errors));
-            continue;
-        }
-        let (stanza_index, stanza) = candidates.remove(0);
-        let Ok(locator) = open_pairing_locator(root, stub) else {
-            errors.push(identity_error(
-                *identity_index,
-                "paired desktop state is unavailable",
-            ));
-            results.insert(file_index, Err(errors));
-            continue;
-        };
-        let Ok(desktop) = DesktopKeyState::open(&locator.desktop_state) else {
-            errors.push(identity_error(
-                *identity_index,
-                "desktop authentication state is unavailable",
-            ));
-            results.insert(file_index, Err(errors));
-            continue;
+        let SelectedCandidate {
+            identity_index,
+            stub,
+            stanza_index,
+            stanza,
+            locator,
+            desktop,
+        } = match select_candidate(identities, candidates, root, file_index) {
+            Ok(selected) => selected,
+            Err(selection_errors) => {
+                errors.extend(selection_errors);
+                results.insert(file_index, Err(errors));
+                continue;
+            }
         };
         let pairing = PairingRecord {
             desktop_id: stub.desktop_id,
@@ -213,7 +187,7 @@ where
             DEFAULT_REPLAY_CAPACITY,
         ) else {
             errors.push(identity_error(
-                *identity_index,
+                identity_index,
                 "response replay state is unavailable",
             ));
             results.insert(file_index, Err(errors));
@@ -242,7 +216,7 @@ where
             Ok(response) => response,
             Err(ExchangeError::Cancelled) => {
                 session.cancel();
-                errors.push(identity_error(*identity_index, "phone unwrap cancelled"));
+                errors.push(identity_error(identity_index, "phone unwrap cancelled"));
                 results.insert(file_index, Err(errors));
                 return Ok(results);
             }
@@ -278,6 +252,149 @@ where
     Ok(results)
 }
 
+struct SelectedCandidate<'a> {
+    identity_index: usize,
+    stub: &'a PublicIdentityStub,
+    stanza_index: usize,
+    stanza: TaggedStanza,
+    locator: PairingLocator,
+    desktop: DesktopKeyState,
+}
+
+struct OpenedIdentity {
+    position: usize,
+    locator: PairingLocator,
+    desktop: DesktopKeyState,
+    recipient: PairedRecipient,
+}
+
+fn select_candidate<'a>(
+    identities: &'a [(usize, PublicIdentityStub)],
+    mut candidates: Vec<(usize, TaggedStanza)>,
+    root: &std::path::Path,
+    file_index: usize,
+) -> Result<SelectedCandidate<'a>, Vec<identity::Error>> {
+    if identities.is_empty() {
+        return Err(vec![internal("no phone identity was provided")]);
+    }
+
+    if candidates
+        .iter()
+        .any(|(_, stanza)| stanza.tag == STANZA_TAG)
+    {
+        if identities.len() != 1 || candidates.len() != 1 {
+            return Err(candidates
+                .iter()
+                .map(|(stanza_index, _)| {
+                    stanza_error(
+                        file_index,
+                        *stanza_index,
+                        "anonymous v1 phone stanza cannot be selected safely",
+                    )
+                })
+                .collect());
+        }
+        let (identity_index, stub) = &identities[0];
+        let locator = open_pairing_locator(root, stub).map_err(|_| {
+            vec![identity_error(
+                *identity_index,
+                "paired desktop state is unavailable",
+            )]
+        })?;
+        let desktop = DesktopKeyState::open(&locator.desktop_state).map_err(|_| {
+            vec![identity_error(
+                *identity_index,
+                "desktop authentication state is unavailable",
+            )]
+        })?;
+        let (stanza_index, stanza) = candidates.remove(0);
+        return Ok(SelectedCandidate {
+            identity_index: *identity_index,
+            stub,
+            stanza_index,
+            stanza,
+            locator,
+            desktop,
+        });
+    }
+
+    let (mut opened, mut errors) = open_identities(identities, root);
+    let mut selected = None;
+    'identities: for (opened_position, identity) in opened.iter().enumerate() {
+        for (candidate_position, (_, stanza)) in candidates.iter().enumerate() {
+            match matches_stanza_v2(&identity.recipient, identity.desktop.signing_key(), stanza) {
+                Ok(true) => {
+                    selected = Some((opened_position, candidate_position));
+                    break 'identities;
+                }
+                Ok(false) => {}
+                Err(_) => {
+                    return Err(vec![internal("private phone stanza selection failed")]);
+                }
+            }
+        }
+    }
+    if let Some((opened_position, candidate_position)) = selected {
+        let identity = opened.swap_remove(opened_position);
+        let (identity_index, stub) = &identities[identity.position];
+        let (stanza_index, stanza) = candidates.swap_remove(candidate_position);
+        return Ok(SelectedCandidate {
+            identity_index: *identity_index,
+            stub,
+            stanza_index,
+            stanza,
+            locator: identity.locator,
+            desktop: identity.desktop,
+        });
+    }
+    errors.extend(candidates.iter().map(|(stanza_index, _)| {
+        stanza_error(
+            file_index,
+            *stanza_index,
+            "phone stanza did not match an available paired identity",
+        )
+    }));
+    Err(errors)
+}
+
+fn open_identities(
+    identities: &[(usize, PublicIdentityStub)],
+    root: &std::path::Path,
+) -> (Vec<OpenedIdentity>, Vec<identity::Error>) {
+    let mut opened = Vec::with_capacity(identities.len());
+    let mut errors = Vec::new();
+    for (position, (identity_index, stub)) in identities.iter().enumerate() {
+        let Ok(locator) = open_pairing_locator(root, stub) else {
+            errors.push(identity_error(
+                *identity_index,
+                "paired desktop state is unavailable",
+            ));
+            continue;
+        };
+        let Ok(desktop) = DesktopKeyState::open(&locator.desktop_state) else {
+            errors.push(identity_error(
+                *identity_index,
+                "desktop authentication state is unavailable",
+            ));
+            continue;
+        };
+        let Ok(recipient) = stub.paired_recipient() else {
+            errors.push(identity_error(
+                *identity_index,
+                "phone identity is malformed",
+            ));
+            continue;
+        };
+        opened.push(OpenedIdentity {
+            position,
+            locator,
+            desktop,
+            recipient,
+        });
+    }
+    (opened, errors)
+}
+
 fn all_supported_files_error(
     files: &[Vec<Stanza>],
     error: identity::Error,
@@ -286,7 +403,11 @@ fn all_supported_files_error(
     files
         .iter()
         .enumerate()
-        .filter(|(_, stanzas)| stanzas.iter().any(|stanza| stanza.tag == STANZA_TAG))
+        .filter(|(_, stanzas)| {
+            stanzas
+                .iter()
+                .any(|stanza| stanza.tag == STANZA_TAG || stanza.tag == STANZA_TAG_V2)
+        })
         .map(|(index, _)| {
             let value = error
                 .take()
@@ -325,7 +446,9 @@ mod tests {
         pairing::{DesktopKeyState, PublicIdentityStub},
     };
     use age_plugin_phone_protocol::{ReplayGuard, SignedUnwrapRequest, seal_response};
-    use age_plugin_phone_recipient_p256::{Recipient, unwrap_file_key, wrap_file_key};
+    use age_plugin_phone_recipient_p256::{
+        PairedRecipient, Recipient, unwrap_file_key, wrap_file_key, wrap_file_key_v2,
+    };
     use p256::{SecretKey, ecdsa::SigningKey, elliptic_curve::sec1::ToEncodedPoint as _};
 
     struct Fixture {
@@ -339,6 +462,10 @@ mod tests {
 
     impl Fixture {
         fn new() -> Self {
+            Self::with_identity_id([0x31; 16])
+        }
+
+        fn with_identity_id(identity_id: [u8; 16]) -> Self {
             let root = std::env::temp_dir().join(format!(
                 "age-phone-identity-v1-{}-{}-{}",
                 std::process::id(),
@@ -359,7 +486,7 @@ mod tests {
             let phone = SigningKey::random(&mut OsRng);
             let stub = PublicIdentityStub {
                 desktop_id: desktop.desktop_id,
-                identity_id: [0x31; 16],
+                identity_id,
                 recipient: recipient.to_string().unwrap(),
                 desktop_signing_public_key: desktop
                     .signing_key()
@@ -408,6 +535,20 @@ mod tests {
         fn stanza(&self, file_key: [u8; 16]) -> Stanza {
             let recipient = Recipient::parse(self.stub.recipient()).unwrap();
             let stanza = wrap_file_key(&recipient, &file_key, &mut OsRng).unwrap();
+            Stanza {
+                tag: stanza.tag,
+                args: stanza.args,
+                body: stanza.body,
+            }
+        }
+
+        fn selectable_stanza(&self, file_key: [u8; 16]) -> Stanza {
+            let stanza = wrap_file_key_v2(
+                &self.stub.paired_recipient().unwrap(),
+                &file_key,
+                &mut OsRng,
+            )
+            .unwrap();
             Stanza {
                 tag: stanza.tag,
                 args: stanza.args,
@@ -558,6 +699,88 @@ mod tests {
             panic!("ambiguous stanzas must fail");
         };
         assert_eq!(errors.len(), 2);
+    }
+
+    #[test]
+    fn privately_selects_one_v2_stanza_without_phone_trial() {
+        use age_core::secrecy::ExposeSecret as _;
+
+        let fixture = Fixture::new();
+        let wrong_desktop = SigningKey::random(&mut OsRng);
+        let wrong_recipient = PairedRecipient::from_public_fields(
+            fixture
+                .identity
+                .public_key()
+                .to_encoded_point(true)
+                .as_bytes(),
+            wrong_desktop
+                .verifying_key()
+                .to_encoded_point(true)
+                .as_bytes(),
+            [0x92; 16],
+        )
+        .unwrap();
+        let wrong = wrap_file_key_v2(&wrong_recipient, &[13; 16], &mut OsRng).unwrap();
+        let files = vec![vec![
+            Stanza {
+                tag: wrong.tag,
+                args: wrong.args,
+                body: wrong.body,
+            },
+            fixture.selectable_stanza([12; 16]),
+        ]];
+        let mut exchanges = 0;
+        let results = unwrap_with_exchange(
+            &[(0, fixture.stub.clone())],
+            files,
+            &fixture.config,
+            |request, _| {
+                exchanges += 1;
+                Ok(Ok(Zeroizing::new(
+                    fixture.respond(request, now_unix().unwrap()),
+                )))
+            },
+        )
+        .unwrap();
+        assert_eq!(exchanges, 1);
+        let Ok(file_key) = results.get(&0).unwrap() else {
+            panic!("matching v2 stanza must unwrap");
+        };
+        assert_eq!(file_key.expose_secret(), &[12; 16]);
+    }
+
+    #[test]
+    fn v2_selection_respects_identity_order_without_mismatched_prompt() {
+        use age_core::secrecy::ExposeSecret as _;
+
+        let first = Fixture::new();
+        let second = Fixture::with_identity_id([0x41; 16]);
+        create_pairing_locator(
+            &first.config,
+            &second.stub,
+            &second.root.join("desktop.key"),
+            &second.root.join("responses.cbor"),
+        )
+        .unwrap();
+        let identities = vec![(0, second.stub.clone()), (1, first.stub.clone())];
+        let files = vec![vec![
+            first.selectable_stanza([14; 16]),
+            second.selectable_stanza([15; 16]),
+        ]];
+        let mut selected_identity = None;
+        let results = unwrap_with_exchange(&identities, files, &first.config, |request, _| {
+            let decoded = SignedUnwrapRequest::decode(request).unwrap();
+            selected_identity = Some(decoded.payload.identity_id);
+            Ok(Ok(Zeroizing::new(
+                second.respond(request, now_unix().unwrap()),
+            )))
+        })
+        .unwrap();
+        assert_eq!(selected_identity, Some(second.stub.identity_id));
+        let Ok(file_key) = results.get(&0).unwrap() else {
+            panic!("preferred matching identity must unwrap");
+        };
+        assert_eq!(file_key.expose_secret(), &[15; 16]);
     }
 
     #[test]

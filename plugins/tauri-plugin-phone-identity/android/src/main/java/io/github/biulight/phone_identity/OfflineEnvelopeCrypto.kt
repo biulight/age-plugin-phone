@@ -425,10 +425,13 @@ internal object OfflineEnvelopeCrypto {
         val n = strictArray(encoded, 11)
         header(n, REQUEST_TYPE)
         val stanzaNode = n[7] as? ArrayNode ?: throw ProtocolException()
-        if (stanzaNode.size() != 3 || stanzaNode[1].size() != 1) throw ProtocolException()
+        if (stanzaNode.size() != 3 || stanzaNode[1].size() !in 1..2) throw ProtocolException()
+        val arguments = (0 until stanzaNode[1].size()).map { index ->
+            text(stanzaNode[1][index], 128)
+        }
         val stanza = TaggedRecipientCrypto.Stanza(
             text(stanzaNode[0], 64),
-            listOf(text(stanzaNode[1][0], 128)),
+            arguments,
             bytes(stanzaNode[2], 32),
         )
         TaggedRecipientCrypto.parse(stanza)
@@ -461,7 +464,9 @@ internal object OfflineEnvelopeCrypto {
     }
 
     private fun encodeStanza(v: TaggedRecipientCrypto.Stanza): ArrayNode = cbor.createArrayNode().apply {
-        add(v.tag); add(cbor.createArrayNode().add(v.args.single())); add(v.body)
+        add(v.tag)
+        add(cbor.createArrayNode().apply { v.args.forEach(::add) })
+        add(v.body)
     }
 
     private fun encodeSigned(payload: ByteArray, signature: ByteArray): ByteArray =

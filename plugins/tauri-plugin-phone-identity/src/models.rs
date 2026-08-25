@@ -59,6 +59,7 @@ pub struct ProbeKeyReport {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AgreementReport {
+    pub recipient_protocol: String,
     pub authenticated: bool,
     pub agreement_match: bool,
     pub response_envelope_match: bool,

@@ -5,6 +5,7 @@ import java.math.BigInteger
 import java.security.AlgorithmParameters
 import java.security.KeyFactory
 import java.security.KeyPair
+import java.security.SecureRandom
 import java.security.spec.ECGenParameterSpec
 import java.security.spec.ECPoint
 import java.security.spec.ECPrivateKeySpec
@@ -18,6 +19,9 @@ import org.junit.Test
 class TaggedRecipientCryptoTest {
     private val vector = ObjectMapper().readTree(
         requireNotNull(javaClass.classLoader?.getResourceAsStream("p256-recipient-v1.json")),
+    )
+    private val vectorV2 = ObjectMapper().readTree(
+        requireNotNull(javaClass.classLoader?.getResourceAsStream("p256-recipient-v2.json")),
     )
 
     @Test
@@ -52,6 +56,59 @@ class TaggedRecipientCryptoTest {
             Base64.getEncoder().withoutPadding().encodeToString(stanza.body),
         )
         assertArrayEquals(fileKey, TaggedRecipientCrypto.unwrap(identity.private, identity.public, stanza))
+    }
+
+    @Test
+    fun matchesPrivateSelectionRustVector() {
+        val identity = keyPair(vectorV2["identity_scalar_hex"].asText())
+        val desktop = keyPair(vectorV2["desktop_scalar_hex"].asText())
+        val ephemeral = keyPair(vectorV2["ephemeral_scalar_hex"].asText())
+        val fileKey = hex(vectorV2["file_key_hex"].asText())
+        val stanzaNode = vectorV2["stanza"]
+        val stanza = TaggedRecipientCrypto.wrapV2ForTest(
+            identity.public,
+            desktop.public,
+            ephemeral.private,
+            ephemeral.public,
+            hex(vectorV2["identity_id_hex"].asText()),
+            fileKey,
+        )
+        assertEquals(stanzaNode["tag"].asText(), stanza.tag)
+        assertEquals(stanzaNode["args"][0].asText(), stanza.args[0])
+        assertEquals(stanzaNode["args"][1].asText(), stanza.args[1])
+        assertEquals(
+            stanzaNode["body_base64"].asText(),
+            Base64.getEncoder().withoutPadding().encodeToString(stanza.body),
+        )
+        assertArrayEquals(
+            fileKey,
+            TaggedRecipientCrypto.unwrap(identity.private, identity.public, stanza),
+        )
+        val verifiedRequest = OfflineEnvelopeCrypto.createSignedRequest(
+            stanza,
+            desktop,
+            keyPair("0000000000000000000000000000000000000000000000000000000000000005").public,
+            1_000_000,
+            SecureRandom(),
+        )
+        assertEquals(2, verifiedRequest.request.stanza.args.size)
+        assertEquals(stanza.args, verifiedRequest.request.stanza.args)
+        assertThrows(TaggedRecipientCrypto.InvalidStanzaException::class.java) {
+            TaggedRecipientCrypto.parse(
+                stanza.copy(args = listOf(stanza.args[0], stanza.args[1] + "=")),
+            )
+        }
+        assertThrows(TaggedRecipientCrypto.InvalidStanzaException::class.java) {
+            TaggedRecipientCrypto.parse(stanza.copy(args = listOf(stanza.args[0])))
+        }
+        val modified = stanza.body.copyOf().also { it[0] = (it[0].toInt() xor 1).toByte() }
+        assertThrows(TaggedRecipientCrypto.AuthenticationException::class.java) {
+            TaggedRecipientCrypto.unwrap(
+                identity.private,
+                identity.public,
+                stanza.copy(body = modified),
+            )
+        }
     }
 
     @Test

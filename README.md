@@ -59,8 +59,10 @@ desktop `pair` command scans that response directly from camera index 0, verifie
 same full fingerprint, and then creates the public stub. Camera frames and QR text remain in memory
 and are never trusted without protocol verification.
 
-The plugin implements standard age `recipient-v1` and `identity-v1`. Encryption to an `age1phone`
-recipient is public-only. During decryption, the age client displays a terminal request QR while
+The plugin implements standard age `recipient-v1` and `identity-v1`. New pairing output uses a
+pairing-specific v2 `age1phone` recipient whose encrypted selector privately maps multi-phone
+stanzas on the desktop; legacy v1 recipients remain supported for unambiguous files. Encryption is
+public-only. During decryption, the age client displays a terminal request QR while
 the desktop camera scans and reassembles the phone response. Pairing creates a private locator in
 the platform configuration directory so the public identity stub contains no private-key path. Set
 `AGE_PLUGIN_PHONE_CONFIG_DIR` to the same absolute directory for pairing and age invocations only
@@ -87,6 +89,7 @@ Start with the [Android StrongBox PoC](docs/android-strongbox-poc.md), then read
 [one-shot unwrap ADR](docs/adr/0009-one-shot-qr-unwrap.md),
 [reference age integration ADR](docs/adr/0010-reference-age-state-machines.md),
 [desktop-native scanner ADR](docs/adr/0011-desktop-native-qr-scanner.md),
+[private stanza selection ADR](docs/adr/0012-private-stanza-selection.md),
 [protocol draft](docs/protocol.md), and [threat model](docs/threat-model.md) before implementing a
 transport or cryptographic backend.
 

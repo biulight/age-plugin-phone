@@ -10,14 +10,21 @@ use age_plugin::{
     Callbacks,
     recipient::{self, RecipientPluginV1},
 };
-use age_plugin_phone_recipient_p256::{PLUGIN_NAME, Recipient, TaggedStanza, wrap_file_key};
+use age_plugin_phone_recipient_p256::{
+    PLUGIN_NAME, PairedRecipient, Recipient, TaggedStanza, wrap_file_key, wrap_file_key_v2,
+};
 use rand_core::OsRng;
 
 use crate::pairing::PublicIdentityStub;
 
 #[derive(Default)]
 pub struct PhoneRecipientPlugin {
-    recipients: Vec<(usize, Recipient)>,
+    recipients: Vec<(usize, WrappingRecipient)>,
+}
+
+enum WrappingRecipient {
+    Legacy(Recipient),
+    Paired(PairedRecipient),
 }
 
 impl RecipientPluginV1 for PhoneRecipientPlugin {
@@ -33,11 +40,15 @@ impl RecipientPluginV1 for PhoneRecipientPlugin {
                 message: "recipient was routed to the wrong plugin".into(),
             });
         }
-        let recipient =
-            Recipient::from_plugin_bytes(bytes).map_err(|_| recipient::Error::Recipient {
-                index,
-                message: "malformed or unsupported phone recipient".into(),
-            })?;
+        let recipient = match bytes.first() {
+            Some(1) => Recipient::from_plugin_bytes(bytes).map(WrappingRecipient::Legacy),
+            Some(2) => PairedRecipient::from_plugin_bytes(bytes).map(WrappingRecipient::Paired),
+            _ => Err(age_plugin_phone_recipient_p256::Error::UnsupportedRecipientVersion),
+        }
+        .map_err(|_| recipient::Error::Recipient {
+            index,
+            message: "malformed or unsupported phone recipient".into(),
+        })?;
         self.recipients.push((index, recipient));
         Ok(())
     }
@@ -58,8 +69,10 @@ impl RecipientPluginV1 for PhoneRecipientPlugin {
             index,
             message: "malformed or unsupported public phone identity stub".into(),
         })?;
-        let recipient =
-            Recipient::parse(stub.recipient()).map_err(|_| recipient::Error::Identity {
+        let recipient = stub
+            .paired_recipient()
+            .map(WrappingRecipient::Paired)
+            .map_err(|_| recipient::Error::Identity {
                 index,
                 message: "public phone identity contains an invalid recipient".into(),
             })?;
@@ -80,8 +93,15 @@ impl RecipientPluginV1 for PhoneRecipientPlugin {
         for file_key in file_keys {
             let mut stanzas = Vec::with_capacity(self.recipients.len());
             for (index, recipient) in &self.recipients {
-                let Ok(stanza) = wrap_file_key(recipient, file_key.expose_secret(), &mut OsRng)
-                else {
+                let stanza = match recipient {
+                    WrappingRecipient::Legacy(recipient) => {
+                        wrap_file_key(recipient, file_key.expose_secret(), &mut OsRng)
+                    }
+                    WrappingRecipient::Paired(recipient) => {
+                        wrap_file_key_v2(recipient, file_key.expose_secret(), &mut OsRng)
+                    }
+                };
+                let Ok(stanza) = stanza else {
                     return Ok(Err(vec![recipient::Error::Recipient {
                         index: *index,
                         message: "failed to wrap file key for phone recipient".into(),

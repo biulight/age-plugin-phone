@@ -587,17 +587,26 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
 
         val expectedFileKey = ByteArray(TaggedRecipientCrypto.FILE_KEY_BYTES)
         SecureRandom().nextBytes(expectedFileKey)
+        val identityId = ByteArray(TaggedRecipientCrypto.FILE_KEY_BYTES)
+        SecureRandom().nextBytes(identityId)
+        val desktopSelectionKeyPair = KeyPairGenerator.getInstance("EC").apply {
+            initialize(ECGenParameterSpec("secp256r1"))
+        }.generateKeyPair()
         val stanza = try {
-            TaggedRecipientCrypto.wrapForTest(
-                probePublicKey,
-                ephemeralKeyPair.private,
-                ephemeralKeyPair.public,
-                expectedFileKey,
+            TaggedRecipientCrypto.wrapV2ForTest(
+                phoneIdentityPublic = probePublicKey,
+                desktopSelectionPublic = desktopSelectionKeyPair.public,
+                ephemeralPrivate = ephemeralKeyPair.private,
+                ephemeralPublic = ephemeralKeyPair.public,
+                identityId = identityId,
+                fileKey = expectedFileKey,
             )
         } catch (_: Exception) {
             expectedFileKey.fill(0)
             invoke.resolve(agreementReport(false, false, "agreement_failed"))
             return null
+        } finally {
+            identityId.fill(0)
         }
         val protocolGenerator = KeyPairGenerator.getInstance("EC").apply {
             initialize(ECGenParameterSpec("secp256r1"))
@@ -1109,6 +1118,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             match: Boolean,
             error: String?,
         ): JSObject = JSObject().apply {
+            put("recipientProtocol", TaggedRecipientCrypto.STANZA_TAG_V2)
             put("authenticated", authenticated)
             put("agreementMatch", match)
             put("responseEnvelopeMatch", match)

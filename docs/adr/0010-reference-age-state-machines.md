@@ -41,10 +41,14 @@ phone recipient.
 
 Version 1 phone stanzas deliberately reveal no recipient identifier. If several phone identities or
 several `phone-p256-v1` stanzas are supplied together, the desktop cannot select the correct pair
-without trying private operations. The plugin therefore rejects either ambiguity before opening
-the camera or requesting phone authorization; it never silently chooses by list order. A versioned,
-privacy-preserving selection design is required before claiming general multi-phone-recipient
-interoperability.
+without trying private operations. The plugin therefore rejects v1 ambiguity before opening the
+camera or requesting phone authorization; it never silently chooses by list order.
+
+New encryption through a public identity stub derives the pairing-specific v2 recipient specified
+by [`ADR 0012`](0012-private-stanza-selection.md). Its encrypted selector lets the desktop
+authenticate a stanza-to-pairing match locally. With multiple v2 identities and stanzas, the plugin
+chooses the first cryptographically matching pair in age identity/stanza order and prompts only
+that phone.
 
 ## Consequences
 
@@ -52,4 +56,5 @@ interoperability.
 - Reference age can invoke the paired one-shot unwrap through `identity-v1`.
 - The long-term phone identity remains non-exportable and the desktop still stores no age identity.
 - Desktop camera permission and device interoperability require packaged-binary validation.
-- Anonymous multi-phone ciphertext fails closed instead of causing wrong-phone authorization.
+- Legacy anonymous multi-phone ciphertext fails closed instead of causing wrong-phone authorization.
+- V2 multi-phone ciphertext selects a matching pairing without a phone private-key trial.

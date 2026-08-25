@@ -93,8 +93,8 @@ test data and must never be imported into Android Keystore or used for real encr
 - Rust and Kotlin can be tested before QR, BLE, pairing, or canonical CBOR exists.
 - The stanza remains compatible with the age plugin mechanism without claiming compatibility with
   the built-in X25519 recipient.
-- A future incompatible change uses a different payload version and stanza tag; it does not parse
-  ambiguous optional fields.
+- The pairing-specific v2 construction in [`ADR 0012`](0012-private-stanza-selection.md) uses a
+  different payload version and stanza tag; neither version parses ambiguous optional fields.
 - Production implementation remains blocked on protocol binding and independent cryptographic
   review.
 

@@ -112,6 +112,14 @@ stanza types are ignored. A supported stanza is returned to the age client only 
 authorization and durable response consumption. Protocol payloads and stanza bodies never appear in
 age callback messages; the request callback displays only the rendered QR and its public digest.
 
+New pairing-specific recipients use the v2 private selector specified by
+[`ADR 0012`](adr/0012-private-stanza-selection.md). The recipient payload binds the phone identity,
+paired desktop public key, and identity ID. Each v2 stanza carries a second authenticated ciphertext
+that the paired desktop can open to select the correct identity and stanza before any QR or phone
+authorization. The selection HKDF/AEAD domain is independent from the phone file-key domain and the
+selector is bound to the complete encrypted file-key body. Legacy v1 stanzas remain supported only
+when exactly one phone identity and one v1 stanza are present.
+
 ## BLE
 
 BLE transports the same application messages after mutually authenticated ephemeral key agreement.

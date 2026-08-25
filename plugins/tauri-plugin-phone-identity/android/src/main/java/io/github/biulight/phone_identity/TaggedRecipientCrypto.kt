@@ -21,6 +21,7 @@ import javax.crypto.spec.SecretKeySpec
 
 internal object TaggedRecipientCrypto {
     const val STANZA_TAG = "phone-p256-v1"
+    const val STANZA_TAG_V2 = "phone-p256-v2"
     const val FILE_KEY_BYTES = 16
     private const val POINT_BYTES = 33
     private const val BODY_BYTES = 32
@@ -29,6 +30,10 @@ internal object TaggedRecipientCrypto {
     private const val RECIPIENT_HRP = "age1phone"
     private const val BECH32_CHARSET = "qpzry9x8gf2tvdw0s3jn54khce6mua7l"
     private val KDF_INFO = "age-plugin-phone/recipient/p256/v1".toByteArray(Charsets.US_ASCII)
+    private val FILE_KEY_KDF_INFO_V2 =
+        "age-plugin-phone/recipient/p256/v2/file-key".toByteArray(Charsets.US_ASCII)
+    private val SELECTION_KDF_INFO_V2 =
+        "age-plugin-phone/recipient/p256/v2/selection".toByteArray(Charsets.US_ASCII)
     private val ZERO_NONCE = ByteArray(12)
     private val base64Encoder = Base64.getEncoder().withoutPadding()
     private val base64Decoder = Base64.getDecoder()
@@ -61,6 +66,52 @@ internal object TaggedRecipientCrypto {
         }
     }
 
+    fun wrapV2ForTest(
+        phoneIdentityPublic: PublicKey,
+        desktopSelectionPublic: PublicKey,
+        ephemeralPrivate: PrivateKey,
+        ephemeralPublic: PublicKey,
+        identityId: ByteArray,
+        fileKey: ByteArray,
+    ): Stanza {
+        require(identityId.size == FILE_KEY_BYTES)
+        require(fileKey.size == FILE_KEY_BYTES)
+        val phone = encodeCompressed(phoneIdentityPublic)
+        val desktop = encodeCompressed(desktopSelectionPublic)
+        val ephemeral = encodeCompressed(ephemeralPublic)
+        val phoneSecret = agree(ephemeralPrivate, phoneIdentityPublic)
+        val desktopSecret = agree(ephemeralPrivate, desktopSelectionPublic)
+        return try {
+            val body = sealFile(2, phoneSecret, ephemeral, phone, fileKey)
+            val selectionKey = deriveKey(
+                desktopSecret,
+                ephemeral,
+                desktop,
+                SELECTION_KDF_INFO_V2,
+            )
+            val selection = try {
+                val cipher = cipher(Cipher.ENCRYPT_MODE, selectionKey)
+                cipher.updateAAD(selectionAssociatedData(ephemeral, phone, desktop, body))
+                cipher.doFinal(identityId)
+            } finally {
+                selectionKey.fill(0)
+            }
+            val encodedSelection = base64Encoder.encodeToString(selection)
+            selection.fill(0)
+            Stanza(
+                STANZA_TAG_V2,
+                listOf(
+                    base64Encoder.encodeToString(ephemeral),
+                    encodedSelection,
+                ),
+                body,
+            )
+        } finally {
+            phoneSecret.fill(0)
+            desktopSecret.fill(0)
+        }
+    }
+
     fun unwrap(
         identityPrivate: PrivateKey,
         identityPublic: PublicKey,
@@ -69,7 +120,13 @@ internal object TaggedRecipientCrypto {
         val parsed = parse(stanza)
         val secret = agree(identityPrivate, parsed.ephemeralPublic)
         return try {
-            open(secret, parsed.ephemeralBytes, encodeCompressed(identityPublic), parsed.body)
+            open(
+                parsed.version,
+                secret,
+                parsed.ephemeralBytes,
+                encodeCompressed(identityPublic),
+                parsed.body,
+            )
         } finally {
             secret.fill(0)
         }
@@ -82,6 +139,7 @@ internal object TaggedRecipientCrypto {
     ): ByteArray {
         val parsed = parse(stanza)
         return open(
+            parsed.version,
             sharedSecret,
             parsed.ephemeralBytes,
             encodeCompressed(identityPublic),
@@ -90,18 +148,37 @@ internal object TaggedRecipientCrypto {
     }
 
     fun parse(stanza: Stanza): ParsedStanza {
-        if (stanza.tag != STANZA_TAG) throw InvalidStanzaException()
-        if (stanza.args.size != 1) throw InvalidStanzaException()
+        val version = when {
+            stanza.tag == STANZA_TAG && stanza.args.size == 1 -> 1
+            stanza.tag == STANZA_TAG_V2 && stanza.args.size == 2 -> 2
+            stanza.tag == STANZA_TAG || stanza.tag == STANZA_TAG_V2 ->
+                throw InvalidStanzaException()
+            else -> throw InvalidStanzaException()
+        }
         if (stanza.body.size != BODY_BYTES) throw InvalidStanzaException()
-        val encoded = stanza.args.single()
+        val encoded = stanza.args[0]
         val ephemeral = try {
             base64Decoder.decode(encoded)
         } catch (_: IllegalArgumentException) {
             throw InvalidStanzaException()
         }
         if (base64Encoder.encodeToString(ephemeral) != encoded) throw InvalidStanzaException()
+        if (version == 2) {
+            val selection = try {
+                base64Decoder.decode(stanza.args[1])
+            } catch (_: IllegalArgumentException) {
+                throw InvalidStanzaException()
+            }
+            if (selection.size != BODY_BYTES ||
+                base64Encoder.encodeToString(selection) != stanza.args[1]
+            ) {
+                selection.fill(0)
+                throw InvalidStanzaException()
+            }
+            selection.fill(0)
+        }
         val publicKey = decodeCompressed(ephemeral)
-        return ParsedStanza(publicKey, ephemeral, stanza.body.copyOf())
+        return ParsedStanza(version, publicKey, ephemeral, stanza.body.copyOf())
     }
 
     fun encodeRecipient(publicKey: PublicKey): String {
@@ -173,6 +250,7 @@ internal object TaggedRecipientCrypto {
     }
 
     data class ParsedStanza(
+        val version: Int,
         val ephemeralPublic: PublicKey,
         val ephemeralBytes: ByteArray,
         val body: ByteArray,
@@ -223,10 +301,21 @@ internal object TaggedRecipientCrypto {
         recipientPublic: ByteArray,
         fileKey: ByteArray,
     ): ByteArray {
-        val key = deriveKey(sharedSecret, ephemeralPublic, recipientPublic)
+        return sealFile(1, sharedSecret, ephemeralPublic, recipientPublic, fileKey)
+    }
+
+    private fun sealFile(
+        version: Int,
+        sharedSecret: ByteArray,
+        ephemeralPublic: ByteArray,
+        recipientPublic: ByteArray,
+        fileKey: ByteArray,
+    ): ByteArray {
+        val info = if (version == 2) FILE_KEY_KDF_INFO_V2 else KDF_INFO
+        val key = deriveKey(sharedSecret, ephemeralPublic, recipientPublic, info)
         return try {
             val cipher = cipher(Cipher.ENCRYPT_MODE, key)
-            cipher.updateAAD(associatedData(ephemeralPublic, recipientPublic))
+            cipher.updateAAD(associatedData(version, ephemeralPublic, recipientPublic))
             cipher.doFinal(fileKey)
         } finally {
             key.fill(0)
@@ -234,15 +323,17 @@ internal object TaggedRecipientCrypto {
     }
 
     private fun open(
+        version: Int,
         sharedSecret: ByteArray,
         ephemeralPublic: ByteArray,
         recipientPublic: ByteArray,
         body: ByteArray,
     ): ByteArray {
-        val key = deriveKey(sharedSecret, ephemeralPublic, recipientPublic)
+        val info = if (version == 2) FILE_KEY_KDF_INFO_V2 else KDF_INFO
+        val key = deriveKey(sharedSecret, ephemeralPublic, recipientPublic, info)
         return try {
             val cipher = cipher(Cipher.DECRYPT_MODE, key)
-            cipher.updateAAD(associatedData(ephemeralPublic, recipientPublic))
+            cipher.updateAAD(associatedData(version, ephemeralPublic, recipientPublic))
             val plaintext = try {
                 cipher.doFinal(body)
             } catch (_: GeneralSecurityException) {
@@ -262,6 +353,7 @@ internal object TaggedRecipientCrypto {
         sharedSecret: ByteArray,
         ephemeralPublic: ByteArray,
         recipientPublic: ByteArray,
+        info: ByteArray,
     ): ByteArray {
         val salt = ephemeralPublic + recipientPublic
         val extract = Mac.getInstance("HmacSHA256")
@@ -271,16 +363,30 @@ internal object TaggedRecipientCrypto {
         return try {
             val expand = Mac.getInstance("HmacSHA256")
             expand.init(SecretKeySpec(pseudorandomKey, "HmacSHA256"))
-            expand.update(KDF_INFO)
+            expand.update(info)
             expand.doFinal(byteArrayOf(1))
         } finally {
             pseudorandomKey.fill(0)
         }
     }
 
-    private fun associatedData(ephemeralPublic: ByteArray, recipientPublic: ByteArray): ByteArray =
-        STANZA_TAG.toByteArray(Charsets.US_ASCII) + byteArrayOf(0) +
+    private fun associatedData(
+        version: Int,
+        ephemeralPublic: ByteArray,
+        recipientPublic: ByteArray,
+    ): ByteArray =
+        (if (version == 2) STANZA_TAG_V2 else STANZA_TAG).toByteArray(Charsets.US_ASCII) + byteArrayOf(0) +
             ephemeralPublic + recipientPublic
+
+    private fun selectionAssociatedData(
+        ephemeralPublic: ByteArray,
+        phoneIdentityPublic: ByteArray,
+        desktopSelectionPublic: ByteArray,
+        body: ByteArray,
+    ): ByteArray =
+        STANZA_TAG_V2.toByteArray(Charsets.US_ASCII) + byteArrayOf(0) +
+            "selection".toByteArray(Charsets.US_ASCII) + byteArrayOf(0) +
+            ephemeralPublic + phoneIdentityPublic + desktopSelectionPublic + body
 
     private fun cipher(mode: Int, key: ByteArray): Cipher =
         Cipher.getInstance("ChaCha20-Poly1305").apply {

@@ -42,7 +42,7 @@
 - [x] Handle multiple files, unknown stanzas, malformed supported stanzas, cancellation, and bad responses.
 - [x] Replace external response capture and paste with a desktop-native scanner.
 - [x] Fail closed before authorization on ambiguous multiple phone identities or phone stanzas.
-- [ ] Design a versioned, privacy-preserving multi-phone stanza selection scheme.
+- [x] Implement versioned, privacy-preserving multi-phone stanza selection.
 
 ## Milestone 3: mobile hardware backends
 

@@ -666,12 +666,12 @@ fn stanza(e: &mut Encoder<Vec<u8>>, v: &TaggedStanza) {
         .unwrap()
         .str(&v.tag)
         .unwrap()
-        .array(1)
-        .unwrap()
-        .str(&v.args[0])
-        .unwrap()
-        .bytes(&v.body)
+        .array(u64::try_from(v.args.len()).expect("validated stanza argument count"))
         .unwrap();
+    for argument in &v.args {
+        e.str(argument).unwrap();
+    }
+    e.bytes(&v.body).unwrap();
 }
 fn encode_request(v: &UnwrapRequest) -> Vec<u8> {
     let mut e = enc();
@@ -827,14 +827,15 @@ fn decode_pairing_response(b: &[u8]) -> Result<PairingResponse, Error> {
 fn decode_stanza(d: &mut Decoder<'_>) -> Result<TaggedStanza, Error> {
     arr(d, 3)?;
     let tag = text(d, 64)?;
-    arr(d, 1)?;
-    let arg = text(d, 128)?;
+    let argument_count = d.array().map_err(|_| Error::Malformed)?;
+    if !matches!(argument_count, Some(1 | 2)) {
+        return Err(Error::Malformed);
+    }
+    let args = (0..argument_count.unwrap_or_default())
+        .map(|_| text(d, 128))
+        .collect::<Result<Vec<_>, _>>()?;
     let body = d.bytes().map_err(|_| Error::Malformed)?.to_vec();
-    Ok(TaggedStanza {
-        tag,
-        args: vec![arg],
-        body,
-    })
+    Ok(TaggedStanza { tag, args, body })
 }
 fn decode_request(b: &[u8]) -> Result<UnwrapRequest, Error> {
     let mut d = Decoder::new(b);
@@ -890,7 +891,9 @@ fn decode_response(b: &[u8]) -> Result<UnwrapResponse, Error> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use age_plugin_phone_recipient_p256::{Recipient, wrap_file_key_with_ephemeral};
+    use age_plugin_phone_recipient_p256::{
+        PairedRecipient, Recipient, wrap_file_key_v2_with_ephemeral, wrap_file_key_with_ephemeral,
+    };
     const D: Id = [0x11; 16];
     const I: Id = [0x22; 16];
     const R: Id = [0x33; 16];
@@ -1059,6 +1062,31 @@ mod tests {
             open_response(&response, &verified, &p, &s, &mut rg, 1_000_000).unwrap_err(),
             Error::Replay
         );
+    }
+
+    #[test]
+    fn v2_two_argument_stanza_round_trips_canonically() {
+        let desktop = sig(1);
+        let phone_identity = sk(3);
+        let recipient = PairedRecipient::from_public_fields(
+            phone_identity
+                .public_key()
+                .to_encoded_point(true)
+                .as_bytes(),
+            desktop.verifying_key().to_encoded_point(true).as_bytes(),
+            I,
+        )
+        .unwrap();
+        let stanza = wrap_file_key_v2_with_ephemeral(&recipient, &F, &sk(4)).unwrap();
+        let (request, pairing, _, _) = fixture();
+        let mut payload = request.payload;
+        payload.recipient_stanza = stanza;
+        let signed = SignedUnwrapRequest::sign(payload, &desktop).unwrap();
+        let decoded = SignedUnwrapRequest::decode(&signed.encode()).unwrap();
+        assert_eq!(decoded.payload.recipient_stanza.args.len(), 2);
+        ReplayGuard::default()
+            .verify_request(decoded, &pairing, 1_000_000)
+            .unwrap();
     }
     #[test]
     fn desktop_request_creation_checks_pairing_key_scope_and_lifetime() {

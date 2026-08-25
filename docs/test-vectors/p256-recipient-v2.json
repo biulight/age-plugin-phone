@@ -1,0 +1,20 @@
+{
+  "schema": "age-plugin-phone/p256-recipient-test-vector/v2",
+  "warning": "All scalar, identifier, and file-key values are public deterministic test data. Never use them for real encryption or import them into Android Keystore.",
+  "identity_scalar_hex": "0000000000000000000000000000000000000000000000000000000000000001",
+  "desktop_scalar_hex": "0000000000000000000000000000000000000000000000000000000000000003",
+  "ephemeral_scalar_hex": "0000000000000000000000000000000000000000000000000000000000000002",
+  "identity_id_hex": "42424242424242424242424242424242",
+  "file_key_hex": "00112233445566778899aabbccddeeff",
+  "phone_public_key_base64": "A2sX0fLhLEJH+Lzm5WOkQPJ3A32BLeszoPShOUXYmMKW",
+  "desktop_public_key_base64": "Al7L5NGmMwpEyPfvlR1L8WXmxrch762phftBZhvG5/1s",
+  "recipient": "age1phone1qgpkk9737tsjcsj8lz7wdetr53q0yacr0kqjm6en5r62zw29mzvv99sztm97f5dxxv9yfj8ha7236jl3vhnvddepa7k6np0mg9nph3h8l4kyysjzgfpyysjzgfpyysjzgfpyy9amcse",
+  "stanza": {
+    "tag": "phone-p256-v2",
+    "args": [
+      "A3zyexiNA09+ilI4AwS1GsPAiWnid/IbNaYLSPxHZpl4",
+      "Ec71F7E0IUb/sEGVZ6C3W0udfB351lF/vUwLx4+eUek"
+    ],
+    "body_base64": "UaEtz0mkmkPQ6z4CEyr4ZDDaa1u3bGnGDicPC0Ec4LU"
+  }
+}

@@ -56,6 +56,7 @@ interface ProbeKeyReport {
 }
 
 interface AgreementReport {
+  recipientProtocol: "phone-p256-v2";
   authenticated: boolean;
   agreementMatch: boolean;
   responseEnvelopeMatch: boolean;
@@ -314,6 +315,7 @@ actionButtons.forEach((button) => {
         return;
       }
       showReport(action, {
+        recipientProtocol: "phone-p256-v2",
         authenticated: false,
         agreementMatch: false,
         responseEnvelopeMatch: false,

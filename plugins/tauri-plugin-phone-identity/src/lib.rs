@@ -132,6 +132,7 @@ fn doctor_run_agreement<R: Runtime>(
 
     #[cfg(not(target_os = "android"))]
     Ok(AgreementReport {
+        recipient_protocol: "phone-p256-v2".into(),
         authenticated: false,
         agreement_match: false,
         response_envelope_match: false,
