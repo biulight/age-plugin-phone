@@ -41,8 +41,10 @@ cleanup guardian, closing the post-creation/pre-guard exit window. The guardian 
 selected serial as an argument and waits on an inherited pipe; it never receives protocol bytes.
 Normal cleanup sends a one-byte disarm signal. Parent exit,
 including Ctrl-C or a crash that closes the pipe, makes the guardian remove only `tcp:47139` for
-that serial with the same bounded ADB command runner. Killing the entire process tree, power loss,
-or an unavailable ADB daemon can still leave a stale rule, which the next session rejects.
+that serial with the same bounded ADB command runner. The guardian runs in a separate Windows or
+Unix process group so a console interrupt aimed at the caller does not terminate it before pipe EOF.
+Killing the entire process tree, power loss, or an unavailable ADB daemon can still leave a stale
+rule, which the next session rejects.
 
 `adb devices` output is used only for transport selection. With more than one online device the
 caller must supply a serial. Unauthorized, offline, missing, malformed, or changed selection fails
@@ -83,4 +85,6 @@ timeouts, replay, cancellation, process exit, and QR fallback.
 An Android 16 / API 36 physical device has also completed authenticated pairing and a standard
 `age --decrypt` unwrap through ADB reverse against a macOS desktop build. The recovered plaintext
 matched byte-for-byte and the exact reverse rule was absent afterward. This interoperability check
-does not satisfy the remaining Windows desktop matrix.
+also verified connection timeout, successful reconnect, explicit Android biometric cancellation,
+and caller Ctrl-C. Each failure produced no plaintext and removed the exact reverse rule; reconnect
+then completed an authenticated unwrap. This does not satisfy the remaining Windows desktop matrix.

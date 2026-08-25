@@ -35,6 +35,7 @@ nokhwa = { workspace = true, features = ["input-v4l"] }
 age-plugin-phone-windows-cng = { path = "../windows-cng" }
 age-plugin-phone-windows-storage = { path = "../windows-storage" }
 nokhwa = { workspace = true, features = ["input-msmf"] }
+windows-sys = { workspace = true, features = ["Win32_System_Threading"] }
 
 
 [lints]

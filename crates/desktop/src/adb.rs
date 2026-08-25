@@ -78,12 +78,14 @@ impl CleanupGuardian {
                 "invalid ADB serial",
             ));
         }
-        let mut child = Command::new(std::env::current_exe()?)
+        let mut command = Command::new(std::env::current_exe()?);
+        command
             .args(["__adb-cleanup-guard", "--serial", serial])
             .stdin(Stdio::piped())
             .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()?;
+            .stderr(Stdio::null());
+        isolate_cleanup_guard(&mut command);
+        let mut child = command.spawn()?;
         let input = child
             .stdin
             .take()
@@ -123,6 +125,21 @@ impl CleanupGuardian {
             thread::sleep(ACCEPT_POLL_INTERVAL);
         }
     }
+}
+
+#[cfg(unix)]
+fn isolate_cleanup_guard(command: &mut Command) {
+    use std::os::unix::process::CommandExt as _;
+
+    command.process_group(0);
+}
+
+#[cfg(windows)]
+fn isolate_cleanup_guard(command: &mut Command) {
+    use std::os::windows::process::CommandExt as _;
+    use windows_sys::Win32::System::Threading::{CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW};
+
+    command.creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW);
 }
 
 impl Drop for CleanupGuardian {
@@ -797,5 +814,29 @@ mod tests {
         let calls = Arc::clone(&runner.calls);
         assert!(cleanup_guard_from_reader(io::empty(), runner, "bad serial").is_err());
         assert!(calls.lock().unwrap().is_empty());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn cleanup_guard_process_uses_an_independent_process_group() {
+        let mut command = Command::new("sh");
+        command
+            .args(["-c", "cat >/dev/null"])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null());
+        isolate_cleanup_guard(&mut command);
+        let mut child = command.spawn().unwrap();
+        let child_id = child.id().to_string();
+
+        let output = Command::new("ps")
+            .args(["-o", "pgid=", "-p", &child_id])
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        assert_eq!(String::from_utf8(output.stdout).unwrap().trim(), child_id);
+
+        drop(child.stdin.take());
+        assert!(child.wait().unwrap().success());
     }
 }
