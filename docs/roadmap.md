@@ -104,8 +104,14 @@
   on success, cancellation, failure, timeout, and process exit.
 - [x] Keep peer authentication, transcript comparison, request binding, phone user verification,
   and replay consumption above ADB; treat every ADB property as an untrusted display hint.
-- [ ] Device-test pairing and unwrap across cancellation, timeout, cable removal, reconnect,
-  multiple devices, wrong device, malformed frames, replay, and QR fallback.
+- [x] Device-test Windows 11 x64 pairing and a standard age unwrap with TPM/StrongBox custody,
+  byte-for-byte recovery, and exact reverse-rule cleanup.
+- [x] Device-test Windows timeout/no-response, locked phone, nonexistent serial, and a real
+  `UsbFfs` stale reverse rule; every case produced no plaintext and the fixed stale-rule parser
+  rejected rather than overwrote the existing rule.
+- [ ] Complete the remaining Windows device matrix: native-console cancellation and process exit,
+  cable removal and reconnect, ADB daemon restart, multiple devices, wrong paired device,
+  malformed stream, replay, and QR fallback.
 - [x] Document ADB as a Developer USB mode that requires USB debugging and grants the authorized
   desktop broader Android capabilities than this application needs.
 

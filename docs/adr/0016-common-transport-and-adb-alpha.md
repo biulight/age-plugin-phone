@@ -101,3 +101,27 @@ response, and the manually created test reverse rule was removed afterward.
 
 The paired identity also completed an authenticated QR fallback unwrap after the ADB failure tests.
 The recovered plaintext matched byte-for-byte, and the fallback created no ADB reverse rule.
+
+On Windows 11 x64 build 22631 with an Intel TPM reported present, ready, enabled, and activated,
+the same Android `SM-F9660` completed a new protocol-v2 pairing and a standard `age` 1.3.1 unwrap
+through platform-tools 37.0.1. The desktop used its Windows production key path, the phone required
+a fresh StrongBox-backed biometric operation, and the recovered 4,096-byte test file matched the
+original SHA-256 exactly. The fixed reverse rule was absent after both pairing and successful
+unwrap. Locked-phone and no-response attempts produced no output file and left no reverse rule;
+explicit selection of a nonexistent serial also produced no output and created no rule.
+
+This device run exposed a platform-tools compatibility bug in stale-rule detection. On this
+Windows host, scoped `adb -s SERIAL reverse --list` output identifies the USB transport as
+`UsbFfs`, not by repeating `SERIAL` in the first column. The old parser therefore failed to notice
+`UsbFfs tcp:47139 tcp:PORT` and ADB replaced the existing rule. Detection now treats `-s SERIAL`
+as the device scope, strictly requires three bounded fields per non-empty line, and rejects any
+listed rule whose phone-side field is `tcp:47139` regardless of the untrusted first field. A
+physical regression created `UsbFfs tcp:47139 tcp:9`; the fixed build rejected the unwrap, did not
+change the rule, produced no plaintext, and removed the exact test rule afterward.
+
+An SSH-injected Ctrl-C is not accepted as the remaining native-console cleanup-guardian result.
+Windows OpenSSH places the remote tree under its own lifetime controls, while Microsoft documents
+that a new console process group does not by itself escape a Job Object. The SSH run terminated the
+age/plugin/guardian tree and briefly left the reverse rule until the per-session ADB daemon exited.
+The fixed stale-rule parser makes a following operation fail closed while such a rule exists, but a
+direct Windows console Ctrl-C/process-exit test is still required for the guardian acceptance gate.

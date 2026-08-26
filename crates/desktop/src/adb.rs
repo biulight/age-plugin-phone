@@ -444,14 +444,34 @@ fn reject_existing_rule(
     let output = runner
         .run(&["-s", serial, "reverse", "--list"])
         .map_err(|_| AdbError::Unavailable)?;
-    if output.lines().any(|line| {
-        let fields: Vec<_> = line.split_whitespace().collect();
-        fields.len() == 3 && fields[0] == serial && fields[1] == reverse_spec
-    }) {
-        Err(AdbError::ReverseRuleExists)
-    } else {
-        Ok(())
+    for line in output.lines().filter(|line| !line.trim().is_empty()) {
+        let mut fields = line.split_whitespace();
+        let transport = fields.next().ok_or(AdbError::Unavailable)?;
+        let phone_spec = fields.next().ok_or(AdbError::Unavailable)?;
+        let desktop_spec = fields.next().ok_or(AdbError::Unavailable)?;
+        if fields.next().is_some()
+            || !valid_adb_field(transport)
+            || !valid_adb_field(phone_spec)
+            || !valid_adb_field(desktop_spec)
+        {
+            return Err(AdbError::Unavailable);
+        }
+        // `adb -s SERIAL reverse --list` is already scoped to the selected device. Recent
+        // Windows platform-tools identify USB transports as `UsbFfs` in the first column rather
+        // than repeating SERIAL, so that untrusted display field cannot be used to select rules.
+        if phone_spec == reverse_spec {
+            return Err(AdbError::ReverseRuleExists);
+        }
     }
+    Ok(())
+}
+
+fn valid_adb_field(field: &str) -> bool {
+    !field.is_empty()
+        && field.len() <= 128
+        && field
+            .bytes()
+            .all(|byte| byte.is_ascii_graphic() && !byte.is_ascii_whitespace())
 }
 
 fn remove_reverse_rule(
@@ -764,17 +784,27 @@ mod tests {
         let mut malformed = FakeRunner::with("daemon chatter\nphone-a device\n");
         assert_eq!(list_devices(&mut malformed), Err(AdbError::Unavailable));
 
-        let mut rules = FakeRunner::with("phone-a tcp:47139 tcp:50321\n");
+        for output in [
+            "phone-a tcp:47139 tcp:50321\n",
+            "UsbFfs tcp:47139 tcp:50321\n",
+        ] {
+            let mut rules = FakeRunner::with(output);
+            assert_eq!(
+                reject_existing_rule(&mut rules, "phone-a", "tcp:47139"),
+                Err(AdbError::ReverseRuleExists)
+            );
+        }
+
+        let mut malformed_rules = FakeRunner::with("UsbFfs tcp:47139\n");
         assert_eq!(
-            reject_existing_rule(&mut rules, "phone-a", "tcp:47139"),
-            Err(AdbError::ReverseRuleExists)
+            reject_existing_rule(&mut malformed_rules, "phone-a", "tcp:47139"),
+            Err(AdbError::Unavailable)
         );
     }
 
     #[test]
-    fn does_not_confuse_another_device_or_port_rule() {
-        let mut rules =
-            FakeRunner::with("phone-b tcp:47139 tcp:50321\nphone-a tcp:47140 tcp:50322\n");
+    fn does_not_confuse_another_reverse_port() {
+        let mut rules = FakeRunner::with("UsbFfs tcp:47140 tcp:50322\n");
         reject_existing_rule(&mut rules, "phone-a", "tcp:47139").unwrap();
     }
 
