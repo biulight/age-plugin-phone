@@ -125,3 +125,13 @@ that a new console process group does not by itself escape a Job Object. The SSH
 age/plugin/guardian tree and briefly left the reverse rule until the per-session ADB daemon exited.
 The fixed stale-rule parser makes a following operation fail closed while such a rule exists, but a
 direct Windows console Ctrl-C/process-exit test is still required for the guardian acceptance gate.
+
+The Windows/Android run also exposed incorrect handling of a recoverable biometric mismatch.
+Android `BiometricPrompt` keeps an authentication operation active after `onAuthenticationFailed`;
+only success, an unrecoverable error, user dismissal, application cancellation, or the local timeout
+ends it. The old callback instead cancelled the already-consumed unwrap request after the first
+unrecognized fingerprint, so a subsequent recognized scan could appear successful after the native
+bridge had already returned failure. The callback now keeps the same auth-per-use `CryptoObject`,
+consumed request, stream session, and 60-second timeout pending. It neither authorizes the unwrap nor
+creates a response until `onAuthenticationSucceeded` returns the exact original `KeyAgreement`.
+Physical regression of mismatch-then-success on the rebuilt Android application remains pending.

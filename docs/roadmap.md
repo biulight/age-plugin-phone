@@ -112,6 +112,9 @@
 - [ ] Complete the remaining Windows device matrix: native-console cancellation and process exit,
   cable removal and reconnect, ADB daemon restart, multiple devices, wrong paired device,
   malformed stream, replay, and QR fallback.
+- [ ] Rebuild and device-test the Android biometric mismatch regression: an unrecognized scan must
+  keep the same one-shot prompt pending, while Cancel, timeout, lifecycle loss, and terminal errors
+  still fail closed without replay rollback or plaintext output.
 - [x] Document ADB as a Developer USB mode that requires USB debugging and grants the authorized
   desktop broader Android capabilities than this application needs.
 

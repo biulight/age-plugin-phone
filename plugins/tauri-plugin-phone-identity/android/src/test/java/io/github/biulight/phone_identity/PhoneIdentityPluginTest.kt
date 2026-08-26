@@ -33,6 +33,14 @@ class PhoneIdentityPluginTest {
     }
 
     @Test
+    fun unrecognizedBiometricKeepsTheCurrentPromptPending() {
+        assertEquals(
+            AuthenticationFailureDisposition.KEEP_PENDING,
+            PhoneIdentityPlugin.authenticationFailureDisposition(),
+        )
+    }
+
+    @Test
     fun rejectsWrongCurveAndNonEcPeerKeys() {
         val p384 = KeyPairGenerator.getInstance("EC").apply {
             initialize(ECGenParameterSpec("secp384r1"))

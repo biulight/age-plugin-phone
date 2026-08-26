@@ -547,7 +547,11 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         }
 
         override fun onAuthenticationFailed() {
-            finishPhoneUnwrap(pending.token, invoke, "authentication_failed", true)
+            when (authenticationFailureDisposition()) {
+                AuthenticationFailureDisposition.KEEP_PENDING -> Unit
+                AuthenticationFailureDisposition.TERMINATE ->
+                    finishPhoneUnwrap(pending.token, invoke, "authentication_failed", true)
+            }
         }
 
         override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
@@ -843,7 +847,11 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             }
 
             override fun onAuthenticationFailed() {
-                complete(pending.token, false, false, "authentication_failed", true)
+                when (authenticationFailureDisposition()) {
+                    AuthenticationFailureDisposition.KEEP_PENDING -> Unit
+                    AuthenticationFailureDisposition.TERMINATE ->
+                        complete(pending.token, false, false, "authentication_failed", true)
+                }
             }
 
             override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
@@ -1318,5 +1326,13 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             BiometricPrompt.BIOMETRIC_ERROR_TIMEOUT -> "authentication_timeout"
             else -> "authentication_failed"
         }
+
+        internal fun authenticationFailureDisposition(): AuthenticationFailureDisposition =
+            AuthenticationFailureDisposition.KEEP_PENDING
     }
+}
+
+internal enum class AuthenticationFailureDisposition {
+    KEEP_PENDING,
+    TERMINATE,
 }
