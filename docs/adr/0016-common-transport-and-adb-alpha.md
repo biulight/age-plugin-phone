@@ -90,3 +90,14 @@ caller Ctrl-C, ADB daemon termination and restart, and physical USB cable remova
 Each failure produced no plaintext; after the transport returned, no reverse rule remained and the
 next authenticated unwrap recovered the expected plaintext byte-for-byte. This does not satisfy the
 remaining Windows desktop matrix.
+
+With the real device online, explicitly selecting a nonexistent serial failed before creating a
+reverse rule on the connected device and produced no plaintext.
+
+The same Android device rejected a physical Developer USB connection whose desktop peer sent a
+fixed invalid 28-byte transport header and closed the stream. The native layer reported only the
+coarse `usb_transport_failed` category, did not authenticate, did not expose a request fingerprint or
+response, and the manually created test reverse rule was removed afterward.
+
+The paired identity also completed an authenticated QR fallback unwrap after the ADB failure tests.
+The recovered plaintext matched byte-for-byte, and the fallback created no ADB reverse rule.
