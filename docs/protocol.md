@@ -138,3 +138,15 @@ length fields prevent accidental stream confusion and bound allocation; they are
 identity. Pairing offers, pairing responses, unwrap requests, and unwrap responses remain unchanged
 canonical signed messages. A transport failure never permits replay rollback, cached authorization,
 or a weaker cryptographic path.
+
+## Lifecycle and compatibility
+
+The experimental version 2 paired recipient binds the phone identity and desktop selection public
+key. Phone replacement, TPM invalidation, desktop revocation, and re-pairing therefore do not make
+old ciphertext usable through the new pairing. [`ADR 0017`](adr/0017-lifecycle-and-recovery.md)
+requires an independent recipient to recover and re-encrypt retained data; it never migrates a
+private key or replay scope.
+
+Version 2 remains an unfrozen design draft. Version 1 messages and state are rejected rather than
+migrated as defined by ADR 0014. Stable upgrade, downgrade-rejection, and compatibility rules will
+be specified only after independent review findings are resolved.

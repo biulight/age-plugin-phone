@@ -71,10 +71,13 @@ and state paths never include caller-provided labels.
 
 ### Revocation and recovery
 
-Revocation first makes the state unavailable, then removes the exact native key aliases belonging
-to the identity, and finally removes residual state. A crash at any point must leave the pairing
-unavailable or recoverable only through an explicit cleanup path; it must not reconstruct empty
-replay state.
+[`ADR 0017`](0017-lifecycle-and-recovery.md) supersedes the lifecycle terminology in this section.
+Revoking one paired desktop makes and keeps only that pairing unavailable, then removes its combined
+pairing/replay state; it does not remove identity-wide key aliases or another desktop pairing.
+Deleting the complete phone identity first makes every pairing unavailable, then removes every
+pairing/replay record, the exact identity key aliases, and residual metadata through a fail-closed
+journal. A crash at any point must leave the affected scope unavailable or recoverable only through
+an explicit cleanup path; it must not reconstruct empty replay state.
 
 Uninstalling the app removes both app-private state and Keystore ownership. Android backup/restore
 must not copy pairing or replay state. Phone replacement continues to require an independent age

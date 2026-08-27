@@ -124,11 +124,11 @@
 
 ## Milestone 5: lifecycle design and security review
 
-- [ ] Define phone replacement, independent recovery-recipient, paired-desktop revocation, identity
+- [x] Define phone replacement, independent recovery-recipient, paired-desktop revocation, identity
   deletion, application removal, and TPM/StrongBox invalidation flows.
-- [ ] Define the Alpha matrix for Windows 11 x64, TPM 2.0, Android StrongBox devices, ADB
+- [x] Define the Alpha matrix for Windows 11 x64, TPM 2.0, Android StrongBox devices, ADB
   platform-tools, reference age, rage, and Shine; keep macOS as interoperability validation only.
-- [ ] Prepare a review package covering the P-256 recipient, pairing transcript, split desktop key
+- [x] Prepare a review package covering the P-256 recipient, pairing transcript, split desktop key
   roles, private stanza selection, response envelope, Windows and Android replay storage, CNG/TPM
   custody, Android authorization, transport framing, ADB, and age-plugin state machines.
 - [ ] Obtain independent cryptographic and implementation review and resolve its findings.

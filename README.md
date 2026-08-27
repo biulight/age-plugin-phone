@@ -119,6 +119,9 @@ Start with the [Android StrongBox PoC](docs/android-strongbox-poc.md), then read
 [split desktop-key protocol ADR](docs/adr/0014-split-desktop-key-protocol-v2.md),
 [Windows private storage ADR](docs/adr/0015-windows-private-storage.md),
 [common transport and ADB Alpha ADR](docs/adr/0016-common-transport-and-adb-alpha.md),
+[identity lifecycle and recovery ADR](docs/adr/0017-lifecycle-and-recovery.md),
+[Windows and Android Alpha matrix](docs/alpha-matrix.md),
+[independent security review package](docs/security-review-package.md),
 [protocol draft](docs/protocol.md), and [threat model](docs/threat-model.md) before implementing a
 transport or cryptographic backend.
 

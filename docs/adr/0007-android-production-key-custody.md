@@ -44,5 +44,6 @@ separation, and cleanup.
 
 Pairing-response generation can now be wired to stable key handles without ever exporting private
 material. Loss or invalidation of either key makes the identity unusable; recovery and replacement
-remain explicit future protocol work. Android devices without the required StrongBox and strong
-biometric capabilities cannot provision this identity type.
+follow [`ADR 0017`](0017-lifecycle-and-recovery.md) and never export or reconstruct the key. Android
+devices without the required StrongBox and strong biometric capabilities cannot provision this
+identity type.

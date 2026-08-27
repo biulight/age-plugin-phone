@@ -134,6 +134,12 @@ session ID, purpose, direction, and bounded body length but provides no authenti
 defaults to ADB while QR remains a pairing-independent fallback. Android loopback stream bytes stay
 inside the native Kotlin plugin and enter the same strict pairing and unwrap controllers as QR.
 
+Identity replacement, paired-desktop revocation, deletion, application removal, and TPM/StrongBox
+invalidation are specified by [`ADR 0017`](adr/0017-lifecycle-and-recovery.md). Version 2
+ciphertexts bind both a phone identity and a paired desktop selection key, so replacing either
+endpoint requires decrypting through a previously included independent recovery recipient and
+encrypting anew. Pairing state and hardware private keys are never migrated or reconstructed.
+
 ## Transport strategy
 
 QR is the first implementation target because it is observable, offline, and independent of radio
