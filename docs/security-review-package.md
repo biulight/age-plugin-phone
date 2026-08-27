@@ -39,7 +39,7 @@ capabilities.
 | --- | --- | --- | --- |
 | P-256 age recipient and file-key wrap | [ADR 0001](adr/0001-experimental-p256-recipient.md), [ADR 0012](adr/0012-private-stanza-selection.md) | `crates/recipient-p256/src/lib.rs`, `crates/recipient-p256/src/plugin.rs`, `docs/test-vectors/p256-recipient-v1.json`, `docs/test-vectors/p256-recipient-v2.json` | `TaggedRecipientCrypto.kt`, `TaggedRecipientCryptoTest.kt` |
 | Canonical pairing transcript and fingerprints | [ADR 0002](adr/0002-experimental-offline-envelope.md), [ADR 0008](adr/0008-bidirectional-pairing.md), [ADR 0014](adr/0014-split-desktop-key-protocol-v2.md) | `crates/protocol/src/lib.rs`, `crates/desktop/src/pairing.rs`, `docs/test-vectors/pairing-transcript-v2.json` | `PairingConfirmationSession.kt`, `NativePairingResponseController.kt` and their tests |
-| Split desktop signing and selection roles | [ADR 0013](adr/0013-windows-cng-key-boundaries.md), [ADR 0014](adr/0014-split-desktop-key-protocol-v2.md) | `crates/windows-cng/src/windows.rs`, `crates/desktop/src/pairing.rs` | `PairingStateStore.kt` role-key validation |
+| Long-term P-256 role separation | [ADR 0002](adr/0002-experimental-offline-envelope.md), [ADR 0013](adr/0013-windows-cng-key-boundaries.md), [ADR 0014](adr/0014-split-desktop-key-protocol-v2.md) | Transcript checks in `crates/protocol/src/lib.rs`, strict stub checks in `crates/desktop/src/pairing.rs`, and custody in `crates/windows-cng/src/windows.rs` | Transcript checks in `OfflineEnvelopeCrypto.kt`, state checks in `PairingStateStore.kt`, and custody in `PhoneIdentityKeyStore.kt` |
 | Private stanza selection | [ADR 0012](adr/0012-private-stanza-selection.md) | `crates/recipient-p256/src/lib.rs`, `crates/desktop/src/age_identity.rs` | `TaggedRecipientCrypto.kt` structural and unwrap validation |
 | Signed, encrypted response envelope | [ADR 0002](adr/0002-experimental-offline-envelope.md), [ADR 0009](adr/0009-one-shot-qr-unwrap.md) | `crates/protocol/src/lib.rs`, `crates/desktop/src/unwrap.rs`, `docs/test-vectors/offline-envelope-v2.json` | `OfflineEnvelopeCrypto.kt`, `NativeUnwrapResponseController.kt` and tests |
 | Windows and Android replay storage | [ADR 0003](adr/0003-persistent-replay-state.md), [ADR 0004](adr/0004-android-pairing-state.md), [ADR 0015](adr/0015-windows-private-storage.md) | `crates/protocol/src/replay.rs`, `crates/windows-storage/src/windows.rs`, `crates/desktop/src/locator.rs` | `PairingStateStore.kt`, `PairingStateStoreTest.kt` |
@@ -98,7 +98,8 @@ error paths that cross the native/WebView boundary.
 
 ## Reproduction
 
-From a clean checkout of the review commit with the locked dependencies:
+From a clean checkout of the review commit with the locked dependencies. The Android build uses a
+supported JDK 17 runtime; do not rely on the workstation's newest installed JDK:
 
 ```console
 cargo fmt --check
@@ -110,6 +111,7 @@ bun install --frozen-lockfile
 bun run build
 
 cd src-tauri/gen/android
+set JAVA_HOME=<path-to-jdk-17>
 .\gradlew.bat :tauri-plugin-phone-identity:testDebugUnitTest
 ```
 

@@ -103,15 +103,22 @@ impl PublicIdentityStub {
                 decoder.bytes().map_err(|_| PairingError::MalformedStub)?,
             )?,
         };
+        let recipient =
+            Recipient::parse(&value.recipient).map_err(|_| PairingError::MalformedStub)?;
+        let identity_public_key = recipient.public_key_bytes();
         if decoder.str().map_err(|_| PairingError::MalformedStub)? != PLUGIN_NAME
             || decoder.position() != bytes.len()
             || value.encode() != bytes
-            || Recipient::parse(&value.recipient).is_err()
             || p256::ecdsa::VerifyingKey::from_sec1_bytes(&value.desktop_signing_public_key)
                 .is_err()
             || p256::PublicKey::from_sec1_bytes(&value.desktop_selection_public_key).is_err()
             || value.desktop_selection_public_key == value.desktop_signing_public_key
             || p256::ecdsa::VerifyingKey::from_sec1_bytes(&value.phone_signing_public_key).is_err()
+            || identity_public_key == value.desktop_signing_public_key
+            || identity_public_key == value.desktop_selection_public_key
+            || identity_public_key == value.phone_signing_public_key
+            || value.phone_signing_public_key == value.desktop_signing_public_key
+            || value.phone_signing_public_key == value.desktop_selection_public_key
         {
             return Err(PairingError::MalformedStub);
         }
@@ -806,6 +813,29 @@ mod tests {
                 .windows(32)
                 .any(|window| window == desktop.to_bytes().as_slice())
         );
+
+        let identity_public_key = Recipient::parse(&stub.recipient)
+            .unwrap()
+            .public_key_bytes();
+        for malformed in [
+            PublicIdentityStub {
+                phone_signing_public_key: identity_public_key,
+                ..stub.clone()
+            },
+            PublicIdentityStub {
+                phone_signing_public_key: stub.desktop_signing_public_key,
+                ..stub.clone()
+            },
+            PublicIdentityStub {
+                phone_signing_public_key: stub.desktop_selection_public_key,
+                ..stub.clone()
+            },
+        ] {
+            assert_eq!(
+                PublicIdentityStub::decode(&malformed.encode()),
+                Err(PairingError::MalformedStub),
+            );
+        }
     }
 
     #[cfg(unix)]

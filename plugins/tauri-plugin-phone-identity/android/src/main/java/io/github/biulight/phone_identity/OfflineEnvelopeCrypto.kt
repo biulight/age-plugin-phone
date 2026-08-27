@@ -121,6 +121,22 @@ internal object OfflineEnvelopeCrypto {
         val (payload, signature) = decodeSigned(encoded)
         val response = decodePairingResponsePayload(payload)
         if (!MessageDigest.isEqual(response.offerDigest, offer.digest)) throw ProtocolException()
+        val identityPublic = TaggedRecipientCrypto.encodeCompressed(
+            TaggedRecipientCrypto.decodeRecipient(response.recipient),
+        )
+        val desktopSigning = TaggedRecipientCrypto.encodeCompressed(
+            offer.offer.desktopSigningPublicKey,
+        )
+        val desktopSelection = TaggedRecipientCrypto.encodeCompressed(
+            offer.offer.desktopSelectionPublicKey,
+        )
+        val phoneSigning = TaggedRecipientCrypto.encodeCompressed(response.phoneSigningPublicKey)
+        if (MessageDigest.isEqual(identityPublic, phoneSigning) ||
+            MessageDigest.isEqual(identityPublic, desktopSigning) ||
+            MessageDigest.isEqual(identityPublic, desktopSelection) ||
+            MessageDigest.isEqual(phoneSigning, desktopSigning) ||
+            MessageDigest.isEqual(phoneSigning, desktopSelection)
+        ) throw ProtocolException()
         verify(response.phoneSigningPublicKey, pairingSignatureDomain, payload, signature)
         return VerifiedPairingResponse(response, encoded.copyOf())
     }

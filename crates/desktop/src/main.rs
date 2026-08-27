@@ -438,16 +438,20 @@ fn run_unwrap(
     Ok(())
 }
 
+#[cfg(windows)]
 fn ensure_desktop_platform_supported() -> io::Result<()> {
-    #[cfg(windows)]
-    {
-        age_plugin_phone_windows_cng::ensure_supported_platform().map_err(|error| {
-            io::Error::new(
-                io::ErrorKind::Unsupported,
-                format!("unsupported Windows Alpha platform: {error}"),
-            )
-        })?;
-    }
+    age_plugin_phone_windows_cng::ensure_supported_platform().map_err(|error| {
+        io::Error::new(
+            io::ErrorKind::Unsupported,
+            format!("unsupported Windows Alpha platform: {error}"),
+        )
+    })
+}
+
+#[cfg(not(windows))]
+// Keep command paths identical to Windows while the actual capability gate is platform-specific.
+#[allow(clippy::unnecessary_wraps)]
+fn ensure_desktop_platform_supported() -> io::Result<()> {
     Ok(())
 }
 

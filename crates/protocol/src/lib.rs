@@ -265,6 +265,18 @@ impl SignedPairingResponse {
         if self.payload.offer_digest != offer.digest() {
             return Err(Error::BindingMismatch);
         }
+        let identity_public = Recipient::parse(&self.payload.recipient)
+            .map_err(|_| Error::InvalidRecipientStanza)?
+            .public_key_bytes();
+        if [identity_public, self.payload.phone_signing_public_key]
+            .iter()
+            .any(|key| {
+                *key == offer.payload.desktop_signing_public_key
+                    || *key == offer.payload.desktop_selection_public_key
+            })
+        {
+            return Err(Error::InvalidPublicKey);
+        }
         verify(
             &verifying(&self.payload.phone_signing_public_key)?,
             PAIRING_SIG,
@@ -571,8 +583,13 @@ fn validate_request(value: &UnwrapRequest) -> Result<(), Error> {
     Ok(())
 }
 fn validate_pairing_response(value: &PairingResponse) -> Result<(), Error> {
-    Recipient::parse(&value.recipient).map_err(|_| Error::InvalidRecipientStanza)?;
+    let identity_public = Recipient::parse(&value.recipient)
+        .map_err(|_| Error::InvalidRecipientStanza)?
+        .public_key_bytes();
     verifying(&value.phone_signing_public_key)?;
+    if identity_public == value.phone_signing_public_key {
+        return Err(Error::InvalidPublicKey);
+    }
     Ok(())
 }
 fn label(value: &str) -> Result<(), Error> {
@@ -1391,5 +1408,51 @@ mod tests {
             SignedPairingOffer::sign(oversized, &desktop).unwrap_err(),
             Error::Malformed
         );
+    }
+
+    #[test]
+    fn rejects_pairing_with_reused_long_term_key_roles() {
+        let (offer, response, desktop, phone) = pairing_fixture();
+        let mut reused_identity_and_phone = response.payload.clone();
+        reused_identity_and_phone.recipient =
+            Recipient::from_public_key_bytes(&reused_identity_and_phone.phone_signing_public_key)
+                .unwrap()
+                .to_string()
+                .unwrap();
+        assert_eq!(
+            SignedPairingResponse::sign(reused_identity_and_phone, &phone).unwrap_err(),
+            Error::InvalidPublicKey,
+        );
+
+        let selection = sig(7);
+        for reused_key in [&desktop, &selection] {
+            let mut reused_phone_role = response.payload.clone();
+            reused_phone_role.phone_signing_public_key = public_signing(reused_key.verifying_key());
+            assert_eq!(
+                SignedPairingResponse::sign(reused_phone_role, reused_key)
+                    .unwrap()
+                    .verify(&offer)
+                    .unwrap_err(),
+                Error::InvalidPublicKey,
+            );
+        }
+
+        for reused_identity_role in [
+            offer.payload.desktop_signing_public_key,
+            offer.payload.desktop_selection_public_key,
+        ] {
+            let mut reused_identity = response.payload.clone();
+            reused_identity.recipient = Recipient::from_public_key_bytes(&reused_identity_role)
+                .unwrap()
+                .to_string()
+                .unwrap();
+            assert_eq!(
+                SignedPairingResponse::sign(reused_identity, &phone)
+                    .unwrap()
+                    .verify(&offer)
+                    .unwrap_err(),
+                Error::InvalidPublicKey,
+            );
+        }
     }
 }

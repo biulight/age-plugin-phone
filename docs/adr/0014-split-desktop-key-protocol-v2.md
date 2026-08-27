@@ -29,6 +29,12 @@ offer and all later unwrap requests. The selection key is carried inside the pai
 recipient and performs only ECDH selector recovery. The phone response remains bound to the exact
 offer digest, so its signature and the full transcript fingerprint cover both desktop roles.
 
+The four long-term P-256 roles in the complete transcript—the phone identity, phone signing key,
+desktop signing key, and desktop selection key—must have pairwise-distinct canonical public keys.
+Both transcript verifiers reject any role reuse before confirmation or persistence. Strict desktop
+stub and Android pairing-state parsing repeat this check so manually copied or corrupted public
+state cannot bypass the transcript boundary.
+
 The public desktop identity stub is version 2 and stores both public keys independently. The
 desktop software test/interoperability state uses the new `APDK2` format with two scalars; the
 version 1 magic and shorter state are rejected. New encryption derives the existing v2 paired
@@ -52,7 +58,7 @@ pairing and pair again; the long-term phone identity keys do not need to be rege
 ## Validation
 
 `pairing-transcript-v2.json` and `offline-envelope-v2.json` are deterministic public vectors shared
-by Rust and Kotlin. Tests cover exact canonical round trips, distinct key binding, version 1 message
-rejection, version 1 stub and desktop-key rejection, version 1 replay-state rejection, Android
-version 1 pairing-state rejection, wrong device, wrong identity, replay, expiry, malformed input,
-high-S signatures, cancellation, and failed persistence.
+by Rust and Kotlin. Tests cover exact canonical round trips, pairwise rejection of reused long-term
+key roles, version 1 message rejection, version 1 stub and desktop-key rejection, version 1 replay-
+state rejection, Android version 1 pairing-state rejection, wrong device, wrong identity, replay,
+expiry, malformed input, high-S signatures, cancellation, and failed persistence.

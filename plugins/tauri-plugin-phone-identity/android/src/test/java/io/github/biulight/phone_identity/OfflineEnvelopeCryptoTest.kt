@@ -204,6 +204,38 @@ class OfflineEnvelopeCryptoTest {
     }
 
     @Test
+    fun rejectsPairingTranscriptWithReusedLongTermKeyRoles() {
+        val generator = java.security.KeyPairGenerator.getInstance("EC").apply {
+            initialize(java.security.spec.ECGenParameterSpec("secp256r1"))
+        }
+        val identity = generator.generateKeyPair()
+        val desktopSigning = generator.generateKeyPair()
+        val desktopSelection = generator.generateKeyPair()
+        val phoneSigning = generator.generateKeyPair()
+
+        val reusedRoles = listOf(
+            arrayOf(phoneSigning, desktopSigning, desktopSelection, phoneSigning),
+            arrayOf(desktopSigning, desktopSigning, desktopSelection, phoneSigning),
+            arrayOf(desktopSelection, desktopSigning, desktopSelection, phoneSigning),
+            arrayOf(identity, desktopSigning, desktopSelection, desktopSigning),
+            arrayOf(identity, desktopSigning, desktopSelection, desktopSelection),
+        )
+        for (roles in reusedRoles) {
+            val transcript = OfflineEnvelopeCrypto.createSyntheticPairingTranscript(
+                roles[0].public,
+                roles[1],
+                roles[2].public,
+                roles[3],
+                java.security.SecureRandom(),
+            )
+            val offer = OfflineEnvelopeCrypto.verifyPairingOffer(transcript.signedOffer)
+            assertThrows(OfflineEnvelopeCrypto.ProtocolException::class.java) {
+                OfflineEnvelopeCrypto.verifyPairingResponse(transcript.signedResponse, offer)
+            }
+        }
+    }
+
+    @Test
     fun verifiesAndDecryptsSharedRustVector() {
         val desktopSigning = keyPair(vector["desktop_signing_scalar"].asInt())
         val phoneSigning = keyPair(vector["phone_signing_scalar"].asInt())
