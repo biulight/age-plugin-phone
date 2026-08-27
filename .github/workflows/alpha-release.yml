@@ -1,0 +1,72 @@
+name: Signed Alpha artifacts
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.85.0
+      - name: Build locked Windows x64 binary
+        run: cargo build --release --locked -p age-plugin-phone
+      - name: Import signing certificate and sign
+        shell: pwsh
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+        run: |
+          if (-not $env:WINDOWS_CERTIFICATE_BASE64) { throw "Windows signing secret is required" }
+          $certificate = Join-Path $env:RUNNER_TEMP "alpha-signing.pfx"
+          [IO.File]::WriteAllBytes($certificate, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
+          signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f $certificate /p $env:WINDOWS_CERTIFICATE_PASSWORD target/release/age-plugin-phone.exe
+          Remove-Item $certificate -Force
+      - name: Smoke and digest
+        shell: pwsh
+        run: |
+          target/release/age-plugin-phone.exe --help
+          Get-FileHash target/release/age-plugin-phone.exe -Algorithm SHA256 | Format-List
+      - uses: actions/upload-artifact@v4
+        with:
+          name: age-plugin-phone-windows-x64-alpha
+          path: target/release/age-plugin-phone.exe
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.85.0
+          targets: aarch64-linux-android
+      - name: Restore Android signing key
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          test -n "$ANDROID_KEYSTORE_BASE64"
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/alpha-release.jks"
+      - name: Build signed Android Alpha
+        working-directory: apps/mobile
+        env:
+          AGE_PLUGIN_PHONE_ANDROID_KEYSTORE: ${{ runner.temp }}/alpha-release.jks
+          AGE_PLUGIN_PHONE_ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          AGE_PLUGIN_PHONE_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          AGE_PLUGIN_PHONE_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          bun install --frozen-lockfile
+          bun run tauri android build --apk --target aarch64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: age-plugin-phone-android-alpha
+          path: apps/mobile/src-tauri/gen/android/app/build/outputs/apk/release/*.apk

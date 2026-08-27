@@ -1,6 +1,7 @@
 package io.github.biulight.phone_identity
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.Manifest
 import android.hardware.biometrics.BiometricPrompt
 import android.os.Build
@@ -26,6 +27,7 @@ import java.security.spec.ECFieldFp
 import java.security.spec.ECGenParameterSpec
 import java.util.UUID
 import javax.crypto.KeyAgreement
+import org.json.JSONArray
 
 @TauriPlugin(
     permissions = [Permission(strings = [Manifest.permission.CAMERA], alias = "camera")],
@@ -44,6 +46,8 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     private var activeUnwrapResponse: NativeUnwrapResponseController? = null
     private var activeUsbSession: PhoneStreamSession? = null
     private var activeUsbToken: UUID? = null
+    private var activeLifecycle: PendingLifecycle? = null
+    private var activeProvisioning = false
     private var cameraPermissionPending = false
     private var pairingPermissionPending = false
     private var unwrapPermissionPending = false
@@ -102,6 +106,85 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     @Command
     fun doctorPairingStorage(invoke: Invoke) {
         invoke.resolve(synchronized(pairingDoctorLock) { runPairingStorageDoctor() })
+    }
+
+    @Command
+    fun identityStatus(invoke: Invoke) {
+        invoke.resolve(identityStatusReport())
+    }
+
+    @Command
+    fun provisionIdentity(invoke: Invoke) {
+        synchronized(stateLock) {
+            if (nativeOperationActive()) {
+                invoke.resolve(identityStatusReport("operation_active"))
+                return
+            }
+            activeProvisioning = true
+        }
+        try {
+            productionIdentity.provision()
+            invoke.resolve(identityStatusReport())
+        } catch (error: PhoneIdentityKeyStore.KeyStoreException) {
+            invoke.resolve(identityStatusReport(keyStoreCategory(error.category)))
+        } finally {
+            synchronized(stateLock) { activeProvisioning = false }
+        }
+    }
+
+    @Command
+    fun revokePairing(invoke: Invoke) {
+        val handle = try {
+            invoke.parseArgs(RevokePairingArgs::class.java).handle
+        } catch (_: Exception) {
+            invoke.resolve(lifecycleReport(false, "ready", "malformed_request"))
+            return
+        }
+        val provision = try {
+            productionIdentity.open()
+        } catch (error: PhoneIdentityKeyStore.KeyStoreException) {
+            invoke.resolve(lifecycleReport(false, "unavailable", keyStoreCategory(error.category)))
+            return
+        }
+        val pairing = try {
+            PairingStateStore.list(activity, provision.public.identityId).singleOrNull {
+                it.handle == handle
+            } ?: throw PairingStateStore.PairingStateException(PairingStateStore.Category.MISSING)
+        } catch (error: PairingStateStore.PairingStateException) {
+            invoke.resolve(lifecycleReport(false, "ready", pairingCategory(error.category)))
+            return
+        }
+        startLifecycleConfirmation(
+            invoke = invoke,
+            title = "Revoke paired desktop?",
+            message = "Untrusted label: ${pairing.desktopLabel.take(64)}\n\n" +
+                "Fingerprint: ${pairing.transcriptFingerprint}\n\n" +
+                "Old ciphertext may require recovery and re-encryption.",
+            positiveLabel = if (pairing.deletionPending) "Finish cleanup" else "Revoke desktop",
+        ) {
+            PairingStateStore.revoke(activity, provision.public.identityId, handle)
+            lifecycleReport(true, "ready", null)
+        }
+    }
+
+    @Command
+    fun deleteIdentity(invoke: Invoke) {
+        val status = identityStatusReport()
+        if (status.optString("state") !in setOf("ready", "deletion_pending")) {
+            invoke.resolve(lifecycleReport(false, status.optString("state"), "identity_unavailable"))
+            return
+        }
+        startLifecycleConfirmation(
+            invoke = invoke,
+            title = "Delete phone identity?",
+            message = "This permanently destroys the StrongBox identity and revokes every paired " +
+                "desktop. Ciphertexts are not deleted. Continue only after verifying an independent " +
+                "recovery recipient.",
+            positiveLabel = "Delete identity",
+        ) {
+            productionIdentity.deleteIdentity()
+            lifecycleReport(true, "not_configured", null)
+        }
     }
 
     @Command
@@ -221,6 +304,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         cancelPhoneUnwrap("authentication_failed")
         cancelUnwrapResponse()
         cancelUsbSession()
+        cancelLifecycle()
     }
 
     override fun onDestroy(activity: androidx.appcompat.app.AppCompatActivity) {
@@ -231,6 +315,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         cancelPhoneUnwrap("authentication_failed")
         cancelUnwrapResponse()
         cancelUsbSession()
+        cancelLifecycle()
     }
 
     private fun startPairingOfferScanner(invoke: Invoke) {
@@ -935,7 +1020,145 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         active != null || activeQrScanner != null || activePairingResponse != null ||
             activePhoneUnwrap != null || activeUnwrapResponse != null ||
             activeUsbSession != null || activeUsbToken != null || cameraPermissionPending ||
-            pairingPermissionPending || unwrapPermissionPending
+            pairingPermissionPending || unwrapPermissionPending || activeLifecycle != null ||
+            activeProvisioning
+
+    private fun startLifecycleConfirmation(
+        invoke: Invoke,
+        title: String,
+        message: String,
+        positiveLabel: String,
+        operation: () -> JSObject,
+    ) {
+        synchronized(stateLock) {
+            if (nativeOperationActive()) {
+                invoke.resolve(lifecycleReport(false, "ready", "operation_active"))
+                return
+            }
+            activeLifecycle = PendingLifecycle(invoke)
+        }
+        activity.runOnUiThread {
+            val dialog = AlertDialog.Builder(activity)
+                .setTitle(title)
+                .setMessage(message)
+                .setNegativeButton("Cancel") { _, _ ->
+                    finishLifecycle(invoke, lifecycleReport(false, "ready", "user_cancelled"))
+                }
+                .setPositiveButton(positiveLabel, null)
+                .create()
+            dialog.setOnShowListener {
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    val result = try {
+                        operation()
+                    } catch (error: PairingStateStore.PairingStateException) {
+                        lifecycleReport(false, "unavailable", pairingCategory(error.category))
+                    } catch (error: PhoneIdentityKeyStore.KeyStoreException) {
+                        lifecycleReport(false, "unavailable", keyStoreCategory(error.category))
+                    } catch (_: Exception) {
+                        lifecycleReport(false, "unavailable", "storage_failed")
+                    }
+                    dialog.dismiss()
+                    finishLifecycle(invoke, result)
+                }
+            }
+            synchronized(stateLock) {
+                activeLifecycle?.takeIf { it.invoke === invoke }?.dialog = dialog
+            }
+            dialog.show()
+        }
+    }
+
+    private fun finishLifecycle(invoke: Invoke, report: JSObject) {
+        val pending = synchronized(stateLock) {
+            activeLifecycle?.takeIf { it.invoke === invoke }?.also { activeLifecycle = null }
+        } ?: return
+        pending.dialog?.setOnDismissListener(null)
+        invoke.resolve(report)
+    }
+
+    private fun cancelLifecycle() {
+        val pending = synchronized(stateLock) {
+            activeLifecycle.also { activeLifecycle = null }
+        } ?: return
+        pending.dialog?.dismiss()
+        pending.invoke.resolve(lifecycleReport(false, "ready", "lifecycle_cancelled"))
+    }
+
+    private fun identityStatusReport(forcedError: String? = null): JSObject {
+        if (forcedError != null) {
+            return JSObject().apply {
+                put("state", "unavailable")
+                put("publicRecipient", null)
+                put("pairedDesktops", JSONArray())
+                put("recoveryRequired", true)
+                put("errorCategory", forcedError)
+            }
+        }
+        return try {
+            val provision = productionIdentity.open()
+            val pairings = PairingStateStore.list(activity, provision.public.identityId)
+            JSObject().apply {
+                put("state", "ready")
+                put("publicRecipient", provision.public.recipient)
+                put("pairedDesktops", JSONArray().apply {
+                    pairings.forEach { pairing ->
+                        put(JSObject().apply {
+                            put("handle", pairing.handle)
+                            put("displayLabel", pairing.desktopLabel)
+                            put("transcriptFingerprint", pairing.transcriptFingerprint)
+                            put("deletionPending", pairing.deletionPending)
+                        })
+                    }
+                })
+                put("recoveryRequired", true)
+                put("errorCategory", null)
+            }
+        } catch (error: PhoneIdentityKeyStore.KeyStoreException) {
+            val state = when (error.category) {
+                PhoneIdentityKeyStore.Category.MISSING -> "not_configured"
+                PhoneIdentityKeyStore.Category.DELETION_PENDING -> "deletion_pending"
+                else -> "unavailable"
+            }
+            JSObject().apply {
+                put("state", state)
+                put("publicRecipient", null)
+                put("pairedDesktops", JSONArray())
+                put("recoveryRequired", true)
+                put("errorCategory", if (state == "not_configured") null else keyStoreCategory(error.category))
+            }
+        } catch (error: PairingStateStore.PairingStateException) {
+            JSObject().apply {
+                put("state", "unavailable")
+                put("publicRecipient", null)
+                put("pairedDesktops", JSONArray())
+                put("recoveryRequired", true)
+                put("errorCategory", pairingCategory(error.category))
+            }
+        }
+    }
+
+    private fun keyStoreCategory(category: PhoneIdentityKeyStore.Category): String = when (category) {
+        PhoneIdentityKeyStore.Category.MISSING -> "identity_missing"
+        PhoneIdentityKeyStore.Category.DELETION_PENDING -> "deletion_pending"
+        PhoneIdentityKeyStore.Category.STRONGBOX_UNAVAILABLE -> "strongbox_unavailable"
+        PhoneIdentityKeyStore.Category.UNSUPPORTED_API -> "unsupported_api"
+        PhoneIdentityKeyStore.Category.ALREADY_EXISTS -> "identity_exists"
+        else -> "identity_unavailable"
+    }
+
+    private fun pairingCategory(category: PairingStateStore.Category): String = when (category) {
+        PairingStateStore.Category.MISSING -> "pairing_missing"
+        PairingStateStore.Category.DELETION_PENDING -> "deletion_pending"
+        PairingStateStore.Category.LOCKED -> "pairing_busy"
+        else -> "pairing_state_failed"
+    }
+
+    private fun lifecycleReport(completed: Boolean, state: String, error: String?): JSObject =
+        JSObject().apply {
+            put("completed", completed)
+            put("state", state)
+            put("errorCategory", error)
+        }
 
     private fun runPairingStorageDoctor(): JSObject {
         var store: PairingStateStore? = null
@@ -1234,6 +1457,15 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         var streamSession: PhoneStreamSession? = null,
         var timeout: Runnable? = null,
     )
+
+    private class PendingLifecycle(
+        val invoke: Invoke,
+        var dialog: AlertDialog? = null,
+    )
+
+    private class RevokePairingArgs {
+        lateinit var handle: String
+    }
 
     companion object {
         private const val AUTHENTICATION_TIMEOUT_MILLIS = 60_000L

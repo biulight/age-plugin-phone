@@ -73,6 +73,7 @@ internal class PhoneIdentityKeyStore private constructor(
         if (stateFile.exists()) {
             val existing = readState(stateFile)
             if (existing is StoredState.Committed) throw KeyStoreException(Category.ALREADY_EXISTS)
+            if (existing is StoredState.Deleting) throw KeyStoreException(Category.DELETION_PENDING)
             cleanupAliases(existing.identityId)
             deleteState(root, stateFile)
             recovered = true
@@ -111,14 +112,50 @@ internal class PhoneIdentityKeyStore private constructor(
         requireSupportedApi()
         val stateFile = File(prepareRoot(), STATE_FILE_NAME)
         if (!stateFile.exists()) throw KeyStoreException(Category.MISSING)
-        val committed = readState(stateFile) as? StoredState.Committed
-            ?: throw KeyStoreException(Category.INCOMPLETE)
+        val committed = when (val state = readState(stateFile)) {
+            is StoredState.Committed -> state
+            is StoredState.Deleting -> throw KeyStoreException(Category.DELETION_PENDING)
+            is StoredState.Preparing -> throw KeyStoreException(Category.INCOMPLETE)
+        }
         val store = keyStore()
         val live = publicMetadata(store, committed.identityId)
         if (!publicEqual(committed.public, live)) throw KeyStoreException(Category.METADATA_MISMATCH)
         val inspection = inspect(store, committed.identityId)
         if (!inspection.isAcceptable()) throw KeyStoreException(Category.WRONG_SECURITY_LEVEL)
         PhoneIdentityProvision(live.copySafe(), inspection, false)
+    }
+
+    fun deleteIdentity(): Boolean = synchronized(processLock) {
+        requireSupportedApi()
+        val root = prepareRoot()
+        val stateFile = File(root, STATE_FILE_NAME)
+        if (!stateFile.exists()) throw KeyStoreException(Category.MISSING)
+        val current = readState(stateFile)
+        val public = when (current) {
+            is StoredState.Committed -> {
+                commit(root, stateFile, encodeDeleting(current.public))
+                current.public
+            }
+            is StoredState.Deleting -> current.public
+            is StoredState.Preparing -> throw KeyStoreException(Category.INCOMPLETE)
+        }
+
+        try {
+            PairingStateStore.revokeAll(context, public.identityId)
+            cleanupAliases(public.identityId)
+            val store = keyStore()
+            if (store.containsAlias(identityAlias(public.identityId)) ||
+                store.containsAlias(signingAlias(public.identityId))
+            ) {
+                throw KeyStoreException(Category.STORAGE)
+            }
+            deleteState(root, stateFile)
+            true
+        } catch (error: KeyStoreException) {
+            throw error
+        } catch (_: Exception) {
+            throw KeyStoreException(Category.STORAGE)
+        }
     }
 
     fun createPairingResponse(signedOffer: ByteArray): ByteArray = synchronized(processLock) {
@@ -438,6 +475,7 @@ internal class PhoneIdentityKeyStore private constructor(
         UNSUPPORTED_API,
         WRONG_KEY_ROLE,
         WRONG_SECURITY_LEVEL,
+        DELETION_PENDING,
     }
 
     class KeyStoreException(val category: Category) : Exception()
@@ -445,12 +483,14 @@ internal class PhoneIdentityKeyStore private constructor(
     private sealed class StoredState(open val identityId: ByteArray) {
         data class Preparing(override val identityId: ByteArray) : StoredState(identityId)
         data class Committed(val public: PhoneIdentityPublic) : StoredState(public.identityId)
+        data class Deleting(val public: PhoneIdentityPublic) : StoredState(public.identityId)
     }
 
     companion object {
         private const val STATE_VERSION = 1
         private const val PHASE_PREPARING = 0
         private const val PHASE_COMMITTED = 1
+        private const val PHASE_DELETING = 2
         private const val IDENTITY_ID_BYTES = 16
         private const val PUBLIC_KEY_BYTES = 33
         private const val MAX_STATE_BYTES = 512
@@ -520,10 +560,23 @@ internal class PhoneIdentityKeyStore private constructor(
             })
         }
 
+        internal fun encodeDeleting(public: PhoneIdentityPublic): ByteArray {
+            validatePublic(public)
+            return cbor.writeValueAsBytes(cbor.createArrayNode().apply {
+                add(STATE_VERSION)
+                add(PHASE_DELETING)
+                add(public.identityId)
+                add(public.recipient)
+                add(public.identityPublicKey)
+                add(public.signingPublicKey)
+            })
+        }
+
         internal fun decodeForTest(encoded: ByteArray): PhoneIdentityPublic? =
             when (val state = decodeState(encoded)) {
                 is StoredState.Preparing -> null
                 is StoredState.Committed -> state.public.copySafe()
+                is StoredState.Deleting -> null
             }
 
         private fun decodeState(encoded: ByteArray): StoredState {
@@ -542,7 +595,9 @@ internal class PhoneIdentityKeyStore private constructor(
             if (phase == PHASE_PREPARING && node.size() == 3) {
                 return StoredState.Preparing(identityId)
             }
-            if (phase != PHASE_COMMITTED || node.size() != 6 || !node[3].isTextual) {
+            if (phase !in setOf(PHASE_COMMITTED, PHASE_DELETING) ||
+                node.size() != 6 || !node[3].isTextual
+            ) {
                 throw KeyStoreException(Category.MALFORMED)
             }
             val public = PhoneIdentityPublic(
@@ -552,10 +607,19 @@ internal class PhoneIdentityKeyStore private constructor(
                 binary(node, 5, PUBLIC_KEY_BYTES),
             )
             validatePublic(public)
-            if (!MessageDigest.isEqual(encodeCommitted(public), encoded)) {
+            val canonical = if (phase == PHASE_COMMITTED) {
+                encodeCommitted(public)
+            } else {
+                encodeDeleting(public)
+            }
+            if (!MessageDigest.isEqual(canonical, encoded)) {
                 throw KeyStoreException(Category.MALFORMED)
             }
-            return StoredState.Committed(public)
+            return if (phase == PHASE_COMMITTED) {
+                StoredState.Committed(public)
+            } else {
+                StoredState.Deleting(public)
+            }
         }
 
         private fun validatePublic(public: PhoneIdentityPublic) {

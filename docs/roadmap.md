@@ -137,14 +137,14 @@
 
 ## Milestone 6: Windows and Android product Alpha
 
-- [ ] Replace the development Doctor as the primary mobile UI with identity status, public
+- [x] Replace the development Doctor as the primary mobile UI with identity status, public
   recipient, pairing, paired-desktop management, USB/QR request approval, revocation, and recovery
   guidance.
-- [ ] Preserve Doctor diagnostics only in explicitly marked development builds, with non-sensitive
+- [x] Preserve Doctor diagnostics only in explicitly marked development builds, with non-sensitive
   reports.
 - [ ] Package and sign Windows 11 x64 desktop and Android builds; macOS packaging is not an Alpha
   release gate.
-- [ ] Add CI for Windows Rust builds, Kotlin, TypeScript, deterministic vectors, negative tests,
+- [x] Add CI for Windows Rust builds, Kotlin, TypeScript, deterministic vectors, negative tests,
   reproducible build inputs, and packaged-binary smoke tests.
 - [ ] Complete interoperability with released reference age and rage versions, multiple phones,
   multiple files, and an independent recovery recipient.

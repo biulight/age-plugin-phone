@@ -1,0 +1,12 @@
+"$schema" = "schemas/schema.json"
+
+[doctor]
+description = "Allows non-sensitive Doctor diagnostics in development builds."
+permissions = [
+    "allow-doctor-capabilities",
+    "allow-doctor-identity-custody",
+    "allow-doctor-create-probe",
+    "allow-doctor-run-agreement",
+    "allow-doctor-cleanup",
+    "allow-doctor-pairing-storage",
+]

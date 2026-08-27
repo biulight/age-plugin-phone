@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  rust:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.85.0
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo test --workspace --locked
+      - name: Packaged binary smoke test
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cargo build --release --locked -p age-plugin-phone
+          target/release/age-plugin-phone.exe --help
+
+  mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: apps/mobile/package.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Frontend dependencies
+        working-directory: apps/mobile
+        run: bun install --frozen-lockfile
+      - name: TypeScript production build
+        working-directory: apps/mobile
+        run: bun run build
+      - name: Kotlin vectors and negative tests
+        working-directory: apps/mobile/src-tauri/gen/android
+        run: ./gradlew :tauri-plugin-phone-identity:testDebugUnitTest --no-daemon
+
+  reproducible-inputs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require committed locks and wrapper verification
+        run: |
+          test -f Cargo.lock
+          test -f apps/mobile/bun.lock
+          test -f apps/mobile/src-tauri/gen/android/gradle/wrapper/gradle-wrapper.properties
+          grep -q '^distributionSha256Sum=' apps/mobile/src-tauri/gen/android/gradle/wrapper/gradle-wrapper.properties

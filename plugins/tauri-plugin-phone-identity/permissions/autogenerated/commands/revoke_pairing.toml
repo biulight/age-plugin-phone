@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-revoke-pairing"
+description = "Enables the revoke_pairing command without any pre-configured scope."
+commands.allow = ["revoke_pairing"]
+
+[[permission]]
+identifier = "deny-revoke-pairing"
+description = "Denies the revoke_pairing command without any pre-configured scope."
+commands.deny = ["revoke_pairing"]

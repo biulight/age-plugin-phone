@@ -6,9 +6,15 @@ use tauri::{
 
 use crate::{
     AgreementReport, CapabilityReport, CleanupReport, Error, IdentityCustodyReport,
-    PairingOfferScanReport, PairingStorageReport, PhonePairingReport, PhoneUnwrapReport,
-    ProbeKeyReport,
+    IdentityStatusReport, LifecycleReport, PairingOfferScanReport, PairingStorageReport,
+    PhonePairingReport, PhoneUnwrapReport, ProbeKeyReport,
 };
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RevokePairingArgs {
+    handle: String,
+}
 
 const PLUGIN_IDENTIFIER: &str = "io.github.biulight.phone_identity";
 
@@ -86,6 +92,30 @@ impl<R: Runtime> PhoneIdentity<R> {
     pub fn unwrap_phone_usb(&self) -> Result<PhoneUnwrapReport, Error> {
         self.0
             .run_mobile_plugin("unwrapPhoneUsb", ())
+            .map_err(Into::into)
+    }
+
+    pub fn identity_status(&self) -> Result<IdentityStatusReport, Error> {
+        self.0
+            .run_mobile_plugin("identityStatus", ())
+            .map_err(Into::into)
+    }
+
+    pub fn provision_identity(&self) -> Result<IdentityStatusReport, Error> {
+        self.0
+            .run_mobile_plugin("provisionIdentity", ())
+            .map_err(Into::into)
+    }
+
+    pub fn revoke_pairing(&self, handle: String) -> Result<LifecycleReport, Error> {
+        self.0
+            .run_mobile_plugin("revokePairing", RevokePairingArgs { handle })
+            .map_err(Into::into)
+    }
+
+    pub fn delete_identity(&self) -> Result<LifecycleReport, Error> {
+        self.0
+            .run_mobile_plugin("deleteIdentity", ())
             .map_err(Into::into)
     }
 }

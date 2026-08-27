@@ -1,357 +1,132 @@
 import { invoke } from "@tauri-apps/api/core";
 import "./styles.css";
 
-interface ProjectStatus {
-  stage: string;
-  protocolVersion: number;
-  qrTransport: string;
-  usbTransport: string;
-  bleTransport: string;
-  keyBackend: string;
-  doctorEnabled: boolean;
+interface ProjectStatus { stage: string; protocolVersion: number; bleTransport: string; doctorEnabled: boolean; }
+interface PairedDesktopSummary { handle: string; displayLabel: string; transcriptFingerprint: string; deletionPending: boolean; }
+interface IdentityStatusReport {
+  state: "ready" | "not_configured" | "deletion_pending" | "unavailable" | "unsupported";
+  publicRecipient: string | null; pairedDesktops: PairedDesktopSummary[];
+  recoveryRequired: boolean; errorCategory: string | null;
 }
+interface PhonePairingReport { paired: boolean; transcriptFingerprint: string | null; errorCategory: string | null; }
+interface PhoneUnwrapReport { authenticated: boolean; requestFingerprint: string | null; errorCategory: string | null; }
+interface LifecycleReport { completed: boolean; state: string; errorCategory: string | null; }
 
-interface CapabilityReport {
-  androidRelease: string;
-  apiLevel: number;
-  sdkExtensionLevel: number;
-  strongboxFeature: boolean;
-  strongBiometric: string;
-  secureLockScreen: boolean;
-  keyAgreementCryptoObject: boolean;
-  leftoverProbeKey: boolean;
-  errorCategory: string | null;
-}
+const root = document.querySelector<HTMLElement>("#app");
+if (!root) throw new Error("missing application root");
+root.innerHTML = `
+<main class="shell">
+  <header class="hero"><div><p class="eyebrow">AGE IDENTITY · ALPHA</p><h1>Phone identity</h1></div><span class="state state-loading" id="identity-state">Loading</span></header>
+  <p class="summary">Your long-term identity stays in StrongBox. Every file-key unwrap needs a fresh phone biometric.</p>
+  <section class="card"><div class="card-heading"><div><p class="kicker">IDENTITY</p><h2>Public recipient</h2></div><button class="quiet compact" id="copy-recipient" hidden>Copy</button></div><p class="recipient empty" id="recipient">Checking this phone…</p><button class="primary full" id="create-identity" hidden>Create StrongBox identity</button></section>
+  <section class="card"><div class="card-heading"><div><p class="kicker">ONE-SHOT ACTIONS</p><h2>Pair or approve</h2></div></div><p class="card-copy">Developer USB is the Windows Alpha default. QR is the offline fallback and uses the same authenticated protocol.</p><div class="action-grid"><button class="primary" data-product-action="pair_phone_usb">Pair · USB</button><button data-product-action="pair_phone">Pair · QR</button><button class="primary" data-product-action="unwrap_phone_usb">Approve · USB</button><button data-product-action="unwrap_phone">Approve · QR</button></div><p class="result" id="operation-result" aria-live="polite">No operation is active.</p></section>
+  <section class="card"><div class="card-heading"><div><p class="kicker">ACCESS</p><h2>Paired desktops</h2></div><span class="count" id="desktop-count">0</span></div><div class="desktop-list" id="desktop-list"><p class="empty">No paired desktops.</p></div></section>
+  <section class="card recovery"><p class="kicker">RECOVERY</p><h2>Keep an independent recipient</h2><p class="card-copy">Important data must also be encrypted to a recovery recipient that does not depend on this phone or the paired desktop TPM. Replacing either device does not migrate old ciphertext.</p></section>
+  <details class="card danger-zone"><summary>Identity deletion and recovery guidance</summary><p>Deleting the app or identity permanently removes access through this phone. Ciphertexts are not deleted. Verify recovery first.</p><button class="danger full" id="delete-identity">Delete phone identity…</button></details>
+  <details class="card doctor" id="doctor" hidden><summary>Development Doctor</summary><p class="card-copy">Synthetic diagnostics only. Reports exclude paths, aliases, protocol payloads, QR contents, and key material.</p><div class="doctor-actions"><button data-doctor="doctor_capabilities">Capabilities</button><button data-doctor="doctor_identity_custody">Key custody</button><button data-doctor="doctor_pairing_storage">Pairing storage</button><button data-doctor="doctor_create_probe">Create probe</button><button data-doctor="doctor_run_agreement">Run unwrap probe</button><button class="danger" data-doctor="doctor_cleanup">Delete probe</button></div><pre id="doctor-report">No diagnostic has run.</pre></details>
+  <footer id="build-status">Protocol status unavailable.</footer>
+</main>`;
 
-interface IdentityCustodyReport {
-  noBackupStorage: boolean;
-  identityStrongBox: boolean;
-  identityAgreeOnly: boolean;
-  identityAuthPerUse: boolean;
-  identityBiometricStrong: boolean;
-  signingStrongBox: boolean;
-  signingPurposeSignOnly: boolean;
-  signingNoUserAuth: boolean;
-  privateKeysNonExportable: boolean;
-  keysDistinct: boolean;
-  metadataBound: boolean;
-  reopened: boolean;
-  duplicateRejected: boolean;
-  preparingRecovered: boolean;
-  cleanupComplete: boolean;
-  errorCategory: string | null;
-}
-
-interface ProbeKeyReport {
-  generated: boolean;
-  securityLevel: string;
-  originGenerated: boolean;
-  purposeAgreeKey: boolean;
-  userAuthenticationRequired: boolean;
-  authPerUse: boolean;
-  authenticationType: string;
-  authEnforcedBySecureHardware: boolean;
-  privateKeyFormatIsNull: boolean;
-  privateKeyEncodedIsNull: boolean;
-  errorCategory: string | null;
-}
-
-interface AgreementReport {
-  recipientProtocol: "phone-p256-v2";
-  authenticated: boolean;
-  agreementMatch: boolean;
-  responseEnvelopeMatch: boolean;
-  errorCategory: string | null;
-}
-
-interface CleanupReport {
-  probeKeyExisted: boolean;
-  probeKeyDeleted: boolean;
-  probeKeyAbsentAfterDelete: boolean;
-  errorCategory: string | null;
-}
-
-interface PairingStorageReport {
-  noBackupStorage: boolean;
-  qrFragmented: boolean;
-  qrOutOfOrderReassembled: boolean;
-  qrCorruptionRejected: boolean;
-  qrTimeoutRejected: boolean;
-  transcriptVerified: boolean;
-  fingerprintMismatchRejected: boolean;
-  cancellationRejected: boolean;
-  confirmationCommitted: boolean;
-  duplicateConfirmationRejected: boolean;
-  atomicStateCreated: boolean;
-  verifiedBeforeConsume: boolean;
-  replayRejectedAfterReopen: boolean;
-  wrongScopeRejected: boolean;
-  missingStateRejectedAfterDelete: boolean;
-  cleanupComplete: boolean;
-  errorCategory: string | null;
-}
-
-interface PairingOfferScanReport {
-  scannerStarted: boolean;
-  messageVerified: boolean;
-  desktopLabel: string | null;
-  offerFingerprint: string | null;
-  framesAccepted: number;
-  errorCategory: string | null;
-}
-
-interface PhonePairingReport {
-  paired: boolean;
-  desktopLabel: string | null;
-  transcriptFingerprint: string | null;
-  errorCategory: string | null;
-}
-
-interface PhoneUnwrapReport {
-  authenticated: boolean;
-  responseDisplayed: boolean;
-  requestFingerprint: string | null;
-  errorCategory: string | null;
-}
-
-type DoctorReport =
-  | CapabilityReport
-  | IdentityCustodyReport
-  | ProbeKeyReport
-  | AgreementReport
-  | CleanupReport
-  | PairingStorageReport
-  | PairingOfferScanReport
-  | PhonePairingReport
-  | PhoneUnwrapReport;
-
-const app = document.querySelector<HTMLElement>("#app");
-
-if (!app) {
-  throw new Error("missing application root");
-}
-
-app.innerHTML = `
-  <section class="shell">
-    <p class="eyebrow">OFFLINE AGE IDENTITY</p>
-    <h1>Phone identity</h1>
-    <p class="summary">
-      Long-term keys will stay on this phone. Every unwrap will require a fresh system confirmation.
-    </p>
-    <dl class="status" id="status">
-      <div><dt>Stage</dt><dd>Loading</dd></div>
-    </dl>
-    <p class="warning">
-      Prototype only. Raw QR frames and signed protocol bytes stay in Android native memory; the
-      WebView receives only a verified display label, fingerprint, counters, and error categories.
-    </p>
-    <section class="doctor" id="doctor" hidden>
-      <div class="doctor-heading">
-        <div>
-          <p class="eyebrow">DEVELOPMENT BUILD</p>
-          <h2>Android StrongBox Doctor</h2>
-        </div>
-        <span class="activity" id="activity">Idle</span>
-      </div>
-      <div class="actions" aria-label="StrongBox probe actions">
-        <button data-action="capabilities">Check capabilities</button>
-        <button data-action="identityCustody">Test production key custody</button>
-        <button data-action="create">Create probe key</button>
-        <button data-action="agreement1">Run tagged unwrap #1</button>
-        <button data-action="agreement2">Run tagged unwrap #2</button>
-        <button data-action="cancel">Run and cancel</button>
-        <button data-action="restart">Verify after restart</button>
-        <button data-action="pairingStorage">Test pairing QR + replay</button>
-        <button data-action="scanPairingOffer">Scan pairing offer</button>
-        <button data-action="pairPhone">Pair this phone</button>
-        <button data-action="pairPhoneUsb">Pair via Developer USB</button>
-        <button data-action="unwrapPhone">Scan and approve unwrap</button>
-        <button data-action="unwrapPhoneUsb">Approve via Developer USB</button>
-        <button class="danger" data-action="cleanup">Delete probe key</button>
-      </div>
-      <pre id="doctor-report" aria-live="polite">No probe has run.</pre>
-      <button class="copy" id="copy-report" disabled>Copy non-sensitive report</button>
-    </section>
-  </section>
-`;
-
-const statusElement = document.querySelector<HTMLElement>("#status");
-const doctorElement = document.querySelector<HTMLElement>("#doctor");
-const activityElement = document.querySelector<HTMLElement>("#activity");
-const reportElement = document.querySelector<HTMLElement>("#doctor-report");
-const copyButton = document.querySelector<HTMLButtonElement>("#copy-report");
-const actionButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-action]"));
-const doctorReports: Record<string, DoctorReport> = {};
+const byId = <T extends HTMLElement>(id: string): T | null => document.querySelector<T>(`#${id}`);
+const stateBadge = byId<HTMLElement>("identity-state");
+const recipient = byId<HTMLElement>("recipient");
+const copyRecipient = byId<HTMLButtonElement>("copy-recipient");
+const createIdentity = byId<HTMLButtonElement>("create-identity");
+const desktopList = byId<HTMLElement>("desktop-list");
+const desktopCount = byId<HTMLElement>("desktop-count");
+const operationResult = byId<HTMLElement>("operation-result");
+const deleteIdentity = byId<HTMLButtonElement>("delete-identity");
+const doctor = byId<HTMLElement>("doctor");
+const doctorReport = byId<HTMLElement>("doctor-report");
+const buildStatus = byId<HTMLElement>("build-status");
+const productButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-product-action]"));
+const doctorButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-doctor]"));
+let currentStatus: IdentityStatusReport | null = null;
 let busy = false;
-
-function renderStatus(status: ProjectStatus): void {
-  if (!statusElement) return;
-
-  const rows: Array<[string, string]> = [
-    ["Stage", status.stage],
-    ["Protocol", `v${status.protocolVersion}`],
-    ["QR", status.qrTransport],
-    ["Developer USB", status.usbTransport],
-    ["BLE", status.bleTransport],
-    ["Hardware key", status.keyBackend],
-  ];
-
-  statusElement.innerHTML = rows
-    .map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`)
-    .join("");
-}
 
 function setBusy(value: boolean): void {
   busy = value;
-  actionButtons.forEach((button) => {
-    button.disabled = value;
-  });
-  if (activityElement) activityElement.textContent = value ? "Working" : "Idle";
+  [...productButtons, ...doctorButtons].forEach((button) => { button.disabled = value; });
+  if (createIdentity) createIdentity.disabled = value;
+  if (deleteIdentity) deleteIdentity.disabled = value;
 }
 
-function showReport(name: string, report: DoctorReport): void {
-  doctorReports[name] = report;
-  if (reportElement) reportElement.textContent = JSON.stringify(doctorReports, null, 2);
-  if (copyButton) copyButton.disabled = false;
+function shortFingerprint(value: string): string {
+  return `${value.slice(0, 16)} ${value.slice(16, 32)}\n${value.slice(32, 48)} ${value.slice(48)}`;
 }
 
-async function runDoctor<T extends DoctorReport>(command: string, reportName = command): Promise<T> {
-  if (busy) throw new Error("doctor operation already active");
-  setBusy(true);
-  try {
-    const report = await invoke<T>(`plugin:phone-identity|${command}`);
-    showReport(reportName, report);
-    return report;
-  } finally {
-    setBusy(false);
+function renderIdentity(status: IdentityStatusReport): void {
+  currentStatus = status;
+  const labels: Record<string, string> = { ready: "Ready", not_configured: "Not configured", deletion_pending: "Deletion pending", unavailable: "Unavailable", unsupported: "Unsupported" };
+  if (stateBadge) { stateBadge.textContent = labels[status.state] ?? "Unavailable"; stateBadge.className = `state state-${status.state}`; }
+  if (recipient) {
+    recipient.textContent = status.publicRecipient ?? (status.state === "not_configured" ? "Create a hardware-backed identity to begin." : "Identity unavailable. Use recovery; no fallback key will be created.");
+    recipient.classList.toggle("empty", !status.publicRecipient);
   }
+  if (copyRecipient) copyRecipient.hidden = !status.publicRecipient;
+  if (createIdentity) createIdentity.hidden = status.state !== "not_configured";
+  productButtons.forEach((button) => { button.disabled = busy || status.state !== "ready"; });
+  if (deleteIdentity) deleteIdentity.disabled = busy || !["ready", "deletion_pending"].includes(status.state);
+  renderDesktops(status.pairedDesktops);
 }
 
-actionButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    const action = button.dataset.action;
-    const commands: Record<string, string> = {
-      capabilities: "doctor_capabilities",
-      identityCustody: "doctor_identity_custody",
-      create: "doctor_create_probe",
-      agreement1: "doctor_run_agreement",
-      agreement2: "doctor_run_agreement",
-      cancel: "doctor_run_agreement",
-      restart: "doctor_run_agreement",
-      pairingStorage: "doctor_pairing_storage",
-      scanPairingOffer: "scan_pairing_offer",
-      pairPhone: "pair_phone",
-      pairPhoneUsb: "pair_phone_usb",
-      unwrapPhone: "unwrap_phone",
-      unwrapPhoneUsb: "unwrap_phone_usb",
-      cleanup: "doctor_cleanup",
-    };
-    if (!action || !commands[action]) return;
-    void runDoctor(commands[action], action).catch(() => {
-      if (action === "scanPairingOffer") {
-        showReport(action, {
-          scannerStarted: false,
-          messageVerified: false,
-          desktopLabel: null,
-          offerFingerprint: null,
-          framesAccepted: 0,
-          errorCategory: "bridge_unavailable",
-        });
-        return;
-      }
-      if (action === "pairPhone" || action === "pairPhoneUsb") {
-        showReport(action, {
-          paired: false,
-          desktopLabel: null,
-          transcriptFingerprint: null,
-          errorCategory: "bridge_unavailable",
-        });
-        return;
-      }
-      if (action === "unwrapPhone" || action === "unwrapPhoneUsb") {
-        showReport(action, {
-          authenticated: false,
-          responseDisplayed: false,
-          requestFingerprint: null,
-          errorCategory: "bridge_unavailable",
-        });
-        return;
-      }
-      if (action === "pairingStorage") {
-        showReport(action, {
-          noBackupStorage: false,
-          qrFragmented: false,
-          qrOutOfOrderReassembled: false,
-          qrCorruptionRejected: false,
-          qrTimeoutRejected: false,
-          transcriptVerified: false,
-          fingerprintMismatchRejected: false,
-          cancellationRejected: false,
-          confirmationCommitted: false,
-          duplicateConfirmationRejected: false,
-          atomicStateCreated: false,
-          verifiedBeforeConsume: false,
-          replayRejectedAfterReopen: false,
-          wrongScopeRejected: false,
-          missingStateRejectedAfterDelete: false,
-          cleanupComplete: false,
-          errorCategory: "bridge_unavailable",
-        });
-        return;
-      }
-      if (action === "identityCustody") {
-        showReport(action, {
-          noBackupStorage: false,
-          identityStrongBox: false,
-          identityAgreeOnly: false,
-          identityAuthPerUse: false,
-          identityBiometricStrong: false,
-          signingStrongBox: false,
-          signingPurposeSignOnly: false,
-          signingNoUserAuth: false,
-          privateKeysNonExportable: false,
-          keysDistinct: false,
-          metadataBound: false,
-          reopened: false,
-          duplicateRejected: false,
-          preparingRecovered: false,
-          cleanupComplete: false,
-          errorCategory: "bridge_unavailable",
-        });
-        return;
-      }
-      showReport(action, {
-        recipientProtocol: "phone-p256-v2",
-        authenticated: false,
-        agreementMatch: false,
-        responseEnvelopeMatch: false,
-        errorCategory: "bridge_unavailable",
-      });
-    });
+function renderDesktops(desktops: PairedDesktopSummary[]): void {
+  if (desktopCount) desktopCount.textContent = String(desktops.length);
+  if (!desktopList) return;
+  desktopList.replaceChildren();
+  if (desktops.length === 0) { const empty = document.createElement("p"); empty.className = "empty"; empty.textContent = "No paired desktops."; desktopList.append(empty); return; }
+  desktops.forEach((desktop) => {
+    const row = document.createElement("article"); row.className = "desktop";
+    const text = document.createElement("div");
+    const label = document.createElement("h3"); label.textContent = desktop.displayLabel || "Unnamed desktop";
+    const warning = document.createElement("span"); warning.textContent = "Untrusted display label"; warning.className = "hint";
+    const fingerprint = document.createElement("code"); fingerprint.textContent = shortFingerprint(desktop.transcriptFingerprint);
+    text.append(label, warning, fingerprint);
+    const revoke = document.createElement("button"); revoke.className = "danger compact"; revoke.textContent = desktop.deletionPending ? "Finish cleanup" : "Revoke"; revoke.disabled = busy;
+    revoke.addEventListener("click", () => void revokeDesktop(desktop.handle));
+    row.append(text, revoke); desktopList.append(row);
   });
-});
+}
 
-copyButton?.addEventListener("click", () => {
-  if (Object.keys(doctorReports).length === 0) return;
-  void navigator.clipboard.writeText(JSON.stringify(doctorReports, null, 2));
-});
+async function refreshIdentity(): Promise<void> { renderIdentity(await invoke<IdentityStatusReport>("plugin:phone-identity|identity_status")); }
 
-invoke<ProjectStatus>("project_status")
-  .then((status) => {
-    renderStatus(status);
-    if (doctorElement) doctorElement.hidden = !status.doctorEnabled;
-    if (status.doctorEnabled) {
-      void runDoctor<CapabilityReport>("doctor_capabilities").catch(() => undefined);
+async function runProduct(command: string): Promise<void> {
+  if (busy) return; setBusy(true); if (operationResult) operationResult.textContent = "Waiting for the native phone flow…";
+  try {
+    if (command.startsWith("pair")) {
+      const report = await invoke<PhonePairingReport>(`plugin:phone-identity|${command}`);
+      if (operationResult) operationResult.textContent = report.paired ? `Paired. Transcript ${report.transcriptFingerprint ?? "verified"}.` : `Pairing stopped: ${report.errorCategory ?? "not completed"}.`;
+    } else {
+      const report = await invoke<PhoneUnwrapReport>(`plugin:phone-identity|${command}`);
+      if (operationResult) operationResult.textContent = report.authenticated ? `Approved one request: ${report.requestFingerprint ?? "verified"}.` : `Approval stopped: ${report.errorCategory ?? "not completed"}.`;
     }
-  })
-  .catch(() => {
-    renderStatus({
-      stage: "unavailable",
-      protocolVersion: 1,
-      qrTransport: "disabled",
-      usbTransport: "disabled",
-      bleTransport: "disabled",
-      keyBackend: "disabled",
-      doctorEnabled: false,
-    });
-  });
+  } catch { if (operationResult) operationResult.textContent = "Native operation unavailable."; }
+  finally { setBusy(false); await refreshIdentity().catch(() => undefined); }
+}
+
+async function revokeDesktop(handle: string): Promise<void> {
+  if (busy) return; setBusy(true);
+  try {
+    const report = await invoke<LifecycleReport>("plugin:phone-identity|revoke_pairing", { handle });
+    if (operationResult) operationResult.textContent = report.completed ? "Desktop revoked. Old ciphertext may need recovery and re-encryption." : `Revocation stopped: ${report.errorCategory ?? "not completed"}.`;
+  } finally { setBusy(false); await refreshIdentity().catch(() => undefined); }
+}
+
+productButtons.forEach((button) => button.addEventListener("click", () => { const action = button.dataset.productAction; if (action) void runProduct(action); }));
+createIdentity?.addEventListener("click", async () => { if (busy) return; setBusy(true); try { renderIdentity(await invoke<IdentityStatusReport>("plugin:phone-identity|provision_identity")); } finally { setBusy(false); } });
+copyRecipient?.addEventListener("click", () => { if (currentStatus?.publicRecipient) void navigator.clipboard.writeText(currentStatus.publicRecipient); });
+deleteIdentity?.addEventListener("click", async () => {
+  if (busy) return; setBusy(true);
+  try { const report = await invoke<LifecycleReport>("plugin:phone-identity|delete_identity"); if (operationResult) operationResult.textContent = report.completed ? "Identity deleted. Recover old ciphertext through an independent recipient." : `Deletion stopped: ${report.errorCategory ?? "not completed"}.`; }
+  finally { setBusy(false); await refreshIdentity().catch(() => undefined); }
+});
+doctorButtons.forEach((button) => button.addEventListener("click", async () => {
+  const command = button.dataset.doctor; if (!command || busy) return; setBusy(true);
+  try { const report = await invoke<Record<string, unknown>>(`plugin:phone-identity|${command}`); if (doctorReport) doctorReport.textContent = JSON.stringify(report, null, 2); }
+  catch { if (doctorReport) doctorReport.textContent = "Diagnostic unavailable."; } finally { setBusy(false); }
+}));
+
+Promise.all([invoke<ProjectStatus>("project_status"), refreshIdentity()]).then(([project]) => {
+  if (doctor) doctor.hidden = !project.doctorEnabled;
+  if (buildStatus) buildStatus.textContent = `Experimental protocol v${project.protocolVersion} · ${project.stage} · BLE ${project.bleTransport}`;
+}).catch(() => renderIdentity({ state: "unavailable", publicRecipient: null, pairedDesktops: [], recoveryRequired: true, errorCategory: "bridge_unavailable" }));

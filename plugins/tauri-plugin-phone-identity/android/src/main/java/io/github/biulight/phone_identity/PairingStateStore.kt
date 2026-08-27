@@ -66,6 +66,13 @@ internal data class StoredPairingRecord(
     }
 }
 
+internal data class StoredPairingSummary(
+    val handle: String,
+    val desktopLabel: String,
+    val transcriptFingerprint: String,
+    val deletionPending: Boolean,
+)
+
 internal class PairingStateStore private constructor(
     private val root: File,
     private val stateFile: File,
@@ -122,6 +129,28 @@ internal class PairingStateStore private constructor(
         unusable = true
     }
 
+    private fun revokeState() {
+        ensureUsable()
+        val pendingFile = File(root, stateFile.name + DELETION_SUFFIX)
+        try {
+            operations.rejectSymlinkIfPresent(pendingFile)
+            if (pendingFile.exists()) throw PairingStateException(Category.DELETION_PENDING)
+            operations.replace(stateFile, pendingFile)
+            operations.syncDirectory(root)
+            unusable = true
+            if (!pendingFile.delete() && pendingFile.exists()) {
+                throw PairingStateException(Category.STORAGE)
+            }
+            operations.syncDirectory(root)
+        } catch (error: PairingStateException) {
+            unusable = true
+            throw error
+        } catch (_: Exception) {
+            unusable = true
+            throw PairingStateException(Category.STORAGE)
+        }
+    }
+
     override fun close() {
         if (closed) return
         closed = true
@@ -169,7 +198,10 @@ internal class PairingStateStore private constructor(
         private const val STATE_VERSION = 2
         private const val ROOT_NAME = "age-plugin-phone-pairings-v2"
         private const val DOCTOR_ROOT_NAME = "age-plugin-phone-pairing-doctor-v2"
+        private const val DELETION_SUFFIX = ".deleting"
         private val stateDomain = "age-plugin-phone/android-pairing-state-scope/v2"
+            .toByteArray(Charsets.US_ASCII)
+        private val managementDomain = "age-plugin-phone/android-pairing-management/v1"
             .toByteArray(Charsets.US_ASCII)
         private val cbor = ObjectMapper(CBORFactory())
         private val entryComparator = Comparator<Entry> { left, right ->
@@ -203,6 +235,29 @@ internal class PairingStateStore private constructor(
             identityId,
             AndroidDurableFileOperations,
         )
+
+        fun list(context: Context, identityId: ByteArray): List<StoredPairingSummary> = listAt(
+            File(context.noBackupFilesDir, ROOT_NAME),
+            identityId,
+            AndroidDurableFileOperations,
+        )
+
+        fun revoke(context: Context, identityId: ByteArray, handle: String) {
+            revokeAt(
+                File(context.noBackupFilesDir, ROOT_NAME),
+                identityId,
+                handle,
+                AndroidDurableFileOperations,
+            )
+        }
+
+        fun revokeAll(context: Context, identityId: ByteArray) {
+            val root = File(context.noBackupFilesDir, ROOT_NAME)
+            listAt(root, identityId, AndroidDurableFileOperations)
+                .filterNot { it.deletionPending }
+                .forEach { revokeAt(root, identityId, it.handle, AndroidDurableFileOperations) }
+            cleanupPendingAt(root, identityId, AndroidDurableFileOperations)
+        }
 
         internal fun createDoctor(
             context: Context,
@@ -291,6 +346,140 @@ internal class PairingStateStore private constructor(
         internal fun validateRecordForCreation(record: StoredPairingRecord) {
             validateRecord(record)
         }
+
+        internal fun listAt(
+            root: File,
+            identityId: ByteArray,
+            operations: DurableFileOperations,
+        ): List<StoredPairingSummary> {
+            if (identityId.size != 16) throw PairingStateException(Category.MALFORMED)
+            if (!root.exists()) return emptyList()
+            val canonicalRoot = prepareRoot(root, operations)
+            val files = canonicalRoot.listFiles() ?: throw PairingStateException(Category.STORAGE)
+            return files.filter { it.name.endsWith(".cbor") || it.name.endsWith(".cbor$DELETION_SUFFIX") }
+                .map { file ->
+                    operations.rejectSymlinkIfPresent(file)
+                    operations.validatePrivateRegularFile(file)
+                    if (file.length() !in 1..MAX_STATE_BYTES.toLong()) {
+                        throw PairingStateException(Category.MALFORMED)
+                    }
+                    val state = decode(FileInputStream(file).use { it.readBytes() })
+                    val deleting = file.name.endsWith(DELETION_SUFFIX)
+                    val expected = stateFile(canonicalRoot, state.record.desktopId, state.record.identityId)
+                    val expectedName = expected.name + if (deleting) DELETION_SUFFIX else ""
+                    if (file.name != expectedName) throw PairingStateException(Category.WRONG_SCOPE)
+                    state.record to deleting
+                }
+                .filter { (record, _) -> MessageDigest.isEqual(record.identityId, identityId) }
+                .map { (record, deleting) -> summary(record, deleting) }
+                .sortedBy { it.handle }
+        }
+
+        internal fun revokeAt(
+            root: File,
+            identityId: ByteArray,
+            handle: String,
+            operations: DurableFileOperations,
+        ) {
+            if (!isCanonicalHandle(handle)) throw PairingStateException(Category.MALFORMED)
+            val summary = listAt(root, identityId, operations).singleOrNull { it.handle == handle }
+                ?: throw PairingStateException(Category.MISSING)
+            if (summary.deletionPending) {
+                finishPendingAt(root, identityId, handle, operations)
+                return
+            }
+            val record = findRecordAt(root, identityId, handle, operations)
+            val store = openAt(root, record.desktopId, record.identityId, operations)
+            try {
+                if (summary(store.state.record, false).handle != handle) {
+                    throw PairingStateException(Category.WRONG_SCOPE)
+                }
+                store.revokeState()
+            } finally {
+                store.close()
+            }
+        }
+
+        internal fun cleanupPendingAt(
+            root: File,
+            identityId: ByteArray,
+            operations: DurableFileOperations,
+        ) {
+            if (!root.exists()) return
+            val canonicalRoot = prepareRoot(root, operations)
+            val pending = listAt(canonicalRoot, identityId, operations).filter { it.deletionPending }
+            pending.forEach { item ->
+                val record = findRecordAt(canonicalRoot, identityId, item.handle, operations, true)
+                val file = File(
+                    canonicalRoot,
+                    stateFile(canonicalRoot, record.desktopId, record.identityId).name + DELETION_SUFFIX,
+                )
+                operations.rejectSymlinkIfPresent(file)
+                if (!file.delete() && file.exists()) throw PairingStateException(Category.STORAGE)
+            }
+            if (pending.isNotEmpty()) operations.syncDirectory(canonicalRoot)
+        }
+
+        private fun finishPendingAt(
+            root: File,
+            identityId: ByteArray,
+            handle: String,
+            operations: DurableFileOperations,
+        ) {
+            val canonicalRoot = prepareRoot(root, operations)
+            val record = findRecordAt(canonicalRoot, identityId, handle, operations, true)
+            val file = File(
+                canonicalRoot,
+                stateFile(canonicalRoot, record.desktopId, record.identityId).name + DELETION_SUFFIX,
+            )
+            operations.rejectSymlinkIfPresent(file)
+            operations.validatePrivateRegularFile(file)
+            if (!file.delete() && file.exists()) throw PairingStateException(Category.STORAGE)
+            operations.syncDirectory(canonicalRoot)
+        }
+
+        private fun findRecordAt(
+            root: File,
+            identityId: ByteArray,
+            handle: String,
+            operations: DurableFileOperations,
+            deleting: Boolean = false,
+        ): StoredPairingRecord {
+            val canonicalRoot = prepareRoot(root, operations)
+            val suffix = if (deleting) ".cbor$DELETION_SUFFIX" else ".cbor"
+            val files = canonicalRoot.listFiles() ?: throw PairingStateException(Category.STORAGE)
+            return files.filter { it.name.endsWith(suffix) }.mapNotNull { file ->
+                operations.validatePrivateRegularFile(file)
+                val state = decode(FileInputStream(file).use { it.readBytes() })
+                state.record.takeIf {
+                    MessageDigest.isEqual(it.identityId, identityId) && summary(it, deleting).handle == handle
+                }
+            }.singleOrNull() ?: throw PairingStateException(Category.MISSING)
+        }
+
+        private fun summary(record: StoredPairingRecord, deleting: Boolean): StoredPairingSummary =
+            StoredPairingSummary(
+                handle = managementHandle(record),
+                desktopLabel = record.desktopLabel,
+                transcriptFingerprint = record.transcriptFingerprint.toHex(),
+                deletionPending = deleting,
+            )
+
+        private fun managementHandle(record: StoredPairingRecord): String {
+            val digest = MessageDigest.getInstance("SHA-256")
+            digest.update(managementDomain)
+            digest.update(0.toByte())
+            digest.update(record.identityId)
+            digest.update(record.desktopId)
+            digest.update(record.transcriptFingerprint)
+            return digest.digest().toHex()
+        }
+
+        private fun isCanonicalHandle(value: String): Boolean =
+            value.length == 64 && value.all { it in '0'..'9' || it in 'a'..'f' }
+
+        private fun ByteArray.toHex(): String =
+            joinToString("") { "%02x".format(it.toInt() and 0xff) }
 
         internal fun openAt(
             root: File,
@@ -577,6 +766,7 @@ internal class PairingStateStore private constructor(
         ALREADY_EXISTS,
         CAPACITY,
         CLOCK_ROLLBACK,
+        DELETION_PENDING,
         EXPIRED,
         LIFETIME,
         LOCKED,

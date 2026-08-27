@@ -58,7 +58,13 @@ On Windows, `status` performs a read-only Alpha capability probe. It reports the
 version, client/server edition, x64 architecture, TPM 2.0 availability, and Microsoft Platform
 Crypto Provider availability without creating or opening persisted keys.
 
-The Android development build's **Pair this phone** action scans the desktop offer, signs and
+The Android Alpha UI shows the StrongBox identity status and public recipient, offers Developer USB
+and QR pairing/approval, lists paired desktops, and provides native-confirmed revocation and
+identity deletion. Revocation becomes durable before its pairing record is removed; identity
+deletion is journaled before pairings and StrongBox aliases are destroyed. Interrupted deletion
+remains unavailable and cannot recreate an empty replay scope.
+
+The Android build's **Pair · QR** action scans the desktop offer, signs and
 renders the phone response entirely in native UI, and shows the full transcript fingerprint. The
 desktop `pair` command scans that response directly from camera index 0, verifies it, asks for the
 same full fingerprint, and then creates the public stub. Camera frames and QR text remain in memory
@@ -92,6 +98,11 @@ For standard age invocations, set `AGE_PLUGIN_PHONE_TRANSPORT=qr` for that fallb
 > Developer USB requires Android USB debugging and ADB authorization. An ADB-authorized desktop has
 > much broader access to the phone than this application needs. ADB identity, device state, and the
 > cable are not trusted by the protocol and do not replace the fresh phone biometric operation.
+
+Doctor diagnostics are visible only in debug builds and return non-sensitive reports. Release
+builds keep the product identity plugin enabled but reject Doctor commands. Signed Alpha artifact
+creation is defined in [the Milestone 6 Alpha release guide](docs/milestone-6-alpha.md); it
+intentionally fails when signing credentials are absent.
 
 ## Design goals
 

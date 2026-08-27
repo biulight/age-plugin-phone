@@ -16,11 +16,7 @@ struct ProjectStatus {
 #[tauri::command]
 fn project_status() -> ProjectStatus {
     ProjectStatus {
-        stage: if cfg!(debug_assertions) {
-            "common-transport-adb-alpha"
-        } else {
-            "scaffold-only"
-        },
+        stage: "windows-android-product-alpha",
         protocol_version: PROTOCOL_VERSION,
         qr_transport: "native bidirectional pairing prototype",
         usb_transport: "Developer USB ADB reverse Alpha",
@@ -37,11 +33,8 @@ fn project_status() -> ProjectStatus {
 ///
 /// Panics if Tauri cannot create or run the application context.
 pub fn run() {
-    let builder = tauri::Builder::default();
-    #[cfg(debug_assertions)]
-    let builder = builder.plugin(tauri_plugin_phone_identity::init());
-
-    builder
+    tauri::Builder::default()
+        .plugin(tauri_plugin_phone_identity::init())
         .invoke_handler(tauri::generate_handler![project_status])
         .run(tauri::generate_context!())
         .expect("error while running age-plugin-phone mobile application");

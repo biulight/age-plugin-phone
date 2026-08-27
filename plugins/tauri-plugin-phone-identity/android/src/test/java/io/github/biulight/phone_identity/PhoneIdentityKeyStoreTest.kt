@@ -60,6 +60,25 @@ class PhoneIdentityKeyStoreTest {
     }
 
     @Test
+    fun deletionJournalDoesNotDecodeAsUsableIdentity() {
+        val identity = keyPair()
+        val signing = keyPair()
+        val public = PhoneIdentityPublic(
+            ByteArray(16) { it.toByte() },
+            TaggedRecipientCrypto.encodeRecipient(identity.public),
+            TaggedRecipientCrypto.encodeCompressed(identity.public),
+            TaggedRecipientCrypto.encodeCompressed(signing.public),
+        )
+
+        assertNull(PhoneIdentityKeyStore.decodeForTest(PhoneIdentityKeyStore.encodeDeleting(public)))
+        val encoded = PhoneIdentityKeyStore.encodeDeleting(public)
+        val malformed = encoded.copyOf(encoded.size + 1)
+        assertThrows(PhoneIdentityKeyStore.KeyStoreException::class.java) {
+            PhoneIdentityKeyStore.decodeForTest(malformed)
+        }
+    }
+
+    @Test
     fun rejectsMalformedAndRoleConfusedMetadata() {
         val identity = keyPair()
         val compressed = TaggedRecipientCrypto.encodeCompressed(identity.public)

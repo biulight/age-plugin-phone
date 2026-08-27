@@ -201,6 +201,96 @@ class PairingStateStoreTest {
         }
     }
 
+    @Test
+    fun revocationFailsClosedAndDoesNotDamageAnotherPairing() {
+        val root = temporary.newFolder("revoke-one")
+        val first = record()
+        val second = first.copy(
+            desktopId = ByteArray(16) { 0x42 },
+            desktopLabel = "untrusted second label",
+            offerDigest = ByteArray(32) { 0x43 },
+            transcriptFingerprint = ByteArray(32) { 0x44 },
+        )
+        PairingStateStore.createAt(root, first, now(), 2, JvmDurableFileOperations).close()
+        PairingStateStore.createAt(root, second, now(), 2, JvmDurableFileOperations).close()
+        val summaries = PairingStateStore.listAt(root, first.identityId, JvmDurableFileOperations)
+        val firstHandle = summaries.single { it.desktopLabel == first.desktopLabel }.handle
+
+        PairingStateStore.revokeAt(
+            root,
+            first.identityId,
+            firstHandle,
+            JvmDurableFileOperations,
+        )
+
+        assertCategory(PairingStateStore.Category.MISSING) {
+            PairingStateStore.openAt(root, first.desktopId, first.identityId, JvmDurableFileOperations)
+        }
+        PairingStateStore.openAt(
+            root,
+            second.desktopId,
+            second.identityId,
+            JvmDurableFileOperations,
+        ).close()
+        assertEquals(1, PairingStateStore.listAt(root, first.identityId, JvmDurableFileOperations).size)
+        assertCategory(PairingStateStore.Category.MISSING) {
+            PairingStateStore.revokeAt(
+                root,
+                first.identityId,
+                firstHandle,
+                JvmDurableFileOperations,
+            )
+        }
+    }
+
+    @Test
+    fun deletionPendingStateRejectsRequestsAndRequiresExplicitCleanup() {
+        val root = temporary.newFolder("revoke-restart")
+        val record = record()
+        PairingStateStore.createAt(root, record, now(), 2, JvmDurableFileOperations).close()
+        val state = stateFiles(root).single()
+        val pending = File(root, state.name + ".deleting")
+        Files.move(state.toPath(), pending.toPath(), StandardCopyOption.ATOMIC_MOVE)
+
+        assertCategory(PairingStateStore.Category.MISSING) {
+            PairingStateStore.openAt(root, record.desktopId, record.identityId, JvmDurableFileOperations)
+        }
+        val summary = PairingStateStore.listAt(root, record.identityId, JvmDurableFileOperations).single()
+        assertEquals(true, summary.deletionPending)
+        PairingStateStore.revokeAt(
+            root,
+            record.identityId,
+            summary.handle,
+            JvmDurableFileOperations,
+        )
+        assertEquals(0, PairingStateStore.listAt(root, record.identityId, JvmDurableFileOperations).size)
+    }
+
+    @Test
+    fun managementRejectsMalformedAndWrongIdentityHandles() {
+        val root = temporary.newFolder("revoke-wrong")
+        val record = record()
+        PairingStateStore.createAt(root, record, now(), 2, JvmDurableFileOperations).close()
+        val handle = PairingStateStore.listAt(root, record.identityId, JvmDurableFileOperations).single().handle
+        assertCategory(PairingStateStore.Category.MALFORMED) {
+            PairingStateStore.revokeAt(root, record.identityId, "not-a-handle", JvmDurableFileOperations)
+        }
+        assertCategory(PairingStateStore.Category.MISSING) {
+            PairingStateStore.revokeAt(
+                root,
+                ByteArray(16) { 0x7f },
+                handle,
+                JvmDurableFileOperations,
+            )
+        }
+        PairingStateStore.openAt(
+            root,
+            record.desktopId,
+            record.identityId,
+            JvmDurableFileOperations,
+        ).close()
+    }
+
     private fun record(): StoredPairingRecord = StoredPairingRecord(
         desktopId = hex(pairingVector["desktop_id_hex"].asText()),
         identityId = hex(pairingVector["identity_id_hex"].asText()),

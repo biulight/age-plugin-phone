@@ -2193,10 +2193,16 @@
           "markdownDescription": "Denies the unminimize command without any pre-configured scope."
         },
         {
-          "description": "Allows the native pairing, one-shot unwrap, and development Doctor commands.\n#### This default permission set includes:\n\n- `allow-doctor-capabilities`\n- `allow-doctor-identity-custody`\n- `allow-doctor-create-probe`\n- `allow-doctor-run-agreement`\n- `allow-doctor-cleanup`\n- `allow-doctor-pairing-storage`\n- `allow-scan-pairing-offer`\n- `allow-pair-phone`\n- `allow-pair-phone-usb`\n- `allow-unwrap-phone`\n- `allow-unwrap-phone-usb`",
+          "description": "Allows product identity, pairing, unwrap, and lifecycle commands.\n#### This default permission set includes:\n\n- `allow-scan-pairing-offer`\n- `allow-pair-phone`\n- `allow-pair-phone-usb`\n- `allow-unwrap-phone`\n- `allow-unwrap-phone-usb`\n- `allow-identity-status`\n- `allow-provision-identity`\n- `allow-revoke-pairing`\n- `allow-delete-identity`",
           "type": "string",
           "const": "phone-identity:default",
-          "markdownDescription": "Allows the native pairing, one-shot unwrap, and development Doctor commands.\n#### This default permission set includes:\n\n- `allow-doctor-capabilities`\n- `allow-doctor-identity-custody`\n- `allow-doctor-create-probe`\n- `allow-doctor-run-agreement`\n- `allow-doctor-cleanup`\n- `allow-doctor-pairing-storage`\n- `allow-scan-pairing-offer`\n- `allow-pair-phone`\n- `allow-pair-phone-usb`\n- `allow-unwrap-phone`\n- `allow-unwrap-phone-usb`"
+          "markdownDescription": "Allows product identity, pairing, unwrap, and lifecycle commands.\n#### This default permission set includes:\n\n- `allow-scan-pairing-offer`\n- `allow-pair-phone`\n- `allow-pair-phone-usb`\n- `allow-unwrap-phone`\n- `allow-unwrap-phone-usb`\n- `allow-identity-status`\n- `allow-provision-identity`\n- `allow-revoke-pairing`\n- `allow-delete-identity`"
+        },
+        {
+          "description": "Enables the delete_identity command without any pre-configured scope.",
+          "type": "string",
+          "const": "phone-identity:allow-delete-identity",
+          "markdownDescription": "Enables the delete_identity command without any pre-configured scope."
         },
         {
           "description": "Enables the doctor_capabilities command without any pre-configured scope.",
@@ -2235,6 +2241,12 @@
           "markdownDescription": "Enables the doctor_run_agreement command without any pre-configured scope."
         },
         {
+          "description": "Enables the identity_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "phone-identity:allow-identity-status",
+          "markdownDescription": "Enables the identity_status command without any pre-configured scope."
+        },
+        {
           "description": "Enables the pair_phone command without any pre-configured scope.",
           "type": "string",
           "const": "phone-identity:allow-pair-phone",
@@ -2245,6 +2257,18 @@
           "type": "string",
           "const": "phone-identity:allow-pair-phone-usb",
           "markdownDescription": "Enables the pair_phone_usb command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the provision_identity command without any pre-configured scope.",
+          "type": "string",
+          "const": "phone-identity:allow-provision-identity",
+          "markdownDescription": "Enables the provision_identity command without any pre-configured scope."
+        },
+        {
+          "description": "Enables the revoke_pairing command without any pre-configured scope.",
+          "type": "string",
+          "const": "phone-identity:allow-revoke-pairing",
+          "markdownDescription": "Enables the revoke_pairing command without any pre-configured scope."
         },
         {
           "description": "Enables the scan_pairing_offer command without any pre-configured scope.",
@@ -2263,6 +2287,12 @@
           "type": "string",
           "const": "phone-identity:allow-unwrap-phone-usb",
           "markdownDescription": "Enables the unwrap_phone_usb command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the delete_identity command without any pre-configured scope.",
+          "type": "string",
+          "const": "phone-identity:deny-delete-identity",
+          "markdownDescription": "Denies the delete_identity command without any pre-configured scope."
         },
         {
           "description": "Denies the doctor_capabilities command without any pre-configured scope.",
@@ -2301,6 +2331,12 @@
           "markdownDescription": "Denies the doctor_run_agreement command without any pre-configured scope."
         },
         {
+          "description": "Denies the identity_status command without any pre-configured scope.",
+          "type": "string",
+          "const": "phone-identity:deny-identity-status",
+          "markdownDescription": "Denies the identity_status command without any pre-configured scope."
+        },
+        {
           "description": "Denies the pair_phone command without any pre-configured scope.",
           "type": "string",
           "const": "phone-identity:deny-pair-phone",
@@ -2311,6 +2347,18 @@
           "type": "string",
           "const": "phone-identity:deny-pair-phone-usb",
           "markdownDescription": "Denies the pair_phone_usb command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the provision_identity command without any pre-configured scope.",
+          "type": "string",
+          "const": "phone-identity:deny-provision-identity",
+          "markdownDescription": "Denies the provision_identity command without any pre-configured scope."
+        },
+        {
+          "description": "Denies the revoke_pairing command without any pre-configured scope.",
+          "type": "string",
+          "const": "phone-identity:deny-revoke-pairing",
+          "markdownDescription": "Denies the revoke_pairing command without any pre-configured scope."
         },
         {
           "description": "Denies the scan_pairing_offer command without any pre-configured scope.",

@@ -2,6 +2,33 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct PairedDesktopSummary {
+    pub handle: String,
+    pub display_label: String,
+    pub transcript_fingerprint: String,
+    pub deletion_pending: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct IdentityStatusReport {
+    pub state: String,
+    pub public_recipient: Option<String>,
+    pub paired_desktops: Vec<PairedDesktopSummary>,
+    pub recovery_required: bool,
+    pub error_category: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LifecycleReport {
+    pub completed: bool,
+    pub state: String,
+    pub error_category: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 // The doctor intentionally reports each independently audited platform claim.
 #[allow(clippy::struct_excessive_bools)]
 pub struct CapabilityReport {

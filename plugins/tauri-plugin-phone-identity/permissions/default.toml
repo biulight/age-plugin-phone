@@ -1,17 +1,15 @@
 "$schema" = "schemas/schema.json"
 
 [default]
-description = "Allows the native pairing, one-shot unwrap, and development Doctor commands."
+description = "Allows product identity, pairing, unwrap, and lifecycle commands."
 permissions = [
-    "allow-doctor-capabilities",
-    "allow-doctor-identity-custody",
-    "allow-doctor-create-probe",
-    "allow-doctor-run-agreement",
-    "allow-doctor-cleanup",
-    "allow-doctor-pairing-storage",
     "allow-scan-pairing-offer",
     "allow-pair-phone",
     "allow-pair-phone-usb",
     "allow-unwrap-phone",
     "allow-unwrap-phone-usb",
+    "allow-identity-status",
+    "allow-provision-identity",
+    "allow-revoke-pairing",
+    "allow-delete-identity",
 ]

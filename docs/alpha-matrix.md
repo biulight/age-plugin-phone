@@ -1,6 +1,6 @@
 # Windows and Android Alpha matrix
 
-Status: defined for Milestone 5; release gates are not yet complete.
+Status: Milestone 6 repository gates are partially implemented; release gates are not yet complete.
 
 This matrix separates the supported Alpha product from interoperability evidence. A row marked
 "required" is a release gate, not a promise that every version in that family is supported. The
@@ -46,9 +46,9 @@ from the supported Windows/Android pair.
 | Existing/stale reverse rule, Ctrl-C, normal exit, forced desktop process exit, and exact rule cleanup | Required | Required | Passed on designated baseline; rerun packaged artifacts |
 | QR fallback after ADB failure with a fresh authorization and no reverse residue | Required | Required | Passed on designated baseline; rerun packaged artifacts |
 | Desktop restart, phone app restart/background/process death, and replay persistence | Required | Required | Portable coverage exists; complete packaged lifecycle run pending |
-| Revoke one desktop while another pairing remains usable | Required | Required | Lifecycle design accepted; implementation pending |
+| Revoke one desktop while another pairing remains usable | Required | Required | Journaled native revocation and portable isolation/restart tests implemented; physical gate pending |
 | TPM signing/selection invalidation and StrongBox identity/signing invalidation | Required | Required | Fail-closed primitives exist; lifecycle implementation and physical matrix pending |
-| Identity deletion, Android uninstall/reinstall, backup exclusion, and explicit desktop cleanup | Required | Required | Lifecycle design accepted; implementation pending |
+| Identity deletion, Android uninstall/reinstall, backup exclusion, and explicit desktop cleanup | Required | Required | Journaled phone identity deletion and backup exclusion implemented; uninstall/reinstall, desktop cleanup, and physical gate pending |
 | Corrupt, missing, copied, insecure, full, or concurrently opened security state | Required | Required where injectable | Portable/native storage coverage exists; packaged lifecycle rerun pending |
 
 Every negative scenario passes only when it produces no plaintext or partial output, no reusable
