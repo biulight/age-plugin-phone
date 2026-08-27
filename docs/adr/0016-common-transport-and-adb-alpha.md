@@ -78,9 +78,9 @@ selectable without changing the pairing or identity stub. Non-Windows builds def
 Portable Rust and Kotlin tests cover wrong purpose, direction, session ID, version, oversize,
 truncation, cancellation, device ambiguity, offline and unauthorized devices, stale reverse rules,
 real loopback success, silent-peer timeout, device switching, exact-rule cleanup, and cleanup-guard
-EOF/disarm behavior. The remaining Alpha gate is the physical Windows/Android matrix: successful
-pairing and unwrap, cable removal, reconnect, multiple devices, wrong device, daemon restart,
-timeouts, replay, cancellation, process exit, and QR fallback.
+EOF/disarm behavior. The remaining physical Windows/Android Alpha gate items are a wrong paired
+physical device and injected response replay. The completed items remain recorded below rather than
+collapsing the matrix into one pass.
 
 An Android 16 / API 36 physical device has also completed authenticated pairing and a standard
 `age --decrypt` unwrap through ADB reverse against a macOS desktop build. The recovered plaintext
@@ -119,12 +119,15 @@ listed rule whose phone-side field is `tcp:47139` regardless of the untrusted fi
 physical regression created `UsbFfs tcp:47139 tcp:9`; the fixed build rejected the unwrap, did not
 change the rule, produced no plaintext, and removed the exact test rule afterward.
 
-An SSH-injected Ctrl-C is not accepted as the remaining native-console cleanup-guardian result.
-Windows OpenSSH places the remote tree under its own lifetime controls, while Microsoft documents
-that a new console process group does not by itself escape a Job Object. The SSH run terminated the
-age/plugin/guardian tree and briefly left the reverse rule until the per-session ADB daemon exited.
-The fixed stale-rule parser makes a following operation fail closed while such a rule exists, but a
-direct Windows console Ctrl-C/process-exit test is still required for the guardian acceptance gate.
+An SSH-injected Ctrl-C was not accepted as the native-console cleanup-guardian result. Windows
+OpenSSH places the remote tree under its own lifetime controls, while Microsoft documents that a
+new console process group does not by itself escape a Job Object. A later direct Windows console
+run interrupted the waiting `age` process with Ctrl-C. The guardian removed the exact reverse rule,
+no plaintext output was created, the process tree exited, and a following request required a new
+phone biometric operation and recovered the expected plaintext. A separate run forcibly terminated
+the waiting native `age.exe` from another Windows process. Its guardian removed the reverse rule
+within two seconds, no plaintext or related process remained, and a newly authenticated request
+recovered the same 4,096-byte plaintext with a matching SHA-256.
 
 The Windows/Android run also exposed incorrect handling of a recoverable biometric mismatch.
 Android `BiometricPrompt` keeps an authentication operation active after `onAuthenticationFailed`;
@@ -134,4 +137,16 @@ unrecognized fingerprint, so a subsequent recognized scan could appear successfu
 bridge had already returned failure. The callback now keeps the same auth-per-use `CryptoObject`,
 consumed request, stream session, and 60-second timeout pending. It neither authorizes the unwrap nor
 creates a response until `onAuthenticationSucceeded` returns the exact original `KeyAgreement`.
-Physical regression of mismatch-then-success on the rebuilt Android application remains pending.
+On the rebuilt Android application, a physical unrecognized scan kept the same prompt pending and a
+subsequent registered fingerprint completed that request. The recovered 4,096-byte file matched the
+original SHA-256, and the reverse rule and desktop processes were absent afterward. A separate
+physical Cancel dismissed the prompt without creating plaintext or leaving a reverse rule; the next
+request required a new biometric operation and completed with the same matching result.
+
+The same Windows/Android run restarted the ADB daemon during a waiting request, removed and
+reconnected the USB cable during another request, and presented an online read-only Android AVD
+alongside the Samsung device without an explicit selection. Each interrupted or ambiguous request
+failed without plaintext output. Reverse rules were absent after daemon recovery and cable
+reconnection, and the multi-device attempt created no rule on either transport. After restoring the
+single Samsung transport, each following request required a new phone biometric operation and
+recovered the expected 4,096-byte plaintext with a matching SHA-256.

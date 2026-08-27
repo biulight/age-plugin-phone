@@ -109,12 +109,16 @@
 - [x] Device-test Windows timeout/no-response, locked phone, nonexistent serial, and a real
   `UsbFfs` stale reverse rule; every case produced no plaintext and the fixed stale-rule parser
   rejected rather than overwrote the existing rule.
-- [ ] Complete the remaining Windows device matrix: native-console cancellation and process exit,
-  cable removal and reconnect, ADB daemon restart, multiple devices, wrong paired device,
-  malformed stream, replay, and QR fallback.
-- [ ] Rebuild and device-test the Android biometric mismatch regression: an unrecognized scan must
-  keep the same one-shot prompt pending, while Cancel, timeout, lifecycle loss, and terminal errors
-  still fail closed without replay rollback or plaintext output.
+- [ ] Complete the remaining Windows device matrix: a wrong paired physical device and injected
+  response replay.
+- [x] Complete Windows device and transport tests for native-console Ctrl-C, forced `age.exe`
+  process exit, cable removal and reconnect, ADB daemon restart, multiple online devices,
+  malformed stream, timeout/lock-screen failure, and QR fallback. Each negative path produced no
+  plaintext or reverse residue. Each recovery request required a new phone biometric operation and
+  succeeded.
+- [x] Rebuild and device-test the Android biometric mismatch regression. An unrecognized scan kept
+  the same one-shot prompt pending, a registered fingerprint then completed it, Cancel remained
+  terminal, and both recovery paths required a new biometric operation without reverse residue.
 - [x] Document ADB as a Developer USB mode that requires USB debugging and grants the authorized
   desktop broader Android capabilities than this application needs.
 
