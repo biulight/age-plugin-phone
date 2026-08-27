@@ -73,7 +73,7 @@
 
 ## Milestone 3: Windows custody and experimental protocol upgrade
 
-- [ ] Support Windows 11 x64 with TPM 2.0 as a hard requirement; do not add a software, DPAPI, or
+- [x] Support Windows 11 x64 with TPM 2.0 as a hard requirement; do not add a software, DPAPI, or
   file-private-key fallback.
 - [x] Use Microsoft Platform Crypto Provider to provision distinct non-exportable P-256 keys for
   ECDSA desktop request signing and ECDH private stanza selection.

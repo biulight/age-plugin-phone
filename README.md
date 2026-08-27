@@ -54,6 +54,10 @@ bun run tauri android init
 bun run tauri ios init
 ```
 
+On Windows, `status` performs a read-only Alpha capability probe. It reports the actual Windows
+version, client/server edition, x64 architecture, TPM 2.0 availability, and Microsoft Platform
+Crypto Provider availability without creating or opening persisted keys.
+
 The Android development build's **Pair this phone** action scans the desktop offer, signs and
 renders the phone response entirely in native UI, and shows the full transcript fingerprint. The
 desktop `pair` command scans that response directly from camera index 0, verifies it, asks for the
@@ -73,7 +77,9 @@ On Windows, the configuration directory is `%LOCALAPPDATA%\age-plugin-phone`. Pa
 `--desktop-state` and `--replay-state` paths to be direct children of that directory. The desktop
 state contains only a TPM key locator ID: signing and private stanza selection use distinct,
 non-exportable P-256 keys in Microsoft Platform Crypto Provider, with no software or DPAPI fallback.
-Locator, metadata, replay, temporary, and lock files use protected current-user ACLs.
+Locator, metadata, replay, temporary, and lock files use protected current-user ACLs. Pairing,
+explicit unwrap, and standard `identity-v1` operations fail before protocol work unless the host is
+a Windows 11-or-later x64 client with an available TPM 2.0 and Platform Crypto Provider.
 
 Windows now defaults to the Developer USB ADB Alpha for `pair`, `unwrap`, and standard age identity
 operations. Start the desktop operation, then choose **Pair via Developer USB** or **Approve via

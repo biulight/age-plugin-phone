@@ -52,7 +52,7 @@ enum Command {
         #[arg(long)]
         serial: String,
     },
-    /// Report scaffold and protocol status without probing devices.
+    /// Report implementation status and read-only Windows Alpha capabilities.
     Status,
     /// Complete an authenticated pairing over Developer USB or QR.
     Pair {
@@ -137,6 +137,7 @@ impl PluginHandler for Handler {
     }
 
     fn identity_v1(self) -> io::Result<Self::IdentityV1> {
+        ensure_desktop_platform_supported()?;
         Ok(PhoneIdentityPlugin::default())
     }
 }
@@ -160,6 +161,8 @@ fn main() -> io::Result<()> {
             println!("mobile_identity: android_strongbox_pairing");
             println!("age_recipient_v1: available");
             println!("age_identity_v1: available");
+            #[cfg(windows)]
+            print_windows_platform_status();
             Ok(())
         }
         Command::Pair {
@@ -212,6 +215,7 @@ fn run_pair(
     transport: TransportChoice,
     adb_serial: Option<&str>,
 ) -> io::Result<()> {
+    ensure_desktop_platform_supported()?;
     validate_transport_options(transport, adb_serial)?;
     ensure_pairing_outputs_available(identity_output, replay_state)?;
     let config_root = default_config_root()
@@ -363,6 +367,7 @@ fn run_unwrap(
     transport: TransportChoice,
     adb_serial: Option<&str>,
 ) -> io::Result<()> {
+    ensure_desktop_platform_supported()?;
     validate_transport_options(transport, adb_serial)?;
     let stub = read_identity_stub_file(identity_stub)
         .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid public identity stub"))?;
@@ -431,6 +436,43 @@ fn run_unwrap(
         "\x1b[2J\x1b[HAuthenticated one-time unwrap completed."
     )?;
     Ok(())
+}
+
+fn ensure_desktop_platform_supported() -> io::Result<()> {
+    #[cfg(windows)]
+    {
+        age_plugin_phone_windows_cng::ensure_supported_platform().map_err(|error| {
+            io::Error::new(
+                io::ErrorKind::Unsupported,
+                format!("unsupported Windows Alpha platform: {error}"),
+            )
+        })?;
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn print_windows_platform_status() {
+    let report = age_plugin_phone_windows_cng::probe_windows_platform();
+    println!(
+        "windows_alpha_support: {}",
+        if report.is_supported() {
+            "supported"
+        } else {
+            "unsupported"
+        }
+    );
+    println!(
+        "windows_version: {}.{}.{}",
+        report.version_major, report.version_minor, report.version_build
+    );
+    println!("windows_client_edition: {}", report.client_edition.as_str());
+    println!("windows_x64: {}", report.x64.as_str());
+    println!("tpm_2_0: {}", report.tpm20.as_str());
+    println!(
+        "microsoft_platform_crypto_provider: {}",
+        report.platform_provider.as_str()
+    );
 }
 
 fn validate_transport_options(

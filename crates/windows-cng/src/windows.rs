@@ -1,4 +1,4 @@
-use std::ptr;
+use std::{mem::size_of, ptr};
 
 use age_plugin_phone_protocol::{EncodedPublicKey, Error as ProtocolError, P256Signer};
 use age_plugin_phone_recipient_p256::{Error as RecipientError, P256KeyAgreement};
@@ -15,6 +15,7 @@ use windows_sys::Win32::{
         NCryptGetProperty, NCryptImportKey, NCryptOpenKey, NCryptOpenStorageProvider,
         NCryptSecretAgreement, NCryptSignHash,
     },
+    System::TpmBaseServices::{TBS_SUCCESS, TPM_DEVICE_INFO, TPM_VERSION_20, Tbsi_GetDeviceInfo},
 };
 use zeroize::{Zeroize as _, Zeroizing};
 
@@ -27,9 +28,16 @@ const P256_PUBLIC_BLOB_BYTES_U32: u32 = 72;
 const P256_SIGNATURE_BYTES_U32: u32 = 64;
 const SHA256_BYTES_U32: u32 = 32;
 const MAX_KEY_NAME_CHARS: usize = 128;
+const WINDOWS_11_MINIMUM_BUILD: u32 = 22_000;
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum Error {
+    #[error("Windows 11 or later client edition is required")]
+    UnsupportedWindows,
+    #[error("Windows x64 is required")]
+    UnsupportedArchitecture,
+    #[error("an available TPM 2.0 is required")]
+    Tpm20Unavailable,
     #[error("Microsoft Platform Crypto Provider is unavailable")]
     ProviderUnavailable,
     #[error("TPM key state is missing or only partially provisioned")]
@@ -44,6 +52,124 @@ pub enum Error {
     Agreement,
     #[error("invalid P-256 public key")]
     InvalidPublicKey,
+}
+
+/// Coarse result for one Windows Alpha support requirement.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RequirementStatus {
+    Satisfied,
+    Unsatisfied,
+}
+
+impl RequirementStatus {
+    #[must_use]
+    pub const fn is_satisfied(self) -> bool {
+        matches!(self, Self::Satisfied)
+    }
+
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Satisfied => "supported",
+            Self::Unsatisfied => "unsupported",
+        }
+    }
+}
+
+impl From<bool> for RequirementStatus {
+    fn from(value: bool) -> Self {
+        if value {
+            Self::Satisfied
+        } else {
+            Self::Unsatisfied
+        }
+    }
+}
+
+/// Read-only Windows Alpha support facts. No key is created while probing these capabilities.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct WindowsPlatformReport {
+    pub version_major: u32,
+    pub version_minor: u32,
+    pub version_build: u32,
+    pub client_edition: RequirementStatus,
+    pub x64: RequirementStatus,
+    pub tpm20: RequirementStatus,
+    pub platform_provider: RequirementStatus,
+}
+
+impl WindowsPlatformReport {
+    #[must_use]
+    pub fn is_supported(self) -> bool {
+        validate_platform_report(self).is_ok()
+    }
+}
+
+/// Probes the Windows Alpha support boundary without creating or opening persisted keys.
+#[must_use]
+pub fn probe_windows_platform() -> WindowsPlatformReport {
+    let mut report = probe_platform_prerequisites();
+    report.platform_provider = open_provider().is_ok().into();
+    report
+}
+
+fn probe_platform_prerequisites() -> WindowsPlatformReport {
+    let version = windows_version::OsVersion::current();
+    WindowsPlatformReport {
+        version_major: version.major,
+        version_minor: version.minor,
+        version_build: version.build,
+        client_edition: (!windows_version::is_server()).into(),
+        x64: cfg!(all(target_arch = "x86_64", target_pointer_width = "64")).into(),
+        tpm20: probe_tpm20().into(),
+        platform_provider: RequirementStatus::Unsatisfied,
+    }
+}
+
+/// Enforces the Windows Alpha support boundary without creating persisted keys.
+///
+/// # Errors
+///
+/// Returns an error unless this is a Windows 11-or-later x64 client with TPM 2.0 and the Microsoft
+/// Platform Crypto Provider is available.
+pub fn ensure_supported_platform() -> Result<(), Error> {
+    validate_platform_report(probe_windows_platform())
+}
+
+fn validate_platform_report(report: WindowsPlatformReport) -> Result<(), Error> {
+    validate_platform_prerequisites(report)?;
+    if !report.platform_provider.is_satisfied() {
+        return Err(Error::ProviderUnavailable);
+    }
+    Ok(())
+}
+
+fn validate_platform_prerequisites(report: WindowsPlatformReport) -> Result<(), Error> {
+    if !report.x64.is_satisfied() {
+        return Err(Error::UnsupportedArchitecture);
+    }
+    let version = (
+        report.version_major,
+        report.version_minor,
+        report.version_build,
+    );
+    if !report.client_edition.is_satisfied() || version < (10, 0, WINDOWS_11_MINIMUM_BUILD) {
+        return Err(Error::UnsupportedWindows);
+    }
+    if !report.tpm20.is_satisfied() {
+        return Err(Error::Tpm20Unavailable);
+    }
+    Ok(())
+}
+
+fn probe_tpm20() -> bool {
+    let mut info = TPM_DEVICE_INFO {
+        structVersion: TPM_VERSION_20,
+        ..Default::default()
+    };
+    let size = u32::try_from(size_of::<TPM_DEVICE_INFO>()).expect("TPM_DEVICE_INFO size fits u32");
+    let status = unsafe { Tbsi_GetDeviceInfo(size, (&raw mut info).cast()) };
+    status == TBS_SUCCESS && info.tpmVersion == TPM_VERSION_20
 }
 
 /// Two distinct, current-user P-256 keys held by the Microsoft Platform Crypto Provider.
@@ -63,7 +189,7 @@ impl WindowsCngKeySet {
     ///
     /// Returns an error if either or both TPM keys are missing, partial, or insecure.
     pub fn open(desktop_id: [u8; 16]) -> Result<Self, Error> {
-        let provider = open_provider()?;
+        let provider = open_supported_provider()?;
         let (signing_name, selection_name) = key_names(desktop_id);
         let signing = open_key(provider.raw(), &signing_name)?;
         let selection = open_key(provider.raw(), &selection_name)?;
@@ -80,7 +206,7 @@ impl WindowsCngKeySet {
     /// Returns an error when the TPM provider is unavailable, state is partial, or either key is
     /// malformed or exportable.
     pub fn open_or_create(desktop_id: [u8; 16]) -> Result<Self, Error> {
-        let provider = open_provider()?;
+        let provider = open_supported_provider()?;
         let (signing_name, selection_name) = key_names(desktop_id);
         let signing = open_key(provider.raw(), &signing_name)?;
         let selection = open_key(provider.raw(), &selection_name)?;
@@ -223,6 +349,11 @@ fn open_provider() -> Result<OwnedHandle, Error> {
     } else {
         Err(Error::ProviderUnavailable)
     }
+}
+
+fn open_supported_provider() -> Result<OwnedHandle, Error> {
+    validate_platform_prerequisites(probe_platform_prerequisites())?;
+    open_provider()
 }
 
 fn open_key(provider: NCRYPT_PROV_HANDLE, name: &[u16]) -> Result<Option<OwnedHandle>, Error> {
@@ -423,6 +554,66 @@ mod tests {
     }
 
     struct Cleanup([u8; 16]);
+
+    fn supported_report() -> WindowsPlatformReport {
+        WindowsPlatformReport {
+            version_major: 10,
+            version_minor: 0,
+            version_build: WINDOWS_11_MINIMUM_BUILD,
+            client_edition: RequirementStatus::Satisfied,
+            x64: RequirementStatus::Satisfied,
+            tpm20: RequirementStatus::Satisfied,
+            platform_provider: RequirementStatus::Satisfied,
+        }
+    }
+
+    #[test]
+    fn platform_policy_requires_every_windows_alpha_capability() {
+        assert_eq!(validate_platform_report(supported_report()), Ok(()));
+
+        let mut report = supported_report();
+        report.x64 = RequirementStatus::Unsatisfied;
+        assert_eq!(
+            validate_platform_report(report),
+            Err(Error::UnsupportedArchitecture)
+        );
+
+        let mut report = supported_report();
+        report.version_build = WINDOWS_11_MINIMUM_BUILD - 1;
+        assert_eq!(
+            validate_platform_report(report),
+            Err(Error::UnsupportedWindows)
+        );
+
+        let mut report = supported_report();
+        report.client_edition = RequirementStatus::Unsatisfied;
+        assert_eq!(
+            validate_platform_report(report),
+            Err(Error::UnsupportedWindows)
+        );
+
+        let mut report = supported_report();
+        report.tpm20 = RequirementStatus::Unsatisfied;
+        assert_eq!(
+            validate_platform_report(report),
+            Err(Error::Tpm20Unavailable)
+        );
+
+        let mut report = supported_report();
+        report.platform_provider = RequirementStatus::Unsatisfied;
+        assert_eq!(
+            validate_platform_report(report),
+            Err(Error::ProviderUnavailable)
+        );
+    }
+
+    #[test]
+    fn platform_policy_accepts_later_windows_versions() {
+        let mut report = supported_report();
+        report.version_major = 11;
+        report.version_build = 0;
+        assert_eq!(validate_platform_report(report), Ok(()));
+    }
 
     impl Drop for Cleanup {
         fn drop(&mut self) {

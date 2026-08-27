@@ -23,6 +23,8 @@ portable Rust crates.
 
 The `age-plugin-phone-windows-cng` crate is the only desktop CNG FFI boundary. It:
 
+- requires a Windows 11-or-later x64 client and rejects Windows Server;
+- obtains the TPM version directly with `Tbsi_GetDeviceInfo` and accepts only `TPM_VERSION_20`;
 - opens only `Microsoft Platform Crypto Provider`, with no software-provider or DPAPI fallback;
 - creates separate current-user `ECDSA_P256` signing and `ECDH_P256` selection keys;
 - never overwrites an existing key and fails closed if only one role exists;
@@ -42,6 +44,12 @@ keys; it contains no scalar. Opening an existing pairing never provisions missin
 missing, partial, wrong, exportable, or unavailable key set fails closed without a software or
 DPAPI fallback.
 
+The capability check is read-only: it reads the actual kernel Windows version, queries TPM Base
+Services, and opens then closes the Platform Crypto Provider. It does not create or open persisted
+keys. Pairing, explicit unwrap, and standard age `identity-v1` entry enforce it before protocol
+work. The `status` command reports each coarse capability separately so an unsupported host is
+diagnosable without exposing key names or other private state.
+
 ## Consequences
 
 - CNG implementation details and unsafe FFI are isolated from crates that forbid unsafe code.
@@ -59,8 +67,17 @@ Portable workspace tests cover the unchanged deterministic signatures, pairing, 
 responses, and v2 stanza selection through the new boundaries. The Windows crate cross-compiles,
 including its native test target, for `x86_64-pc-windows-msvc` with warnings denied.
 
+Pure policy tests reject non-x64 builds, pre-Windows-11 builds, Windows Server, missing TPM 2.0,
+and an unavailable Platform Crypto Provider independently, and accept later Windows versions.
+
 The native test passed on Windows 11 x64 build 22631 with an enabled and ready TPM. It provisioned
 two uniquely named keys through Microsoft Platform Crypto Provider, verified distinct public
 points, verified a TPM signature with RustCrypto, compared TPM ECDH with the reciprocal software
 calculation, reopened both persisted keys, and deleted only those test keys. A provider enumeration
 afterward found no remaining `age-plugin-phone-` test key.
+
+On the same Windows 11 x64 build 22631 host, the read-only status probe reported client edition,
+x64, TPM 2.0, and Microsoft Platform Crypto Provider as available. The restricted build sandbox
+could not access TPM or the provider and therefore reported the platform as unsupported, while the
+same binary run in the native user context reported it as supported; both outcomes failed closed
+without creating a persisted key.

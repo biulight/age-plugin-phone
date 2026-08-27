@@ -110,9 +110,11 @@ desktop key still cannot decrypt the age file key.
 [`ADR 0013`](adr/0013-windows-cng-key-boundaries.md) begins the Windows custody upgrade by
 separating portable P-256 signing and key-agreement operations from concrete software scalars. A
 dedicated CNG boundary provisions distinct non-exportable ECDSA and ECDH keys only through Microsoft
-Platform Crypto Provider and fails closed on partial or exportable state. It is not connected to
-pairing yet: the next protocol version must bind both public roles and reject all old state before
-Windows support can be enabled.
+Platform Crypto Provider and fails closed on partial or exportable state. Its read-only support
+probe requires a Windows 11-or-later x64 client, obtains the TPM version directly through Windows
+TPM Base Services, requires TPM 2.0, and verifies that the Platform Crypto Provider opens. Pairing,
+explicit unwrap, and the standard `identity-v1` state machine enforce this gate before protocol
+work; no persisted key is created by the probe.
 
 [`ADR 0014`](adr/0014-split-desktop-key-protocol-v2.md) upgrades the experimental protocol and all
 pairing state to version 2. The signed offer, transcript fingerprint, public identity stub, and v2
@@ -124,7 +126,7 @@ On Windows, production pairing and unwrap open the distinct CNG keys through ope
 software scalars are not compiled into that desktop state path. Private locator, public TPM-key
 metadata, and response replay state live under `%LOCALAPPDATA%\age-plugin-phone` with protected
 current-user ACLs. Missing or copied TPM keys, insecure files, concurrent replay owners, corrupt
-state, and failed replacement all fail closed.
+state, failed replacement, or an unsupported Windows capability all fail closed.
 
 The common one-request/one-response transport boundary and Developer USB ADB reverse Alpha are
 specified by [`ADR 0016`](adr/0016-common-transport-and-adb-alpha.md). Stream framing binds a random

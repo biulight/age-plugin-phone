@@ -9,7 +9,10 @@
 mod windows;
 
 #[cfg(windows)]
-pub use windows::{Error, WindowsCngKeySet};
+pub use windows::{
+    Error, RequirementStatus, WindowsCngKeySet, WindowsPlatformReport, ensure_supported_platform,
+    probe_windows_platform,
+};
 
 /// Whether the current build can access Windows CNG.
 pub const AVAILABLE: bool = cfg!(windows);

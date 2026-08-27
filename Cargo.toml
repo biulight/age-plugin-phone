@@ -42,6 +42,7 @@ tauri-plugin = { version = "2", features = ["build"] }
 thiserror = "2"
 zeroize = "1.9.0"
 windows-sys = "0.61.2"
+windows-version = "0.1.7"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
