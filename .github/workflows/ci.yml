@@ -22,9 +22,26 @@ jobs:
           toolchain: 1.88.0
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev
       - run: cargo fmt --all --check
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
-      - run: cargo test --workspace --locked
+      - name: Run portable workspace tests
+        if: runner.os != 'Windows'
+        run: cargo test --workspace --locked
+      - name: Run portable workspace tests without TPM hardware integration
+        if: runner.os == 'Windows'
+        run: >-
+          cargo test --workspace --locked --
+          --skip windows::tests::provisions_distinct_non_exportable_keys_and_reopens_them
+          --skip windows::tests::partial_key_pair_fails_closed_without_repair
       - name: Packaged binary smoke test
         if: runner.os == 'Windows'
         shell: pwsh
@@ -43,6 +60,9 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.88.0
       - name: Frontend dependencies
         working-directory: apps/mobile
         run: bun install --frozen-lockfile
@@ -51,7 +71,23 @@ jobs:
         run: bun run build
       - name: Generate Android build settings
         working-directory: apps/mobile
-        run: bun run tauri android init --ci --skip-targets-install
+        run: |
+          set -o pipefail
+          bun run tauri android init --ci --skip-targets-install
+          tauri_manifest="$(cargo metadata --format-version 1 --locked --manifest-path src-tauri/Cargo.toml \
+            | jq --exit-status --raw-output \
+              '[.packages[] | select(.name == "tauri") | .manifest_path]
+               | if length == 1 then .[0] else error("expected exactly one tauri package") end')"
+          test -f "$tauri_manifest"
+          tauri_android_dir="$(dirname "$tauri_manifest")/mobile/android"
+          test -d "$tauri_android_dir"
+          printf 'TAURI_ANDROID_DIR=%s\n' "$tauri_android_dir" >> "$GITHUB_ENV"
+          cat > src-tauri/gen/android/tauri.settings.gradle <<'GRADLE'
+          include ':tauri-android'
+          project(':tauri-android').projectDir = new File(System.getenv('TAURI_ANDROID_DIR'))
+          include ':tauri-plugin-phone-identity'
+          project(':tauri-plugin-phone-identity').projectDir = new File(System.getenv('GITHUB_WORKSPACE'), 'plugins/tauri-plugin-phone-identity/android')
+          GRADLE
       - name: Kotlin vectors and negative tests
         working-directory: apps/mobile/src-tauri/gen/android
         run: ./gradlew :tauri-plugin-phone-identity:testDebugUnitTest --no-daemon
