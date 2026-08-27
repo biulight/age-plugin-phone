@@ -412,4 +412,17 @@ Denies the unwrap_phone_usb command without any pre-configured scope.
 
 </td>
 </tr>
+
+<tr>
+<td>
+
+`phone-identity:doctor`
+
+</td>
+<td>
+
+Allows non-sensitive Doctor diagnostics in development builds.
+
+</td>
+</tr>
 </table>
