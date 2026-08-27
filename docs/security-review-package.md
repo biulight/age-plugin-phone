@@ -118,6 +118,14 @@ restricted build sandbox may correctly report TPM or provider access as unavaila
 must compare Rust/Kotlin results against the committed non-secret vectors and confirm that fixed
 test scalars never enter a production Keystore.
 
+The Kotlin pairing-state tests run the production state machine against a test-only
+`DurableFileOperations` implementation. On POSIX hosts it exercises real owner-only modes and
+symbolic links. On Windows JVM hosts, where those POSIX APIs and unprivileged symbolic-link creation
+are unavailable, it explicitly simulates only the private/non-private and symbolic-link filesystem
+decisions while retaining the same malformed-state, wrong-scope, replay, locking, durability,
+poisoning, and confirmation transitions. This keeps the Windows review command reproducible but
+does not replace Android on-device storage and lifecycle tests.
+
 The physical procedure and required version metadata are defined in the
 [Alpha matrix](alpha-matrix.md). Device evidence must include the two still-open Milestone 4 cases:
 wrong paired physical device and injected response replay.

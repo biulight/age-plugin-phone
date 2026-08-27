@@ -3,11 +3,14 @@ package io.github.biulight.phone_identity
 import com.fasterxml.jackson.databind.ObjectMapper
 import java.io.File
 import java.nio.channels.FileChannel
+import java.nio.file.FileSystems
 import java.nio.file.Files
+import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.nio.file.StandardOpenOption
 import java.nio.file.attribute.PosixFilePermission
 import java.util.Base64
+import java.util.concurrent.ConcurrentHashMap
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -115,14 +118,7 @@ class PairingStateStoreTest {
         }
 
         firstFile.writeBytes(byteArrayOf(0x80.toByte()))
-        Files.setPosixFilePermissions(
-            firstFile.toPath(),
-            setOf(
-                PosixFilePermission.OWNER_READ,
-                PosixFilePermission.OWNER_WRITE,
-                PosixFilePermission.GROUP_READ,
-            ),
-        )
+        JvmDurableFileOperations.makeNonPrivateForTest(firstFile)
         assertCategory(PairingStateStore.Category.STORAGE) {
             PairingStateStore.openAt(root, first.desktopId, first.identityId, JvmDurableFileOperations)
         }
@@ -152,7 +148,7 @@ class PairingStateStoreTest {
         val target = File(root, "unrelated")
         target.writeText("unchanged")
         Files.delete(lockFile.toPath())
-        Files.createSymbolicLink(lockFile.toPath(), target.toPath())
+        JvmDurableFileOperations.makeSymlinkForTest(lockFile, target)
 
         assertCategory(PairingStateStore.Category.STORAGE) {
             PairingStateStore.openAt(root, record.desktopId, record.identityId, JvmDurableFileOperations)
@@ -239,6 +235,10 @@ class PairingStateStoreTest {
 }
 
 internal object JvmDurableFileOperations : DurableFileOperations {
+    private val supportsPosixPermissions =
+        FileSystems.getDefault().supportedFileAttributeViews().contains("posix")
+    private val simulatedPrivateFiles = ConcurrentHashMap.newKeySet<Path>()
+    private val simulatedSymlinks = ConcurrentHashMap.newKeySet<Path>()
     private val ownerDirectoryPermissions = setOf(
         PosixFilePermission.OWNER_READ,
         PosixFilePermission.OWNER_WRITE,
@@ -253,39 +253,79 @@ internal object JvmDurableFileOperations : DurableFileOperations {
         if (Files.isSymbolicLink(directory.toPath()) || !directory.isDirectory) {
             throw PairingStateStore.PairingStateException(PairingStateStore.Category.STORAGE)
         }
-        Files.setPosixFilePermissions(directory.toPath(), ownerDirectoryPermissions)
+        if (supportsPosixPermissions) {
+            Files.setPosixFilePermissions(directory.toPath(), ownerDirectoryPermissions)
+        }
     }
 
     override fun rejectSymlinkIfPresent(file: File) {
-        if (Files.isSymbolicLink(file.toPath())) {
+        if (Files.isSymbolicLink(file.toPath()) || simulatedSymlinks.contains(normalized(file))) {
             throw PairingStateStore.PairingStateException(PairingStateStore.Category.STORAGE)
         }
     }
 
     override fun hardenFile(file: File) {
-        Files.setPosixFilePermissions(file.toPath(), ownerFilePermissions)
+        if (supportsPosixPermissions) {
+            Files.setPosixFilePermissions(file.toPath(), ownerFilePermissions)
+        } else {
+            simulatedPrivateFiles.add(normalized(file))
+        }
     }
 
     override fun validatePrivateRegularFile(file: File) {
-        if (Files.isSymbolicLink(file.toPath()) || !Files.isRegularFile(file.toPath()) ||
-            Files.getPosixFilePermissions(file.toPath()) != ownerFilePermissions
-        ) {
+        val isPrivate = if (supportsPosixPermissions) {
+            Files.getPosixFilePermissions(file.toPath()) == ownerFilePermissions
+        } else {
+            simulatedPrivateFiles.contains(normalized(file))
+        }
+        if (Files.isSymbolicLink(file.toPath()) || !Files.isRegularFile(file.toPath()) || !isPrivate) {
             throw PairingStateStore.PairingStateException(PairingStateStore.Category.STORAGE)
         }
     }
 
     override fun replace(source: File, target: File) {
+        val sourceWasPrivate =
+            !supportsPosixPermissions && simulatedPrivateFiles.remove(normalized(source))
         Files.move(
             source.toPath(),
             target.toPath(),
             StandardCopyOption.ATOMIC_MOVE,
             StandardCopyOption.REPLACE_EXISTING,
         )
+        if (sourceWasPrivate) simulatedPrivateFiles.add(normalized(target))
     }
 
     override fun syncDirectory(directory: File) {
-        FileChannel.open(directory.toPath(), StandardOpenOption.READ).use { it.force(true) }
+        if (supportsPosixPermissions) {
+            FileChannel.open(directory.toPath(), StandardOpenOption.READ).use { it.force(true) }
+        }
     }
+
+    fun makeNonPrivateForTest(file: File) {
+        if (supportsPosixPermissions) {
+            Files.setPosixFilePermissions(
+                file.toPath(),
+                setOf(
+                    PosixFilePermission.OWNER_READ,
+                    PosixFilePermission.OWNER_WRITE,
+                    PosixFilePermission.GROUP_READ,
+                ),
+            )
+        } else {
+            simulatedPrivateFiles.remove(normalized(file))
+        }
+    }
+
+    fun makeSymlinkForTest(link: File, target: File) {
+        if (supportsPosixPermissions) {
+            Files.createSymbolicLink(link.toPath(), target.toPath())
+        } else {
+            link.writeText("simulated symlink")
+            simulatedSymlinks.add(normalized(link))
+        }
+    }
+
+    private fun normalized(file: File): Path = file.toPath().toAbsolutePath().normalize()
 }
 
 private class FailingOperations : DurableFileOperations by JvmDurableFileOperations {
