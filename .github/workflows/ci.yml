@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.85.0
+          toolchain: 1.88.0
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all --check
@@ -49,6 +49,9 @@ jobs:
       - name: TypeScript production build
         working-directory: apps/mobile
         run: bun run build
+      - name: Generate Android build settings
+        working-directory: apps/mobile
+        run: bun run tauri android init --ci --skip-targets-install
       - name: Kotlin vectors and negative tests
         working-directory: apps/mobile/src-tauri/gen/android
         run: ./gradlew :tauri-plugin-phone-identity:testDebugUnitTest --no-daemon
@@ -75,7 +78,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: 1.85.0
+          toolchain: 1.88.0
       - uses: Swatinem/rust-cache@v2
       - name: Build production plugin executable
         run: cargo build --release --locked -p age-plugin-phone
