@@ -22,8 +22,12 @@ public metadata. Re-running deletion resumes the same identity; provisioning can
 
 `.github/workflows/ci.yml` gates locked Rust formatting, Clippy, tests, and deterministic vectors on
 Linux and Windows; a Windows release-binary smoke test; a locked Bun/TypeScript production build;
-Kotlin vectors and negative tests; and committed Cargo, Bun, and Gradle wrapper inputs. The Gradle
-distribution SHA-256 is pinned.
+Kotlin vectors and negative tests; and committed Cargo, Bun, and Gradle wrapper inputs. It also
+downloads checksum-pinned reference age 1.3.1 and rage 0.12.1 release binaries, then exercises the
+production plugin executable with three public phone recipients, both stanza versions, three
+synthetic files, and an independent recovery identity in both cross-client directions. Malformed
+phone recipients must fail without a non-empty ciphertext. The Gradle distribution SHA-256 is
+pinned.
 
 The CI smoke test proves only that the packaged executable starts. TPM/StrongBox behavior must be
 tested on the physical Alpha matrix and cannot be waived by a hosted runner.
@@ -36,9 +40,12 @@ tested on the physical Alpha matrix and cannot be waived by a hosted runner.
 - `ANDROID_KEYSTORE_BASE64`, `ANDROID_STORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and
   `ANDROID_KEY_PASSWORD`.
 
-The workflow never publishes an unsigned substitute when a credential is absent. Signing files
-exist only in runner-temporary storage. Evidence must record artifact SHA-256, immutable commit,
-workflow run, certificate identity, and verification result without exposing credentials.
+The workflow never publishes an unsigned substitute when a credential is absent. It runs
+Authenticode verification on the exact Windows executable before packaging and `apksigner verify`
+on the exact Android APK, then uploads signature-verification evidence and SHA-256 records beside
+the packages. Signing files exist only in runner-temporary storage. Evidence must record artifact
+SHA-256, immutable commit, workflow run, certificate identity, and verification result without
+exposing credentials.
 
 ## Remaining external gates
 
@@ -46,7 +53,7 @@ Do not mark Milestone 6 complete until signed artifacts pass every required row 
 `alpha-matrix.md`. These gates require external software, physical devices, or people:
 
 - actual Windows and Android signing and signature verification;
-- released reference age and rage interoperability with multiple phones and files;
+- physical reference age and rage unwrap interoperability through multiple phones;
 - Shine encrypt, decrypt, seal, and recovery using its existing configuration only;
 - physical lifecycle, invalidation, wrong-device, replay, upgrade, and recovery matrices;
 - independent cryptographic and implementation review with findings resolved; and

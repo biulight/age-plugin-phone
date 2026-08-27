@@ -25,17 +25,29 @@ jobs:
           if (-not $env:WINDOWS_CERTIFICATE_BASE64) { throw "Windows signing secret is required" }
           $certificate = Join-Path $env:RUNNER_TEMP "alpha-signing.pfx"
           [IO.File]::WriteAllBytes($certificate, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
-          signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /f $certificate /p $env:WINDOWS_CERTIFICATE_PASSWORD target/release/age-plugin-phone.exe
+          signtool sign /fd SHA256 /tr https://timestamp.digicert.com /td SHA256 /f $certificate /p $env:WINDOWS_CERTIFICATE_PASSWORD target/release/age-plugin-phone.exe
           Remove-Item $certificate -Force
       - name: Smoke and digest
         shell: pwsh
         run: |
           target/release/age-plugin-phone.exe --help
-          Get-FileHash target/release/age-plugin-phone.exe -Algorithm SHA256 | Format-List
+          signtool verify /pa /all /v target/release/age-plugin-phone.exe | Tee-Object target/release/signature-verification.txt
+          if ((Get-AuthenticodeSignature target/release/age-plugin-phone.exe).Status -ne "Valid") {
+            throw "Authenticode verification failed"
+          }
+          $package = "target/release/age-plugin-phone-windows-x64-alpha.zip"
+          Compress-Archive -Path target/release/age-plugin-phone.exe,README.md,LICENSE,docs/milestone-6-alpha.md -DestinationPath $package
+          Get-FileHash target/release/age-plugin-phone.exe -Algorithm SHA256 | Format-List | Out-File target/release/SHA256SUMS.txt
+          Get-FileHash $package -Algorithm SHA256 | Format-List | Add-Content target/release/SHA256SUMS.txt
+          "commit: $env:GITHUB_SHA" | Add-Content target/release/signature-verification.txt
       - uses: actions/upload-artifact@v4
         with:
           name: age-plugin-phone-windows-x64-alpha
-          path: target/release/age-plugin-phone.exe
+          if-no-files-found: error
+          path: |
+            target/release/age-plugin-phone-windows-x64-alpha.zip
+            target/release/SHA256SUMS.txt
+            target/release/signature-verification.txt
 
   android:
     runs-on: ubuntu-latest
@@ -66,7 +78,23 @@ jobs:
         run: |
           bun install --frozen-lockfile
           bun run tauri android build --apk --target aarch64
+      - name: Verify Android signature and digest
+        run: |
+          mapfile -t apks < <(find apps/mobile/src-tauri/gen/android/app/build/outputs/apk/release -type f -name '*.apk')
+          test "${#apks[@]}" -eq 1
+          apksigner=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
+          test -x "$apksigner"
+          "$apksigner" verify --verbose --print-certs "${apks[0]}" \
+            | tee apps/mobile/src-tauri/gen/android/app/build/outputs/apk/release/signature-verification.txt
+          sha256sum "${apks[0]}" \
+            | tee apps/mobile/src-tauri/gen/android/app/build/outputs/apk/release/SHA256SUMS.txt
+          echo "commit: $GITHUB_SHA" \
+            >> apps/mobile/src-tauri/gen/android/app/build/outputs/apk/release/signature-verification.txt
       - uses: actions/upload-artifact@v4
         with:
           name: age-plugin-phone-android-alpha
-          path: apps/mobile/src-tauri/gen/android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
+          path: |
+            apps/mobile/src-tauri/gen/android/app/build/outputs/apk/release/*.apk
+            apps/mobile/src-tauri/gen/android/app/build/outputs/apk/release/SHA256SUMS.txt
+            apps/mobile/src-tauri/gen/android/app/build/outputs/apk/release/signature-verification.txt

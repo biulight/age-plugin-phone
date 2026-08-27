@@ -35,8 +35,8 @@ from the supported Windows/Android pair.
 | Scenario | Portable gate | Physical gate | Current state |
 | --- | --- | --- | --- |
 | Fresh identity and pairing, exact transcript comparison, restart, then standard age unwrap | Required | Required | Passed on designated Windows/Android baseline |
-| Encrypt and decrypt with released reference age; multiple files and multiple phone identities | Required | Required | Single/reference path passed; full multiple-input package matrix pending |
-| Encrypt and decrypt with released rage | Required | Required | Pending |
+| Encrypt and decrypt with released reference age; multiple files and multiple phone identities | Required | Required | age 1.3.1 production-plugin encryption and independent recovery pass in CI; packaged physical phone unwrap matrix pending |
+| Encrypt and decrypt with released rage | Required | Required | rage 0.12.1 cross-client production-plugin encryption/recovery pass in CI; packaged physical phone unwrap pending |
 | Shine encrypt, decrypt, seal, and multi-recipient recovery through ordinary age configuration | Required | Required | Pending |
 | Independent recovery decrypt, new-phone/new-pairing encryption, byte comparison, and retirement of old ciphertext | Required | Required | Pending |
 | Wrong paired physical phone | Required | Required | Portable coverage exists; physical gate pending from Milestone 4 |

@@ -63,3 +63,40 @@ jobs:
           test -f apps/mobile/bun.lock
           test -f apps/mobile/src-tauri/gen/android/gradle/wrapper/gradle-wrapper.properties
           grep -q '^distributionSha256Sum=' apps/mobile/src-tauri/gen/android/gradle/wrapper/gradle-wrapper.properties
+
+  released-client-interoperability:
+    runs-on: ubuntu-latest
+    env:
+      AGE_VERSION: "1.3.1"
+      AGE_SHA256: bdc69c09cbdd6cf8b1f333d372a1f58247b3a33146406333e30c0f26e8f51377
+      RAGE_VERSION: "0.12.1"
+      RAGE_SHA256: c5d7ab41fbf1213590e89721fd2b8eb122e84518c155ce35866f1c5759a3a29f
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.85.0
+      - uses: Swatinem/rust-cache@v2
+      - name: Build production plugin executable
+        run: cargo build --release --locked -p age-plugin-phone
+      - name: Fetch pinned released clients
+        run: |
+          mkdir -p "$RUNNER_TEMP/released-clients"
+          curl --fail --location --silent --show-error \
+            --output "$RUNNER_TEMP/age.tar.gz" \
+            "https://github.com/FiloSottile/age/releases/download/v${AGE_VERSION}/age-v${AGE_VERSION}-linux-amd64.tar.gz"
+          echo "${AGE_SHA256}  $RUNNER_TEMP/age.tar.gz" | sha256sum --check --strict
+          curl --fail --location --silent --show-error \
+            --output "$RUNNER_TEMP/rage.tar.gz" \
+            "https://github.com/str4d/rage/releases/download/v${RAGE_VERSION}/rage-v${RAGE_VERSION}-x86_64-linux.tar.gz"
+          echo "${RAGE_SHA256}  $RUNNER_TEMP/rage.tar.gz" | sha256sum --check --strict
+          tar --extract --gzip --file "$RUNNER_TEMP/age.tar.gz" --directory "$RUNNER_TEMP/released-clients"
+          tar --extract --gzip --file "$RUNNER_TEMP/rage.tar.gz" --directory "$RUNNER_TEMP/released-clients"
+      - name: Cross-client plugin and recovery smoke
+        run: |
+          scripts/interoperability-smoke.sh \
+            "$RUNNER_TEMP/released-clients/age/age" \
+            "$RUNNER_TEMP/released-clients/age/age-keygen" \
+            "$RUNNER_TEMP/released-clients/rage/rage" \
+            "$RUNNER_TEMP/released-clients/rage/rage-keygen" \
+            "$GITHUB_WORKSPACE/target/release/age-plugin-phone"

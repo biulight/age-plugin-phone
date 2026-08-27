@@ -104,6 +104,12 @@ builds keep the product identity plugin enabled but reject Doctor commands. Sign
 creation is defined in [the Milestone 6 Alpha release guide](docs/milestone-6-alpha.md); it
 intentionally fails when signing credentials are absent.
 
+CI also runs [`scripts/interoperability-smoke.sh`](scripts/interoperability-smoke.sh) against
+checksum-pinned released age and rage binaries. It verifies that both clients invoke the production
+recipient plugin for multiple phone recipients and files, preserve v1/v2 stanza counts, and recover
+byte-for-byte through an independently generated recipient. This portable check does not replace a
+fresh-biometric physical phone unwrap.
+
 ## Design goals
 
 - No server, account, cloud rendezvous, or online authorization dependency.
