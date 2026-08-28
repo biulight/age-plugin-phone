@@ -117,9 +117,18 @@ jobs:
             if ((Get-CertificateSha256 -Certificate $chainRoot) -ne $rootExpected) {
               throw "Windows test signing certificate chained to an unexpected root"
             }
+            $windowsKits = Join-Path ${env:ProgramFiles(x86)} "Windows Kits\10\bin"
+            $signTool = Get-ChildItem $windowsKits -Recurse -Filter signtool.exe |
+              Where-Object FullName -Match "\\x64\\signtool.exe$" |
+              Sort-Object FullName -Descending |
+              Select-Object -First 1
+            if ($null -eq $signTool) {
+              throw "Windows SDK x64 SignTool is unavailable"
+            }
             "WINDOWS_TEST_CERTIFICATE_THUMBPRINT=$($signer.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Append
             "WINDOWS_TEST_CERTIFICATE_SHA256_VALIDATED=$($actual.ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_ENV -Append
             "WINDOWS_TEST_ROOT_CERTIFICATE_SHA256_VALIDATED=$($rootActual.ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_ENV -Append
+            "SIGNTOOL_PATH=$($signTool.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Append
           } catch {
             foreach ($certificate in $imported) {
               Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($certificate.Thumbprint)" -Force -ErrorAction SilentlyContinue
@@ -134,7 +143,10 @@ jobs:
           if ($env:WINDOWS_TEST_CERTIFICATE_THUMBPRINT -notmatch "^[0-9A-Fa-f]{40}$") {
             throw "Validated Windows test certificate thumbprint is unavailable"
           }
-          signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /sha1 $env:WINDOWS_TEST_CERTIFICATE_THUMBPRINT target/release/age-plugin-phone.exe
+          if (-not (Test-Path -LiteralPath $env:SIGNTOOL_PATH -PathType Leaf)) {
+            throw "Validated Windows SDK SignTool path is unavailable"
+          }
+          & $env:SIGNTOOL_PATH sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /sha1 $env:WINDOWS_TEST_CERTIFICATE_THUMBPRINT target/release/age-plugin-phone.exe
           if ($LASTEXITCODE -ne 0) {
             throw "Windows test signing failed"
           }
@@ -142,7 +154,7 @@ jobs:
         shell: pwsh
         run: |
           target/release/age-plugin-phone.exe --help
-          $verification = @(signtool verify /pa /all /v target/release/age-plugin-phone.exe 2>&1)
+          $verification = @(& $env:SIGNTOOL_PATH verify /pa /all /v target/release/age-plugin-phone.exe 2>&1)
           $verifyExitCode = $LASTEXITCODE
           $verification | Set-Content -Encoding utf8NoBOM target/release/signature-verification.txt
           $signature = Get-AuthenticodeSignature target/release/age-plugin-phone.exe
