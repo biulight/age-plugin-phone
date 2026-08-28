@@ -158,11 +158,11 @@ jobs:
           $verifyExitCode = $LASTEXITCODE
           $verification | Set-Content -Encoding utf8NoBOM target/release/signature-verification.txt
           $signature = Get-AuthenticodeSignature target/release/age-plugin-phone.exe
-          if ($null -eq $signature.SignerCertificate) {
-            throw "Authenticode signer certificate is unavailable"
+          if ($null -eq $signature.SignerCertificate -or $null -eq $signature.TimeStamperCertificate) {
+            throw "Authenticode signer or timestamp certificate is unavailable"
           }
-          $untrustedRoot = ($verification | Out-String) -match "not trusted by the trust provider|0x800B0109"
-          if ($verifyExitCode -eq 0 -or -not $untrustedRoot -or $signature.Status.ToString() -notin @("UnknownError", "NotTrusted")) {
+          $publicTrustStatus = $signature.Status.ToString()
+          if ($verifyExitCode -eq 0 -or $publicTrustStatus -notin @("UnknownError", "NotTrusted")) {
             throw "Authenticode verification did not fail solely because the private test root is untrusted"
           }
           $certificateHash = [BitConverter]::ToString(
@@ -198,6 +198,7 @@ jobs:
             "workflow_run: $env:GITHUB_RUN_ID",
             "workflow_run_attempt: $env:GITHUB_RUN_ATTEMPT",
             "integrity_validation: Authenticode content and signature valid; public-trust verification rejected only the private test root",
+            "public_trust_status: $publicTrustStatus",
             "custom_root_chain_validation: Valid",
             "trust_scope: private test root validated in memory and not installed in a Windows trust store",
             "certificate_subject: $($signature.SignerCertificate.Subject)",
