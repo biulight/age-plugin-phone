@@ -1,4 +1,4 @@
-name: Signed Alpha artifacts
+name: Test-signed Alpha artifacts
 
 on:
   workflow_dispatch:
@@ -9,69 +9,175 @@ permissions:
 jobs:
   windows:
     runs-on: windows-latest
+    environment: alpha-release
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
         with:
           toolchain: 1.88.0
       - name: Build locked Windows x64 binary
         run: cargo build --release --locked -p age-plugin-phone
-      - name: Import signing certificate and sign
+      - name: Restore and authenticate Windows test signing certificate
         shell: pwsh
         env:
-          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
-          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+          WINDOWS_TEST_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_TEST_CERTIFICATE_BASE64 }}
+          WINDOWS_TEST_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_TEST_CERTIFICATE_PASSWORD }}
+          WINDOWS_TEST_CERTIFICATE_SHA256: ${{ vars.WINDOWS_TEST_CERTIFICATE_SHA256 }}
         run: |
-          if (-not $env:WINDOWS_CERTIFICATE_BASE64) { throw "Windows signing secret is required" }
-          $certificate = Join-Path $env:RUNNER_TEMP "alpha-signing.pfx"
-          [IO.File]::WriteAllBytes($certificate, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
-          signtool sign /fd SHA256 /tr https://timestamp.digicert.com /td SHA256 /f $certificate /p $env:WINDOWS_CERTIFICATE_PASSWORD target/release/age-plugin-phone.exe
-          Remove-Item $certificate -Force
+          $required = @("WINDOWS_TEST_CERTIFICATE_BASE64", "WINDOWS_TEST_CERTIFICATE_PASSWORD", "WINDOWS_TEST_CERTIFICATE_SHA256")
+          foreach ($name in $required) {
+            if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+              throw "Required Windows test-signing configuration is missing: $name"
+            }
+          }
+          $expected = $env:WINDOWS_TEST_CERTIFICATE_SHA256.Replace(":", "").Replace(" ", "").ToUpperInvariant()
+          if ($expected -notmatch "^[0-9A-F]{64}$") {
+            throw "WINDOWS_TEST_CERTIFICATE_SHA256 must be one SHA-256 certificate fingerprint"
+          }
+          $pfx = Join-Path $env:RUNNER_TEMP "alpha-test-signing.pfx"
+          $publicCertificate = Join-Path $env:RUNNER_TEMP "alpha-test-signing.cer"
+          $imported = @()
+          try {
+            [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_TEST_CERTIFICATE_BASE64))
+            $password = ConvertTo-SecureString $env:WINDOWS_TEST_CERTIFICATE_PASSWORD -AsPlainText -Force
+            $imported = @(Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $password)
+            $signers = @($imported | Where-Object {
+              $_.HasPrivateKey -and
+                ($_.EnhancedKeyUsageList.ObjectId.Value -contains "1.3.6.1.5.5.7.3.3")
+            })
+            if ($signers.Count -ne 1) {
+              throw "Windows test PFX must contain exactly one code-signing certificate with a private key"
+            }
+            $signer = $signers[0]
+            if ($signer.Subject -ne $signer.Issuer) {
+              throw "Windows test certificate must be self-signed"
+            }
+            if ($signer.NotBefore.ToUniversalTime() -gt [DateTime]::UtcNow -or $signer.NotAfter.ToUniversalTime() -le [DateTime]::UtcNow) {
+              throw "Windows test certificate is not currently valid"
+            }
+            $actual = [BitConverter]::ToString(
+              [Security.Cryptography.SHA256]::Create().ComputeHash($signer.RawData)
+            ).Replace("-", "")
+            if ($actual -ne $expected) {
+              throw "Windows test certificate fingerprint mismatch"
+            }
+            Export-Certificate -Cert $signer -FilePath $publicCertificate -Force | Out-Null
+            Import-Certificate -FilePath $publicCertificate -CertStoreLocation Cert:\CurrentUser\TrustedPeople | Out-Null
+            "WINDOWS_TEST_CERTIFICATE_THUMBPRINT=$($signer.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Append
+          } catch {
+            foreach ($certificate in $imported) {
+              Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($certificate.Thumbprint)" -Force -ErrorAction SilentlyContinue
+              Remove-Item -LiteralPath "Cert:\CurrentUser\TrustedPeople\$($certificate.Thumbprint)" -Force -ErrorAction SilentlyContinue
+            }
+            Remove-Item -LiteralPath $pfx, $publicCertificate -Force -ErrorAction SilentlyContinue
+            throw
+          }
+          Remove-Item -LiteralPath $publicCertificate -Force
+      - name: Sign with the Windows test certificate
+        shell: pwsh
+        run: |
+          if ($env:WINDOWS_TEST_CERTIFICATE_THUMBPRINT -notmatch "^[0-9A-Fa-f]{40}$") {
+            throw "Validated Windows test certificate thumbprint is unavailable"
+          }
+          signtool sign /fd SHA256 /tr https://timestamp.digicert.com /td SHA256 /sha1 $env:WINDOWS_TEST_CERTIFICATE_THUMBPRINT target/release/age-plugin-phone.exe
+          if ($LASTEXITCODE -ne 0) {
+            throw "Windows test signing failed"
+          }
       - name: Smoke and digest
         shell: pwsh
         run: |
           target/release/age-plugin-phone.exe --help
           signtool verify /pa /all /v target/release/age-plugin-phone.exe | Tee-Object target/release/signature-verification.txt
-          if ((Get-AuthenticodeSignature target/release/age-plugin-phone.exe).Status -ne "Valid") {
+          $signature = Get-AuthenticodeSignature target/release/age-plugin-phone.exe
+          if ($signature.Status -ne "Valid" -or $null -eq $signature.SignerCertificate) {
             throw "Authenticode verification failed"
           }
-          $package = "target/release/age-plugin-phone-windows-x64-alpha.zip"
+          $certificateHash = [BitConverter]::ToString(
+            [Security.Cryptography.SHA256]::Create().ComputeHash($signature.SignerCertificate.RawData)
+          ).Replace("-", "").ToLowerInvariant()
+          $package = "target/release/age-plugin-phone-windows-x64-alpha-test-signed.zip"
           Compress-Archive -Path target/release/age-plugin-phone.exe,README.md,LICENSE,docs/milestone-6-alpha.md -DestinationPath $package
-          Get-FileHash target/release/age-plugin-phone.exe -Algorithm SHA256 | Format-List | Out-File target/release/SHA256SUMS.txt
-          Get-FileHash $package -Algorithm SHA256 | Format-List | Add-Content target/release/SHA256SUMS.txt
-          "commit: $env:GITHUB_SHA" | Add-Content target/release/signature-verification.txt
-      - uses: actions/upload-artifact@v4
+          $exeHash = (Get-FileHash target/release/age-plugin-phone.exe -Algorithm SHA256).Hash.ToLowerInvariant()
+          $packageHash = (Get-FileHash $package -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$exeHash  age-plugin-phone.exe" | Set-Content -Encoding utf8NoBOM target/release/SHA256SUMS.txt
+          "$packageHash  age-plugin-phone-windows-x64-alpha-test-signed.zip" | Add-Content -Encoding utf8NoBOM target/release/SHA256SUMS.txt
+          @(
+            "commit: $env:GITHUB_SHA",
+            "workflow_run: $env:GITHUB_RUN_ID",
+            "workflow_run_attempt: $env:GITHUB_RUN_ATTEMPT",
+            "trust_scope: self-signed test certificate trusted only in the CI current-user store",
+            "certificate_subject: $($signature.SignerCertificate.Subject)",
+            "certificate_issuer: $($signature.SignerCertificate.Issuer)",
+            "certificate_sha256: $certificateHash"
+          ) | Add-Content -Encoding utf8NoBOM target/release/signature-verification.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: age-plugin-phone-windows-x64-alpha
+          name: age-plugin-phone-windows-x64-alpha-test-signed
           if-no-files-found: error
           path: |
-            target/release/age-plugin-phone-windows-x64-alpha.zip
+            target/release/age-plugin-phone-windows-x64-alpha-test-signed.zip
             target/release/SHA256SUMS.txt
             target/release/signature-verification.txt
+      - name: Remove restored Windows test certificate
+        if: always()
+        shell: pwsh
+        run: |
+          if ($env:WINDOWS_TEST_CERTIFICATE_THUMBPRINT -match "^[0-9A-Fa-f]{40}$") {
+            Remove-Item -LiteralPath "Cert:\CurrentUser\My\$env:WINDOWS_TEST_CERTIFICATE_THUMBPRINT" -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath "Cert:\CurrentUser\TrustedPeople\$env:WINDOWS_TEST_CERTIFICATE_THUMBPRINT" -Force -ErrorAction SilentlyContinue
+          }
+          $pfx = Join-Path $env:RUNNER_TEMP "alpha-test-signing.pfx"
+          $publicCertificate = Join-Path $env:RUNNER_TEMP "alpha-test-signing.cer"
+          Remove-Item -LiteralPath $pfx, $publicCertificate -Force -ErrorAction SilentlyContinue
 
   android:
     runs-on: ubuntu-latest
+    environment: alpha-release
     steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
         with:
           distribution: temurin
           java-version: "17"
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
         with:
           toolchain: 1.88.0
           targets: aarch64-linux-android
-      - name: Restore Android signing key
+      - name: Restore and authenticate Android signing key
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_CERTIFICATE_SHA256: ${{ secrets.ANDROID_CERTIFICATE_SHA256 }}
         run: |
-          test -n "$ANDROID_KEYSTORE_BASE64"
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/alpha-release.jks"
+          set -euo pipefail
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_STORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD ANDROID_CERTIFICATE_SHA256; do
+            test -n "${!name:-}" || { echo "::error::Required Android signing secret is missing: $name"; exit 1; }
+          done
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/alpha-release.p12"
+          chmod 600 "$RUNNER_TEMP/alpha-release.p12"
+          expected=$(printf '%s' "$ANDROID_CERTIFICATE_SHA256" | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')
+          [[ "$expected" =~ ^[0-9A-F]{64}$ ]] || { echo "::error::ANDROID_CERTIFICATE_SHA256 must be one SHA-256 certificate fingerprint"; exit 1; }
+          actual=$(
+            keytool -exportcert \
+              -keystore "$RUNNER_TEMP/alpha-release.p12" \
+              -storetype PKCS12 \
+              -storepass:env ANDROID_STORE_PASSWORD \
+              -alias "$ANDROID_KEY_ALIAS" \
+              | openssl dgst -sha256 -binary \
+              | od -An -vtx1 \
+              | tr -d ' \n' \
+              | tr '[:lower:]' '[:upper:]'
+          )
+          test "$actual" = "$expected" || { echo "::error::Android signing certificate fingerprint mismatch"; exit 1; }
       - name: Build signed Android Alpha
         working-directory: apps/mobile
         env:
-          AGE_PLUGIN_PHONE_ANDROID_KEYSTORE: ${{ runner.temp }}/alpha-release.jks
+          AGE_PLUGIN_PHONE_ANDROID_KEYSTORE: ${{ runner.temp }}/alpha-release.p12
           AGE_PLUGIN_PHONE_ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
           AGE_PLUGIN_PHONE_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           AGE_PLUGIN_PHONE_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
@@ -79,22 +185,45 @@ jobs:
           bun install --frozen-lockfile
           bun run tauri android build --apk --target aarch64
       - name: Verify Android signature and digest
+        env:
+          ANDROID_CERTIFICATE_SHA256: ${{ secrets.ANDROID_CERTIFICATE_SHA256 }}
         run: |
-          mapfile -t apks < <(find apps/mobile/src-tauri/gen/android/app/build/outputs/apk/release -type f -name '*.apk')
+          set -euo pipefail
+          outputs=apps/mobile/src-tauri/gen/android/app/build/outputs/apk
+          mapfile -t apks < <(find "$outputs" -type f -path '*/release/*.apk')
           test "${#apks[@]}" -eq 1
           apksigner=$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)
           test -x "$apksigner"
-          "$apksigner" verify --verbose --print-certs "${apks[0]}" \
-            | tee apps/mobile/src-tauri/gen/android/app/build/outputs/apk/release/signature-verification.txt
-          sha256sum "${apks[0]}" \
-            | tee apps/mobile/src-tauri/gen/android/app/build/outputs/apk/release/SHA256SUMS.txt
-          echo "commit: $GITHUB_SHA" \
-            >> apps/mobile/src-tauri/gen/android/app/build/outputs/apk/release/signature-verification.txt
-      - uses: actions/upload-artifact@v4
+          evidence_dir=$(dirname "${apks[0]}")
+          evidence="$evidence_dir/signature-verification.txt"
+          "$apksigner" verify --verbose --print-certs "${apks[0]}" | tee "$evidence"
+          expected=$(printf '%s' "$ANDROID_CERTIFICATE_SHA256" | tr -d ':[:space:]' | tr '[:lower:]' '[:upper:]')
+          mapfile -t signer_digests < <(
+            sed -n -E \
+              -e 's/^Signer #[0-9]+ certificate SHA-256 digest: //p' \
+              -e 's/^V[0-9.]+ Signer: certificate SHA-256 digest: //p' \
+              "$evidence" \
+              | tr -d ':[:space:]' \
+              | tr '[:lower:]' '[:upper:]' \
+              | sort -u
+          )
+          test "${#signer_digests[@]}" -eq 1 || { echo "::error::Expected exactly one Android APK signing certificate"; exit 1; }
+          test "${signer_digests[0]}" = "$expected" || { echo "::error::Signed APK certificate fingerprint mismatch"; exit 1; }
+          sha256sum "${apks[0]}" | tee "$evidence_dir/SHA256SUMS.txt"
+          {
+            echo "commit: $GITHUB_SHA"
+            echo "workflow_run: $GITHUB_RUN_ID"
+            echo "workflow_run_attempt: $GITHUB_RUN_ATTEMPT"
+            echo "certificate_sha256: ${expected,,}"
+          } >> "$evidence"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: age-plugin-phone-android-alpha
           if-no-files-found: error
           path: |
-            apps/mobile/src-tauri/gen/android/app/build/outputs/apk/release/*.apk
-            apps/mobile/src-tauri/gen/android/app/build/outputs/apk/release/SHA256SUMS.txt
-            apps/mobile/src-tauri/gen/android/app/build/outputs/apk/release/signature-verification.txt
+            apps/mobile/src-tauri/gen/android/app/build/outputs/apk/**/release/*.apk
+            apps/mobile/src-tauri/gen/android/app/build/outputs/apk/**/release/SHA256SUMS.txt
+            apps/mobile/src-tauri/gen/android/app/build/outputs/apk/**/release/signature-verification.txt
+      - name: Remove restored Android signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/alpha-release.p12"

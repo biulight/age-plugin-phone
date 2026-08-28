@@ -101,8 +101,10 @@ For standard age invocations, set `AGE_PLUGIN_PHONE_TRANSPORT=qr` for that fallb
 
 Doctor diagnostics are visible only in debug builds and return non-sensitive reports. Release
 builds keep the product identity plugin enabled but reject Doctor commands. Signed Alpha artifact
-creation is defined in [the Milestone 6 Alpha release guide](docs/milestone-6-alpha.md); it
-intentionally fails when signing credentials are absent.
+creation is defined in [the Milestone 6 Alpha release guide](docs/milestone-6-alpha.md), with
+credential provisioning and RC0 dispatch in [the signing runbook](docs/release-signing.md). The
+workflow intentionally fails when signing configuration is absent or does not match the registered
+certificate identity.
 
 CI also runs [`scripts/interoperability-smoke.sh`](scripts/interoperability-smoke.sh) against
 checksum-pinned released age and rage binaries. It verifies that both clients invoke the production

@@ -39,6 +39,7 @@ android {
         if (releaseSigningConfigured) {
             create("alphaRelease") {
                 storeFile = file(requireNotNull(releaseKeystorePath))
+                storeType = "PKCS12"
                 storePassword = releaseKeystorePassword
                 keyAlias = releaseKeyAlias
                 keyPassword = releaseKeyPassword

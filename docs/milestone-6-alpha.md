@@ -36,16 +36,30 @@ tested on the physical Alpha matrix and cannot be waived by a hosted runner.
 
 `.github/workflows/alpha-release.yml` is manually dispatched and fail closed. It requires:
 
-- `WINDOWS_CERTIFICATE_BASE64` and `WINDOWS_CERTIFICATE_PASSWORD`;
-- `ANDROID_KEYSTORE_BASE64`, `ANDROID_STORE_PASSWORD`, `ANDROID_KEY_ALIAS`, and
-  `ANDROID_KEY_PASSWORD`.
+- a protected GitHub `alpha-release` environment with required reviewers;
+- a self-signed Windows test code-signing PFX, its password, and a separately registered
+  certificate SHA-256 fingerprint; and
+- `ANDROID_KEYSTORE_BASE64`, `ANDROID_STORE_PASSWORD`, `ANDROID_KEY_ALIAS`,
+  `ANDROID_KEY_PASSWORD`, and the pre-registered `ANDROID_CERTIFICATE_SHA256`.
 
-The workflow never publishes an unsigned substitute when a credential is absent. It runs
-Authenticode verification on the exact Windows executable before packaging and `apksigner verify`
-on the exact Android APK, then uploads signature-verification evidence and SHA-256 records beside
-the packages. Signing files exist only in runner-temporary storage. Evidence must record artifact
-SHA-256, immutable commit, workflow run, certificate identity, and verification result without
-exposing credentials.
+The Windows job authenticates the restored PFX certificate against the registered fingerprint,
+temporarily trusts only its public certificate in the CI current-user store, signs by certificate
+thumbprint, and records that the result is test-trusted rather than publicly trusted. The Android
+job authenticates the restored PKCS#12 certificate against the registered fingerprint before
+building, then requires exactly one APK signer with that same fingerprint. The workflow never
+publishes an unsigned or unexpectedly signed substitute when configuration is absent or mismatched.
+All third-party Actions in the signing workflow are pinned to resolved commits.
+
+It runs Authenticode verification on the exact Windows executable before packaging and
+`apksigner verify` on the exact Android APK, then uploads signature-verification evidence and
+SHA-256 records beside the packages. Restored signing files exist only in runner-temporary storage
+and are removed by unconditional cleanup steps. Evidence records artifact SHA-256, immutable
+commit, workflow run and attempt, certificate identity, trust scope, and verification result
+without exposing credentials. Provisioning, RC0 dispatch, and the later free SignPath Foundation
+migration are documented in [`release-signing.md`](release-signing.md).
+
+The self-signed Windows result does not close a public-trust release gate. It is an explicit RC
+pipeline test until the project qualifies for and is accepted into a public code-signing program.
 
 ## Remaining external gates
 
