@@ -37,18 +37,19 @@ tested on the physical Alpha matrix and cannot be waived by a hosted runner.
 `.github/workflows/alpha-release.yml` is manually dispatched and fail closed. It requires:
 
 - a protected GitHub `alpha-release` environment with required reviewers;
-- a self-signed Windows test code-signing PFX, its password, and a separately registered
-  certificate SHA-256 fingerprint; and
+- a Windows test-root public certificate, a test-root-issued code-signing PFX, its password, and
+  separately registered leaf and root certificate SHA-256 fingerprints; and
 - `ANDROID_KEYSTORE_BASE64`, `ANDROID_STORE_PASSWORD`, `ANDROID_KEY_ALIAS`,
   `ANDROID_KEY_PASSWORD`, and the pre-registered `ANDROID_CERTIFICATE_SHA256`.
 
-The Windows job authenticates the restored PFX certificate against the registered fingerprint,
-temporarily trusts only its public certificate in the CI current-user store, signs by certificate
-thumbprint, and records that the result is test-trusted rather than publicly trusted. The Android
-job authenticates the restored PKCS#12 certificate against the registered fingerprint before
-building, then requires exactly one APK signer with that same fingerprint. The workflow never
-publishes an unsigned or unexpectedly signed substitute when configuration is absent or mismatched.
-All third-party Actions in the signing workflow are pinned to resolved commits.
+The Windows job authenticates the restored leaf and root certificates against their registered
+fingerprints, validates their exact chain in memory without changing a Windows trust store, signs
+by certificate thumbprint, and records that the result is test-trusted rather than publicly
+trusted. The Android job authenticates the restored PKCS#12 certificate against the registered
+fingerprint before building, then requires exactly one APK signer with that same fingerprint. The
+workflow never publishes an unsigned or unexpectedly signed substitute when configuration is
+absent or mismatched. All third-party Actions in the signing workflow are pinned to resolved
+commits.
 
 It runs Authenticode verification on the exact Windows executable before packaging and
 `apksigner verify` on the exact Android APK, then uploads signature-verification evidence and
@@ -58,7 +59,7 @@ commit, workflow run and attempt, certificate identity, trust scope, and verific
 without exposing credentials. Provisioning, RC0 dispatch, and the later free SignPath Foundation
 migration are documented in [`release-signing.md`](release-signing.md).
 
-The self-signed Windows result does not close a public-trust release gate. It is an explicit RC
+The private-root Windows result does not close a public-trust release gate. It is an explicit RC
 pipeline test until the project qualifies for and is accepted into a public code-signing program.
 
 ## Remaining external gates

@@ -9,21 +9,35 @@ The workflow uses the protected GitHub environment `alpha-release`. Configure re
 and restrict its deployment branches or tags before adding any signing configuration. Only dispatch
 the workflow from an immutable commit selected for the release candidate.
 
-## Windows test signing certificate
+## Windows test signing certificate chain
 
-The pre-commercial RC workflow uses one persistent self-signed test certificate. It proves that the
-selected executable was signed by the configured test key and was not modified afterward. Windows
-does not trust this certificate on an ordinary user machine, so these packages must be labeled
-test-signed and must not claim a publicly trusted publisher or warning-free installation.
+The pre-commercial RC workflow uses a private test root CA and one persistent code-signing leaf
+certificate. It proves that the selected executable was signed by the configured test key and was
+not modified afterward. Windows does not trust this private root on an ordinary user machine, so
+these packages must be labeled test-signed and must not claim a publicly trusted publisher or
+warning-free installation.
 
 Generate the certificate on a controlled Windows workstation with PowerShell. Replace the example
 subject with a stable test-only project name; do not use a personal email address or private host
 name.
 
 ```powershell
+$root = New-SelfSignedCertificate `
+  -Type Custom `
+  -Subject "CN=age-plugin-phone Alpha Test Root" `
+  -CertStoreLocation "Cert:\CurrentUser\My" `
+  -KeyAlgorithm RSA `
+  -KeyLength 3072 `
+  -HashAlgorithm SHA256 `
+  -KeyExportPolicy Exportable `
+  -KeyUsage CertSign,CRLSign,DigitalSignature `
+  -TextExtension @("2.5.29.19={critical}{text}ca=1&pathlength=0") `
+  -NotAfter (Get-Date).AddYears(5)
+
 $certificate = New-SelfSignedCertificate `
   -Type CodeSigningCert `
   -Subject "CN=age-plugin-phone Alpha Test Signing" `
+  -Signer $root `
   -CertStoreLocation "Cert:\CurrentUser\My" `
   -KeyAlgorithm RSA `
   -KeyLength 3072 `
@@ -35,18 +49,32 @@ $password = Read-Host "PFX password" -AsSecureString
 Export-PfxCertificate `
   -Cert $certificate `
   -FilePath ".\age-plugin-phone-alpha-test.pfx" `
-  -Password $password
+  -Password $password `
+  -ChainOption EndEntityCertOnly
+Export-Certificate `
+  -Cert $root `
+  -FilePath ".\age-plugin-phone-alpha-test-root.cer"
+Export-PfxCertificate `
+  -Cert $root `
+  -FilePath ".\age-plugin-phone-alpha-test-root-private.pfx" `
+  -Password $password `
+  -ChainOption EndEntityCertOnly
 ```
 
 Generate a random PFX password of at least 24 characters in the organization password manager. Do
-not pass it as a literal command-line argument or commit it to a script. Record the public
-certificate SHA-256 fingerprint:
+not pass it as a literal command-line argument or commit it to a script. Back up the root private
+key separately so the leaf can be renewed, but never upload the root private key to GitHub. Record
+the leaf and root public-certificate SHA-256 fingerprints:
 
 ```powershell
 $certificateSha256 = [BitConverter]::ToString(
   [Security.Cryptography.SHA256]::Create().ComputeHash($certificate.RawData)
 ).Replace("-", "")
 $certificateSha256
+$rootCertificateSha256 = [BitConverter]::ToString(
+  [Security.Cryptography.SHA256]::Create().ComputeHash($root.RawData)
+).Replace("-", "")
+$rootCertificateSha256
 ```
 
 Encode the PFX without printing it to a shared terminal log:
@@ -55,6 +83,9 @@ Encode the PFX without printing it to a shared terminal log:
 [Convert]::ToBase64String(
   [IO.File]::ReadAllBytes(".\age-plugin-phone-alpha-test.pfx")
 ) | Set-Content -NoNewline ".\age-plugin-phone-alpha-test.pfx.base64"
+[Convert]::ToBase64String(
+  [IO.File]::ReadAllBytes(".\age-plugin-phone-alpha-test-root.cer")
+) | Set-Content -NoNewline ".\age-plugin-phone-alpha-test-root.cer.base64"
 ```
 
 Add these values to the protected GitHub `alpha-release` environment:
@@ -63,17 +94,24 @@ Add these values to the protected GitHub `alpha-release` environment:
 | --- | --- | --- |
 | Secret | `WINDOWS_TEST_CERTIFICATE_BASE64` | Contents of the one-line PFX Base64 file |
 | Secret | `WINDOWS_TEST_CERTIFICATE_PASSWORD` | PFX password |
-| Variable | `WINDOWS_TEST_CERTIFICATE_SHA256` | Registered certificate SHA-256 fingerprint |
+| Variable | `WINDOWS_TEST_CERTIFICATE_SHA256` | Registered leaf-certificate SHA-256 fingerprint |
+| Variable | `WINDOWS_TEST_ROOT_CERTIFICATE_BASE64` | Contents of the one-line public root CER Base64 file |
+| Variable | `WINDOWS_TEST_ROOT_CERTIFICATE_SHA256` | Registered root-certificate SHA-256 fingerprint |
 
-The workflow validates that the PFX contains exactly one currently valid self-signed code-signing
-certificate with a private key, binds it to the registered SHA-256 fingerprint, and imports its
-public certificate into the runner's current-user trusted store only for the verification job. It
-signs by certificate thumbprint, not by putting the PFX password on the `signtool` command line. An
-unconditional cleanup removes the PFX and both temporary certificate-store entries.
+Delete both Base64 transport files after provisioning. Keep the root-private PFX only in the
+encrypted recovery backup; the workflow never needs it.
 
-The resulting `Valid` status proves only the job-local test trust configuration. Release evidence
-records that limited trust scope. A user who has not explicitly installed this public test
-certificate still sees the normal Windows warning for an untrusted publisher.
+The workflow validates that the PFX contains exactly one currently valid code-signing certificate
+with a private key, binds both certificates to their registered SHA-256 fingerprints, and requires
+the leaf to form an exact two-certificate chain to the configured private root. It signs by
+certificate thumbprint, not by putting the PFX password on the `signtool` command line. The root is
+used only with .NET's in-memory custom-root validation and is never installed in a Windows trust
+store. An unconditional cleanup removes the imported leaf certificate and temporary files.
+
+Release verification requires SignTool to validate the Authenticode content and signature and to
+reject only the untrusted private root, then separately validates the complete chain against that
+root in memory. Release evidence records this limited trust scope. A user who has not explicitly
+installed the public test root still sees the normal Windows warning for an untrusted publisher.
 
 After the first public test-signed GitHub prerelease, apply to
 [SignPath Foundation](https://signpath.org/) for the free open-source program. Its current terms

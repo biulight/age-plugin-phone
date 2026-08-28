@@ -25,63 +25,116 @@ jobs:
           WINDOWS_TEST_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_TEST_CERTIFICATE_BASE64 }}
           WINDOWS_TEST_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_TEST_CERTIFICATE_PASSWORD }}
           WINDOWS_TEST_CERTIFICATE_SHA256: ${{ vars.WINDOWS_TEST_CERTIFICATE_SHA256 }}
+          WINDOWS_TEST_ROOT_CERTIFICATE_BASE64: ${{ vars.WINDOWS_TEST_ROOT_CERTIFICATE_BASE64 }}
+          WINDOWS_TEST_ROOT_CERTIFICATE_SHA256: ${{ vars.WINDOWS_TEST_ROOT_CERTIFICATE_SHA256 }}
         run: |
-          $required = @("WINDOWS_TEST_CERTIFICATE_BASE64", "WINDOWS_TEST_CERTIFICATE_PASSWORD", "WINDOWS_TEST_CERTIFICATE_SHA256")
+          function Test-CodeSigningEku {
+            param([Security.Cryptography.X509Certificates.X509Certificate2]$Certificate)
+            foreach ($extension in $Certificate.Extensions) {
+              if ($extension.Oid.Value -eq "2.5.29.37") {
+                $eku = New-Object Security.Cryptography.X509Certificates.X509EnhancedKeyUsageExtension($extension, $extension.Critical)
+                return @($eku.EnhancedKeyUsages | Where-Object Value -eq "1.3.6.1.5.5.7.3.3").Count -eq 1
+              }
+            }
+            return $false
+          }
+          function Test-CertificateAuthority {
+            param([Security.Cryptography.X509Certificates.X509Certificate2]$Certificate)
+            foreach ($extension in $Certificate.Extensions) {
+              if ($extension.Oid.Value -eq "2.5.29.19") {
+                $constraints = New-Object Security.Cryptography.X509Certificates.X509BasicConstraintsExtension($extension, $extension.Critical)
+                return $constraints.CertificateAuthority
+              }
+            }
+            return $false
+          }
+          function Get-CertificateSha256 {
+            param([Security.Cryptography.X509Certificates.X509Certificate2]$Certificate)
+            return [BitConverter]::ToString(
+              [Security.Cryptography.SHA256]::Create().ComputeHash($Certificate.RawData)
+            ).Replace("-", "")
+          }
+          $required = @(
+            "WINDOWS_TEST_CERTIFICATE_BASE64",
+            "WINDOWS_TEST_CERTIFICATE_PASSWORD",
+            "WINDOWS_TEST_CERTIFICATE_SHA256",
+            "WINDOWS_TEST_ROOT_CERTIFICATE_BASE64",
+            "WINDOWS_TEST_ROOT_CERTIFICATE_SHA256"
+          )
           foreach ($name in $required) {
             if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
               throw "Required Windows test-signing configuration is missing: $name"
             }
           }
           $expected = $env:WINDOWS_TEST_CERTIFICATE_SHA256.Replace(":", "").Replace(" ", "").ToUpperInvariant()
-          if ($expected -notmatch "^[0-9A-F]{64}$") {
-            throw "WINDOWS_TEST_CERTIFICATE_SHA256 must be one SHA-256 certificate fingerprint"
+          $rootExpected = $env:WINDOWS_TEST_ROOT_CERTIFICATE_SHA256.Replace(":", "").Replace(" ", "").ToUpperInvariant()
+          if ($expected -notmatch "^[0-9A-F]{64}$" -or $rootExpected -notmatch "^[0-9A-F]{64}$") {
+            throw "Windows certificate fingerprints must each be one SHA-256 fingerprint"
           }
           $pfx = Join-Path $env:RUNNER_TEMP "alpha-test-signing.pfx"
-          $publicCertificate = Join-Path $env:RUNNER_TEMP "alpha-test-signing.cer"
+          $rootCertificate = Join-Path $env:RUNNER_TEMP "alpha-test-root.cer"
           $imported = @()
           try {
             [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:WINDOWS_TEST_CERTIFICATE_BASE64))
+            [IO.File]::WriteAllBytes($rootCertificate, [Convert]::FromBase64String($env:WINDOWS_TEST_ROOT_CERTIFICATE_BASE64))
             $password = ConvertTo-SecureString $env:WINDOWS_TEST_CERTIFICATE_PASSWORD -AsPlainText -Force
             $imported = @(Import-PfxCertificate -FilePath $pfx -CertStoreLocation Cert:\CurrentUser\My -Password $password)
+            $root = [Security.Cryptography.X509Certificates.X509Certificate2]::new($rootCertificate)
             $signers = @($imported | Where-Object {
-              $_.HasPrivateKey -and
-                ($_.EnhancedKeyUsageList.ObjectId.Value -contains "1.3.6.1.5.5.7.3.3")
+              $_.HasPrivateKey -and (Test-CodeSigningEku -Certificate $_)
             })
             if ($signers.Count -ne 1) {
               throw "Windows test PFX must contain exactly one code-signing certificate with a private key"
             }
             $signer = $signers[0]
-            if ($signer.Subject -ne $signer.Issuer) {
-              throw "Windows test certificate must be self-signed"
+            if ($root.Subject -ne $root.Issuer -or -not (Test-CertificateAuthority -Certificate $root)) {
+              throw "Windows test root must be a self-signed certificate authority"
             }
-            if ($signer.NotBefore.ToUniversalTime() -gt [DateTime]::UtcNow -or $signer.NotAfter.ToUniversalTime() -le [DateTime]::UtcNow) {
-              throw "Windows test certificate is not currently valid"
+            if ($signer.Issuer -ne $root.Subject) {
+              throw "Windows test signing certificate was not issued by the configured test root"
             }
-            $actual = [BitConverter]::ToString(
-              [Security.Cryptography.SHA256]::Create().ComputeHash($signer.RawData)
-            ).Replace("-", "")
-            if ($actual -ne $expected) {
-              throw "Windows test certificate fingerprint mismatch"
+            if (
+              $signer.NotBefore.ToUniversalTime() -gt [DateTime]::UtcNow -or
+              $signer.NotAfter.ToUniversalTime() -le [DateTime]::UtcNow -or
+              $root.NotBefore.ToUniversalTime() -gt [DateTime]::UtcNow -or
+              $root.NotAfter.ToUniversalTime() -le [DateTime]::UtcNow
+            ) {
+              throw "Windows test certificate chain is not currently valid"
             }
-            Export-Certificate -Cert $signer -FilePath $publicCertificate -Force | Out-Null
-            Import-Certificate -FilePath $publicCertificate -CertStoreLocation Cert:\CurrentUser\TrustedPeople | Out-Null
+            $actual = Get-CertificateSha256 -Certificate $signer
+            $rootActual = Get-CertificateSha256 -Certificate $root
+            if ($actual -ne $expected -or $rootActual -ne $rootExpected) {
+              throw "Windows test certificate-chain fingerprint mismatch"
+            }
+            $chain = New-Object Security.Cryptography.X509Certificates.X509Chain
+            $chain.ChainPolicy.TrustMode = [Security.Cryptography.X509Certificates.X509ChainTrustMode]::CustomRootTrust
+            $chain.ChainPolicy.CustomTrustStore.Add($root) | Out-Null
+            $chain.ChainPolicy.RevocationMode = [Security.Cryptography.X509Certificates.X509RevocationMode]::NoCheck
+            if (-not $chain.Build($signer) -or $chain.ChainElements.Count -ne 2) {
+              throw "Windows test signing certificate does not form the expected two-certificate chain"
+            }
+            $chainRoot = $chain.ChainElements[$chain.ChainElements.Count - 1].Certificate
+            if ((Get-CertificateSha256 -Certificate $chainRoot) -ne $rootExpected) {
+              throw "Windows test signing certificate chained to an unexpected root"
+            }
             "WINDOWS_TEST_CERTIFICATE_THUMBPRINT=$($signer.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Append
+            "WINDOWS_TEST_CERTIFICATE_SHA256_VALIDATED=$($actual.ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_ENV -Append
+            "WINDOWS_TEST_ROOT_CERTIFICATE_SHA256_VALIDATED=$($rootActual.ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_ENV -Append
           } catch {
             foreach ($certificate in $imported) {
               Remove-Item -LiteralPath "Cert:\CurrentUser\My\$($certificate.Thumbprint)" -Force -ErrorAction SilentlyContinue
-              Remove-Item -LiteralPath "Cert:\CurrentUser\TrustedPeople\$($certificate.Thumbprint)" -Force -ErrorAction SilentlyContinue
             }
-            Remove-Item -LiteralPath $pfx, $publicCertificate -Force -ErrorAction SilentlyContinue
+            Remove-Item -LiteralPath $pfx, $rootCertificate -Force -ErrorAction SilentlyContinue
             throw
           }
-          Remove-Item -LiteralPath $publicCertificate -Force
+          Remove-Item -LiteralPath $pfx -Force
       - name: Sign with the Windows test certificate
         shell: pwsh
         run: |
           if ($env:WINDOWS_TEST_CERTIFICATE_THUMBPRINT -notmatch "^[0-9A-Fa-f]{40}$") {
             throw "Validated Windows test certificate thumbprint is unavailable"
           }
-          signtool sign /fd SHA256 /tr https://timestamp.digicert.com /td SHA256 /sha1 $env:WINDOWS_TEST_CERTIFICATE_THUMBPRINT target/release/age-plugin-phone.exe
+          signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 /sha1 $env:WINDOWS_TEST_CERTIFICATE_THUMBPRINT target/release/age-plugin-phone.exe
           if ($LASTEXITCODE -ne 0) {
             throw "Windows test signing failed"
           }
@@ -89,14 +142,39 @@ jobs:
         shell: pwsh
         run: |
           target/release/age-plugin-phone.exe --help
-          signtool verify /pa /all /v target/release/age-plugin-phone.exe | Tee-Object target/release/signature-verification.txt
+          $verification = @(signtool verify /pa /all /v target/release/age-plugin-phone.exe 2>&1)
+          $verifyExitCode = $LASTEXITCODE
+          $verification | Set-Content -Encoding utf8NoBOM target/release/signature-verification.txt
           $signature = Get-AuthenticodeSignature target/release/age-plugin-phone.exe
-          if ($signature.Status -ne "Valid" -or $null -eq $signature.SignerCertificate) {
-            throw "Authenticode verification failed"
+          if ($null -eq $signature.SignerCertificate) {
+            throw "Authenticode signer certificate is unavailable"
+          }
+          $untrustedRoot = ($verification | Out-String) -match "not trusted by the trust provider|0x800B0109"
+          if ($verifyExitCode -eq 0 -or -not $untrustedRoot -or $signature.Status.ToString() -notin @("UnknownError", "NotTrusted")) {
+            throw "Authenticode verification did not fail solely because the private test root is untrusted"
           }
           $certificateHash = [BitConverter]::ToString(
             [Security.Cryptography.SHA256]::Create().ComputeHash($signature.SignerCertificate.RawData)
           ).Replace("-", "").ToLowerInvariant()
+          if ($certificateHash -ne $env:WINDOWS_TEST_CERTIFICATE_SHA256_VALIDATED) {
+            throw "Authenticode signer fingerprint mismatch"
+          }
+          $rootCertificate = Join-Path $env:RUNNER_TEMP "alpha-test-root.cer"
+          $root = [Security.Cryptography.X509Certificates.X509Certificate2]::new($rootCertificate)
+          $chain = New-Object Security.Cryptography.X509Certificates.X509Chain
+          $chain.ChainPolicy.TrustMode = [Security.Cryptography.X509Certificates.X509ChainTrustMode]::CustomRootTrust
+          $chain.ChainPolicy.CustomTrustStore.Add($root) | Out-Null
+          $chain.ChainPolicy.RevocationMode = [Security.Cryptography.X509Certificates.X509RevocationMode]::NoCheck
+          if (-not $chain.Build($signature.SignerCertificate) -or $chain.ChainElements.Count -ne 2) {
+            throw "Authenticode signer failed in-memory test-root chain validation"
+          }
+          $chainRoot = $chain.ChainElements[$chain.ChainElements.Count - 1].Certificate
+          $rootHash = [BitConverter]::ToString(
+            [Security.Cryptography.SHA256]::Create().ComputeHash($chainRoot.RawData)
+          ).Replace("-", "").ToLowerInvariant()
+          if ($rootHash -ne $env:WINDOWS_TEST_ROOT_CERTIFICATE_SHA256_VALIDATED) {
+            throw "Authenticode signer chained to an unexpected test root"
+          }
           $package = "target/release/age-plugin-phone-windows-x64-alpha-test-signed.zip"
           Compress-Archive -Path target/release/age-plugin-phone.exe,README.md,LICENSE,docs/milestone-6-alpha.md -DestinationPath $package
           $exeHash = (Get-FileHash target/release/age-plugin-phone.exe -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -107,10 +185,13 @@ jobs:
             "commit: $env:GITHUB_SHA",
             "workflow_run: $env:GITHUB_RUN_ID",
             "workflow_run_attempt: $env:GITHUB_RUN_ATTEMPT",
-            "trust_scope: self-signed test certificate trusted only in the CI current-user store",
+            "integrity_validation: Authenticode content and signature valid; public-trust verification rejected only the private test root",
+            "custom_root_chain_validation: Valid",
+            "trust_scope: private test root validated in memory and not installed in a Windows trust store",
             "certificate_subject: $($signature.SignerCertificate.Subject)",
             "certificate_issuer: $($signature.SignerCertificate.Issuer)",
-            "certificate_sha256: $certificateHash"
+            "certificate_sha256: $certificateHash",
+            "root_certificate_sha256: $rootHash"
           ) | Add-Content -Encoding utf8NoBOM target/release/signature-verification.txt
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
@@ -126,11 +207,10 @@ jobs:
         run: |
           if ($env:WINDOWS_TEST_CERTIFICATE_THUMBPRINT -match "^[0-9A-Fa-f]{40}$") {
             Remove-Item -LiteralPath "Cert:\CurrentUser\My\$env:WINDOWS_TEST_CERTIFICATE_THUMBPRINT" -Force -ErrorAction SilentlyContinue
-            Remove-Item -LiteralPath "Cert:\CurrentUser\TrustedPeople\$env:WINDOWS_TEST_CERTIFICATE_THUMBPRINT" -Force -ErrorAction SilentlyContinue
           }
           $pfx = Join-Path $env:RUNNER_TEMP "alpha-test-signing.pfx"
-          $publicCertificate = Join-Path $env:RUNNER_TEMP "alpha-test-signing.cer"
-          Remove-Item -LiteralPath $pfx, $publicCertificate -Force -ErrorAction SilentlyContinue
+          $rootCertificate = Join-Path $env:RUNNER_TEMP "alpha-test-root.cer"
+          Remove-Item -LiteralPath $pfx, $rootCertificate -Force -ErrorAction SilentlyContinue
 
   android:
     runs-on: ubuntu-latest
