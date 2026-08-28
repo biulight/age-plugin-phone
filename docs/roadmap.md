@@ -142,8 +142,10 @@
   guidance.
 - [x] Preserve Doctor diagnostics only in explicitly marked development builds, with non-sensitive
   reports.
-- [ ] Package and sign Windows 11 x64 desktop and Android builds; macOS packaging is not an Alpha
-  release gate.
+- [x] Package, sign, and independently verify the first Windows 11 x64 and Android RC0 artifacts;
+  label the private-root Windows package explicitly as test-signed.
+- [ ] Move Windows distribution signing to a publicly trusted free open-source program before
+  claiming a publicly trusted Windows Alpha; macOS packaging is not an Alpha release gate.
 - [x] Add CI for Windows Rust builds, Kotlin, TypeScript, deterministic vectors, negative tests,
   reproducible build inputs, and packaged-binary smoke tests.
 - [ ] Complete interoperability with released reference age and rage versions, multiple phones,

@@ -1,7 +1,8 @@
 # Milestone 6 Alpha release and evidence
 
-Status: repository implementation is in progress; physical, interoperability, signing, review, and
-technical-user gates remain open.
+Status: repository implementation is in progress. The first Windows test-signed and Android RC0
+artifacts have been produced and independently verified; packaged physical, interoperability,
+public-trust Windows signing, review, and technical-user gates remain open.
 
 ## Implemented product surface
 
@@ -62,12 +63,18 @@ migration are documented in [`release-signing.md`](release-signing.md).
 The private-root Windows result does not close a public-trust release gate. It is an explicit RC
 pipeline test until the project qualifies for and is accepted into a public code-signing program.
 
+The first RC0 execution completed both signing jobs and independent artifact verification. This
+closes only the initial packaging and test-signing pipeline task. It does not substitute for running
+the exact downloaded packages through the physical matrix, and it does not make the private Windows
+test root publicly trusted.
+
 ## Remaining external gates
 
 Do not mark Milestone 6 complete until signed artifacts pass every required row in
 `alpha-matrix.md`. These gates require external software, physical devices, or people:
 
-- actual Windows and Android signing and signature verification;
+- physical validation of the exact signed RC0 packages and their recorded digests;
+- publicly trusted Windows signing before claiming a publicly trusted Windows Alpha;
 - physical reference age and rage unwrap interoperability through multiple phones;
 - Shine encrypt, decrypt, seal, and recovery using its existing configuration only;
 - physical lifecycle, invalidation, wrong-device, replay, upgrade, and recovery matrices;

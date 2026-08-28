@@ -106,6 +106,10 @@ credential provisioning and RC0 dispatch in [the signing runbook](docs/release-s
 workflow intentionally fails when signing configuration is absent or does not match the registered
 certificate identity.
 
+For a synthetic-data walkthrough from signed package verification through pairing, reference-age
+round trips, recovery, and the existing Shine configuration boundary, use the
+[Windows Alpha quick start](docs/windows-alpha-quickstart.md).
+
 CI also runs [`scripts/interoperability-smoke.sh`](scripts/interoperability-smoke.sh) against
 checksum-pinned released age and rage binaries. It verifies that both clients invoke the production
 recipient plugin for multiple phone recipients and files, preserve v1/v2 stanza counts, and recover
