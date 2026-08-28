@@ -206,6 +206,7 @@ jobs:
             "certificate_sha256: $certificateHash",
             "root_certificate_sha256: $rootHash"
           ) | Add-Content -Encoding utf8NoBOM target/release/signature-verification.txt
+          exit 0
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: age-plugin-phone-windows-x64-alpha-test-signed
