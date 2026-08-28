@@ -13,12 +13,16 @@
 - Keep the long-term age identity and every fresh user-verification operation in Android StrongBox.
   Windows TPM keys authenticate the paired desktop and privately select its stanza; they never hold
   the age identity or replace phone authorization.
-- Keep pairing and unwrap security independent from every transport. QR, ADB, BLE, and a future
-  dedicated USB channel carry the same bounded, canonical, end-to-end authenticated messages.
+- Keep pairing and unwrap security independent from every transport. QR, ADB, BLE, Wi-Fi, and any
+  future dedicated non-ADB USB transport carry the same bounded, canonical, end-to-end
+  authenticated messages. A new transport must not define a second pairing or authorization
+  protocol.
 - Use ADB reverse as the default, explicitly developer-oriented USB transport for the Windows
   Alpha. Keep QR as the observable offline fallback that does not require USB debugging, but do not
   require a desktop camera for the default path. ADB authorization, device names, serial numbers,
-  and connection state are never authentication inputs.
+  and connection state are never authentication inputs. ADB remains the technical-Alpha default
+  and is intended to become a development, diagnostics, and recovery path rather than a promised
+  general-availability default.
 - Do not freeze the wire format or promise production-secret protection until independent
   cryptographic and implementation review is complete.
 - Add convenience transports only through the common transport boundary; no transport may weaken
@@ -92,6 +96,10 @@
 
 ## Milestone 4: common transport boundary and Windows ADB Alpha
 
+Status: ADB transport feasibility has been validated on the designated Windows/Android baseline.
+The remaining wrong-paired-device and injected-response-replay physical evidence is an Alpha
+release gate, not an open question about whether the ADB transport can carry the protocol.
+
 - [x] Define one bounded bidirectional transport-session interface for pairing and unwrap, and keep
   QR as the reference and fallback implementation.
 - [x] Implement Windows loopback plus Android `adb reverse` using short-lived in-memory streams;
@@ -154,16 +162,38 @@
   decrypt, seal, and multi-recipient recovery end to end without changing the Shine repository.
 - [ ] Run a multi-device compatibility and lifecycle matrix covering app and desktop restart,
   backgrounding, process death, permission denial, key invalidation, corrupt state, and upgrade.
+- [ ] After creating the exact ADB reverse rule, launch the Android application with one fixed,
+  payload-free unwrap action so cold start and `singleTask` delivery both enter the same native USB
+  unwrap controller. Do not place protocol messages, request fingerprints, caller hints, or other
+  request data in shell arguments.
+- [ ] Remove the normal Developer USB unwrap's manual **Approve USB** pre-step. The phone must still
+  strictly verify and durably consume the signed request before presenting a fresh auth-per-use
+  biometric prompt; cancellation, timeout, lifecycle loss, and malformed wake actions fail closed.
 - [ ] Conduct a limited technical-user Alpha that verifies Windows stores no reusable age private
   identity and every unwrap requires fresh phone user verification.
 
-## Milestone 7: native transports and platform expansion
+## Milestone 7: production transport orchestration and platform expansion
 
-- [ ] Implement a native BLE Tauri plugin over the reviewed common transport interface, with
-  untrusted discovery, bounded fragmentation, explicit phone selection, and fail-closed reconnect.
-- [ ] Evaluate a dedicated non-ADB USB channel against real Alpha usage; implement it only if it can
-  replace Developer USB mode without introducing driver, permission, or persistence risks that
-  outweigh its usability benefit.
+- [ ] Define one transport policy with explicit `auto`, `adb`, `ble`, `wifi`, and `qr` choices plus
+  non-security capability and route hints. Availability may be checked before sending a request;
+  after sending begins, do not race, switch, or silently retry on another transport. A retry creates
+  a fresh protocol request.
+- [ ] After the automated Developer USB flow, remaining physical matrix, independent review, and
+  technical-user Alpha are complete, implement a native BLE proof of concept over the reviewed
+  common transport interface, with untrusted discovery, bounded fragmentation, explicit phone
+  selection, and fail-closed reconnect.
+- [ ] Evaluate Wi-Fi discovery, cold-start behavior, background lifetime, LAN isolation, and
+  response routing before scheduling an implementation. Wi-Fi must deliver requests to the same
+  native authorization controller and must not require a weaker or cached approval path.
+- [ ] Retain ADB as a development, diagnostics, and recovery transport after a production
+  convenience transport is available; do not treat the technical-Alpha default as a
+  general-availability commitment.
+- [ ] Treat a dedicated non-ADB USB transport as an evidence-driven decision gate, not a scheduled
+  implementation. Start a proof of concept only if technical-Alpha evidence shows that BLE and
+  Wi-Fi cannot cover a required scenario, ADB's USB-debugging and broad-authorization prerequisites
+  materially block adoption, and stock Android plus Windows can support a maintainable USB
+  accessory path without OEM customization. Any proof of concept must reuse the common one-shot
+  framing and the existing authenticated pairing and unwrap protocol.
 - [ ] Evaluate Windows ARM64, Linux, iOS, and macOS product packages after the Windows x64 Alpha;
   platform expansion must not add a weaker key-custody fallback.
 - [ ] Define signed update, vulnerability reporting, protocol migration, support lifetime, and

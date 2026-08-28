@@ -64,6 +64,9 @@ selectable without changing the pairing or identity stub. Non-Windows builds def
 
 - ADB authorization grants the desktop broad developer access to the phone; the feature is named
   **Developer USB** and is not represented as a least-privilege USB channel.
+- This ADR selects ADB only as the technical-Alpha default. It does not make ADB a
+  general-availability transport commitment; after a production convenience transport is
+  validated, ADB is intended to remain available for development, diagnostics, and recovery.
 - USB debugging, the Android user's separate ADB authorization, and installed platform-tools are
   prerequisites. They do not replace phone user verification.
 - Connection, accept, read, write, message-count, and byte limits are hard bounds. No reconnect or
@@ -72,6 +75,10 @@ selectable without changing the pairing or identity stub. Non-Windows builds def
   never restored after transport failure.
 - Pairing transcript comparison, phone persistence, response verification, replay state, and all
   cryptographic identity bindings remain above the transport.
+- BLE, Wi-Fi, or a dedicated non-ADB USB transport must reuse the common one-request/one-response
+  boundary and the existing authenticated pairing and unwrap messages. A transport must not define
+  a second authorization protocol, and a dedicated USB proof of concept is deferred until Alpha
+  evidence justifies its driver, permission, and compatibility costs.
 
 ## Validation still required
 

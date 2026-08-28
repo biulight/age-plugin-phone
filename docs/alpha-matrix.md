@@ -26,6 +26,12 @@ Passing on one device never substitutes for runtime capability inspection. A pho
 ADB serial, USB connection, desktop label, or OS-reported biometric success is not a cryptographic
 trust input.
 
+Developer USB is the default transport only for this technical Alpha and remains a required Alpha
+matrix row. This matrix does not select it as a general-availability default: after a production
+convenience transport is validated, ADB is intended to remain a development, diagnostics, and
+recovery path. Any BLE, Wi-Fi, or dedicated non-ADB USB transport must carry the same authenticated
+protocol and must pass its own physical matrix before it can replace an Alpha gate.
+
 ## Required scenario matrix
 
 The release candidate must run the following scenarios against the exact packaged desktop and
