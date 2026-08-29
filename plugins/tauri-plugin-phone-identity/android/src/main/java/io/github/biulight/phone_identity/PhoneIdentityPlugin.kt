@@ -10,6 +10,7 @@ import android.os.Handler
 import android.os.Looper
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import app.tauri.annotation.Command
+import app.tauri.annotation.InvokeArg
 import app.tauri.annotation.Permission
 import app.tauri.annotation.PermissionCallback
 import app.tauri.annotation.TauriPlugin
@@ -28,6 +29,11 @@ import java.security.spec.ECGenParameterSpec
 import java.util.UUID
 import javax.crypto.KeyAgreement
 import org.json.JSONArray
+
+@InvokeArg
+class RevokePairingArgs {
+    lateinit var handle: String
+}
 
 @TauriPlugin(
     permissions = [Permission(strings = [Manifest.permission.CAMERA], alias = "camera")],
@@ -1469,10 +1475,6 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         val invoke: Invoke,
         var dialog: AlertDialog? = null,
     )
-
-    private class RevokePairingArgs {
-        lateinit var handle: String
-    }
 
     companion object {
         private const val AUTHENTICATION_TIMEOUT_MILLIS = 60_000L

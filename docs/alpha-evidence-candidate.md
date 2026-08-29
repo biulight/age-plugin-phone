@@ -40,6 +40,17 @@ public identity stub; no scenario row below is closed by that run. The replaceme
 uses identity-and-desktop locator names, preserves validated legacy reads and cleanup, and rolls
 back newly created local state when the post-confirmation commit fails.
 
+Commit `6650a5f723131ed97855337dd4fcd7f0585d8341`, workflow run `33270706277`, attempt 1,
+produced another internally consistent signed pair. Its Windows executable SHA-256 was
+`d97e96c2a4807833ec0e5ed78276c2f9060e525efee178ff9acf9336045eb673`; its Android APK SHA-256
+was `4f203f45600d707ca1aa9d8ff228f3d922f84ca76bdc33b65eb68862c06edd8b`. Preflight on the
+exact artifacts observed one authorized ADB device, a ready TPM, the Android StrongBox feature,
+age 1.3.1, rage 0.12.1, and Shine 1.7.0. It was rejected before replacement pairing because the
+minified Android release could not deserialize the lifecycle revocation handle and failed closed
+with `malformed_request`. No phone pairing state was deleted and no scenario row below is closed by
+that run. The replacement marks the public argument model with Tauri's release keep contract and
+tests both that contract and Jackson deserialization.
+
 Record the TPM manufacturer/firmware, Windows update revision, Android model/API/security patch,
 StrongBox inspection, platform-tools release, artifact signatures, and approved certificate
 identities only when the exact candidate is available.
