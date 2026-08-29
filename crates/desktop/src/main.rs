@@ -112,6 +112,12 @@ enum Command {
         #[arg(long)]
         html_output: Option<PathBuf>,
     },
+    /// Remove one revoked pairing's exact private Windows desktop state.
+    RemoveDesktopState {
+        /// Public identity stub for the exact pairing to remove.
+        #[arg(long)]
+        identity_stub: PathBuf,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
@@ -204,7 +210,38 @@ fn main() -> io::Result<()> {
             cycles,
             html_output,
         } => run_qr_capture_probe(label, cycles, html_output),
+        Command::RemoveDesktopState { identity_stub } => run_remove_desktop_state(&identity_stub),
     }
+}
+
+fn run_remove_desktop_state(identity_stub: &std::path::Path) -> io::Result<()> {
+    let fingerprint = age_plugin_phone::desktop_cleanup::confirmation_fingerprint(identity_stub)
+        .map_err(|error| io::Error::other(error.to_string()))?;
+    let mut stdout = io::stdout().lock();
+    writeln!(
+        stdout,
+        "Remove private desktop state only after revoking this pairing on the phone.\nIf the phone is lost, local removal does not claim phone-side revocation.\nFull transcript fingerprint: {fingerprint}\nType the full fingerprint to remove this exact pairing:"
+    )?;
+    stdout.flush()?;
+    drop(stdout);
+    let mut entered = String::new();
+    io::stdin().read_line(&mut entered)?;
+    age_plugin_phone::desktop_cleanup::remove_desktop_state(identity_stub, entered.trim_end())
+        .map_err(|error| {
+            io::Error::new(
+                if matches!(
+                    error,
+                    age_plugin_phone::desktop_cleanup::CleanupError::ConfirmationMismatch
+                ) {
+                    io::ErrorKind::PermissionDenied
+                } else {
+                    io::ErrorKind::Other
+                },
+                error.to_string(),
+            )
+        })?;
+    println!("Private desktop state removed. Phone-side revocation is a separate operation.");
+    Ok(())
 }
 
 fn run_pair(

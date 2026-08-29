@@ -1,0 +1,71 @@
+# Alpha candidate evidence
+
+Status: candidate commit and signed packages pending. No physical Alpha gate is closed by this
+template or by portable/native unit tests.
+
+## Candidate identity
+
+| Field | Recorded value |
+| --- | --- |
+| Repository commit | Pending immutable commit |
+| Windows artifact SHA-256 | Pending |
+| Android artifact SHA-256 | Pending |
+| Signing workflow run and attempt | Pending |
+| Windows signature scope | Pending; test-trusted until public signing is obtained |
+| Android signing certificate fingerprint | Pending approved fingerprint comparison |
+
+The final report must refer to one exact Windows/Android artifact pair. Never mix packages from
+different commits, workflow runs, or attempts.
+
+## Environment preflight
+
+Read-only preflight on 2026-08-30 observed Windows 11 Pro build 22631 with TPM present, enabled, and
+ready; age 1.3.1; Shine 1.7.0; and ADB 1.0.41. The Android device was initially offline; a later
+serial-free recount observed exactly one authorized online device and no unauthorized or offline
+devices; the platform StrongBox feature flag reported true, without performing live candidate key
+inspection. Rage was not installed. These observations are not physical scenario passes. Before
+candidate execution, install the pinned rage 0.12.1 release and repeat the single-device check.
+
+Record the TPM manufacturer/firmware, Windows update revision, Android model/API/security patch,
+StrongBox inspection, platform-tools release, artifact signatures, and approved certificate
+identities only when the exact candidate is available.
+
+## Scenario results
+
+| Scenario group | Status | Coarse result and non-sensitive evidence |
+| --- | --- | --- |
+| Artifact digest and signature verification | Pending | |
+| Windows/TPM and Android/StrongBox capability inspection | Pending | |
+| Fresh pairing, restart, and standard age unwrap | Pending | |
+| Developer USB cold/foreground/background/repeated wake | Pending | |
+| Cancellation, mismatch, lock, timeout, malformed wake/stream | Pending | |
+| Cable, ADB daemon, process exit, Ctrl-C, and reverse cleanup | Pending | |
+| QR fallback and old-response replay after desktop restart | Pending | |
+| age 1.3.1 multi-file phone and recovery paths | Pending | |
+| rage 0.12.1 phone and recovery paths | Pending | |
+| Shine 1.7.0 seal, runtime decrypt, and recovery | Pending | |
+| Revocation, local cleanup, restart, deletion, uninstall/reinstall | Pending | |
+| TPM/StrongBox invalidation and corrupt/private state failures | Pending | |
+| Second StrongBox device family and wrong paired physical phone | Blocked | Second device unavailable |
+| Publicly trusted Windows signing | Blocked | Free open-source signing program pending |
+| Limited technical-user Alpha | Blocked | Begins only after preceding required gates and protocol freeze |
+
+Every negative case passes only if it produces no plaintext or partial output, no reusable
+authorization, no recreated replay scope, no unrelated pairing damage, and no ADB reverse residue.
+A recovery attempt after an interrupted or consumed request must use a new protocol request and a
+new biometric operation.
+
+## Implementation verification (not candidate evidence)
+
+On 2026-08-30, the working tree passed the mandatory Rust formatting, workspace Clippy, and
+workspace test commands; Android Kotlin unit tests; and the TypeScript build. A disposable copy on
+the Windows host passed a locked release build, the new command help smoke test, Windows-native
+desktop cleanup/storage/CNG tests against the ready TPM, and targeted Clippy. These results verify
+the implementation but do not identify, sign, or qualify an Alpha candidate.
+
+## Evidence restrictions
+
+Record only exact versions, public capability results, artifact and synthetic-output digests,
+coarse error categories, reverse-rule absence, dates, and pass/fail outcomes. Do not record private
+or public key aliases, raw identifiers, device serials, caller labels, private paths, protocol
+messages, QR contents, recipient stanza bodies, file keys, recovery private material, or plaintext.

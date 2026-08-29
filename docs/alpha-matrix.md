@@ -55,7 +55,7 @@ from the supported Windows/Android pair.
 | Desktop restart, phone app restart/background/process death, malformed wake action, and replay persistence | Required | Required | Portable coverage exists; complete packaged lifecycle run pending |
 | Revoke one desktop while another pairing remains usable | Required | Required | Journaled native revocation and portable isolation/restart tests implemented; physical gate pending |
 | TPM signing/selection invalidation and StrongBox identity/signing invalidation | Required | Required | Fail-closed primitives exist; lifecycle implementation and physical matrix pending |
-| Identity deletion, Android uninstall/reinstall, backup exclusion, and explicit desktop cleanup | Required | Required | Journaled phone identity deletion and backup exclusion implemented; uninstall/reinstall, desktop cleanup, and physical gate pending |
+| Identity deletion, Android uninstall/reinstall, backup exclusion, and explicit desktop cleanup | Required | Required | Journaled phone deletion and Windows fingerprint-confirmed, journaled local cleanup are implemented with portable/native tests; packaged uninstall/reinstall and lifecycle gate pending |
 | Corrupt, missing, copied, insecure, full, or concurrently opened security state | Required | Required where injectable | Portable/native storage coverage exists; packaged lifecycle rerun pending |
 
 Every negative scenario passes only when it produces no plaintext or partial output, no reusable

@@ -3,7 +3,10 @@ use std::{
     fs::File,
     io::{Read as _, Write as _},
     mem::{size_of, zeroed},
-    os::windows::{ffi::OsStrExt as _, io::FromRawHandle as _},
+    os::windows::{
+        ffi::OsStrExt as _,
+        io::{AsRawHandle as _, FromRawHandle as _},
+    },
     path::{Path, PathBuf},
     ptr,
     sync::atomic::{AtomicU64, Ordering},
@@ -12,8 +15,9 @@ use std::{
 use thiserror::Error;
 use windows_sys::Win32::{
     Foundation::{
-        CloseHandle, ERROR_ALREADY_EXISTS, ERROR_FILE_EXISTS, GENERIC_READ, GENERIC_WRITE,
-        GetLastError, INVALID_HANDLE_VALUE, LocalFree,
+        CloseHandle, ERROR_ALREADY_EXISTS, ERROR_FILE_EXISTS, ERROR_FILE_NOT_FOUND,
+        ERROR_PATH_NOT_FOUND, GENERIC_READ, GENERIC_WRITE, GetLastError, INVALID_HANDLE_VALUE,
+        LocalFree,
     },
     Security::{
         ACCESS_ALLOWED_ACE, ACL, ACL_SIZE_INFORMATION, AclSizeInformation,
@@ -27,11 +31,13 @@ use windows_sys::Win32::{
         TOKEN_QUERY, TOKEN_USER, TokenUser,
     },
     Storage::FileSystem::{
-        BY_HANDLE_FILE_INFORMATION, CREATE_NEW, CreateDirectoryW, CreateFileW, FILE_ALL_ACCESS,
-        FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_NORMAL, FILE_ATTRIBUTE_REPARSE_POINT,
-        FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT, FILE_FLAG_WRITE_THROUGH,
-        FILE_SHARE_READ, GetFileInformationByHandle, MOVEFILE_REPLACE_EXISTING,
+        BY_HANDLE_FILE_INFORMATION, CREATE_NEW, CreateDirectoryW, CreateFileW, DELETE,
+        FILE_ALL_ACCESS, FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_NORMAL,
+        FILE_ATTRIBUTE_REPARSE_POINT, FILE_DISPOSITION_INFO, FILE_FLAG_BACKUP_SEMANTICS,
+        FILE_FLAG_OPEN_REPARSE_POINT, FILE_FLAG_WRITE_THROUGH, FILE_SHARE_READ,
+        FileDispositionInfo, GetFileInformationByHandle, MOVEFILE_REPLACE_EXISTING,
         MOVEFILE_WRITE_THROUGH, MoveFileExW, OPEN_ALWAYS, OPEN_EXISTING,
+        SetFileInformationByHandle,
     },
     System::Threading::{GetCurrentProcess, OpenProcessToken},
 };
@@ -81,8 +87,7 @@ pub fn ensure_private_directory(path: &Path) -> Result<(), Error> {
 
 pub fn validate_private_directory(path: &Path) -> Result<(), Error> {
     validate_absolute(path)?;
-    let file = open_handle(path, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, true)
-        .map_err(map_missing)?;
+    let file = open_handle(path, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, true)?;
     validate_handle(&file, true)?;
     validate_acl(path)
 }
@@ -126,6 +131,32 @@ pub fn atomic_replace(path: &Path, bytes: &[u8]) -> Result<(), Error> {
 
 pub fn read_private_file(path: &Path, maximum: u64) -> Result<Vec<u8>, Error> {
     let file = validate_private_file(path)?;
+    read_bounded(file, maximum)
+}
+
+/// Reads one ordinary file through a no-share handle after rejecting reparse points, hard links,
+/// directories, and oversized input. Unlike private state, a public identity stub need not have a
+/// current-user-only ACL.
+pub fn read_regular_file(path: &Path, maximum: u64) -> Result<Vec<u8>, Error> {
+    validate_absolute_file_path(path)?;
+    let file = open_handle(path, GENERIC_READ, 0, OPEN_EXISTING, true)?;
+    validate_handle(&file, false)?;
+    read_bounded(file, maximum)
+}
+
+/// Deletes one private file by its already-validated handle.
+pub fn remove_private_file(path: &Path) -> Result<(), Error> {
+    validate_parent(path)?;
+    remove_file_by_handle(path, true)
+}
+
+/// Deletes one ordinary public file by its already-validated handle.
+pub fn remove_regular_file(path: &Path) -> Result<(), Error> {
+    validate_absolute_file_path(path)?;
+    remove_file_by_handle(path, false)
+}
+
+fn read_bounded(file: File, maximum: u64) -> Result<Vec<u8>, Error> {
     let length = file.metadata().map_err(|_| Error::Storage)?.len();
     if length == 0 || length > maximum {
         return Err(Error::Insecure);
@@ -138,6 +169,31 @@ pub fn read_private_file(path: &Path, maximum: u64) -> Result<Vec<u8>, Error> {
         return Err(Error::Insecure);
     }
     Ok(bytes)
+}
+
+fn remove_file_by_handle(path: &Path, private: bool) -> Result<(), Error> {
+    let file = open_handle(path, GENERIC_READ | DELETE, 0, OPEN_EXISTING, true)?;
+    validate_handle(&file, false)?;
+    if private {
+        validate_acl(path)?;
+    }
+    let disposition = FILE_DISPOSITION_INFO { DeleteFile: true };
+    if unsafe {
+        SetFileInformationByHandle(
+            file.as_raw_handle().cast(),
+            FileDispositionInfo,
+            (&raw const disposition).cast(),
+            u32::try_from(size_of::<FILE_DISPOSITION_INFO>()).map_err(|_| Error::Storage)?,
+        )
+    } == 0
+    {
+        return Err(Error::Storage);
+    }
+    drop(file);
+    match std::fs::symlink_metadata(path) {
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Ok(_) | Err(_) => Err(Error::Storage),
+    }
 }
 
 pub fn open_private_lock(path: &Path) -> Result<PrivateLock, Error> {
@@ -172,8 +228,7 @@ pub fn open_private_lock(path: &Path) -> Result<PrivateLock, Error> {
 
 fn validate_private_file(path: &Path) -> Result<File, Error> {
     validate_parent(path)?;
-    let file = open_handle(path, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, true)
-        .map_err(map_missing)?;
+    let file = open_handle(path, GENERIC_READ, FILE_SHARE_READ, OPEN_EXISTING, true)?;
     validate_handle(&file, false)?;
     validate_acl(path)?;
     Ok(file)
@@ -250,14 +305,18 @@ fn open_handle(
         )
     };
     if handle == INVALID_HANDLE_VALUE {
-        Err(Error::Storage)
+        let code = unsafe { GetLastError() };
+        if code == ERROR_FILE_NOT_FOUND || code == ERROR_PATH_NOT_FOUND {
+            Err(Error::Missing)
+        } else {
+            Err(Error::Storage)
+        }
     } else {
         Ok(unsafe { File::from_raw_handle(handle.cast()) })
     }
 }
 
 fn validate_handle(file: &File, directory: bool) -> Result<(), Error> {
-    use std::os::windows::io::AsRawHandle as _;
     let mut info: BY_HANDLE_FILE_INFORMATION = unsafe { zeroed() };
     if unsafe { GetFileInformationByHandle(file.as_raw_handle().cast(), &raw mut info) } == 0 {
         return Err(Error::Storage);
@@ -331,11 +390,16 @@ fn validate_acl(path: &Path) -> Result<(), Error> {
 }
 
 fn validate_parent(path: &Path) -> Result<(), Error> {
-    validate_absolute(path)?;
-    if path.file_name().is_none() {
-        return Err(Error::Insecure);
-    }
+    validate_absolute_file_path(path)?;
     validate_private_directory(path.parent().ok_or(Error::Insecure)?)
+}
+
+fn validate_absolute_file_path(path: &Path) -> Result<(), Error> {
+    validate_absolute(path)?;
+    path.file_name()
+        .is_some()
+        .then_some(())
+        .ok_or(Error::Insecure)
 }
 
 fn validate_absolute(path: &Path) -> Result<(), Error> {
@@ -343,14 +407,6 @@ fn validate_absolute(path: &Path) -> Result<(), Error> {
         Ok(())
     } else {
         Err(Error::Insecure)
-    }
-}
-
-fn map_missing(error: Error) -> Error {
-    if matches!(error, Error::Storage) {
-        Error::Missing
-    } else {
-        error
     }
 }
 
@@ -537,11 +593,12 @@ mod tests {
         let lock_path = root.join("state.lock");
         let lock = open_private_lock(&lock_path).unwrap();
         assert!(open_private_lock(&lock_path).is_err());
+        assert_eq!(remove_private_file(&lock_path), Err(Error::Storage));
         drop(lock);
         open_private_lock(&lock_path).unwrap();
 
-        std::fs::remove_file(&lock_path).unwrap();
-        std::fs::remove_file(&state).unwrap();
+        remove_private_file(&lock_path).unwrap();
+        remove_private_file(&state).unwrap();
         std::fs::remove_dir(&root).unwrap();
     }
 
@@ -553,8 +610,9 @@ mod tests {
         atomic_create(&state, b"state").unwrap();
         std::fs::hard_link(&state, &alias).unwrap();
         assert_eq!(read_private_file(&state, 32), Err(Error::Insecure));
+        assert_eq!(remove_private_file(&state), Err(Error::Insecure));
         std::fs::remove_file(&alias).unwrap();
-        std::fs::remove_file(&state).unwrap();
+        remove_private_file(&state).unwrap();
         std::fs::remove_dir(&root).unwrap();
     }
 
@@ -580,6 +638,18 @@ mod tests {
         );
         assert_eq!(read_private_file(&state, 32), Err(Error::Insecure));
         std::fs::remove_file(&state).unwrap();
+        std::fs::remove_dir(&root).unwrap();
+    }
+
+    #[test]
+    fn bounded_public_file_read_and_handle_bound_removal() {
+        let root = root();
+        let public = root.join("identity.txt");
+        std::fs::write(&public, b"public stub").unwrap();
+        assert_eq!(read_regular_file(&public, 32).unwrap(), b"public stub");
+        assert_eq!(read_regular_file(&public, 4), Err(Error::Insecure));
+        remove_regular_file(&public).unwrap();
+        assert_eq!(remove_regular_file(&public), Err(Error::Missing));
         std::fs::remove_dir(&root).unwrap();
     }
 }

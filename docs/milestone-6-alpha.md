@@ -20,6 +20,12 @@ is separately confirmed and first commits an identity-wide deletion phase, then 
 pairings, deletes the two exact StrongBox aliases, verifies their absence, and finally removes the
 public metadata. Re-running deletion resumes the same identity; provisioning cannot bypass it.
 
+Windows local cleanup is separately explicit and fingerprint-confirmed. It validates the public
+stub, private locator, replay scope, TPM metadata, and both TPM public keys before committing a
+private cleanup journal. The journal blocks the target pairing and resumes exact replay, metadata,
+locator, public-stub, and role-separated CNG-key deletion after interruption without changing an
+unrelated pairing. Local success is not represented as phone-side revocation.
+
 ## CI and reproducible inputs
 
 `.github/workflows/ci.yml` gates locked Rust formatting, Clippy, tests, and deterministic vectors on

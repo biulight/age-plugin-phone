@@ -21,11 +21,27 @@ root and evidence. It is not public publisher trust.
 
 Extract `age-plugin-phone.exe` without renaming it and place its directory on the current user's
 `PATH`. Install the APK from the same RC set on the test phone. Then open a new PowerShell 7 session
-and run:
+and install the pinned Windows rage release into a versioned per-user directory. The digest below
+is the SHA-256 published for the upstream v0.12.1 Windows x64 asset:
+
+```powershell
+$rageVersion = "0.12.1"
+$rageArchive = Join-Path $env:TEMP "rage-v$rageVersion-x86_64-windows.zip"
+$rageRoot = Join-Path $env:LOCALAPPDATA "Programs\rage-$rageVersion"
+Invoke-WebRequest -Uri "https://github.com/str4d/rage/releases/download/v$rageVersion/rage-v$rageVersion-x86_64-windows.zip" -OutFile $rageArchive
+if ((Get-FileHash $rageArchive -Algorithm SHA256).Hash.ToLowerInvariant() -ne "da5b8111c8f097c7822df505ad504696e4891ff8adec06a39171f8d717590b2c") { Remove-Item -LiteralPath $rageArchive -Force; throw "rage archive digest mismatch" }
+New-Item -ItemType Directory -Force -Path $rageRoot | Out-Null
+Expand-Archive -LiteralPath $rageArchive -DestinationPath $rageRoot -Force
+Remove-Item -LiteralPath $rageArchive -Force
+$env:PATH = "$(Join-Path $rageRoot 'rage');$env:PATH"
+```
+
+Keep that exact directory on `PATH` for the candidate session, then run:
 
 ```powershell
 age-plugin-phone status
 age --version
+rage --version
 adb version
 adb devices
 ```
@@ -120,6 +136,19 @@ artifact digests, scenario results, and recovered-output digests as described by
 [`alpha-matrix.md`](alpha-matrix.md). Never record plaintext, private state paths, device serials,
 raw protocol messages, QR contents, stanza bodies, file keys, or key aliases.
 
+Use the same synthetic input to prove both cross-client directions. Each phone-path decryption must
+trigger its own fresh biometric operation:
+
+```powershell
+rage -d -i $identityStub -o .\probe.rage-phone.txt .\probe.txt.age
+if ((Get-FileHash .\probe.txt -Algorithm SHA256).Hash -ne (Get-FileHash .\probe.rage-phone.txt -Algorithm SHA256).Hash) { throw "rage phone digest mismatch" }
+rage -e -r $phoneRecipient -r $recoveryRecipient -o .\probe.rage.age .\probe.txt
+age -d -i $identityStub -o .\probe.age-from-rage.txt .\probe.rage.age
+age -d -i .\recovery-test-identity.txt -o .\probe.recovery-from-rage.txt .\probe.rage.age
+if ((Get-FileHash .\probe.txt -Algorithm SHA256).Hash -ne (Get-FileHash .\probe.age-from-rage.txt -Algorithm SHA256).Hash) { throw "age-from-rage phone digest mismatch" }
+if ((Get-FileHash .\probe.txt -Algorithm SHA256).Hash -ne (Get-FileHash .\probe.recovery-from-rage.txt -Algorithm SHA256).Hash) { throw "rage recovery digest mismatch" }
+```
+
 ## 4. Use the existing Shine boundary
 
 Shine invokes the standard `age` CLI. This repository adds no Shine-specific protocol, RPC, URI, or
@@ -164,6 +193,29 @@ Sealing uses public recipients and does not need phone authorization. Decrypting
 must invoke `age-plugin-phone.exe` and cause a fresh phone biometric operation. Independently decrypt
 or reseal through the recovery identity before treating the recovery portion of the matrix as
 passed. Never make the phone the only recipient for important data.
+
+## 5. Revoke and remove one test pairing
+
+This step is destructive and belongs at the end of a disposable pairing's test run. First verify
+that the independent recovery identity can decrypt every retained synthetic ciphertext. In the
+phone application's **Paired desktops** section, select the pairing by its transcript fingerprint,
+not its untrusted label, and revoke it. Confirm that a new request from the revoked desktop produces
+no plaintext and no biometric prompt.
+
+Then remove the exact local Windows state:
+
+```powershell
+age-plugin-phone remove-desktop-state --identity-stub $identityStub
+```
+
+The command prints the full transcript fingerprint and requires it to be typed exactly. It removes
+only that pairing's response replay state, TPM metadata, locator, two exact CNG keys, replay lock,
+and public identity stub. An interrupted cleanup remains fail-closed and the same command resumes
+only the journaled target. Do not delete individual files or CNG keys manually.
+
+If the phone has been lost, the command may still remove local state after the same confirmation,
+but local success is not evidence of phone-side revocation. Old version 2 ciphertext remains bound
+to the removed pairing and must be recovered and re-encrypted; cleanup never migrates it.
 
 ## Troubleshooting
 

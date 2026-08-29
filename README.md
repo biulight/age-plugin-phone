@@ -47,6 +47,7 @@ cargo run -p age-plugin-phone -- status
 cargo run -p age-plugin-phone -- pair --help
 cargo run -p age-plugin-phone -- unwrap --help
 cargo run -p age-plugin-phone -- qr-capture-probe
+cargo run -p age-plugin-phone -- remove-desktop-state --help
 cargo test --workspace
 
 cd apps/mobile
@@ -89,6 +90,11 @@ non-exportable P-256 keys in Microsoft Platform Crypto Provider, with no softwar
 Locator, metadata, replay, temporary, and lock files use protected current-user ACLs. Pairing,
 explicit unwrap, and standard `identity-v1` operations fail before protocol work unless the host is
 a Windows 11-or-later x64 client with an available TPM 2.0 and Platform Crypto Provider.
+
+After phone-side revocation, `remove-desktop-state` requires the full transcript fingerprint and
+uses a private crash-safe journal to remove only that pairing's replay state, TPM metadata, locator,
+two exact CNG keys, and public stub. A pending cleanup makes the target pairing unavailable and may
+be resumed; it does not claim phone-side revocation or affect another pairing.
 
 Windows now defaults to the Developer USB ADB Alpha for `pair`, `unwrap`, and standard age identity
 operations. Pairing still requires **Pair via Developer USB** on the phone. For unwrap, the desktop

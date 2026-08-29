@@ -11,6 +11,7 @@ use std::{fs::OpenOptions, io::Write as _};
 use minicbor::{Decoder, Encoder};
 use thiserror::Error;
 
+use crate::cleanup_journal::{self, JournalError};
 use crate::pairing::PublicIdentityStub;
 
 const LOCATOR_VERSION: u16 = 2;
@@ -33,6 +34,8 @@ pub enum LocatorError {
     Missing,
     #[error("pairing locator is malformed, mismatched, or insecure")]
     Invalid,
+    #[error("desktop cleanup is pending for this pairing")]
+    CleanupPending,
     #[error("pairing locator could not be durably stored")]
     Storage,
 }
@@ -83,7 +86,8 @@ pub fn create_pairing_locator(
     replay_state: &Path,
 ) -> Result<PathBuf, LocatorError> {
     let directory = prepare_directory(root)?;
-    let path = directory.join(locator_name(stub));
+    ensure_not_pending(&directory, stub)?;
+    let path = pairing_locator_path(&directory, stub);
     let locator = PairingLocator {
         desktop_state: absolute_existing(desktop_state)?,
         replay_state: absolute_existing(replay_state)?,
@@ -100,7 +104,8 @@ pub fn open_pairing_locator(
     stub: &PublicIdentityStub,
 ) -> Result<PairingLocator, LocatorError> {
     let directory = checked_directory(root)?;
-    let path = directory.join(locator_name(stub));
+    ensure_not_pending(&directory, stub)?;
+    let path = pairing_locator_path(&directory, stub);
     let bytes = read_locator_file(&path)?;
     decode(stub, &bytes)
 }
@@ -199,8 +204,19 @@ fn decode(stub: &PublicIdentityStub, bytes: &[u8]) -> Result<PairingLocator, Loc
     Ok(locator)
 }
 
+pub(crate) fn pairing_locator_path(root: &Path, stub: &PublicIdentityStub) -> PathBuf {
+    root.join(locator_name(stub))
+}
+
 fn locator_name(stub: &PublicIdentityStub) -> String {
     format!("{}.cbor", hex(&stub.identity_id))
+}
+
+fn ensure_not_pending(root: &Path, stub: &PublicIdentityStub) -> Result<(), LocatorError> {
+    cleanup_journal::ensure_pairing_available(root, stub).map_err(|error| match error {
+        JournalError::Pending => LocatorError::CleanupPending,
+        JournalError::Invalid | JournalError::Storage => LocatorError::Invalid,
+    })
 }
 
 fn absolute_existing(path: &Path) -> Result<PathBuf, LocatorError> {

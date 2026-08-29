@@ -403,6 +403,10 @@ pub fn create_identity_stub_file(
 
 pub fn read_identity_stub_file(path: &Path) -> Result<PublicIdentityStub, PairingError> {
     let text = std::fs::read_to_string(path).map_err(|_| PairingError::StubStorage)?;
+    decode_identity_stub_text(&text)
+}
+
+pub(crate) fn decode_identity_stub_text(text: &str) -> Result<PublicIdentityStub, PairingError> {
     let identity = text
         .lines()
         .map(str::trim)

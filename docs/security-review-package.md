@@ -48,7 +48,7 @@ capabilities.
 | QR and common stream framing | [ADR 0005](adr/0005-qr-framing.md), [ADR 0006](adr/0006-native-qr-capture.md), [ADR 0011](adr/0011-desktop-native-qr-scanner.md), [ADR 0016](adr/0016-common-transport-and-adb-alpha.md) | `crates/protocol/src/qr.rs`, `crates/transport/src/lib.rs`, `crates/desktop/src/qr_scanner.rs` | `QrFraming.kt`, `QrScanSession.kt`, `NativeQrScannerController.kt`, `StreamTransport.kt` and tests |
 | Developer USB ADB orchestration | [ADR 0016](adr/0016-common-transport-and-adb-alpha.md) | `crates/desktop/src/adb.rs`, transport selection in `crates/desktop/src/main.rs` and `age_identity.rs` | `MainActivity.kt`, `UsbUnwrapWakeCoordinator.kt`, `StreamTransport.kt`, and USB controllers in `PhoneIdentityPlugin.kt` |
 | Standard age plugin state machines | [ADR 0010](adr/0010-reference-age-state-machines.md) | `crates/desktop/src/age_recipient.rs`, `crates/desktop/src/age_identity.rs` | Phone receives only the already selected, signed one-shot request |
-| Lifecycle, revocation, invalidation, and recovery | [ADR 0017](adr/0017-lifecycle-and-recovery.md), [Alpha matrix](alpha-matrix.md) | Product implementation pending | Product implementation pending |
+| Lifecycle, revocation, invalidation, and recovery | [ADR 0017](adr/0017-lifecycle-and-recovery.md), [Alpha matrix](alpha-matrix.md) | Fingerprint-confirmed, journaled Windows local cleanup in `crates/desktop/src/desktop_cleanup.rs` with exact CNG and private-file removal boundaries | Journaled paired-desktop revocation and identity deletion in `PhoneIdentityPlugin.kt`, `PairingStateStore.kt`, and `PhoneIdentityKeyStore.kt` |
 
 All Android filenames in the table are below
 `plugins/tauri-plugin-phone-identity/android/src/main/java/io/github/biulight/phone_identity`; their
