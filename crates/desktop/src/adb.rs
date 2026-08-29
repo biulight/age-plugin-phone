@@ -28,6 +28,9 @@ const ANDROID_MAIN_COMPONENT: &str = "io.github.biulight.age_plugin_phone/.MainA
 const ACCEPT_POLL_INTERVAL: Duration = Duration::from_millis(20);
 const DEFAULT_ADB_COMMAND_TIMEOUT: Duration = Duration::from_secs(10);
 const CLEANUP_GUARD_EXIT_TIMEOUT: Duration = Duration::from_secs(1);
+const CLEANUP_GUARD_ADB_COMMAND_TIMEOUT: Duration = Duration::from_secs(1);
+const CLEANUP_GUARD_RETRY_TIMEOUT: Duration = Duration::from_secs(2);
+const CLEANUP_GUARD_RETRY_INTERVAL: Duration = Duration::from_millis(100);
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 struct Device {
@@ -141,9 +144,19 @@ fn isolate_cleanup_guard(command: &mut Command) {
 #[cfg(windows)]
 fn isolate_cleanup_guard(command: &mut Command) {
     use std::os::windows::process::CommandExt as _;
-    use windows_sys::Win32::System::Threading::{CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW};
 
-    command.creation_flags(CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW);
+    command.creation_flags(cleanup_guard_creation_flags());
+}
+
+#[cfg(windows)]
+fn cleanup_guard_creation_flags() -> u32 {
+    use windows_sys::Win32::System::Threading::{
+        CREATE_BREAKAWAY_FROM_JOB, CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW,
+    };
+
+    // Reference clients can contain plugin processes in kill-on-close Job objects. The guardian
+    // must outlive that client tree long enough to remove the one fixed reverse rule.
+    CREATE_BREAKAWAY_FROM_JOB | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW
 }
 
 impl Drop for CleanupGuardian {
@@ -530,7 +543,11 @@ fn cleanup_created_rule(
 /// Waits for the parent pipe and removes only the fixed Developer USB rule if the parent exits.
 pub fn run_cleanup_guard(serial: &str) -> io::Result<()> {
     let stdin = io::stdin();
-    cleanup_guard_from_reader(stdin.lock(), SystemAdb::default(), serial)
+    let runner = SystemAdb {
+        command_timeout: CLEANUP_GUARD_ADB_COMMAND_TIMEOUT,
+        ..SystemAdb::default()
+    };
+    cleanup_guard_from_reader(stdin.lock(), runner, serial)
 }
 
 fn cleanup_guard_from_reader(
@@ -548,8 +565,33 @@ fn cleanup_guard_from_reader(
     if matches!(input.read(&mut signal), Ok(1)) && signal == *b"D" {
         return Ok(());
     }
-    remove_reverse_rule(&mut runner, serial, &format!("tcp:{ANDROID_LOOPBACK_PORT}"))
-        .map_err(|_| io::Error::other("failed to remove ADB reverse rule after parent exit"))
+    remove_reverse_rule_after_parent_exit(
+        &mut runner,
+        serial,
+        CLEANUP_GUARD_RETRY_TIMEOUT,
+        CLEANUP_GUARD_RETRY_INTERVAL,
+    )
+}
+
+fn remove_reverse_rule_after_parent_exit(
+    runner: &mut impl AdbRunner,
+    serial: &str,
+    retry_timeout: Duration,
+    retry_interval: Duration,
+) -> io::Result<()> {
+    let reverse_spec = format!("tcp:{ANDROID_LOOPBACK_PORT}");
+    let started = Instant::now();
+    loop {
+        if remove_reverse_rule(runner, serial, &reverse_spec).is_ok() {
+            return Ok(());
+        }
+        if started.elapsed() >= retry_timeout {
+            return Err(io::Error::other(
+                "failed to remove ADB reverse rule after parent exit",
+            ));
+        }
+        thread::sleep(retry_interval);
+    }
 }
 
 #[cfg(test)]
@@ -978,6 +1020,51 @@ mod tests {
     }
 
     #[test]
+    fn cleanup_guard_retries_only_the_exact_rule_after_transient_adb_failure() {
+        let mut runner = FakeRunner {
+            outputs: VecDeque::from([
+                Err(io::Error::other("transient ADB failure")),
+                Ok(String::new()),
+            ]),
+            ..FakeRunner::default()
+        };
+        let calls = Arc::clone(&runner.calls);
+        remove_reverse_rule_after_parent_exit(
+            &mut runner,
+            "phone-a",
+            Duration::from_secs(1),
+            Duration::ZERO,
+        )
+        .unwrap();
+        assert_eq!(
+            calls.lock().unwrap().as_slice(),
+            &[
+                vec!["-s", "phone-a", "reverse", "--remove", "tcp:47139"],
+                vec!["-s", "phone-a", "reverse", "--remove", "tcp:47139"],
+            ]
+        );
+    }
+
+    #[test]
+    fn cleanup_guard_bounds_permanent_adb_failure() {
+        let mut runner = FakeRunner {
+            outputs: VecDeque::from([Err(io::Error::other("permanent ADB failure"))]),
+            ..FakeRunner::default()
+        };
+        let calls = Arc::clone(&runner.calls);
+        assert!(
+            remove_reverse_rule_after_parent_exit(
+                &mut runner,
+                "phone-a",
+                Duration::ZERO,
+                Duration::ZERO,
+            )
+            .is_err()
+        );
+        assert_eq!(removal_count(&calls), 1);
+    }
+
+    #[test]
     fn cleanup_guard_disarm_does_not_touch_adb() {
         let runner = FakeRunner::default();
         let calls = Arc::clone(&runner.calls);
@@ -991,6 +1078,17 @@ mod tests {
         let calls = Arc::clone(&runner.calls);
         assert!(cleanup_guard_from_reader(io::empty(), runner, "bad serial").is_err());
         assert!(calls.lock().unwrap().is_empty());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn cleanup_guard_breaks_away_from_client_job() {
+        use windows_sys::Win32::System::Threading::CREATE_BREAKAWAY_FROM_JOB;
+
+        assert_ne!(
+            cleanup_guard_creation_flags() & CREATE_BREAKAWAY_FROM_JOB,
+            0
+        );
     }
 
     #[cfg(unix)]

@@ -51,6 +51,19 @@ with `malformed_request`. No phone pairing state was deleted and no scenario row
 that run. The replacement marks the public argument model with Tauri's release keep contract and
 tests both that contract and Jackson deserialization.
 
+Commit `ec5ebb83a65e5c66d35592a86643a4d750fdda2a`, workflow run `33271841635`, attempt 1,
+produced signed artifacts with Windows executable SHA-256
+`53b01e358a2df11fe4069fc83c80b2daf697c8d336f8aea45764e84d55878abe` and Android APK
+SHA-256 `8149042af7a808b7b218777abc430785628ed1846afe2358004ca0580985ebcc`. Physical
+testing confirmed the release lifecycle-argument repair, fresh pairing, repeated per-operation
+biometrics, foreground/background Developer USB wake, age/rage/recovery digest equality,
+cancellation, biometric mismatch then success, lock-screen failure, and authentication timeout.
+It was nevertheless rejected when forced termination of the exact waiting `age.exe` left its one
+ADB reverse rule after the plugin and guardian processes exited. The request produced no output and
+the single rule was removed exactly before further work. No scenario row below is closed by this
+rejected artifact pair. The replacement guardian breaks away from a client Job object and retries
+removal of only the fixed rule for a bounded interval.
+
 Record the TPM manufacturer/firmware, Windows update revision, Android model/API/security patch,
 StrongBox inspection, platform-tools release, artifact signatures, and approved certificate
 identities only when the exact candidate is available.
