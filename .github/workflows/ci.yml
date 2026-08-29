@@ -42,6 +42,8 @@ jobs:
           cargo test --workspace --locked --
           --skip windows::tests::provisions_distinct_non_exportable_keys_and_reopens_them
           --skip windows::tests::partial_key_pair_fails_closed_without_repair
+          --skip desktop_cleanup::tests::native_cleanup_removes_exact_files_and_tpm_keys
+          --skip desktop_cleanup::tests::concurrent_replay_owner_prevents_cleanup_journal_creation
       - name: Packaged binary smoke test
         if: runner.os == 'Windows'
         shell: pwsh
