@@ -1,6 +1,6 @@
 # Independent security review package
 
-Status: package prepared; independent review has not started.
+Status: independent source review completed; one low-severity finding resolved.
 
 This is the entry point for the Milestone 5 cryptographic and implementation review. The protocol
 is experimental version 2 and is not suitable for production secrets. Preparing this package does
@@ -149,7 +149,12 @@ Project maintainers record findings without rewriting their original meaning:
 
 | ID | Severity | Area | Summary | Resolution commit | Reviewer verification | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| _none yet_ | | | Independent review not started | | | Open |
+| ISR-001 | Low | Android strict CBOR parsing | Text values were coerced for integer-only protocol and state fields | Working tree; record final commit when committed | JDK 17 regression tests and full portable suite | Resolved |
+| ISR-002 | Informational | Rust dependency | `rqrr` selects an `lru` release covered by RUSTSEC-2026-0253, but the affected API and panicking-key preconditions are unreachable | Accepted with rationale in the [review report](independent-security-review-2026-08-29.md) | Reassess on `rqrr` update or cache-use change | Accepted |
+
+The complete reviewer output, cryptographic assessment, implementation assessment, exclusions,
+claim decision, and closure evidence are in the
+[2026-08-29 independent review](independent-security-review-2026-08-29.md).
 
 Accepted risks require a written rationale and cannot contradict the mandatory repository security
 rules. Deferred findings that affect key custody, authorization freshness, message binding, replay,
@@ -166,6 +171,7 @@ strict parsing, or transport independence keep the Alpha gate closed.
   packaged lifecycle and invalidation matrix is listed in the Alpha matrix.
 - RC0 test-signed Windows and Android packaging and CI verification exist. A publicly trusted
   Windows signing program and the immutable final review candidate artifacts remain pending.
-- No independent cryptographic or implementation review has been obtained.
+- The source-level independent cryptographic and implementation review is complete. Native
+  Windows execution and the remaining physical/package evidence stay open as separate Alpha gates.
 - Protocol version 2 is deliberately unfrozen. Upgrade, downgrade-rejection, and compatibility
   policy will be decided only after findings are resolved.

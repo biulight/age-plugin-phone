@@ -8,6 +8,7 @@ import android.security.keystore.KeyProperties
 import android.system.ErrnoException
 import android.system.Os
 import android.system.OsConstants
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.dataformat.cbor.CBORFactory
@@ -585,12 +586,13 @@ internal class PhoneIdentityKeyStore private constructor(
             } catch (_: Exception) {
                 null
             } ?: throw KeyStoreException(Category.MALFORMED)
-            if (node.size() !in setOf(3, 6) || node[0].asInt(-1) != STATE_VERSION ||
+            if (node.size() !in setOf(3, 6) ||
+                !isExactInteger(node[0], STATE_VERSION) ||
                 !MessageDigest.isEqual(cbor.writeValueAsBytes(node), encoded)
             ) {
                 throw KeyStoreException(Category.MALFORMED)
             }
-            val phase = node[1].asInt(-1)
+            val phase = exactInteger(node[1])
             val identityId = binary(node, 2, IDENTITY_ID_BYTES)
             if (phase == PHASE_PREPARING && node.size() == 3) {
                 return StoredState.Preparing(identityId)
@@ -653,6 +655,16 @@ internal class PhoneIdentityKeyStore private constructor(
                 if (it.size != size) throw KeyStoreException(Category.MALFORMED)
             }
         }
+
+        private fun exactInteger(node: JsonNode): Int {
+            if (!node.isIntegralNumber || !node.canConvertToInt()) {
+                throw KeyStoreException(Category.MALFORMED)
+            }
+            return node.intValue()
+        }
+
+        private fun isExactInteger(node: JsonNode, expected: Int): Boolean =
+            node.isIntegralNumber && node.canConvertToInt() && node.intValue() == expected
 
         private fun compressed(publicKey: PublicKey): ByteArray = try {
             TaggedRecipientCrypto.encodeCompressed(publicKey)

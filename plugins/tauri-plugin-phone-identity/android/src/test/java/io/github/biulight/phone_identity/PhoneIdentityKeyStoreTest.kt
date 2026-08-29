@@ -1,5 +1,8 @@
 package io.github.biulight.phone_identity
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ArrayNode
+import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import java.security.KeyPairGenerator
 import java.security.spec.ECGenParameterSpec
 import org.junit.Assert.assertArrayEquals
@@ -11,6 +14,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PhoneIdentityKeyStoreTest {
+    private val cbor = ObjectMapper(CBORFactory())
+
     @Test
     fun aliasesAreRoleSeparatedAndCanonical() {
         val id = ByteArray(16) { it.toByte() }
@@ -113,6 +118,20 @@ class PhoneIdentityKeyStoreTest {
 
         assertThrows(PhoneIdentityKeyStore.KeyStoreException::class.java) {
             PhoneIdentityKeyStore.encodeCommitted(mismatched)
+        }
+    }
+
+    @Test
+    fun rejectsTextualIdentityStateVersionAndPhase() {
+        val encoded = PhoneIdentityKeyStore.encodePreparing(ByteArray(16) { 7 })
+
+        for (index in 0..1) {
+            val node = cbor.readTree(encoded) as ArrayNode
+            node.set(index, node[index].intValue().toString())
+            val textual = cbor.writeValueAsBytes(node)
+            assertThrows(PhoneIdentityKeyStore.KeyStoreException::class.java) {
+                PhoneIdentityKeyStore.decodeForTest(textual)
+            }
         }
     }
 

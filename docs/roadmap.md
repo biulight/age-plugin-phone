@@ -139,7 +139,9 @@ release gate, not an open question about whether the ADB transport can carry the
 - [x] Prepare a review package covering the P-256 recipient, pairing transcript, split desktop key
   roles, private stanza selection, response envelope, Windows and Android replay storage, CNG/TPM
   custody, Android authorization, transport framing, ADB, and age-plugin state machines.
-- [ ] Obtain independent cryptographic and implementation review and resolve its findings.
+- [x] Obtain independent cryptographic and implementation review and resolve its findings. The
+  source review resolved ISR-001 and documented ISR-002's unreachable advisory preconditions;
+  native Windows and remaining physical/package evidence remain separate Alpha gates.
 - [ ] Freeze a stable protocol version only after review, with explicit upgrade,
   downgrade-rejection, and compatibility rules.
 

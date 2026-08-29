@@ -2,7 +2,8 @@
 
 Status: repository implementation is in progress. The first Windows test-signed and Android RC0
 artifacts have been produced and independently verified; packaged physical, interoperability,
-public-trust Windows signing, review, and technical-user gates remain open.
+public-trust Windows signing, and technical-user gates remain open. The independent source review
+is complete, with native/physical evidence tracked separately.
 
 ## Implemented product surface
 
@@ -78,7 +79,6 @@ Do not mark Milestone 6 complete until signed artifacts pass every required row 
 - physical reference age and rage unwrap interoperability through multiple phones;
 - Shine encrypt, decrypt, seal, and recovery using its existing configuration only;
 - physical lifecycle, invalidation, wrong-device, replay, upgrade, and recovery matrices;
-- independent cryptographic and implementation review with findings resolved; and
 - a limited technical-user Alpha proving Windows has no reusable age identity and every unwrap
   caused a fresh phone biometric operation.
 

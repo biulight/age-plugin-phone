@@ -85,8 +85,9 @@ capture and desktop terminal animation are specified by
 [`ADR 0006`](adr/0006-native-qr-capture.md). [`ADR 0008`](adr/0008-bidirectional-pairing.md)
 connects the production StrongBox keys to phone response signing and native QR rendering. The
 desktop verifies the response, compares the same full transcript fingerprint, and creates a
-canonical public identity stub only after confirmation. Independent review is still required before
-the wire format is stabilized.
+canonical public identity stub only after confirmation. The source-level independent review is
+complete; the wire format remains experimental until compatibility policy and the remaining Alpha
+evidence are complete.
 
 [`ADR 0009`](adr/0009-one-shot-qr-unwrap.md) connects that pairing to one production-key Android
 unwrap. Untrusted request identifiers route to candidate state only; the stored desktop key then

@@ -1,6 +1,8 @@
 package io.github.biulight.phone_identity
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ArrayNode
+import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import java.math.BigInteger
 import java.security.AlgorithmParameters
 import java.security.KeyFactory
@@ -15,6 +17,7 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class OfflineEnvelopeCryptoTest {
+    private val cbor = ObjectMapper(CBORFactory())
     private val vector = ObjectMapper().readTree(
         requireNotNull(javaClass.classLoader?.getResourceAsStream("offline-envelope-v2.json")),
     )
@@ -330,6 +333,27 @@ class OfflineEnvelopeCryptoTest {
                 vector["now_unix"].asLong(),
             )
         }
+    }
+
+    @Test
+    fun rejectsTextualProtocolHeaderFieldsBeforeRouting() {
+        val request = base64(vector["signed_request_base64"].asText())
+
+        for (headerIndex in 0..2) {
+            assertThrows(OfflineEnvelopeCrypto.ProtocolException::class.java) {
+                OfflineEnvelopeCrypto.requestScope(
+                    requestWithTextHeader(request, headerIndex),
+                )
+            }
+        }
+    }
+
+    private fun requestWithTextHeader(encoded: ByteArray, headerIndex: Int): ByteArray {
+        val signed = cbor.readTree(encoded) as ArrayNode
+        val payload = cbor.readTree(signed[0].binaryValue()) as ArrayNode
+        payload.set(headerIndex, payload[headerIndex].intValue().toString())
+        signed.set(0, cbor.writeValueAsBytes(payload))
+        return cbor.writeValueAsBytes(signed)
     }
 
     private fun keyPair(scalar: Int): KeyPair {

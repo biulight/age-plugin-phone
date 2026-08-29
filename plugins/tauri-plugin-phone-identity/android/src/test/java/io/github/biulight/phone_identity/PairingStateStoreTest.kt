@@ -1,6 +1,8 @@
 package io.github.biulight.phone_identity
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ArrayNode
+import com.fasterxml.jackson.dataformat.cbor.CBORFactory
 import java.io.File
 import java.nio.channels.FileChannel
 import java.nio.file.FileSystems
@@ -28,6 +30,7 @@ class PairingStateStoreTest {
     private val requestVector = ObjectMapper().readTree(
         requireNotNull(javaClass.classLoader?.getResourceAsStream("offline-envelope-v2.json")),
     )
+    private val cbor = ObjectMapper(CBORFactory())
 
     @Test
     fun persistsPairingAndRejectsReplayAfterRestart() {
@@ -134,6 +137,21 @@ class PairingStateStoreTest {
         assertEquals(2, encoded[1].toInt())
         encoded[1] = 1
         stateFile.writeBytes(encoded)
+        assertCategory(PairingStateStore.Category.MALFORMED) {
+            PairingStateStore.openAt(root, record.desktopId, record.identityId, JvmDurableFileOperations)
+        }
+    }
+
+    @Test
+    fun rejectsTextualPairingStateVersion() {
+        val root = temporary.newFolder("text-version")
+        val record = record()
+        PairingStateStore.createAt(root, record, now(), 2, JvmDurableFileOperations).close()
+        val stateFile = stateFiles(root).single()
+        val node = cbor.readTree(stateFile.readBytes()) as ArrayNode
+        node.set(0, "2")
+        stateFile.writeBytes(cbor.writeValueAsBytes(node))
+
         assertCategory(PairingStateStore.Category.MALFORMED) {
             PairingStateStore.openAt(root, record.desktopId, record.identityId, JvmDurableFileOperations)
         }

@@ -8,9 +8,10 @@ It is intended to work with any compatible age client. It does not depend on Shi
 Shine environments, or define a Shine-specific ciphertext format.
 
 > [!WARNING]
-> This repository is an experimental prototype. Reference age recipient and identity state machines
-> are connected to the one-shot QR flow with native desktop camera capture, but the protocol and
-> camera path have not received independent review. Do not use it to protect real secrets.
+> This repository is an experimental prototype. An independent source review has been completed
+> and its actionable finding resolved, but protocol v2 remains unfrozen and native Windows,
+> physical Android, signed-package, and interoperability gates remain open. Do not use it to
+> protect real secrets.
 
 ## Intended boundary
 

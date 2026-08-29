@@ -512,10 +512,16 @@ internal object OfflineEnvelopeCrypto {
     }
 
     private fun header(node: ArrayNode, type: Int) {
-        if (node[0].asInt(-1) != VERSION || node[1].asInt(-1) != type || node[2].asInt(-1) != SUITE) {
+        if (!isExactInteger(node[0], VERSION) ||
+            !isExactInteger(node[1], type) ||
+            !isExactInteger(node[2], SUITE)
+        ) {
             throw ProtocolException()
         }
     }
+
+    private fun isExactInteger(node: JsonNode, expected: Int): Boolean =
+        node.isIntegralNumber && node.canConvertToInt() && node.intValue() == expected
 
     private fun encodeArray(build: ArrayNode.() -> Unit): ByteArray =
         cbor.writeValueAsBytes(cbor.createArrayNode().apply(build))

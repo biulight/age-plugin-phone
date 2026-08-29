@@ -596,7 +596,12 @@ internal class PairingStateStore private constructor(
 
         private fun decode(encoded: ByteArray): State {
             val node = strictArray(encoded, 14)
-            if (node[0].asInt(-1) != STATE_VERSION) throw PairingStateException(Category.MALFORMED)
+            if (!node[0].isIntegralNumber ||
+                !node[0].canConvertToInt() ||
+                node[0].intValue() != STATE_VERSION
+            ) {
+                throw PairingStateException(Category.MALFORMED)
+            }
             val record = StoredPairingRecord(
                 bytes(node[1], 16),
                 bytes(node[2], 16),
