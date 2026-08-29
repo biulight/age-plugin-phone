@@ -26,6 +26,20 @@ devices; the platform StrongBox feature flag reported true, without performing l
 inspection. Rage was not installed. These observations are not physical scenario passes. Before
 candidate execution, install the pinned rage 0.12.1 release and repeat the single-device check.
 
+The pinned rage 0.12.1 Windows x64 package was subsequently installed after verifying its published
+SHA-256. The single-device and StrongBox feature checks must still be repeated for the next exact
+candidate.
+
+## Rejected candidate history
+
+Commit `4d2f46c02fd1fe42ce5816731f2806e8d2f3297c`, workflow run `33268115244`, attempt 1,
+produced internally consistent test-signed Windows and Android artifacts. It was rejected during
+physical pairing because the legacy identity-only locator filename collided with an existing
+pairing to the same phone identity. The confirmed pairing left partial replay/TPM metadata and no
+public identity stub; no scenario row below is closed by that run. The replacement implementation
+uses identity-and-desktop locator names, preserves validated legacy reads and cleanup, and rolls
+back newly created local state when the post-confirmation commit fails.
+
 Record the TPM manufacturer/firmware, Windows update revision, Android model/API/security patch,
 StrongBox inspection, platform-tools release, artifact signatures, and approved certificate
 identities only when the exact candidate is available.

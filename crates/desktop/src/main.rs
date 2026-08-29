@@ -255,6 +255,7 @@ fn run_pair(
     ensure_desktop_platform_supported()?;
     validate_transport_options(transport, adb_serial)?;
     ensure_pairing_outputs_available(identity_output, replay_state)?;
+    let desktop_state_existed = desktop_state.exists();
     let config_root = default_config_root()
         .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
     prepare_config_root(&config_root)
@@ -312,26 +313,16 @@ fn run_pair(
     let stub = session
         .confirm(confirmation.trim(), elapsed_ms)
         .map_err(|_| io::Error::new(io::ErrorKind::PermissionDenied, "pairing not confirmed"))?;
-    let pairing = age_plugin_phone_protocol::PairingRecord {
-        desktop_id: stub.desktop_id,
-        identity_id: stub.identity_id,
-        desktop_signing_public_key: stub.desktop_signing_public_key,
-        desktop_selection_public_key: stub.desktop_selection_public_key,
-        phone_signing_public_key: stub.phone_signing_public_key,
-    };
-    FileReplayGuard::create(
+    drop(session);
+    drop(state);
+    commit_pairing_state(
+        &config_root,
+        &stub,
+        desktop_state,
+        identity_output,
         replay_state,
-        ReplayScope::for_pairing(ReplayRole::DesktopResponses, &pairing),
-        DEFAULT_REPLAY_CAPACITY,
-        now_unix().map_err(|_| io::Error::other("system clock is unavailable"))?,
-    )
-    .map_err(|_| io::Error::other("failed to create durable response replay state"))?;
-    let locator_path = create_pairing_locator(&config_root, &stub, desktop_state, replay_state)
-        .map_err(|_| io::Error::other("failed to create private pairing locator"))?;
-    if create_identity_stub_file(identity_output, &stub).is_err() {
-        let _ = std::fs::remove_file(locator_path);
-        return Err(io::Error::other("failed to create public identity stub"));
-    }
+        !desktop_state_existed,
+    )?;
     print_pairing_outputs(identity_output, &stub)
 }
 
@@ -391,6 +382,140 @@ fn ensure_pairing_outputs_available(
         ));
     }
     Ok(())
+}
+
+fn commit_pairing_state(
+    config_root: &std::path::Path,
+    stub: &age_plugin_phone::pairing::PublicIdentityStub,
+    desktop_state: &std::path::Path,
+    identity_output: &std::path::Path,
+    replay_state: &std::path::Path,
+    desktop_state_created: bool,
+) -> io::Result<()> {
+    let pairing = age_plugin_phone_protocol::PairingRecord {
+        desktop_id: stub.desktop_id,
+        identity_id: stub.identity_id,
+        desktop_signing_public_key: stub.desktop_signing_public_key,
+        desktop_selection_public_key: stub.desktop_selection_public_key,
+        phone_signing_public_key: stub.phone_signing_public_key,
+    };
+    let Ok(replay) = FileReplayGuard::create(
+        replay_state,
+        ReplayScope::for_pairing(ReplayRole::DesktopResponses, &pairing),
+        DEFAULT_REPLAY_CAPACITY,
+        now_unix().map_err(|_| io::Error::other("system clock is unavailable"))?,
+    ) else {
+        let rolled_back = rollback_failed_pairing(
+            desktop_state,
+            replay_state,
+            None,
+            desktop_state_created,
+            stub.desktop_id,
+        );
+        return Err(pairing_commit_error(
+            "failed to create durable response replay state",
+            rolled_back,
+        ));
+    };
+    drop(replay);
+    let Ok(locator_path) = create_pairing_locator(config_root, stub, desktop_state, replay_state)
+    else {
+        let rolled_back = rollback_failed_pairing(
+            desktop_state,
+            replay_state,
+            None,
+            desktop_state_created,
+            stub.desktop_id,
+        );
+        return Err(pairing_commit_error(
+            "failed to create private pairing locator",
+            rolled_back,
+        ));
+    };
+    if create_identity_stub_file(identity_output, stub).is_err() {
+        let rolled_back = rollback_failed_pairing(
+            desktop_state,
+            replay_state,
+            Some(&locator_path),
+            desktop_state_created,
+            stub.desktop_id,
+        );
+        return Err(pairing_commit_error(
+            "failed to create public identity stub",
+            rolled_back,
+        ));
+    }
+    Ok(())
+}
+
+fn pairing_commit_error(message: &'static str, rolled_back: bool) -> io::Error {
+    if rolled_back {
+        io::Error::other(format!(
+            "{message}; local partial state was removed, but the phone pairing must be revoked"
+        ))
+    } else {
+        io::Error::other(format!(
+            "{message}; local rollback is incomplete and the phone pairing must be revoked"
+        ))
+    }
+}
+
+fn rollback_failed_pairing(
+    desktop_state: &std::path::Path,
+    replay_state: &std::path::Path,
+    locator_path: Option<&std::path::Path>,
+    desktop_state_created: bool,
+    desktop_id: [u8; 16],
+) -> bool {
+    let mut complete = true;
+    if let Some(path) = locator_path {
+        complete &= remove_private_pairing_file(path);
+    }
+    complete &= remove_private_pairing_file(replay_state);
+    if let Some(lock_path) = replay_lock_path(replay_state) {
+        complete &= remove_private_pairing_file(&lock_path);
+    } else {
+        complete = false;
+    }
+    if desktop_state_created {
+        #[cfg(windows)]
+        {
+            if age_plugin_phone_windows_cng::remove_key_set(desktop_id).is_ok() {
+                complete &= remove_private_pairing_file(desktop_state);
+            } else {
+                complete = false;
+            }
+        }
+        #[cfg(not(windows))]
+        {
+            let _ = desktop_id;
+            complete &= remove_private_pairing_file(desktop_state);
+        }
+    }
+    complete
+}
+
+fn replay_lock_path(path: &std::path::Path) -> Option<PathBuf> {
+    let mut name = path.file_name()?.to_os_string();
+    name.push(".lock");
+    Some(path.parent()?.join(name))
+}
+
+#[cfg(windows)]
+fn remove_private_pairing_file(path: &std::path::Path) -> bool {
+    matches!(
+        age_plugin_phone_windows_storage::remove_private_file(path),
+        Ok(()) | Err(age_plugin_phone_windows_storage::Error::Missing)
+    )
+}
+
+#[cfg(not(windows))]
+fn remove_private_pairing_file(path: &std::path::Path) -> bool {
+    match std::fs::remove_file(path) {
+        Ok(()) => true,
+        Err(error) if error.kind() == io::ErrorKind::NotFound => true,
+        Err(_) => false,
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -714,4 +839,44 @@ fn hex(bytes: &[u8]) -> String {
             output
         },
     )
+}
+
+#[cfg(all(test, not(windows)))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn failed_pairing_rollback_removes_only_new_local_state() {
+        let root = std::env::temp_dir().join(format!(
+            "age-phone-pairing-rollback-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let desktop = root.join("desktop.state");
+        let replay = root.join("replay.state");
+        let replay_lock = replay_lock_path(&replay).unwrap();
+        let locator = root.join("locator.cbor");
+        let unrelated = root.join("unrelated.state");
+        for path in [&desktop, &replay, &replay_lock, &locator, &unrelated] {
+            std::fs::write(path, b"synthetic").unwrap();
+        }
+
+        assert!(rollback_failed_pairing(
+            &desktop,
+            &replay,
+            Some(&locator),
+            true,
+            [7; 16],
+        ));
+        for path in [&desktop, &replay, &replay_lock, &locator] {
+            assert!(!path.exists());
+        }
+        assert!(unrelated.exists());
+        std::fs::remove_file(unrelated).unwrap();
+        std::fs::remove_dir(root).unwrap();
+    }
 }

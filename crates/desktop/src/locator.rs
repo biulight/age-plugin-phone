@@ -103,11 +103,34 @@ pub fn open_pairing_locator(
     root: &Path,
     stub: &PublicIdentityStub,
 ) -> Result<PairingLocator, LocatorError> {
+    open_pairing_locator_record(root, stub).map(|(_, locator)| locator)
+}
+
+#[cfg(any(windows, test))]
+pub(crate) fn existing_pairing_locator_path(
+    root: &Path,
+    stub: &PublicIdentityStub,
+) -> Result<PathBuf, LocatorError> {
+    open_pairing_locator_record(root, stub).map(|(path, _)| path)
+}
+
+fn open_pairing_locator_record(
+    root: &Path,
+    stub: &PublicIdentityStub,
+) -> Result<(PathBuf, PairingLocator), LocatorError> {
     let directory = checked_directory(root)?;
     ensure_not_pending(&directory, stub)?;
-    let path = pairing_locator_path(&directory, stub);
-    let bytes = read_locator_file(&path)?;
-    decode(stub, &bytes)
+    for path in [
+        pairing_locator_path(&directory, stub),
+        legacy_pairing_locator_path(&directory, stub),
+    ] {
+        match read_locator_file(&path) {
+            Ok(bytes) => return decode(stub, &bytes).map(|locator| (path, locator)),
+            Err(LocatorError::Missing) => {}
+            Err(error) => return Err(error),
+        }
+    }
+    Err(LocatorError::Missing)
 }
 
 #[cfg(unix)]
@@ -209,7 +232,11 @@ pub(crate) fn pairing_locator_path(root: &Path, stub: &PublicIdentityStub) -> Pa
 }
 
 fn locator_name(stub: &PublicIdentityStub) -> String {
-    format!("{}.cbor", hex(&stub.identity_id))
+    format!("{}-{}.cbor", hex(&stub.identity_id), hex(&stub.desktop_id))
+}
+
+fn legacy_pairing_locator_path(root: &Path, stub: &PublicIdentityStub) -> PathBuf {
+    root.join(format!("{}.cbor", hex(&stub.identity_id)))
 }
 
 fn ensure_not_pending(root: &Path, stub: &PublicIdentityStub) -> Result<(), LocatorError> {
@@ -459,15 +486,42 @@ mod tests {
             create_pairing_locator(&state, &stub, &desktop, &replay),
             Err(LocatorError::AlreadyExists),
         );
+
+        let mut other = stub.clone();
+        other.desktop_id[0] ^= 1;
+        other.transcript_fingerprint[0] ^= 1;
+        let other_desktop = root.join("other-desktop.key");
+        let other_replay = root.join("other-replay.cbor");
+        std::fs::write(&other_desktop, b"other desktop").unwrap();
+        std::fs::write(&other_replay, b"other replay").unwrap();
+        let other_locator =
+            create_pairing_locator(&state, &other, &other_desktop, &other_replay).unwrap();
+        assert_ne!(locator_path, other_locator);
+        assert_eq!(
+            open_pairing_locator(&state, &other).unwrap(),
+            PairingLocator {
+                desktop_state: other_desktop.canonicalize().unwrap(),
+                replay_state: other_replay.canonicalize().unwrap(),
+            },
+        );
+        std::fs::remove_file(other_locator).unwrap();
+
+        let legacy_path = legacy_pairing_locator_path(&state, &stub);
+        std::fs::rename(&locator_path, &legacy_path).unwrap();
+        assert_eq!(
+            existing_pairing_locator_path(&state, &stub).unwrap(),
+            legacy_path,
+        );
+        assert!(open_pairing_locator(&state, &stub).is_ok());
         let mut wrong = stub.clone();
         wrong.transcript_fingerprint[0] ^= 1;
         assert_eq!(
             open_pairing_locator(&state, &wrong),
             Err(LocatorError::Invalid),
         );
-        let mut old_locator = std::fs::read(&locator_path).unwrap();
+        let mut old_locator = std::fs::read(&legacy_path).unwrap();
         old_locator[1] = 1;
-        std::fs::write(&locator_path, old_locator).unwrap();
+        std::fs::write(&legacy_path, old_locator).unwrap();
         assert_eq!(
             open_pairing_locator(&state, &stub),
             Err(LocatorError::Invalid),

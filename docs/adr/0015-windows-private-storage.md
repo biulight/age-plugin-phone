@@ -34,7 +34,10 @@ without updating its in-memory state. Missing state is never recreated by open.
 
 The locator contains absolute paths only and remains bound to the desktop ID, identity ID, and full
 pairing transcript fingerprint. On Windows the pairing command requires its TPM metadata and replay
-paths to be direct children of the selected private configuration root.
+paths to be direct children of the selected private configuration root. New locator filenames bind
+both the phone identity ID and desktop ID so distinct pairings to one phone identity cannot collide.
+Readers continue to accept the legacy identity-only filename after validating the complete encoded
+binding; cleanup resolves and deletes whichever validated form exists.
 
 ## Consequences
 

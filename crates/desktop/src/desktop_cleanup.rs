@@ -162,7 +162,8 @@ fn start_cleanup(
         DEFAULT_REPLAY_CAPACITY,
     )
     .map_err(|_| CleanupError::Busy)?;
-    let locator_path = crate::locator::pairing_locator_path(root, &stub);
+    let locator_path = crate::locator::existing_pairing_locator_path(root, &stub)
+        .map_err(|_| CleanupError::InvalidTarget)?;
     let journal = CleanupJournal {
         stub,
         stub_path: canonical_stub_path,
