@@ -101,7 +101,7 @@ impl IdentityPluginV1 for PhoneIdentityPlugin {
         unwrap_with_exchange(&self.identities, files, &root, |request, display| {
             if transport == IdentityTransport::Adb {
                 let prompt = format!(
-                    "On the paired phone, choose Approve via Developer USB.\nRequest fingerprint: {}\nADB is an untrusted transport; phone verification and protocol authentication remain required.",
+                    "The paired phone app will open for Developer USB approval.\nRequest fingerprint: {}\nADB is an untrusted transport; phone verification and protocol authentication remain required.",
                     display.request_fingerprint,
                 );
                 let Ok(()) = callbacks.message(&prompt)? else {
@@ -110,6 +110,7 @@ impl IdentityPluginV1 for PhoneIdentityPlugin {
                 let Ok(mut session) = AdbReverseSession::connect(
                     SystemAdb::default(),
                     adb_serial.as_deref(),
+                    SessionPurpose::Unwrap,
                     DEFAULT_CONNECT_TIMEOUT,
                     DEFAULT_MESSAGE_TIMEOUT,
                     TransportLimits::default(),

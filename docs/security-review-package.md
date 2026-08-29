@@ -46,7 +46,7 @@ capabilities.
 | CNG/TPM custody and Windows private files | [ADR 0013](adr/0013-windows-cng-key-boundaries.md), [ADR 0015](adr/0015-windows-private-storage.md) | `crates/windows-cng`, `crates/windows-storage`, Windows paths in `crates/desktop` | Not applicable |
 | Android StrongBox custody and per-use authorization | [ADR 0007](adr/0007-android-production-key-custody.md), [ADR 0009](adr/0009-one-shot-qr-unwrap.md), [StrongBox PoC](android-strongbox-poc.md) | Portable verifier and operation traits in `crates/protocol` and `crates/recipient-p256` | `PhoneIdentityKeyStore.kt`, `PhoneIdentityPlugin.kt`, `NativeUnwrapResponseController.kt` and tests |
 | QR and common stream framing | [ADR 0005](adr/0005-qr-framing.md), [ADR 0006](adr/0006-native-qr-capture.md), [ADR 0011](adr/0011-desktop-native-qr-scanner.md), [ADR 0016](adr/0016-common-transport-and-adb-alpha.md) | `crates/protocol/src/qr.rs`, `crates/transport/src/lib.rs`, `crates/desktop/src/qr_scanner.rs` | `QrFraming.kt`, `QrScanSession.kt`, `NativeQrScannerController.kt`, `StreamTransport.kt` and tests |
-| Developer USB ADB orchestration | [ADR 0016](adr/0016-common-transport-and-adb-alpha.md) | `crates/desktop/src/adb.rs`, transport selection in `crates/desktop/src/main.rs` and `age_identity.rs` | `StreamTransport.kt`, USB controllers in `PhoneIdentityPlugin.kt` |
+| Developer USB ADB orchestration | [ADR 0016](adr/0016-common-transport-and-adb-alpha.md) | `crates/desktop/src/adb.rs`, transport selection in `crates/desktop/src/main.rs` and `age_identity.rs` | `MainActivity.kt`, `UsbUnwrapWakeCoordinator.kt`, `StreamTransport.kt`, and USB controllers in `PhoneIdentityPlugin.kt` |
 | Standard age plugin state machines | [ADR 0010](adr/0010-reference-age-state-machines.md) | `crates/desktop/src/age_recipient.rs`, `crates/desktop/src/age_identity.rs` | Phone receives only the already selected, signed one-shot request |
 | Lifecycle, revocation, invalidation, and recovery | [ADR 0017](adr/0017-lifecycle-and-recovery.md), [Alpha matrix](alpha-matrix.md) | Product implementation pending | Product implementation pending |
 
@@ -158,11 +158,14 @@ strict parsing, or transport independence keep the Alpha gate closed.
 ## Known open items
 
 - The wrong-paired-phone and injected-response-replay physical Windows cases remain incomplete.
-- Lifecycle management in ADR 0017 is designed but not implemented.
+- Automatic Developer USB cold/warm/background wake and malformed-wake behavior have portable
+  coverage but still require packaged Windows/Android evidence.
 - The rage, Shine, independent-recovery, second Android device family, and packaged-artifact rows in
   the Alpha matrix remain incomplete.
-- Signed packaging and CI are Milestone 6 work, so the final review artifact reproduction path is
-  not yet available.
+- Journaled paired-desktop revocation and phone identity deletion are implemented; their remaining
+  packaged lifecycle and invalidation matrix is listed in the Alpha matrix.
+- RC0 test-signed Windows and Android packaging and CI verification exist. A publicly trusted
+  Windows signing program and the immutable final review candidate artifacts remain pending.
 - No independent cryptographic or implementation review has been obtained.
 - Protocol version 2 is deliberately unfrozen. Upgrade, downgrade-rejection, and compatibility
   policy will be decided only after findings are resolved.

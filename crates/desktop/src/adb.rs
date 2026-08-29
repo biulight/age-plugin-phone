@@ -23,6 +23,8 @@ use zeroize::Zeroizing;
 pub const ANDROID_LOOPBACK_PORT: u16 = 47_139;
 pub const DEFAULT_CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 pub const DEFAULT_MESSAGE_TIMEOUT: Duration = Duration::from_secs(90);
+const ANDROID_UNWRAP_ACTION: &str = "io.github.biulight.age_plugin_phone.action.UNWRAP_USB";
+const ANDROID_MAIN_COMPONENT: &str = "io.github.biulight.age_plugin_phone/.MainActivity";
 const ACCEPT_POLL_INTERVAL: Duration = Duration::from_millis(20);
 const DEFAULT_ADB_COMMAND_TIMEOUT: Duration = Duration::from_secs(10);
 const CLEANUP_GUARD_EXIT_TIMEOUT: Duration = Duration::from_secs(1);
@@ -47,6 +49,8 @@ pub enum AdbError {
     ReverseRuleExists,
     #[error("failed to create or remove the exact ADB reverse rule")]
     ReverseRule,
+    #[error("failed to launch the fixed Android unwrap action")]
+    AppLaunch,
     #[error("the phone did not connect before the hard deadline")]
     ConnectionTimeout,
     #[error("an unexpected non-loopback peer connected")]
@@ -223,6 +227,7 @@ impl<R: AdbRunner> AdbReverseSession<R> {
     pub fn connect(
         mut runner: R,
         requested_serial: Option<&str>,
+        purpose: SessionPurpose,
         connect_timeout: Duration,
         message_timeout: Duration,
         limits: TransportLimits,
@@ -253,6 +258,12 @@ impl<R: AdbRunner> AdbReverseSession<R> {
         {
             cleanup_created_rule(&mut runner, &serial, &reverse_spec, cleanup_guard.as_mut());
             return Err(AdbError::ReverseRule);
+        }
+
+        if purpose == SessionPurpose::Unwrap && launch_android_unwrap(&mut runner, &serial).is_err()
+        {
+            cleanup_created_rule(&mut runner, &serial, &reverse_spec, cleanup_guard.as_mut());
+            return Err(AdbError::AppLaunch);
         }
 
         let accepted = accept_before(&listener, connect_timeout);
@@ -314,6 +325,24 @@ impl<R: AdbRunner> AdbReverseSession<R> {
         }
         Ok(())
     }
+}
+
+fn launch_android_unwrap(runner: &mut impl AdbRunner, serial: &str) -> Result<(), AdbError> {
+    runner
+        .run(&[
+            "-s",
+            serial,
+            "shell",
+            "am",
+            "start",
+            "-W",
+            "-a",
+            ANDROID_UNWRAP_ACTION,
+            "-n",
+            ANDROID_MAIN_COMPONENT,
+        ])
+        .map(|_| ())
+        .map_err(|_| AdbError::AppLaunch)
 }
 
 impl<R: AdbRunner> DesktopTransport for AdbReverseSession<R> {
@@ -491,10 +520,10 @@ fn cleanup_created_rule(
     reverse_spec: &str,
     guard: Option<&mut CleanupGuardian>,
 ) {
-    if remove_reverse_rule(runner, serial, reverse_spec).is_ok() {
-        if let Some(guard) = guard {
-            let _ = guard.disarm();
-        }
+    if remove_reverse_rule(runner, serial, reverse_spec).is_ok()
+        && let Some(guard) = guard
+    {
+        let _ = guard.disarm();
     }
 }
 
@@ -566,18 +595,24 @@ mod tests {
 
     struct LoopbackRunner {
         behavior: PhoneBehavior,
+        purpose: SessionPurpose,
         calls: Arc<Mutex<Vec<Vec<String>>>>,
         device_checks: usize,
         switch_device: bool,
+        fail_launch: bool,
+        pending_port: Option<u16>,
     }
 
     impl LoopbackRunner {
-        fn new(behavior: PhoneBehavior) -> Self {
+        fn new(behavior: PhoneBehavior, purpose: SessionPurpose) -> Self {
             Self {
                 behavior,
+                purpose,
                 calls: Arc::default(),
                 device_checks: 0,
                 switch_device: false,
+                fail_launch: false,
+                pending_port: None,
             }
         }
     }
@@ -601,12 +636,38 @@ mod tests {
                 return Ok(String::new());
             }
             if args.len() == 5 && args[2] == "reverse" && args[3] == "tcp:47139" {
+                let port = args[4]
+                    .strip_prefix("tcp:")
+                    .unwrap()
+                    .parse::<u16>()
+                    .unwrap();
+                if self.purpose == SessionPurpose::Unwrap {
+                    self.pending_port = Some(port);
+                } else if !matches!(self.behavior, PhoneBehavior::NoConnect) {
+                    let behavior = self.behavior;
+                    thread::spawn(move || emulate_phone(port, behavior));
+                }
+                return Ok(String::new());
+            }
+            if args
+                == [
+                    "-s",
+                    "phone-a",
+                    "shell",
+                    "am",
+                    "start",
+                    "-W",
+                    "-a",
+                    ANDROID_UNWRAP_ACTION,
+                    "-n",
+                    ANDROID_MAIN_COMPONENT,
+                ]
+            {
+                if self.fail_launch {
+                    return Err(io::Error::other("fixed app launch failed"));
+                }
                 if !matches!(self.behavior, PhoneBehavior::NoConnect) {
-                    let port = args[4]
-                        .strip_prefix("tcp:")
-                        .unwrap()
-                        .parse::<u16>()
-                        .unwrap();
+                    let port = self.pending_port.take().unwrap();
                     let behavior = self.behavior;
                     thread::spawn(move || emulate_phone(port, behavior));
                 }
@@ -654,11 +715,12 @@ mod tests {
 
     #[test]
     fn loopback_exchange_succeeds_and_removes_exact_rule() {
-        let runner = LoopbackRunner::new(PhoneBehavior::Valid);
+        let runner = LoopbackRunner::new(PhoneBehavior::Valid, SessionPurpose::Pairing);
         let calls = Arc::clone(&runner.calls);
         let mut session = AdbReverseSession::connect(
             runner,
             Some("phone-a"),
+            SessionPurpose::Pairing,
             Duration::from_secs(1),
             Duration::from_secs(1),
             TransportLimits::default(),
@@ -670,6 +732,87 @@ mod tests {
             .unwrap_or_else(|error| panic!("{error:?}: {:?}", calls.lock().unwrap()));
         assert_eq!(response.as_slice(), b"phone response");
         assert_eq!(removal_count(&calls), 1);
+        assert!(
+            calls
+                .lock()
+                .unwrap()
+                .iter()
+                .all(|args| { args.get(2).is_none_or(|value| value != "shell") })
+        );
+    }
+
+    #[test]
+    fn unwrap_launches_only_the_fixed_payload_free_action_after_reverse_creation() {
+        let runner = LoopbackRunner::new(PhoneBehavior::Valid, SessionPurpose::Unwrap);
+        let calls = Arc::clone(&runner.calls);
+        let mut session = AdbReverseSession::connect(
+            runner,
+            Some("phone-a"),
+            SessionPurpose::Unwrap,
+            Duration::from_secs(1),
+            Duration::from_secs(1),
+            TransportLimits::default(),
+            &mut rand_core::OsRng,
+        )
+        .unwrap_or_else(|error| panic!("{error:?}: {:?}", calls.lock().unwrap()));
+        let response = session
+            .exchange(SessionPurpose::Unwrap, b"sensitive request bytes")
+            .unwrap();
+        assert_eq!(response.as_slice(), b"phone response");
+
+        let calls = calls.lock().unwrap();
+        let reverse_index = calls
+            .iter()
+            .position(|args| args.len() == 5 && args[2] == "reverse" && args[3] == "tcp:47139")
+            .unwrap();
+        let launch_index = calls
+            .iter()
+            .position(|args| {
+                args.first().is_some_and(|value| value == "-s")
+                    && args.get(2).is_some_and(|value| value == "shell")
+            })
+            .unwrap();
+        assert!(reverse_index < launch_index);
+        assert_eq!(
+            calls[launch_index],
+            [
+                "-s",
+                "phone-a",
+                "shell",
+                "am",
+                "start",
+                "-W",
+                "-a",
+                ANDROID_UNWRAP_ACTION,
+                "-n",
+                ANDROID_MAIN_COMPONENT,
+            ],
+        );
+        assert!(calls.iter().flatten().all(|arg| !arg.contains("sensitive")));
+        drop(calls);
+        assert_eq!(removal_count(&session.runner.calls), 1);
+    }
+
+    #[test]
+    fn fixed_app_launch_failure_removes_the_exact_rule_without_connecting() {
+        let mut runner = LoopbackRunner::new(PhoneBehavior::Valid, SessionPurpose::Unwrap);
+        runner.fail_launch = true;
+        let calls = Arc::clone(&runner.calls);
+        assert_eq!(
+            AdbReverseSession::connect(
+                runner,
+                Some("phone-a"),
+                SessionPurpose::Unwrap,
+                Duration::from_secs(1),
+                Duration::from_secs(1),
+                TransportLimits::default(),
+                &mut rand_core::OsRng,
+            )
+            .err()
+            .unwrap(),
+            AdbError::AppLaunch,
+        );
+        assert_eq!(removal_count(&calls), 1);
     }
 
     #[test]
@@ -678,11 +821,12 @@ mod tests {
             (PhoneBehavior::WrongSession, Duration::from_secs(1)),
             (PhoneBehavior::Silent, Duration::from_millis(20)),
         ] {
-            let runner = LoopbackRunner::new(behavior);
+            let runner = LoopbackRunner::new(behavior, SessionPurpose::Pairing);
             let calls = Arc::clone(&runner.calls);
             let mut session = AdbReverseSession::connect(
                 runner,
                 Some("phone-a"),
+                SessionPurpose::Pairing,
                 Duration::from_secs(1),
                 timeout,
                 TransportLimits::default(),
@@ -700,11 +844,12 @@ mod tests {
 
     #[test]
     fn loopback_cancellation_removes_exact_rule() {
-        let runner = LoopbackRunner::new(PhoneBehavior::Silent);
+        let runner = LoopbackRunner::new(PhoneBehavior::Silent, SessionPurpose::Pairing);
         let calls = Arc::clone(&runner.calls);
         let mut session = AdbReverseSession::connect(
             runner,
             Some("phone-a"),
+            SessionPurpose::Pairing,
             Duration::from_secs(1),
             Duration::from_secs(1),
             TransportLimits::default(),
@@ -717,12 +862,13 @@ mod tests {
 
     #[test]
     fn connection_timeout_and_mid_session_device_switch_cleanup() {
-        let runner = LoopbackRunner::new(PhoneBehavior::NoConnect);
+        let runner = LoopbackRunner::new(PhoneBehavior::NoConnect, SessionPurpose::Pairing);
         let calls = Arc::clone(&runner.calls);
         assert_eq!(
             AdbReverseSession::connect(
                 runner,
                 Some("phone-a"),
+                SessionPurpose::Pairing,
                 Duration::from_millis(20),
                 Duration::from_secs(1),
                 TransportLimits::default(),
@@ -734,13 +880,14 @@ mod tests {
         );
         assert_eq!(removal_count(&calls), 1);
 
-        let mut runner = LoopbackRunner::new(PhoneBehavior::Valid);
+        let mut runner = LoopbackRunner::new(PhoneBehavior::Valid, SessionPurpose::Pairing);
         runner.switch_device = true;
         let calls = Arc::clone(&runner.calls);
         assert_eq!(
             AdbReverseSession::connect(
                 runner,
                 Some("phone-a"),
+                SessionPurpose::Pairing,
                 Duration::from_secs(1),
                 Duration::from_secs(1),
                 TransportLimits::default(),

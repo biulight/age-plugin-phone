@@ -100,9 +100,12 @@ if ((Get-FileHash .\probe.txt -Algorithm SHA256).Hash -ne (Get-FileHash .\probe.
 ```
 
 The decrypt command must cause a new approval request and fresh strong biometric operation on the
-paired phone. Cancellation, timeout, cable failure, an unauthorized device, or a wrong paired phone
-must fail without plaintext or partial output. Retrying after any interruption must create a new
-request and require another biometric operation.
+paired phone. Developer USB creates its exact reverse rule and then opens the Android application
+automatically; there is no separate **Approve USB** button. Only the fixed, payload-free wake action
+crosses the ADB command line, and the signed request is still verified and durably consumed before
+the biometric prompt. Cancellation, timeout, cable failure, an unauthorized device, or a wrong
+paired phone must fail without plaintext or partial output. Retrying after any interruption must
+create a new request and require another biometric operation.
 
 Now prove that the independent recovery path decrypts the same ciphertext without the phone:
 

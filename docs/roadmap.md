@@ -165,10 +165,12 @@ release gate, not an open question about whether the ADB transport can carry the
 - [ ] After creating the exact ADB reverse rule, launch the Android application with one fixed,
   payload-free unwrap action so cold start and `singleTask` delivery both enter the same native USB
   unwrap controller. Do not place protocol messages, request fingerprints, caller hints, or other
-  request data in shell arguments.
+  request data in shell arguments. Implementation and portable tests are complete; packaged
+  Windows/Android validation remains before closure.
 - [ ] Remove the normal Developer USB unwrap's manual **Approve USB** pre-step. The phone must still
   strictly verify and durably consume the signed request before presenting a fresh auth-per-use
   biometric prompt; cancellation, timeout, lifecycle loss, and malformed wake actions fail closed.
+  The product and Tauri command entry points are removed; packaged physical validation remains.
 - [ ] Conduct a limited technical-user Alpha that verifies Windows stores no reusable age private
   identity and every unwrap requires fresh phone user verification.
 

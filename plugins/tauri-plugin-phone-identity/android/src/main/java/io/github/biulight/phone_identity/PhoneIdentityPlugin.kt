@@ -51,11 +51,16 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     private var cameraPermissionPending = false
     private var pairingPermissionPending = false
     private var unwrapPermissionPending = false
+    private val usbWakeOwner = Any()
     private val pairingConfirmation = PairingConfirmationCoordinator(
         PairingSessionFactory { signedOffer, signedResponse ->
             PairingConfirmationSession.begin(activity, signedOffer, signedResponse)
         },
     )
+
+    init {
+        UsbUnwrapWakeCoordinator.register(usbWakeOwner, ::startAutomaticUsbUnwrap)
+    }
 
     @Command
     fun doctorCapabilities(invoke: Invoke) {
@@ -251,17 +256,16 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         Thread({ runUsbPairing(token, invoke) }, "phone-adb-pairing").start()
     }
 
-    @Command
-    fun unwrapPhoneUsb(invoke: Invoke) {
+    private fun startAutomaticUsbUnwrap(): Boolean {
         val token = UUID.randomUUID()
         synchronized(stateLock) {
             if (nativeOperationActive()) {
-                invoke.resolve(phoneUnwrapReport(false, false, null, "unwrap_active"))
-                return
+                return false
             }
             activeUsbToken = token
         }
-        Thread({ runUsbUnwrap(token, invoke) }, "phone-adb-unwrap").start()
+        Thread({ runUsbUnwrap(token, null) }, "phone-adb-unwrap").start()
+        return true
     }
 
     @PermissionCallback
@@ -297,6 +301,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     override fun onStop() {
+        UsbUnwrapWakeCoordinator.clearPending()
         cancelActive("authentication_failed")
         cancelPendingPairing()
         cancelQrScanner()
@@ -308,6 +313,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     override fun onDestroy(activity: androidx.appcompat.app.AppCompatActivity) {
+        UsbUnwrapWakeCoordinator.unregister(usbWakeOwner)
         cancelActive("authentication_failed")
         cancelPendingPairing()
         cancelQrScanner()
@@ -514,7 +520,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    private fun runUsbUnwrap(token: UUID, invoke: Invoke) {
+    private fun runUsbUnwrap(token: UUID, invoke: Invoke?) {
         var session: PhoneStreamSession? = null
         var request: ByteArray? = null
         try {
@@ -542,7 +548,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 if (activeUsbSession === session) activeUsbSession = null
             }
             session?.close()
-            invoke.resolve(phoneUnwrapReport(false, false, null, "usb_transport_failed"))
+            invoke?.resolve(phoneUnwrapReport(false, false, null, "usb_transport_failed"))
         } finally {
             request?.fill(0)
         }
@@ -581,7 +587,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    private fun showPhoneUnwrapPrompt(pending: PendingPhoneUnwrap, invoke: Invoke) {
+    private fun showPhoneUnwrapPrompt(pending: PendingPhoneUnwrap, invoke: Invoke?) {
         if (!isPhoneUnwrapActive(pending.token)) return
         try {
             val cryptoObject = BiometricPrompt.CryptoObject::class.java
@@ -614,7 +620,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
 
     private fun phoneUnwrapAuthenticationCallback(
         pending: PendingPhoneUnwrap,
-        invoke: Invoke,
+        invoke: Invoke?,
     ) = object : BiometricPrompt.AuthenticationCallback() {
         override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
             if (!isPhoneUnwrapActive(pending.token)) return
@@ -652,7 +658,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     private fun performPhoneUnwrap(
         pending: PendingPhoneUnwrap,
         agreement: KeyAgreement,
-        invoke: Invoke,
+        invoke: Invoke?,
     ) {
         var secret: ByteArray? = null
         var fileKey: ByteArray? = null
@@ -678,12 +684,13 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 )
                 return
             }
+            val qrInvoke = invoke ?: throw OfflineEnvelopeCrypto.ProtocolException()
             val prepared = PreparedUnwrapResponse(
                 pending.requestFingerprint,
                 QrFraming.fragment(response, RESPONSE_QR_CHUNK_BYTES),
             )
             takePhoneUnwrap(pending.token)?.timeout?.let(mainHandler::removeCallbacks)
-            showUnwrapResponse(prepared, invoke)
+            showUnwrapResponse(prepared, qrInvoke)
         } catch (_: KeyPermanentlyInvalidatedException) {
             finishPhoneUnwrap(pending.token, invoke, "key_permanently_invalidated", false)
         } catch (_: OfflineEnvelopeCrypto.ProtocolException) {
@@ -715,12 +722,12 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    private fun finishPhoneUnwrap(token: UUID, invoke: Invoke, error: String, cancel: Boolean) {
+    private fun finishPhoneUnwrap(token: UUID, invoke: Invoke?, error: String, cancel: Boolean) {
         val pending = takePhoneUnwrap(token) ?: return
         pending.timeout?.let(mainHandler::removeCallbacks)
         if (cancel && !pending.cancellation.isCanceled) pending.cancellation.cancel()
         pending.streamSession?.close()
-        invoke.resolve(phoneUnwrapReport(false, false, pending.requestFingerprint, error))
+        invoke?.resolve(phoneUnwrapReport(false, false, pending.requestFingerprint, error))
     }
 
     private fun takePhoneUnwrap(token: UUID): PendingPhoneUnwrap? = synchronized(stateLock) {

@@ -57,6 +57,14 @@ native pairing or unwrap controller. Protocol bytes, session IDs, file keys, and
 cross the Tauri command boundary. Unwrap request verification and durable replay consumption still
 occur before a fresh `BiometricPrompt.CryptoObject(KeyAgreement)` authorization.
 
+For unwrap only, after the exact reverse rule and cleanup guardian are active, the desktop runs one
+fixed `am start` command for `io.github.biulight.age_plugin_phone/.MainActivity` with action
+`io.github.biulight.age_plugin_phone.action.UNWRAP_USB`. The command has no extras, URI, caller hint,
+request fingerprint, protocol message, or other variable payload. `MainActivity` consumes the exact
+payload-free action once from either cold-start `onCreate` or `singleTask` `onNewIntent`; malformed,
+duplicate, busy, or lifecycle-lost wakeups do not queue a second operation. The WebView has no
+Developer USB unwrap command. Pairing remains an explicit phone action.
+
 Windows defaults to ADB for desktop commands and the standard `identity-v1` path. QR remains
 selectable without changing the pairing or identity stub. Non-Windows builds default to QR.
 
@@ -85,9 +93,11 @@ selectable without changing the pairing or identity stub. Non-Windows builds def
 Portable Rust and Kotlin tests cover wrong purpose, direction, session ID, version, oversize,
 truncation, cancellation, device ambiguity, offline and unauthorized devices, stale reverse rules,
 real loopback success, silent-peer timeout, device switching, exact-rule cleanup, and cleanup-guard
-EOF/disarm behavior. The remaining physical Windows/Android Alpha gate items are a wrong paired
-physical device and injected response replay. The completed items remain recorded below rather than
-collapsing the matrix into one pass.
+EOF/disarm behavior. They also cover fixed unwrap launch arguments and ordering, launch-failure
+cleanup, absence of request data in ADB arguments, cold-start wake queuing, exact payload rejection,
+one-shot delivery, and busy-operation rejection. Packaged cold/warm/background wake validation and
+the remaining wrong-paired-device and injected-response-replay physical cases remain Alpha gates.
+The completed items remain recorded below rather than collapsing the matrix into one pass.
 
 An Android 16 / API 36 physical device has also completed authenticated pairing and a standard
 `age --decrypt` unwrap through ADB reverse against a macOS desktop build. The recovered plaintext

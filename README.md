@@ -58,11 +58,13 @@ On Windows, `status` performs a read-only Alpha capability probe. It reports the
 version, client/server edition, x64 architecture, TPM 2.0 availability, and Microsoft Platform
 Crypto Provider availability without creating or opening persisted keys.
 
-The Android Alpha UI shows the StrongBox identity status and public recipient, offers Developer USB
-and QR pairing/approval, lists paired desktops, and provides native-confirmed revocation and
-identity deletion. Revocation becomes durable before its pairing record is removed; identity
-deletion is journaled before pairings and StrongBox aliases are destroyed. Interrupted deletion
-remains unavailable and cannot recreate an empty replay scope.
+The Android Alpha UI shows the StrongBox identity status and public recipient, offers explicit
+Developer USB or QR pairing and a QR approval fallback, lists paired desktops, and provides
+native-confirmed revocation and identity deletion. A normal Developer USB unwrap launches the app
+automatically and enters the same native one-shot authorization controller. Revocation becomes
+durable before its pairing record is removed; identity deletion is journaled before pairings and
+StrongBox aliases are destroyed. Interrupted deletion remains unavailable and cannot recreate an
+empty replay scope.
 
 The Android build's **Pair · QR** action scans the desktop offer, signs and
 renders the phone response entirely in native UI, and shows the full transcript fingerprint. The
@@ -88,11 +90,13 @@ explicit unwrap, and standard `identity-v1` operations fail before protocol work
 a Windows 11-or-later x64 client with an available TPM 2.0 and Platform Crypto Provider.
 
 Windows now defaults to the Developer USB ADB Alpha for `pair`, `unwrap`, and standard age identity
-operations. Start the desktop operation, then choose **Pair via Developer USB** or **Approve via
-Developer USB** in the Android development build. Use `--adb-serial SERIAL` when multiple devices
-are listed by ADB. `--transport qr` selects the camera fallback without changing the pairing.
-For standard age invocations, set `AGE_PLUGIN_PHONE_TRANSPORT=qr` for that fallback or
-`AGE_PLUGIN_PHONE_ADB_SERIAL=SERIAL` for explicit device selection.
+operations. Pairing still requires **Pair via Developer USB** on the phone. For unwrap, the desktop
+creates the exact reverse rule and launches one fixed, payload-free Android action; cold start and
+an existing `singleTask` instance both enter the native USB controller without a manual pre-step.
+Use `--adb-serial SERIAL` when multiple devices are listed by ADB. `--transport qr` selects the
+camera fallback without changing the pairing. For standard age invocations, set
+`AGE_PLUGIN_PHONE_TRANSPORT=qr` for that fallback or `AGE_PLUGIN_PHONE_ADB_SERIAL=SERIAL` for
+explicit device selection.
 
 > [!CAUTION]
 > Developer USB requires Android USB debugging and ADB authorization. An ADB-authorized desktop has

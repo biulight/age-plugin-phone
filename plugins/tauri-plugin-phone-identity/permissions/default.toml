@@ -7,7 +7,6 @@ permissions = [
     "allow-pair-phone",
     "allow-pair-phone-usb",
     "allow-unwrap-phone",
-    "allow-unwrap-phone-usb",
     "allow-identity-status",
     "allow-provision-identity",
     "allow-revoke-pairing",

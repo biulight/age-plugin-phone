@@ -2259,12 +2259,6 @@
           "markdownDescription": "Enables the unwrap_phone command without any pre-configured scope."
         },
         {
-          "description": "Enables the unwrap_phone_usb command without any pre-configured scope.",
-          "type": "string",
-          "const": "phone-identity:allow-unwrap-phone-usb",
-          "markdownDescription": "Enables the unwrap_phone_usb command without any pre-configured scope."
-        },
-        {
           "description": "Denies the doctor_capabilities command without any pre-configured scope.",
           "type": "string",
           "const": "phone-identity:deny-doctor-capabilities",
@@ -2323,12 +2317,6 @@
           "type": "string",
           "const": "phone-identity:deny-unwrap-phone",
           "markdownDescription": "Denies the unwrap_phone command without any pre-configured scope."
-        },
-        {
-          "description": "Denies the unwrap_phone_usb command without any pre-configured scope.",
-          "type": "string",
-          "const": "phone-identity:deny-unwrap-phone-usb",
-          "markdownDescription": "Denies the unwrap_phone_usb command without any pre-configured scope."
         }
       ]
     },

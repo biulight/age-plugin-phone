@@ -89,12 +89,6 @@ impl<R: Runtime> PhoneIdentity<R> {
             .map_err(Into::into)
     }
 
-    pub fn unwrap_phone_usb(&self) -> Result<PhoneUnwrapReport, Error> {
-        self.0
-            .run_mobile_plugin("unwrapPhoneUsb", ())
-            .map_err(Into::into)
-    }
-
     pub fn identity_status(&self) -> Result<IdentityStatusReport, Error> {
         self.0
             .run_mobile_plugin("identityStatus", ())

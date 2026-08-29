@@ -500,6 +500,7 @@ fn exchange_adb(
     let mut transport = AdbReverseSession::connect(
         SystemAdb::default(),
         serial,
+        purpose,
         DEFAULT_CONNECT_TIMEOUT,
         DEFAULT_MESSAGE_TIMEOUT,
         TransportLimits::default(),

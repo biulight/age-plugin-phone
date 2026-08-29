@@ -2193,10 +2193,10 @@
           "markdownDescription": "Denies the unminimize command without any pre-configured scope."
         },
         {
-          "description": "Allows product identity, pairing, unwrap, and lifecycle commands.\n#### This default permission set includes:\n\n- `allow-scan-pairing-offer`\n- `allow-pair-phone`\n- `allow-pair-phone-usb`\n- `allow-unwrap-phone`\n- `allow-unwrap-phone-usb`\n- `allow-identity-status`\n- `allow-provision-identity`\n- `allow-revoke-pairing`\n- `allow-delete-identity`",
+          "description": "Allows product identity, pairing, unwrap, and lifecycle commands.\n#### This default permission set includes:\n\n- `allow-scan-pairing-offer`\n- `allow-pair-phone`\n- `allow-pair-phone-usb`\n- `allow-unwrap-phone`\n- `allow-identity-status`\n- `allow-provision-identity`\n- `allow-revoke-pairing`\n- `allow-delete-identity`",
           "type": "string",
           "const": "phone-identity:default",
-          "markdownDescription": "Allows product identity, pairing, unwrap, and lifecycle commands.\n#### This default permission set includes:\n\n- `allow-scan-pairing-offer`\n- `allow-pair-phone`\n- `allow-pair-phone-usb`\n- `allow-unwrap-phone`\n- `allow-unwrap-phone-usb`\n- `allow-identity-status`\n- `allow-provision-identity`\n- `allow-revoke-pairing`\n- `allow-delete-identity`"
+          "markdownDescription": "Allows product identity, pairing, unwrap, and lifecycle commands.\n#### This default permission set includes:\n\n- `allow-scan-pairing-offer`\n- `allow-pair-phone`\n- `allow-pair-phone-usb`\n- `allow-unwrap-phone`\n- `allow-identity-status`\n- `allow-provision-identity`\n- `allow-revoke-pairing`\n- `allow-delete-identity`"
         },
         {
           "description": "Allows non-sensitive Doctor diagnostics in development builds.\n#### This permission set includes:\n\n- `allow-doctor-capabilities`\n- `allow-doctor-identity-custody`\n- `allow-doctor-create-probe`\n- `allow-doctor-run-agreement`\n- `allow-doctor-cleanup`\n- `allow-doctor-pairing-storage`",
@@ -2289,12 +2289,6 @@
           "markdownDescription": "Enables the unwrap_phone command without any pre-configured scope."
         },
         {
-          "description": "Enables the unwrap_phone_usb command without any pre-configured scope.",
-          "type": "string",
-          "const": "phone-identity:allow-unwrap-phone-usb",
-          "markdownDescription": "Enables the unwrap_phone_usb command without any pre-configured scope."
-        },
-        {
           "description": "Denies the delete_identity command without any pre-configured scope.",
           "type": "string",
           "const": "phone-identity:deny-delete-identity",
@@ -2377,12 +2371,6 @@
           "type": "string",
           "const": "phone-identity:deny-unwrap-phone",
           "markdownDescription": "Denies the unwrap_phone command without any pre-configured scope."
-        },
-        {
-          "description": "Denies the unwrap_phone_usb command without any pre-configured scope.",
-          "type": "string",
-          "const": "phone-identity:deny-unwrap-phone-usb",
-          "markdownDescription": "Denies the unwrap_phone_usb command without any pre-configured scope."
         }
       ]
     },

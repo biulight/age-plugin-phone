@@ -41,6 +41,7 @@ from the supported Windows/Android pair.
 | Scenario | Portable gate | Physical gate | Current state |
 | --- | --- | --- | --- |
 | Fresh identity and pairing, exact transcript comparison, restart, then standard age unwrap | Required | Required | Passed on designated Windows/Android baseline |
+| Automatic Developer USB unwrap wake on cold start, foreground, background, and repeated requests | Required | Required | Fixed payload-free action and one-shot native dispatch have portable coverage; packaged physical gate pending |
 | Encrypt and decrypt with released reference age; multiple files and multiple phone identities | Required | Required | age 1.3.1 production-plugin encryption and independent recovery pass in CI; packaged physical phone unwrap matrix pending |
 | Encrypt and decrypt with released rage | Required | Required | rage 0.12.1 cross-client production-plugin encryption/recovery pass in CI; packaged physical phone unwrap pending |
 | Shine encrypt, decrypt, seal, and multi-recipient recovery through ordinary age configuration | Required | Required | Pending |
@@ -51,7 +52,7 @@ from the supported Windows/Android pair.
 | Cable removal/reconnect, ADB daemon restart, nonexistent serial, unauthorized/offline device, multiple online devices, and device switch | Required | Required | Passed applicable baseline cases; unauthorized/offline packaged rerun required |
 | Existing/stale reverse rule, Ctrl-C, normal exit, forced desktop process exit, and exact rule cleanup | Required | Required | Passed on designated baseline; rerun packaged artifacts |
 | QR fallback after ADB failure with a fresh authorization and no reverse residue | Required | Required | Passed on designated baseline; rerun packaged artifacts |
-| Desktop restart, phone app restart/background/process death, and replay persistence | Required | Required | Portable coverage exists; complete packaged lifecycle run pending |
+| Desktop restart, phone app restart/background/process death, malformed wake action, and replay persistence | Required | Required | Portable coverage exists; complete packaged lifecycle run pending |
 | Revoke one desktop while another pairing remains usable | Required | Required | Journaled native revocation and portable isolation/restart tests implemented; physical gate pending |
 | TPM signing/selection invalidation and StrongBox identity/signing invalidation | Required | Required | Fail-closed primitives exist; lifecycle implementation and physical matrix pending |
 | Identity deletion, Android uninstall/reinstall, backup exclusion, and explicit desktop cleanup | Required | Required | Journaled phone identity deletion and backup exclusion implemented; uninstall/reinstall, desktop cleanup, and physical gate pending |
