@@ -4,9 +4,12 @@ import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.PipedInputStream
 import java.io.PipedOutputStream
+import java.net.InetSocketAddress
+import java.net.Socket
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -156,5 +159,49 @@ class StreamTransportTest {
         output.close()
 
         assertFalse(notified.await(100, TimeUnit.MILLISECONDS))
+    }
+
+    @Test
+    fun foregroundWifiListenerAcceptsOneBoundedUnwrap() {
+        val listener = PhoneWifiListener.start(0)
+        val response = AtomicReference<ByteArray>()
+        val client = Thread {
+            Socket().use { socket ->
+                socket.soTimeout = 1_000
+                socket.connect(InetSocketAddress("127.0.0.1", listener.localPort), 1_000)
+                val sessionId = ByteArray(16) { 9 }
+                StreamTransportCodec.write(
+                    socket.getOutputStream(),
+                    PhoneStreamSession.Purpose.UNWRAP,
+                    StreamTransportCodec.DESKTOP_REQUEST,
+                    sessionId,
+                    byteArrayOf(4, 5, 6),
+                )
+                socket.getOutputStream().flush()
+                response.set(
+                    StreamTransportCodec.read(
+                        socket.getInputStream(),
+                        PhoneStreamSession.Purpose.UNWRAP,
+                        StreamTransportCodec.PHONE_RESPONSE,
+                        sessionId,
+                    ).body,
+                )
+            }
+        }.apply { start() }
+
+        val session = listener.acceptUnwrap()
+        assertArrayEquals(byteArrayOf(4, 5, 6), session.receiveRequest())
+        session.sendResponse(byteArrayOf(7, 8, 9))
+        client.join(1_000)
+
+        assertFalse(client.isAlive)
+        assertArrayEquals(byteArrayOf(7, 8, 9), response.get())
+    }
+
+    @Test
+    fun closingForegroundWifiListenerCancelsAccept() {
+        val listener = PhoneWifiListener.start(0)
+        listener.close()
+        assertThrows(StreamTransportException::class.java) { listener.acceptUnwrap() }
     }
 }

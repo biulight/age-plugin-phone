@@ -9,6 +9,8 @@ secrets.
 - One known Windows 11 x64 desktop with TPM 2.0 and Microsoft Platform Crypto Provider.
 - One capability-qualified Android StrongBox phone with fresh auth-per-use biometric authorization.
 - Developer USB through one explicitly selected ADB device as the normal transport.
+- Optional foreground-only Wi-Fi unwrap experimentation through one explicit private IPv4 route;
+  no discovery, background wake, pairing, fallback, or production transport claim.
 - One independently verified private-root test-signed Windows/Android artifact pair at a time.
 - Synthetic or otherwise disposable data with a separately verified independent recovery recipient.
 

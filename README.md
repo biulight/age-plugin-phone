@@ -1,8 +1,8 @@
 # age-plugin-phone
 
 `age-plugin-phone` is an experimental, standalone [age] identity plugin that will keep long-term
-decryption keys on a phone and authorize individual file-key unwrap operations over a fully offline
-QR, BLE, or USB channel.
+decryption keys on a phone and authorize individual file-key unwrap operations over QR, BLE, USB,
+or an experimental local Wi-Fi channel.
 
 It is intended to work with any compatible age client. It does not depend on Shine, understand
 Shine environments, or define a Shine-specific ciphertext format.
@@ -16,7 +16,8 @@ Shine environments, or define a Shine-specific ciphertext format.
 The current deployment posture is an
 [owner-only technical preview](docs/owner-only-preview.md): one repository owner, one known
 Windows/TPM desktop, one capability-qualified StrongBox phone, and Developer USB as the normal
-route. UVC-camera QR evidence, a second StrongBox family, multi-phone testing, public Windows
+route. A foreground-only Wi-Fi unwrap PoC is available as an explicit owner experiment. UVC-camera
+QR evidence, a second StrongBox family, multi-phone testing, public Windows
 signing, and an external technical-user Alpha are recorded but deferred until broader use is
 planned. Deferred means unverified, not passed.
 
@@ -29,7 +30,7 @@ age-compatible application
        age/rage
           |
           v
- age-plugin-phone  <---- QR / BLE / USB ---->  phone app
+ age-plugin-phone  <--- QR / BLE / USB / Wi-Fi --->  phone app
                                                    |
                                                    v
                                       hardware-backed private key
@@ -80,9 +81,10 @@ version, client/server edition, x64 architecture, TPM 2.0 availability, and Micr
 Crypto Provider availability without creating or opening persisted keys.
 
 The Android Alpha UI shows the StrongBox identity status and public recipient, offers explicit
-Developer USB or QR pairing and a QR approval fallback, lists paired desktops, and provides
-native-confirmed revocation and identity deletion. A normal Developer USB unwrap launches the app
-automatically and enters the same native one-shot authorization controller. Revocation becomes
+Developer USB or QR pairing, a QR approval fallback, and an owner-only foreground Wi-Fi unwrap
+action. It also lists paired desktops and provides native-confirmed revocation and identity
+deletion. A normal Developer USB unwrap launches the app automatically and enters the same native
+one-shot authorization controller. Revocation becomes
 durable before its pairing record is removed; identity deletion is journaled before pairings and
 StrongBox aliases are destroyed. Interrupted deletion remains unavailable and cannot recreate an
 empty replay scope.
@@ -130,6 +132,14 @@ Use `--adb-serial SERIAL` when multiple devices are listed by ADB. `--transport 
 camera fallback without changing the pairing. For standard age invocations, set
 `AGE_PLUGIN_PHONE_TRANSPORT=qr` for that fallback or `AGE_PLUGIN_PHONE_ADB_SERIAL=SERIAL` for
 explicit device selection.
+
+For the owner-only foreground Wi-Fi unwrap PoC, first tap **Approve · Wi-Fi** and keep the phone App
+visible. Then invoke age with `AGE_PLUGIN_PHONE_TRANSPORT=wifi` and
+`AGE_PLUGIN_PHONE_WIFI_ADDRESS=PHONE_PRIVATE_IPV4:47140`; unset
+`AGE_PLUGIN_PHONE_ADB_SERIAL`. The listener accepts one connection for 30 seconds. It provides no
+pairing, discovery, background wake, automatic fallback, reconnect, or production support claim.
+The LAN route is untrusted and every accepted request still requires paired-desktop verification,
+durable replay consumption, and a fresh StrongBox-backed biometric operation.
 
 > [!CAUTION]
 > Developer USB requires Android USB debugging and ADB authorization. An ADB-authorized desktop has

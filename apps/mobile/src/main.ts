@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import "./styles.css";
 
-interface ProjectStatus { stage: string; protocolVersion: number; bleTransport: string; doctorEnabled: boolean; }
+interface ProjectStatus { stage: string; protocolVersion: number; wifiTransport: string; bleTransport: string; doctorEnabled: boolean; }
 interface PairedDesktopSummary { handle: string; displayLabel: string; transcriptFingerprint: string; deletionPending: boolean; }
 interface IdentityStatusReport {
   state: "ready" | "not_configured" | "deletion_pending" | "unavailable" | "unsupported";
@@ -19,7 +19,7 @@ root.innerHTML = `
   <header class="hero"><div><p class="eyebrow">AGE IDENTITY · ALPHA</p><h1>Phone identity</h1></div><span class="state state-loading" id="identity-state">Loading</span></header>
   <p class="summary">Your long-term identity stays in StrongBox. Every file-key unwrap needs a fresh phone biometric.</p>
   <section class="card"><div class="card-heading"><div><p class="kicker">IDENTITY</p><h2>Public recipient</h2></div><button class="quiet compact" id="copy-recipient" hidden>Copy</button></div><p class="recipient empty" id="recipient">Checking this phone…</p><button class="primary full" id="create-identity" hidden>Create StrongBox identity</button></section>
-  <section class="card"><div class="card-heading"><div><p class="kicker">ONE-SHOT ACTIONS</p><h2>Pair or approve</h2></div></div><p class="card-copy">Developer USB unwrap opens this app automatically. Pairing remains explicit, and QR is the offline fallback using the same authenticated protocol.</p><div class="action-grid"><button class="primary" data-product-action="pair_phone_usb">Pair · USB</button><button data-product-action="pair_phone">Pair · QR</button><button data-product-action="unwrap_phone">Approve · QR</button></div><p class="result" id="operation-result" aria-live="polite">No operation is active.</p></section>
+  <section class="card"><div class="card-heading"><div><p class="kicker">ONE-SHOT ACTIONS</p><h2>Pair or approve</h2></div></div><p class="card-copy">Developer USB unwrap opens this app automatically. Foreground Wi-Fi is an owner-only experiment on port 47140. Pairing remains USB or QR.</p><div class="action-grid"><button class="primary" data-product-action="pair_phone_usb">Pair · USB</button><button data-product-action="pair_phone">Pair · QR</button><button data-product-action="unwrap_phone_wifi">Approve · Wi-Fi</button><button data-product-action="unwrap_phone">Approve · QR</button></div><p class="result" id="operation-result" aria-live="polite">No operation is active.</p></section>
   <section class="card"><div class="card-heading"><div><p class="kicker">ACCESS</p><h2>Paired desktops</h2></div><span class="count" id="desktop-count">0</span></div><div class="desktop-list" id="desktop-list"><p class="empty">No paired desktops.</p></div></section>
   <section class="card recovery"><p class="kicker">RECOVERY</p><h2>Keep an independent recipient</h2><p class="card-copy">Important data must also be encrypted to a recovery recipient that does not depend on this phone or the paired desktop TPM. Replacing either device does not migrate old ciphertext.</p></section>
   <details class="card danger-zone"><summary>Identity deletion and recovery guidance</summary><p>Deleting the app or identity permanently removes access through this phone. Ciphertexts are not deleted. Verify recovery first.</p><button class="danger full" id="delete-identity">Delete phone identity…</button></details>
@@ -91,7 +91,7 @@ function renderDesktops(desktops: PairedDesktopSummary[]): void {
 async function refreshIdentity(): Promise<void> { renderIdentity(await invoke<IdentityStatusReport>("plugin:phone-identity|identity_status")); }
 
 async function runProduct(command: string): Promise<void> {
-  if (busy) return; setBusy(true); if (operationResult) operationResult.textContent = "Waiting for the native phone flow…";
+  if (busy) return; setBusy(true); if (operationResult) operationResult.textContent = command === "unwrap_phone_wifi" ? "Listening once on Wi-Fi port 47140. Keep this app in the foreground, then start the desktop request." : "Waiting for the native phone flow…";
   try {
     if (command.startsWith("pair")) {
       const report = await invoke<PhonePairingReport>(`plugin:phone-identity|${command}`);
@@ -128,5 +128,5 @@ doctorButtons.forEach((button) => button.addEventListener("click", async () => {
 
 Promise.all([invoke<ProjectStatus>("project_status"), refreshIdentity()]).then(([project]) => {
   if (doctor) doctor.hidden = !project.doctorEnabled;
-  if (buildStatus) buildStatus.textContent = `Experimental protocol v${project.protocolVersion} · ${project.stage} · BLE ${project.bleTransport}`;
+  if (buildStatus) buildStatus.textContent = `Experimental protocol v${project.protocolVersion} · ${project.stage} · Wi-Fi ${project.wifiTransport} · BLE ${project.bleTransport}`;
 }).catch(() => renderIdentity({ state: "unavailable", publicRecipient: null, pairedDesktops: [], recoveryRequired: true, errorCategory: "bridge_unavailable" }));

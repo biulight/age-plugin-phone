@@ -5,11 +5,12 @@ import java.io.DataOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.InetSocketAddress
+import java.net.ServerSocket
 import java.net.Socket
 import java.util.concurrent.FutureTask
 import java.util.concurrent.TimeUnit
 
-/** One bounded native-only request/response stream carried by ADB reverse. */
+/** One bounded native-only request/response stream carried by an untrusted byte route. */
 internal class PhoneStreamSession private constructor(
     private val socket: Socket,
     private val purpose: Purpose,
@@ -46,7 +47,7 @@ internal class PhoneStreamSession private constructor(
             )
             socket.getOutputStream().flush()
         }
-        Thread(write, "phone-adb-response").start()
+        Thread(write, "phone-stream-response").start()
         try {
             write.get(WRITE_TIMEOUT_MS, TimeUnit.MILLISECONDS)
         } catch (error: Exception) {
@@ -84,7 +85,7 @@ internal class PhoneStreamSession private constructor(
         private const val MESSAGE_TIMEOUT_MS = 90_000
         private const val WRITE_TIMEOUT_MS = 30_000L
 
-        fun connect(purpose: Purpose): PhoneStreamSession {
+        fun connectUsb(purpose: Purpose): PhoneStreamSession {
             val socket = Socket()
             try {
                 socket.soTimeout = MESSAGE_TIMEOUT_MS
@@ -97,6 +98,71 @@ internal class PhoneStreamSession private constructor(
             } catch (error: Exception) {
                 try {
                     socket.close()
+                } catch (_: Exception) {
+                    // Preserve the original fail-closed category.
+                }
+                throw StreamTransportException(error)
+            }
+        }
+
+        fun fromAccepted(socket: Socket, purpose: Purpose): PhoneStreamSession {
+            try {
+                socket.soTimeout = MESSAGE_TIMEOUT_MS
+                socket.tcpNoDelay = true
+                return PhoneStreamSession(socket, purpose)
+            } catch (error: Exception) {
+                try {
+                    socket.close()
+                } catch (_: Exception) {
+                    // Preserve the original fail-closed category.
+                }
+                throw StreamTransportException(error)
+            }
+        }
+    }
+}
+
+/** Explicit foreground-only one-shot listener for the owner Wi-Fi proof of concept. */
+internal class PhoneWifiListener private constructor(
+    private val server: ServerSocket,
+) : AutoCloseable {
+    val localPort: Int get() = server.localPort
+
+    fun acceptUnwrap(): PhoneStreamSession {
+        try {
+            return PhoneStreamSession.fromAccepted(
+                server.accept(),
+                PhoneStreamSession.Purpose.UNWRAP,
+            )
+        } catch (error: Exception) {
+            throw StreamTransportException(error)
+        } finally {
+            close()
+        }
+    }
+
+    override fun close() {
+        try {
+            server.close()
+        } catch (_: Exception) {
+            // Closing is best effort; the listener is terminal either way.
+        }
+    }
+
+    companion object {
+        const val WIFI_UNWRAP_PORT = 47_140
+        private const val ACCEPT_TIMEOUT_MS = 30_000
+
+        fun start(port: Int = WIFI_UNWRAP_PORT): PhoneWifiListener {
+            val server = ServerSocket()
+            try {
+                server.reuseAddress = false
+                server.soTimeout = ACCEPT_TIMEOUT_MS
+                server.bind(InetSocketAddress("0.0.0.0", port), 1)
+                return PhoneWifiListener(server)
+            } catch (error: Exception) {
+                try {
+                    server.close()
                 } catch (_: Exception) {
                     // Preserve the original fail-closed category.
                 }
@@ -138,7 +204,7 @@ internal class PeerDisconnectMonitor(
                 }
                 if (notify) onDisconnect()
             },
-            "phone-adb-peer-watch",
+            "phone-stream-peer-watch",
         ).apply { isDaemon = true }.start()
     }
 

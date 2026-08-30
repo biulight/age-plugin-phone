@@ -8,6 +8,7 @@ Allows product identity, pairing, unwrap, and lifecycle commands.
 - `allow-pair-phone`
 - `allow-pair-phone-usb`
 - `allow-unwrap-phone`
+- `allow-unwrap-phone-wifi`
 - `allow-identity-status`
 - `allow-provision-identity`
 - `allow-revoke-pairing`
@@ -382,6 +383,32 @@ Enables the unwrap_phone command without any pre-configured scope.
 <td>
 
 Denies the unwrap_phone command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:allow-unwrap-phone-wifi`
+
+</td>
+<td>
+
+Enables the unwrap_phone_wifi command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:deny-unwrap-phone-wifi`
+
+</td>
+<td>
+
+Denies the unwrap_phone_wifi command without any pre-configured scope.
 
 </td>
 </tr>

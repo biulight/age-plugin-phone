@@ -19,6 +19,13 @@ In Developer USB mode, assume the ADB-authorized desktop can create, replace, ob
 truncate, and replay loopback stream connections and can exercise unrelated broad ADB capabilities.
 ADB authorization, serial numbers, connection state, and the USB cable provide no protocol trust.
 
+In the owner-only foreground Wi-Fi experiment, assume any LAN peer can discover or reach the fixed
+port, connect first, impersonate an address, observe, replace, delay, truncate, inject, and replay
+stream bytes, or disconnect while authorization is pending. IP addresses, private-address routing,
+interface choice, and TCP connection success provide no protocol trust. Such a peer may deny
+service but must not reach a biometric prompt without a valid signed request from the paired
+desktop.
+
 The phone operating system, hardware-backed key implementation, and user-verification UI are trusted
 within their documented guarantees.
 
@@ -56,4 +63,6 @@ key is unrecoverable by design.
 - Logging protocol payloads, recipient stanza bodies, file keys, or plaintext.
 - Treating missing, corrupt, mismatched, or full replay state as an empty store.
 - Treating ADB authorization, a selected serial, or a successful reverse connection as peer
+  authentication or phone user authorization.
+- Treating a LAN address, private subnet, Wi-Fi association, or successful TCP connection as peer
   authentication or phone user authorization.

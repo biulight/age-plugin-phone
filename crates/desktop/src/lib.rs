@@ -10,3 +10,4 @@ pub mod pairing;
 pub mod qr_scanner;
 pub mod qr_terminal;
 pub mod unwrap;
+pub mod wifi;
