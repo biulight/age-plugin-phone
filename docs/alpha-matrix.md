@@ -1,8 +1,10 @@
 # Windows and Android Alpha matrix
 
-Status: exact candidate `18a94c8` has closed fresh pairing, malformed Developer USB, and the primary
-one-phone interoperability paths; QR/replay, remaining lifecycle/invalidation, multi-phone,
-public-signing, and technical-user release gates remain open.
+Status: active candidate `35bbb60` has verified test-signed packages and awaits physical testing.
+The preceding `18a94c8` candidate closed fresh pairing, malformed Developer USB, and the primary
+one-phone interoperability paths, but those results are historical and do not transfer to the
+active artifact pair. QR/replay, remaining lifecycle/invalidation, multi-phone, public-signing, and
+technical-user release gates remain open.
 
 This matrix separates the supported Alpha product from interoperability evidence. A row marked
 "required" is a release gate, not a promise that every version in that family is supported. The
@@ -39,6 +41,10 @@ protocol and must pass its own physical matrix before it can replace an Alpha ga
 The release candidate must run the following scenarios against the exact packaged desktop and
 Android artifacts. "Portable" means deterministic Rust/Kotlin coverage; "physical" means evidence
 from the supported Windows/Android pair.
+
+Current-state entries below describe the preceding `18a94c8` physical baseline unless they
+explicitly name `35bbb60`. Treat every physical row as pending for the active candidate until it is
+rerun with that exact package pair.
 
 | Scenario | Portable gate | Physical gate | Current state |
 | --- | --- | --- | --- |

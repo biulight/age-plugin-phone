@@ -1,9 +1,36 @@
 # Alpha candidate evidence
 
-Status: active private-root test-signed candidate with partial physical evidence. QR/replay,
+Status: active private-root test-signed candidate with independently verified package evidence and
+no physical results yet. The preceding `18a94c8` candidate retains its historical one-phone
+physical evidence, but none of that evidence transfers to the new artifact pair. QR/replay,
 remaining lifecycle/invalidation, multi-phone, public-trust, and technical-user gates remain open.
 
 ## Candidate identity
+
+| Field | Recorded value |
+| --- | --- |
+| Repository commit | `35bbb6077d679c7a84d8ce6972175124d272bf61` |
+| Windows executable SHA-256 | `0cf05bce8033185130b83d7247423a6233a16e0cf26416f617f46ffddacec5e8` |
+| Windows ZIP SHA-256 | `57857465fe463a699003b91492add58f287a27fc93ba7c886539a1340dc4442f` |
+| Android APK SHA-256 | `1952bf0fbb951b42c4ab0ee7792e7162660b11985095027f9e537affe0210d86` |
+| Signing workflow run and attempt | `33326611527`, attempt 1 |
+| Windows signature scope | Private Alpha root with trusted timestamp; signer certificate SHA-256 `d64e82d01bb5835b292a0abbf38759a2c36aaa7003af46809e6a5d730e239215`; public trust remains open |
+| Android signing certificate | One v2 signer; certificate SHA-256 `9a3e5a00a0a363ca58bbe0abfa1bbc0e36cbdce58e314c0c0dbfa94baff1d58b` |
+
+The final report must refer to one exact Windows/Android artifact pair. Never mix packages from
+different commits, workflow runs, or attempts.
+
+The downloaded Windows executable, Windows ZIP, and Android APK matched their uploaded SHA-256
+records. The Windows evidence bound the package to the commit and run above, validated the private
+test-root chain in memory, and recorded the expected lack of public trust. The Android evidence
+reported exactly one APK Signature Scheme v2 signer with the registered certificate fingerprint
+and bound the APK to the same commit and run. GitHub artifact records `9736439270` and `9736495833`
+were present and unexpired when independently downloaded. This verifies package identity only; it
+does not close a physical matrix row.
+
+## Previous physical-evidence baseline
+
+The previous candidate remains the source of the historical physical results below:
 
 | Field | Recorded value |
 | --- | --- |
@@ -12,15 +39,13 @@ remaining lifecycle/invalidation, multi-phone, public-trust, and technical-user 
 | Windows ZIP SHA-256 | `53c6c385b397051edf1dd2fdd20f9d3dd2215000dbfd4854fd1257ee93db13e3` |
 | Android APK SHA-256 | `e1e2c68a896b36bbc36f4aaf1eae20c79a1c30e94cc830f0f4abb089d7e94a67` |
 | Signing workflow run and attempt | `33295051535`, attempt 1 |
-| Windows signature scope | Private Alpha root with trusted timestamp; signer certificate SHA-256 `d64e82d01bb5835b292a0abbf38759a2c36aaa7003af46809e6a5d730e239215`; public trust remains open |
-| Android signing certificate | One v2 signer; certificate SHA-256 `9a3e5a00a0a363ca58bbe0abfa1bbc0e36cbdce58e314c0c0dbfa94baff1d58b` |
 
-The final report must refer to one exact Windows/Android artifact pair. Never mix packages from
-different commits, workflow runs, or attempts.
+These results guide the next run but do not pass the active candidate. Do not combine either
+package from this baseline with the active candidate.
 
-## Environment preflight
+## Previous physical-evidence environment
 
-Read-only preflight on 2026-08-30 for the exact candidate observed Windows 11 Pro 23H2 x64 build
+Read-only preflight on 2026-08-30 for candidate `18a94c8` observed Windows 11 Pro 23H2 x64 build
 22631.6199; an Intel TPM with firmware `600.18.27.2176`, present, enabled, and ready; and Microsoft
 Platform Crypto Provider support. The Android endpoint was a Samsung `SM-F9660` running Android 16
 / API 36 with security patch `2026-07-05`; the StrongBox feature flag reported true and the release
@@ -86,7 +111,7 @@ Record the TPM manufacturer/firmware, Windows update revision, Android model/API
 StrongBox inspection, platform-tools release, artifact signatures, and approved certificate
 identities only when the exact candidate is available.
 
-## 2026-08-31 candidate continuation
+## 2026-08-31 previous-candidate continuation
 
 The exact `18a94c8` Windows executable and installed Android candidate completed a new pairing with
 no retained phone pairing and no active public Windows pairing, using full-fingerprint comparison.
@@ -103,7 +128,10 @@ closes fresh pairing and malformed wake/stream for the recorded candidate and su
 lifecycle evidence; it does not close identity deletion, uninstall/reinstall, key invalidation, or
 multi-pairing isolation.
 
-## Scenario results
+## Previous-candidate scenario results
+
+The following table records `18a94c8` only. Every physical status for the active candidate remains
+pending until the same scenario is rerun against its exact Windows and Android packages.
 
 | Scenario group | Status | Coarse result and non-sensitive evidence |
 | --- | --- | --- |
@@ -129,6 +157,16 @@ A recovery attempt after an interrupted or consumed request must use a new proto
 new biometric operation.
 
 ## Implementation verification (not candidate evidence)
+
+On 2026-08-31, exact commit `35bbb6077d679c7a84d8ce6972175124d272bf61` passed local Rust
+formatting, workspace Clippy with warnings denied, all 79 portable Rust tests in 20 suites, the
+locked TypeScript production build, and the Kotlin unit-test target under JDK 17. Pull-request CI
+workflow `33326461369` passed Linux and Windows Rust, Windows packaged-binary smoke, mobile,
+reproducible-input, and released age/rage interoperability jobs. The hosted Windows runner lacks a
+TPM, so its command skips only the five native desktop-cleanup tests that provision Platform Crypto
+Provider keys; those tests retain their separate native Windows evidence and physical gate.
+Signing workflow `33326611527`, attempt 1, then completed both jobs and produced the independently
+verified packages recorded above.
 
 On 2026-08-30, exact commit `18a94c8d683457dcaa0aa50a485a999036f805df` passed the mandatory
 Rust formatting, workspace Clippy, and workspace test commands; Android Kotlin unit tests; and the

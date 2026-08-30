@@ -5,8 +5,9 @@ identity through Shine. It does not close the full Alpha matrix and is not appro
 secrets. The independent source review is complete, but protocol v2 remains unfrozen and the
 remaining QR/replay, lifecycle/invalidation, multi-phone, public-signing, and
 technical-user gates are still open. The recorded candidate has completed the primary one-phone
-Developer USB and age/rage/Shine interoperability paths; this guide remains reusable for later exact
-artifact pairs and does not transfer evidence between them.
+Developer USB and age/rage/Shine interoperability paths only on the previous `18a94c8` physical
+baseline. Active candidate `35bbb60` has verified packages but no physical results yet; this guide
+remains reusable for later exact artifact pairs and does not transfer evidence between them.
 
 Use one exact RC artifact set throughout the guide. Do not mix a desktop executable, Android APK,
 or evidence file from another commit or workflow attempt.

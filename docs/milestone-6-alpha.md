@@ -1,10 +1,12 @@
 # Milestone 6 Alpha release and evidence
 
-Status: repository implementation is in progress. Exact private-root test-signed candidate
-`18a94c8` has passed the primary one-phone Developer USB, age 1.3.1, rage 0.12.1, Shine 1.8.0, and
-independent-recovery paths. Fresh pairing, QR/replay, packaged lifecycle/invalidation, multi-phone,
-public-trust Windows signing, and technical-user gates remain open. The independent source review
-is complete, with native/physical evidence tracked separately.
+Status: repository implementation is in progress. Active private-root test-signed candidate
+`35bbb60` has independently verified packages and awaits physical testing. The preceding
+`18a94c8` candidate passed the primary one-phone Developer USB, age 1.3.1, rage 0.12.1, Shine
+1.8.0, and independent-recovery paths, but those results do not transfer to the new artifact pair.
+Fresh pairing, QR/replay, packaged lifecycle/invalidation, multi-phone, public-trust Windows
+signing, and technical-user gates remain open. The independent source review is complete, with
+native/physical evidence tracked separately.
 
 ## Implemented product surface
 
@@ -72,9 +74,11 @@ The private-root Windows result does not close a public-trust release gate. It i
 pipeline test until the project qualifies for and is accepted into a public code-signing program.
 
 The first RC0 execution completed both signing jobs and independent artifact verification. The
-later exact candidate from commit `18a94c8` also completed the physical rows recorded in
-[`alpha-evidence-candidate.md`](alpha-evidence-candidate.md). Those results do not close the rows
-that remain pending in the matrix and do not make the private Windows test root publicly trusted.
+later candidate from commit `18a94c8` completed the historical physical rows recorded in
+[`alpha-evidence-candidate.md`](alpha-evidence-candidate.md). Active candidate `35bbb60` completed
+both signing jobs and independent package verification in workflow `33326611527`, attempt 1; it
+must rerun the physical rows rather than inherit the previous candidate's results. None of these
+results make the private Windows test root publicly trusted.
 
 ## Remaining external gates
 
