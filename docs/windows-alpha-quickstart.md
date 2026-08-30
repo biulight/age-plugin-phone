@@ -3,7 +3,10 @@
 This guide validates one signed Windows/Android RC pair with synthetic data before using the phone
 identity through Shine. It does not close the full Alpha matrix and is not approval to protect real
 secrets. The independent source review is complete, but protocol v2 remains unfrozen and the
-remaining native, physical-device, signed-package, and interoperability gates are still open.
+remaining fresh-pairing, QR/replay, lifecycle/invalidation, multi-phone, public-signing, and
+technical-user gates are still open. The recorded candidate has completed the primary one-phone
+Developer USB and age/rage/Shine interoperability paths; this guide remains reusable for later exact
+artifact pairs and does not transfer evidence between them.
 
 Use one exact RC artifact set throughout the guide. Do not mix a desktop executable, Android APK,
 or evidence file from another commit or workflow attempt.

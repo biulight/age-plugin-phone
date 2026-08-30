@@ -1,7 +1,8 @@
 # Milestone 6 Alpha release and evidence
 
-Status: repository implementation is in progress. The first Windows test-signed and Android RC0
-artifacts have been produced and independently verified; packaged physical, interoperability,
+Status: repository implementation is in progress. Exact private-root test-signed candidate
+`18a94c8` has passed the primary one-phone Developer USB, age 1.3.1, rage 0.12.1, Shine 1.8.0, and
+independent-recovery paths. Fresh pairing, QR/replay, packaged lifecycle/invalidation, multi-phone,
 public-trust Windows signing, and technical-user gates remain open. The independent source review
 is complete, with native/physical evidence tracked separately.
 
@@ -70,21 +71,23 @@ migration are documented in [`release-signing.md`](release-signing.md).
 The private-root Windows result does not close a public-trust release gate. It is an explicit RC
 pipeline test until the project qualifies for and is accepted into a public code-signing program.
 
-The first RC0 execution completed both signing jobs and independent artifact verification. This
-closes only the initial packaging and test-signing pipeline task. It does not substitute for running
-the exact downloaded packages through the physical matrix, and it does not make the private Windows
-test root publicly trusted.
+The first RC0 execution completed both signing jobs and independent artifact verification. The
+later exact candidate from commit `18a94c8` also completed the physical rows recorded in
+[`alpha-evidence-candidate.md`](alpha-evidence-candidate.md). Those results do not close the rows
+that remain pending in the matrix and do not make the private Windows test root publicly trusted.
 
 ## Remaining external gates
 
 Do not mark Milestone 6 complete until signed artifacts pass every required row in
 `alpha-matrix.md`. These gates require external software, physical devices, or people:
 
-- physical validation of the exact signed RC0 packages and their recorded digests;
+- the remaining physical rows for the exact signed candidate and its recorded digests, including a
+  fresh candidate pairing, camera-based QR/replay, lifecycle, and invalidation;
 - publicly trusted Windows signing before claiming a publicly trusted Windows Alpha;
-- physical reference age and rage unwrap interoperability through multiple phones;
-- Shine encrypt, decrypt, seal, and recovery using its existing configuration only;
-- physical lifecycle, invalidation, wrong-device, replay, upgrade, and recovery matrices;
+- physical reference age and rage interoperability through multiple phones, including a wrong
+  paired phone and a second capability-qualified StrongBox family;
+- physical lifecycle, invalidation, wrong-device, replay, upgrade, and fresh-pair migration
+  matrices;
 - a limited technical-user Alpha proving Windows has no reusable age identity and every unwrap
   caused a fresh phone biometric operation.
 

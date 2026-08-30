@@ -160,21 +160,26 @@ release gate, not an open question about whether the ADB transport can carry the
   claiming a publicly trusted Windows Alpha; macOS packaging is not an Alpha release gate.
 - [x] Add CI for Windows Rust builds, Kotlin, TypeScript, deterministic vectors, negative tests,
   reproducible build inputs, and packaged-binary smoke tests.
-- [ ] Complete interoperability with released reference age and rage versions, multiple phones,
-  multiple files, and an independent recovery recipient.
-- [ ] Use Shine's existing `age_identity` and `age_recipients` configuration to test encrypt,
-  decrypt, seal, and multi-recipient recovery end to end without changing the Shine repository.
+- [x] Complete exact-candidate interoperability with released age 1.3.1 and rage 0.12.1 across
+  multiple synthetic files, both cross-client directions, the phone path, and an independent
+  recovery recipient.
+- [ ] Complete multiple-phone interoperability, including a wrong paired physical phone and a
+  second capability-qualified StrongBox device family.
+- [x] Use Shine's existing `age_identity` and `age_recipients` configuration to test direct
+  encrypt/decrypt, workspace seal, runtime `env run`, and multi-recipient recovery end to end with
+  Shine 1.8.0, without changing the Shine repository.
 - [ ] Run a multi-device compatibility and lifecycle matrix covering app and desktop restart,
   backgrounding, process death, permission denial, key invalidation, corrupt state, and upgrade.
-- [ ] After creating the exact ADB reverse rule, launch the Android application with one fixed,
+- [x] After creating the exact ADB reverse rule, launch the Android application with one fixed,
   payload-free unwrap action so cold start and `singleTask` delivery both enter the same native USB
   unwrap controller. Do not place protocol messages, request fingerprints, caller hints, or other
-  request data in shell arguments. Implementation and portable tests are complete; packaged
-  Windows/Android validation remains before closure.
-- [ ] Remove the normal Developer USB unwrap's manual **Approve USB** pre-step. The phone must still
+  request data in shell arguments. The exact packaged Windows/Android artifacts passed cold,
+  foreground, background, and repeated wake plus interruption cleanup.
+- [x] Remove the normal Developer USB unwrap's manual **Approve USB** pre-step. The phone must still
   strictly verify and durably consume the signed request before presenting a fresh auth-per-use
-  biometric prompt; cancellation, timeout, lifecycle loss, and malformed wake actions fail closed.
-  The product and Tauri command entry points are removed; packaged physical validation remains.
+  biometric prompt; cancellation, timeout, and tested lifecycle loss paths fail closed. The product
+  and Tauri command entry points are removed; malformed physical wake validation remains tracked in
+  the Alpha matrix rather than reopening the completed product-flow item.
 - [ ] Conduct a limited technical-user Alpha that verifies Windows stores no reusable age private
   identity and every unwrap requires fresh phone user verification.
 

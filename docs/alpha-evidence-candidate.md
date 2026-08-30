@@ -1,34 +1,40 @@
 # Alpha candidate evidence
 
-Status: candidate commit and signed packages pending. No physical Alpha gate is closed by this
-template or by portable/native unit tests.
+Status: active private-root test-signed candidate with partial physical evidence. Fresh pairing,
+QR/replay, lifecycle, multi-phone, public-trust, and technical-user gates remain open.
 
 ## Candidate identity
 
 | Field | Recorded value |
 | --- | --- |
-| Repository commit | Pending immutable commit |
-| Windows artifact SHA-256 | Pending |
-| Android artifact SHA-256 | Pending |
-| Signing workflow run and attempt | Pending |
-| Windows signature scope | Pending; test-trusted until public signing is obtained |
-| Android signing certificate fingerprint | Pending approved fingerprint comparison |
+| Repository commit | `18a94c8d683457dcaa0aa50a485a999036f805df` |
+| Windows executable SHA-256 | `836a0267d450dbe8a8b61d727711fee360d59443445e0d877f9653e98b36ed37` |
+| Windows ZIP SHA-256 | `53c6c385b397051edf1dd2fdd20f9d3dd2215000dbfd4854fd1257ee93db13e3` |
+| Android APK SHA-256 | `e1e2c68a896b36bbc36f4aaf1eae20c79a1c30e94cc830f0f4abb089d7e94a67` |
+| Signing workflow run and attempt | `33295051535`, attempt 1 |
+| Windows signature scope | Private Alpha root with trusted timestamp; signer certificate SHA-256 `d64e82d01bb5835b292a0abbf38759a2c36aaa7003af46809e6a5d730e239215`; public trust remains open |
+| Android signing certificate | One v2 signer; certificate SHA-256 `9a3e5a00a0a363ca58bbe0abfa1bbc0e36cbdce58e314c0c0dbfa94baff1d58b` |
 
 The final report must refer to one exact Windows/Android artifact pair. Never mix packages from
 different commits, workflow runs, or attempts.
 
 ## Environment preflight
 
-Read-only preflight on 2026-08-30 observed Windows 11 Pro build 22631 with TPM present, enabled, and
-ready; age 1.3.1; Shine 1.7.0; and ADB 1.0.41. The Android device was initially offline; a later
-serial-free recount observed exactly one authorized online device and no unauthorized or offline
-devices; the platform StrongBox feature flag reported true, without performing live candidate key
-inspection. Rage was not installed. These observations are not physical scenario passes. Before
-candidate execution, install the pinned rage 0.12.1 release and repeat the single-device check.
+Read-only preflight on 2026-08-30 for the exact candidate observed Windows 11 Pro 23H2 x64 build
+22631.6199; an Intel TPM with firmware `600.18.27.2176`, present, enabled, and ready; and Microsoft
+Platform Crypto Provider support. The Android endpoint was a Samsung `SM-F9660` running Android 16
+/ API 36 with security patch `2026-07-05`; the StrongBox feature flag reported true and the release
+application reported version 0.0.1. Serial-free recounts before and after the physical runs observed
+exactly one authorized online ADB device and no unauthorized or second device.
 
-The pinned rage 0.12.1 Windows x64 package was subsequently installed after verifying its published
-SHA-256. The single-device and StrongBox feature checks must still be repeated for the next exact
-candidate.
+The client/tool baseline was age 1.3.1, rage 0.12.1, Shine 1.8.0, and platform-tools 37.0.1 (ADB
+protocol 1.0.41). Rage was run from an isolated copy whose executable SHA-256 was
+`69dc313f50df805429685fe016902fc869725aad7d77bc21170d9e9abd829bea`. Shine was run from an
+isolated copy whose executable SHA-256 was
+`794614e66c1a909cbfaee1a209fb90c69644019f3cf21b9e047fd8879aa0ca2d`; its required GNU
+base64 8.32 executable SHA-256 was
+`ef4877b2e3f929fa3e9671ff421fe64a8e50c89b3e11c2263d9b802604586e7c`. The planned Shine
+1.7.0 baseline was superseded by the actually executed 1.8.0 release and is not claimed by this run.
 
 ## Rejected candidate history
 
@@ -84,16 +90,16 @@ identities only when the exact candidate is available.
 
 | Scenario group | Status | Coarse result and non-sensitive evidence |
 | --- | --- | --- |
-| Artifact digest and signature verification | Pending | |
-| Windows/TPM and Android/StrongBox capability inspection | Pending | |
-| Fresh pairing, restart, and standard age unwrap | Pending | |
-| Developer USB cold/foreground/background/repeated wake | Pending | |
-| Cancellation, mismatch, lock, timeout, malformed wake/stream | Pending | |
-| Cable, ADB daemon, process exit, Ctrl-C, and reverse cleanup | Pending | |
-| QR fallback and old-response replay after desktop restart | Pending | |
-| age 1.3.1 multi-file phone and recovery paths | Pending | |
-| rage 0.12.1 phone and recovery paths | Pending | |
-| Shine 1.7.0 seal, runtime decrypt, and recovery | Pending | |
+| Artifact digest and signature verification | Passed | Exact commit, workflow attempt, three package digests, private-root Windows signer certificate, trusted timestamp, and single Android v2 signer matched the approved release evidence. Public Windows trust is not claimed. |
+| Windows/TPM and Android/StrongBox capability inspection | Passed | Exact candidate preflight observed the versions and coarse hardware capability results above with one authorized device. Fresh key provisioning under this exact APK remains part of the fresh-pairing row. |
+| Fresh pairing, restart, and standard age unwrap | Partial | Standard unwrap and restart/cold-start paths passed after the exact APK was installed in place, but the retained pairing was originally created by rejected commit `ec5ebb8`; one fresh pairing made entirely by `18a94c8` is still required. |
+| Developer USB cold/foreground/background/repeated wake | Passed | Foreground, background, force-stopped cold start, and repeated requests opened the native controller without **Approve USB**; every successful unwrap required a new biometric operation and left zero reverse rules/processes. |
+| Cancellation, mismatch, lock, timeout, malformed wake/stream | Partial | Cancel, one unrecognized scan followed by success, locked/dozing rejection, and the 60-second phone-authentication timeout passed without output or residue; exact-package malformed wake/stream injection remains to be executed. |
+| Cable, ADB daemon, process exit, Ctrl-C, and reverse cleanup | Passed | Cable removal and ADB daemon restart dismissed the phone prompt; forced exact `age.exe` termination and native-console Ctrl-C produced no output. Every recovery request required new biometrics. Formal Ctrl-C audit reported candidate digest match, no output, zero reverse rules, and zero plugin processes. |
+| QR fallback and old-response replay after desktop restart | Pending | This Windows host has no camera. No QR request was started and the prepared slot remained empty; attach a UVC camera before executing the exact-package fallback and retained-response replay. ADB screenshots or payload injection are not substitutes. |
+| age 1.3.1 multi-file phone and recovery paths | Passed | Native and rage-cross decrypts succeeded with distinct fresh biometrics. Independent recovery succeeded without the phone. Synthetic input SHA-256 values were `5c8b35ff27fe689c46768de65071ab6d15824acf5889618ad391701252e09011` and `b30241823e3ecc1d738752ad0d7e88600aa2677feb6724ef5cb33bb13f083673`. |
+| rage 0.12.1 phone and recovery paths | Passed | Native and age-cross decrypts succeeded; all four phone/client combinations and all four independent-recovery combinations matched the two synthetic input digests with zero reverse residue. |
+| Shine 1.8.0 encrypt, decrypt, seal, runtime decrypt, and recovery | Passed | Direct encrypt/decrypt and workspace seal/`env run` passed with two fresh phone authentications. Plaintext was absent after sealing. Independent recovery decrypted both the direct ciphertext and a copied sealed workspace without invoking the phone; runtime SHA-256 was `cfb0b37fe6e8592f4aba17979fba91b81bf3660589b701e213429ac6ae33c4be`. |
 | Revocation, local cleanup, restart, deletion, uninstall/reinstall | Pending | |
 | TPM/StrongBox invalidation and corrupt/private state failures | Pending | |
 | Second StrongBox device family and wrong paired physical phone | Blocked | Second device unavailable |
@@ -107,11 +113,13 @@ new biometric operation.
 
 ## Implementation verification (not candidate evidence)
 
-On 2026-08-30, the working tree passed the mandatory Rust formatting, workspace Clippy, and
-workspace test commands; Android Kotlin unit tests; and the TypeScript build. A disposable copy on
-the Windows host passed a locked release build, the new command help smoke test, Windows-native
-desktop cleanup/storage/CNG tests against the ready TPM, and targeted Clippy. These results verify
-the implementation but do not identify, sign, or qualify an Alpha candidate.
+On 2026-08-30, exact commit `18a94c8d683457dcaa0aa50a485a999036f805df` passed the mandatory
+Rust formatting, workspace Clippy, and workspace test commands; Android Kotlin unit tests; and the
+TypeScript build. CI workflow `33294937183` completed successfully, followed by the signed-package
+workflow recorded above. A disposable unsigned Windows build was used only to diagnose a test-
+fixture ACL issue and is excluded from every formal result. Failed harness attempts caused by that
+ACL, a missing rage PATH entry, a missing base64 PATH entry, or mixed stdout/stderr were discarded;
+their partial evidence slots were not reused.
 
 ## Evidence restrictions
 

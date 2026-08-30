@@ -56,6 +56,16 @@ The caller writes a new ciphertext, verifies it through both the new phone recip
 remaining recovery path, and only then may replace or retire the old ciphertext. This project does
 not perform in-place age-header mutation.
 
+The exact test-signed candidate from commit `18a94c8` completed a physical recovery drill with
+synthetic data on 2026-08-30. age 1.3.1 and rage 0.12.1 each decrypted ciphertext created by the
+other client through both the phone identity and an independent recovery identity. Shine 1.8.0
+also completed direct decrypt, workspace seal and runtime decrypt, followed by recovery of the
+direct ciphertext and a copied sealed workspace without the phone or plugin. Recovered-output
+digests matched and the phone path required a fresh biometric operation for every unwrap. This
+evidence validates the independent recovery mechanism for the recorded candidate; migration to a
+fresh pairing, verification through both new paths, and retirement of old ciphertext remain part
+of the pending packaged lifecycle run.
+
 ## Paired-desktop revocation
 
 The phone is authoritative for whether a desktop may request an unwrap. Revoking one paired desktop
