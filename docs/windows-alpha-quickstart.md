@@ -3,7 +3,7 @@
 This guide validates one signed Windows/Android RC pair with synthetic data before using the phone
 identity through Shine. It does not close the full Alpha matrix and is not approval to protect real
 secrets. The independent source review is complete, but protocol v2 remains unfrozen and the
-remaining fresh-pairing, QR/replay, lifecycle/invalidation, multi-phone, public-signing, and
+remaining QR/replay, lifecycle/invalidation, multi-phone, public-signing, and
 technical-user gates are still open. The recorded candidate has completed the primary one-phone
 Developer USB and age/rage/Shine interoperability paths; this guide remains reusable for later exact
 artifact pairs and does not transfer evidence between them.
@@ -219,6 +219,25 @@ only the journaled target. Do not delete individual files or CNG keys manually.
 If the phone has been lost, the command may still remove local state after the same confirmation,
 but local success is not evidence of phone-side revocation. Old version 2 ciphertext remains bound
 to the removed pairing and must be recovered and re-encrypted; cleanup never migrates it.
+
+Use the stub-based command whenever the public stub is available. If a failed or older pairing left
+a private locator after its public stub was lost, enumerate locators without printing their contents
+and proceed only when exactly one intended orphan is present:
+
+```powershell
+$locatorCandidates = @(Get-ChildItem -LiteralPath $pluginConfig -File -Filter "*.cbor" | Where-Object { $_.BaseName -match '^[0-9a-f]{32,128}(-[0-9a-f]{32,128})?$' })
+if ($locatorCandidates.Count -ne 1) { throw "expected exactly one orphan locator; stop and identify the intended pairing" }
+$orphanLocator = $locatorCandidates[0].FullName
+age-plugin-phone remove-orphaned-desktop-state --locator $orphanLocator
+```
+
+Compare the displayed full transcript fingerprint with the pairing being retired and type it
+exactly. This recovery-only command accepts only the locator's canonical protected path, validates
+its desktop ID and existing response-replay scope, and uses the same crash-safe cleanup journal. It
+removes the bound replay state, exact CNG keys, TPM metadata, locator, and replay lock. It does not
+find or delete public identity stubs and does not revoke the phone pairing. If multiple locator
+candidates exist, do not pass a wildcard or choose by a caller-supplied label; restore the matching
+public stub when possible or identify the intended pairing by its full fingerprint.
 
 ## Troubleshooting
 

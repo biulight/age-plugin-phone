@@ -118,6 +118,12 @@ enum Command {
         #[arg(long)]
         identity_stub: PathBuf,
     },
+    /// Remove orphaned private Windows desktop state when its public stub is unavailable.
+    RemoveOrphanedDesktopState {
+        /// Canonical private locator in the age-plugin-phone configuration root.
+        #[arg(long)]
+        locator: PathBuf,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
@@ -211,6 +217,9 @@ fn main() -> io::Result<()> {
             html_output,
         } => run_qr_capture_probe(label, cycles, html_output),
         Command::RemoveDesktopState { identity_stub } => run_remove_desktop_state(&identity_stub),
+        Command::RemoveOrphanedDesktopState { locator } => {
+            run_remove_orphaned_desktop_state(&locator)
+        }
     }
 }
 
@@ -241,6 +250,41 @@ fn run_remove_desktop_state(identity_stub: &std::path::Path) -> io::Result<()> {
             )
         })?;
     println!("Private desktop state removed. Phone-side revocation is a separate operation.");
+    Ok(())
+}
+
+fn run_remove_orphaned_desktop_state(locator: &std::path::Path) -> io::Result<()> {
+    let fingerprint = age_plugin_phone::desktop_cleanup::orphan_confirmation_fingerprint(locator)
+        .map_err(|error| io::Error::other(error.to_string()))?;
+    let mut stdout = io::stdout().lock();
+    writeln!(
+        stdout,
+        "Remove orphaned private desktop state only after revoking its pairing on the phone.\n\
+         This command does not discover or remove public identity stubs.\n\
+         Full transcript fingerprint: {fingerprint}\n\
+         Type the full fingerprint to remove this exact orphaned pairing:"
+    )?;
+    stdout.flush()?;
+    drop(stdout);
+    let mut entered = String::new();
+    io::stdin().read_line(&mut entered)?;
+    age_plugin_phone::desktop_cleanup::remove_orphaned_desktop_state(locator, entered.trim_end())
+        .map_err(|error| {
+        io::Error::new(
+            if matches!(
+                error,
+                age_plugin_phone::desktop_cleanup::CleanupError::ConfirmationMismatch
+            ) {
+                io::ErrorKind::PermissionDenied
+            } else {
+                io::ErrorKind::Other
+            },
+            error.to_string(),
+        )
+    })?;
+    println!(
+        "Orphaned private desktop state removed. Public stubs and phone-side revocation are separate operations."
+    );
     Ok(())
 }
 

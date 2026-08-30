@@ -7,6 +7,8 @@ use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 use crate::cleanup_journal::CleanupJournal;
+#[cfg(any(windows, test))]
+use crate::cleanup_journal::CleanupTarget;
 
 const MAX_IDENTITY_STUB_BYTES: u64 = 16_384;
 
@@ -37,7 +39,10 @@ pub fn confirmation_fingerprint(identity_stub: &Path) -> Result<String, CleanupE
         Some(journal) => {
             ensure_same_stub_path(&supplied_path, &journal)?;
             validate_existing_stub_if_present(&supplied_path, &journal)?;
-            journal.stub
+            journal
+                .paired()
+                .map(|(stub, _)| stub.clone())
+                .ok_or(CleanupError::InvalidTarget)?
         }
         None => read_stub(&supplied_path)?.0,
     };
@@ -68,7 +73,7 @@ pub fn remove_desktop_state(
         Some(journal) => {
             ensure_same_stub_path(&supplied_path, &journal)?;
             validate_existing_stub_if_present(&supplied_path, &journal)?;
-            if hex(&journal.stub.transcript_fingerprint) != expected {
+            if hex(&journal.transcript_fingerprint()) != expected {
                 return Err(CleanupError::InvalidTarget);
             }
             journal
@@ -78,6 +83,85 @@ pub fn remove_desktop_state(
 
     let mut operations = WindowsCleanupOperations;
     execute_cleanup(&journal, &root, &mut operations)
+}
+
+/// Returns the exact transcript fingerprint for one private locator whose public stub is missing.
+///
+/// # Errors
+///
+/// Returns an error when the platform is unsupported or the locator is not a canonical private
+/// record in the configured Windows product root.
+#[cfg(windows)]
+pub fn orphan_confirmation_fingerprint(locator_path: &Path) -> Result<String, CleanupError> {
+    let root = cleanup_root()?;
+    orphan_confirmation_fingerprint_in(&root, locator_path)
+}
+
+#[cfg(windows)]
+fn orphan_confirmation_fingerprint_in(
+    root: &Path,
+    locator_path: &Path,
+) -> Result<String, CleanupError> {
+    let supplied_path = absolute_path(locator_path)?;
+    let fingerprint = if let Some(journal) =
+        crate::cleanup_journal::read(root).map_err(|_| CleanupError::Storage)?
+    {
+        ensure_same_orphan_locator(&supplied_path, &journal)?;
+        journal.transcript_fingerprint()
+    } else {
+        let (_, record) = crate::locator::open_pairing_locator_for_cleanup(root, &supplied_path)
+            .map_err(|_| CleanupError::InvalidTarget)?;
+        record.transcript_fingerprint
+    };
+    Ok(hex(&fingerprint))
+}
+
+/// Removes private Windows desktop state addressed by a canonical locator after exact confirmation.
+///
+/// This recovery-only path intentionally does not discover or remove public identity stubs. It is
+/// for a locator whose original public stub is already unavailable.
+///
+/// # Errors
+///
+/// Returns an error when confirmation, locator/state binding, replay scope, locking, or durable
+/// cleanup fails.
+#[cfg(windows)]
+pub fn remove_orphaned_desktop_state(
+    locator_path: &Path,
+    entered_fingerprint: &str,
+) -> Result<(), CleanupError> {
+    let root = cleanup_root()?;
+    remove_orphaned_desktop_state_in(&root, locator_path, entered_fingerprint)
+}
+
+#[cfg(windows)]
+fn remove_orphaned_desktop_state_in(
+    root: &Path,
+    locator_path: &Path,
+    entered_fingerprint: &str,
+) -> Result<(), CleanupError> {
+    let expected = orphan_confirmation_fingerprint_in(root, locator_path)?;
+    verify_confirmation(&expected, entered_fingerprint)?;
+
+    let supplied_path = absolute_path(locator_path)?;
+    let _cleanup_lock = age_plugin_phone_windows_storage::open_private_lock(
+        &crate::cleanup_journal::journal_lock_path(root),
+    )
+    .map_err(|_| CleanupError::Busy)?;
+
+    let journal = match crate::cleanup_journal::read(root).map_err(|_| CleanupError::Storage)? {
+        Some(journal) => {
+            ensure_same_orphan_locator(&supplied_path, &journal)?;
+            if hex(&journal.transcript_fingerprint()) != expected {
+                return Err(CleanupError::InvalidTarget);
+            }
+            journal
+        }
+        None => start_orphan_cleanup(root, &supplied_path, &expected)?,
+    };
+
+    let mut operations = WindowsCleanupOperations;
+    execute_cleanup(&journal, root, &mut operations)
 }
 
 #[cfg(not(windows))]
@@ -98,6 +182,29 @@ pub fn confirmation_fingerprint(_identity_stub: &Path) -> Result<String, Cleanup
 /// Always returns [`CleanupError::Unsupported`].
 pub fn remove_desktop_state(
     _identity_stub: &Path,
+    _entered_fingerprint: &str,
+) -> Result<(), CleanupError> {
+    Err(CleanupError::Unsupported)
+}
+
+#[cfg(not(windows))]
+/// Reports that orphan desktop cleanup is unavailable outside the Windows Alpha platform.
+///
+/// # Errors
+///
+/// Always returns [`CleanupError::Unsupported`].
+pub fn orphan_confirmation_fingerprint(_locator_path: &Path) -> Result<String, CleanupError> {
+    Err(CleanupError::Unsupported)
+}
+
+#[cfg(not(windows))]
+/// Reports that orphan desktop cleanup is unavailable outside the Windows Alpha platform.
+///
+/// # Errors
+///
+/// Always returns [`CleanupError::Unsupported`].
+pub fn remove_orphaned_desktop_state(
+    _locator_path: &Path,
     _entered_fingerprint: &str,
 ) -> Result<(), CleanupError> {
     Err(CleanupError::Unsupported)
@@ -165,11 +272,59 @@ fn start_cleanup(
     let locator_path = crate::locator::existing_pairing_locator_path(root, &stub)
         .map_err(|_| CleanupError::InvalidTarget)?;
     let journal = CleanupJournal {
-        stub,
-        stub_path: canonical_stub_path,
+        target: CleanupTarget::Paired {
+            stub,
+            stub_path: canonical_stub_path,
+        },
         locator_path,
         desktop_state: locator.desktop_state,
         replay_state: locator.replay_state,
+    };
+    crate::cleanup_journal::create(root, &journal).map_err(|_| CleanupError::Storage)?;
+    drop(replay);
+    Ok(journal)
+}
+
+#[cfg(windows)]
+fn start_orphan_cleanup(
+    root: &Path,
+    locator_path: &Path,
+    expected_fingerprint: &str,
+) -> Result<CleanupJournal, CleanupError> {
+    use age_plugin_phone_protocol::{
+        DEFAULT_REPLAY_CAPACITY, FileReplayGuard, ReplayRole, ReplayScope,
+    };
+
+    let (canonical_locator_path, record) =
+        crate::locator::open_pairing_locator_for_cleanup(root, locator_path)
+            .map_err(|_| CleanupError::InvalidTarget)?;
+    if hex(&record.transcript_fingerprint) != expected_fingerprint {
+        return Err(CleanupError::InvalidTarget);
+    }
+    let desktop = crate::pairing::DesktopKeyState::open(&record.locator.desktop_state)
+        .map_err(|_| CleanupError::InvalidTarget)?;
+    if desktop.desktop_id != record.desktop_id {
+        return Err(CleanupError::InvalidTarget);
+    }
+    let replay = FileReplayGuard::open(
+        &record.locator.replay_state,
+        ReplayScope::new(
+            ReplayRole::DesktopResponses,
+            record.desktop_id,
+            record.identity_id,
+        ),
+        DEFAULT_REPLAY_CAPACITY,
+    )
+    .map_err(|_| CleanupError::Busy)?;
+    let journal = CleanupJournal {
+        target: CleanupTarget::Orphan {
+            desktop_id: record.desktop_id,
+            identity_id: record.identity_id,
+            transcript_fingerprint: record.transcript_fingerprint,
+        },
+        locator_path: canonical_locator_path,
+        desktop_state: record.locator.desktop_state,
+        replay_state: record.locator.replay_state,
     };
     crate::cleanup_journal::create(root, &journal).map_err(|_| CleanupError::Storage)?;
     drop(replay);
@@ -195,7 +350,16 @@ fn absolute_path(path: &Path) -> Result<PathBuf, CleanupError> {
 
 #[cfg(windows)]
 fn ensure_same_stub_path(path: &Path, journal: &CleanupJournal) -> Result<(), CleanupError> {
-    (path == journal.stub_path)
+    journal
+        .paired()
+        .is_some_and(|(_, stub_path)| path == stub_path)
+        .then_some(())
+        .ok_or(CleanupError::InvalidTarget)
+}
+
+#[cfg(windows)]
+fn ensure_same_orphan_locator(path: &Path, journal: &CleanupJournal) -> Result<(), CleanupError> {
+    (matches!(&journal.target, CleanupTarget::Orphan { .. }) && path == journal.locator_path)
         .then_some(())
         .ok_or(CleanupError::InvalidTarget)
 }
@@ -205,12 +369,13 @@ fn validate_existing_stub_if_present(
     path: &Path,
     journal: &CleanupJournal,
 ) -> Result<(), CleanupError> {
+    let (expected_stub, _) = journal.paired().ok_or(CleanupError::InvalidTarget)?;
     match age_plugin_phone_windows_storage::read_regular_file(path, MAX_IDENTITY_STUB_BYTES) {
         Ok(bytes) => {
             let text = std::str::from_utf8(&bytes).map_err(|_| CleanupError::InvalidTarget)?;
             let stub = crate::pairing::decode_identity_stub_text(text)
                 .map_err(|_| CleanupError::InvalidTarget)?;
-            (stub == journal.stub)
+            (stub == *expected_stub)
                 .then_some(())
                 .ok_or(CleanupError::InvalidTarget)
         }
@@ -231,11 +396,13 @@ fn execute_cleanup(
     operations: &mut impl CleanupOperations,
 ) -> Result<(), CleanupError> {
     operations.remove_private(&journal.replay_state)?;
-    operations.remove_keys(journal.stub.desktop_id)?;
+    operations.remove_keys(journal.desktop_id())?;
     operations.remove_private(&journal.desktop_state)?;
     operations.remove_private(&journal.locator_path)?;
     operations.remove_private(&replay_lock_path(&journal.replay_state)?)?;
-    operations.remove_public(&journal.stub_path)?;
+    if let Some((_, stub_path)) = journal.paired() {
+        operations.remove_public(stub_path)?;
+    }
     operations.remove_private(&crate::cleanup_journal::journal_path(root))
 }
 
@@ -339,57 +506,74 @@ mod tests {
         let selection = SigningKey::random(&mut OsRng);
         let phone = SigningKey::random(&mut OsRng);
         CleanupJournal {
-            stub: crate::pairing::PublicIdentityStub {
-                desktop_id: [1; 16],
-                identity_id: [2; 16],
-                recipient: Recipient::from_public_key_bytes(
-                    identity.public_key().to_encoded_point(true).as_bytes(),
-                )
-                .unwrap()
-                .to_string()
-                .unwrap(),
-                desktop_signing_public_key: signing
-                    .verifying_key()
-                    .to_encoded_point(true)
-                    .as_bytes()
-                    .try_into()
+            target: CleanupTarget::Paired {
+                stub: crate::pairing::PublicIdentityStub {
+                    desktop_id: [1; 16],
+                    identity_id: [2; 16],
+                    recipient: Recipient::from_public_key_bytes(
+                        identity.public_key().to_encoded_point(true).as_bytes(),
+                    )
+                    .unwrap()
+                    .to_string()
                     .unwrap(),
-                desktop_selection_public_key: selection
-                    .verifying_key()
-                    .to_encoded_point(true)
-                    .as_bytes()
-                    .try_into()
-                    .unwrap(),
-                phone_signing_public_key: phone
-                    .verifying_key()
-                    .to_encoded_point(true)
-                    .as_bytes()
-                    .try_into()
-                    .unwrap(),
-                offer_digest: [3; 32],
-                transcript_fingerprint: [4; 32],
+                    desktop_signing_public_key: signing
+                        .verifying_key()
+                        .to_encoded_point(true)
+                        .as_bytes()
+                        .try_into()
+                        .unwrap(),
+                    desktop_selection_public_key: selection
+                        .verifying_key()
+                        .to_encoded_point(true)
+                        .as_bytes()
+                        .try_into()
+                        .unwrap(),
+                    phone_signing_public_key: phone
+                        .verifying_key()
+                        .to_encoded_point(true)
+                        .as_bytes()
+                        .try_into()
+                        .unwrap(),
+                    offer_digest: [3; 32],
+                    transcript_fingerprint: [4; 32],
+                },
+                stub_path: root.join("identity.txt"),
             },
-            stub_path: root.join("identity.txt"),
             locator_path: root.join("locator.cbor"),
             desktop_state: root.join("desktop.state"),
             replay_state: root.join("replay.state"),
         }
     }
 
+    fn orphan_journal(root: &Path) -> CleanupJournal {
+        let paired = journal(root);
+        CleanupJournal {
+            target: CleanupTarget::Orphan {
+                desktop_id: paired.desktop_id(),
+                identity_id: paired.identity_id(),
+                transcript_fingerprint: paired.transcript_fingerprint(),
+            },
+            locator_path: paired.locator_path,
+            desktop_state: paired.desktop_state,
+            replay_state: paired.replay_state,
+        }
+    }
+
     fn operations(root: &Path, journal: &CleanupJournal, fail_at: usize) -> FakeOperations {
         let unrelated = root.join("unrelated.state");
+        let mut remaining = HashSet::from([
+            journal.locator_path.clone(),
+            journal.desktop_state.clone(),
+            journal.replay_state.clone(),
+            replay_lock_path(&journal.replay_state).unwrap(),
+            crate::cleanup_journal::journal_path(root),
+            unrelated.clone(),
+        ]);
+        if let Some((_, stub_path)) = journal.paired() {
+            remaining.insert(stub_path.to_path_buf());
+        }
         FakeOperations {
-            remaining: [
-                journal.stub_path.clone(),
-                journal.locator_path.clone(),
-                journal.desktop_state.clone(),
-                journal.replay_state.clone(),
-                replay_lock_path(&journal.replay_state).unwrap(),
-                crate::cleanup_journal::journal_path(root),
-                unrelated.clone(),
-            ]
-            .into_iter()
-            .collect(),
+            remaining,
             keys: true,
             unrelated,
             fail_at: Some(fail_at),
@@ -469,6 +653,27 @@ mod tests {
         (root, journal)
     }
 
+    #[cfg(windows)]
+    fn windows_orphan_unstarted_fixture() -> (
+        PathBuf,
+        crate::pairing::PublicIdentityStub,
+        PathBuf,
+        age_plugin_phone_protocol::FileReplayGuard,
+    ) {
+        let (root, stub, stub_path, replay) = windows_unstarted_fixture();
+        let locator_path = crate::locator::existing_pairing_locator_path(&root, &stub).unwrap();
+        age_plugin_phone_windows_storage::remove_regular_file(&stub_path).unwrap();
+        (root, stub, locator_path, replay)
+    }
+
+    #[cfg(windows)]
+    fn remove_cleanup_lock(root: &Path) {
+        age_plugin_phone_windows_storage::remove_private_file(
+            &crate::cleanup_journal::journal_lock_path(root),
+        )
+        .unwrap();
+    }
+
     #[test]
     fn confirmation_is_exact_and_non_windows_is_unsupported() {
         assert_eq!(verify_confirmation("abcd", "abcd"), Ok(()));
@@ -477,26 +682,37 @@ mod tests {
             Err(CleanupError::ConfirmationMismatch)
         );
         #[cfg(not(windows))]
-        assert_eq!(
-            confirmation_fingerprint(Path::new("identity.txt")),
-            Err(CleanupError::Unsupported)
-        );
+        {
+            assert_eq!(
+                confirmation_fingerprint(Path::new("identity.txt")),
+                Err(CleanupError::Unsupported)
+            );
+            assert_eq!(
+                orphan_confirmation_fingerprint(Path::new("locator.cbor")),
+                Err(CleanupError::Unsupported)
+            );
+            assert_eq!(
+                remove_orphaned_desktop_state(Path::new("locator.cbor"), "abcd"),
+                Err(CleanupError::Unsupported)
+            );
+        }
     }
 
     #[test]
     fn every_interrupted_phase_resumes_without_touching_unrelated_state() {
         let root = PathBuf::from("/private/config");
-        let journal = journal(&root);
-        for fail_at in 0..7 {
-            let mut operations = operations(&root, &journal, fail_at);
-            assert_eq!(
-                execute_cleanup(&journal, &root, &mut operations),
-                Err(CleanupError::Storage)
-            );
-            operations.calls = 0;
-            assert_eq!(execute_cleanup(&journal, &root, &mut operations), Ok(()));
-            assert!(!operations.keys);
-            assert_eq!(operations.remaining, HashSet::from([operations.unrelated]));
+        for (journal, phases) in [(journal(&root), 7), (orphan_journal(&root), 6)] {
+            for fail_at in 0..phases {
+                let mut operations = operations(&root, &journal, fail_at);
+                assert_eq!(
+                    execute_cleanup(&journal, &root, &mut operations),
+                    Err(CleanupError::Storage)
+                );
+                operations.calls = 0;
+                assert_eq!(execute_cleanup(&journal, &root, &mut operations), Ok(()));
+                assert!(!operations.keys);
+                assert_eq!(operations.remaining, HashSet::from([operations.unrelated]));
+            }
         }
     }
 
@@ -504,13 +720,16 @@ mod tests {
     #[test]
     fn native_cleanup_removes_exact_files_and_tpm_keys() {
         let (root, journal) = windows_fixture();
+        let (stub, stub_path) = journal.paired().unwrap();
+        let stub = stub.clone();
+        let stub_path = stub_path.to_path_buf();
         assert_eq!(
-            crate::cleanup_journal::ensure_pairing_available(&root, &journal.stub),
+            crate::cleanup_journal::ensure_pairing_available(&root, &stub),
             Err(crate::cleanup_journal::JournalError::Pending)
         );
         execute_cleanup(&journal, &root, &mut WindowsCleanupOperations).unwrap();
         for path in [
-            &journal.stub_path,
+            &stub_path,
             &journal.locator_path,
             &journal.desktop_state,
             &journal.replay_state,
@@ -520,7 +739,7 @@ mod tests {
             assert!(!path.exists());
         }
         assert!(
-            age_plugin_phone_windows_cng::WindowsCngKeySet::open(journal.stub.desktop_id).is_err()
+            age_plugin_phone_windows_cng::WindowsCngKeySet::open(journal.desktop_id()).is_err()
         );
         std::fs::remove_dir(&root).unwrap();
     }
@@ -537,6 +756,94 @@ mod tests {
         drop(replay);
         let journal = start_cleanup(&root, &stub_path, &hex(&stub.transcript_fingerprint)).unwrap();
         execute_cleanup(&journal, &root, &mut WindowsCleanupOperations).unwrap();
+        std::fs::remove_dir(&root).unwrap();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn native_orphan_cleanup_requires_exact_confirmation_and_removes_private_state() {
+        let (root, stub, locator_path, replay) = windows_orphan_unstarted_fixture();
+        drop(replay);
+        let expected = hex(&stub.transcript_fingerprint);
+        assert_eq!(
+            orphan_confirmation_fingerprint_in(&root, &locator_path).unwrap(),
+            expected
+        );
+        assert_eq!(
+            remove_orphaned_desktop_state_in(&root, &locator_path, &format!("{expected}0")),
+            Err(CleanupError::ConfirmationMismatch)
+        );
+        assert!(locator_path.exists());
+
+        remove_orphaned_desktop_state_in(&root, &locator_path, &expected).unwrap();
+        for path in [
+            locator_path,
+            root.join("desktop.state"),
+            root.join("replay.state"),
+            root.join("replay.state.lock"),
+            crate::cleanup_journal::journal_path(&root),
+        ] {
+            assert!(!path.exists());
+        }
+        assert!(age_plugin_phone_windows_cng::WindowsCngKeySet::open(stub.desktop_id).is_err());
+        remove_cleanup_lock(&root);
+        std::fs::remove_dir(&root).unwrap();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn orphan_cleanup_rejects_concurrent_replay_owner_without_a_journal() {
+        let (root, stub, locator_path, replay) = windows_orphan_unstarted_fixture();
+        let expected = hex(&stub.transcript_fingerprint);
+        assert_eq!(
+            remove_orphaned_desktop_state_in(&root, &locator_path, &expected),
+            Err(CleanupError::Busy)
+        );
+        assert!(!crate::cleanup_journal::journal_path(&root).exists());
+        drop(replay);
+        remove_orphaned_desktop_state_in(&root, &locator_path, &expected).unwrap();
+        remove_cleanup_lock(&root);
+        std::fs::remove_dir(&root).unwrap();
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn orphan_cleanup_rejects_locator_bound_to_the_wrong_desktop_state() {
+        let (root, stub, stub_path, replay) = windows_unstarted_fixture();
+        drop(replay);
+        let original_locator = crate::locator::existing_pairing_locator_path(&root, &stub).unwrap();
+        age_plugin_phone_windows_storage::remove_private_file(&original_locator).unwrap();
+        let wrong_desktop_path = root.join("wrong-desktop.state");
+        let wrong_desktop =
+            crate::pairing::DesktopKeyState::open_or_create(&wrong_desktop_path, &mut OsRng)
+                .unwrap();
+        let locator_path = crate::locator::create_pairing_locator(
+            &root,
+            &stub,
+            &wrong_desktop_path,
+            &root.join("replay.state"),
+        )
+        .unwrap();
+        age_plugin_phone_windows_storage::remove_regular_file(&stub_path).unwrap();
+
+        let expected = hex(&stub.transcript_fingerprint);
+        assert_eq!(
+            remove_orphaned_desktop_state_in(&root, &locator_path, &expected),
+            Err(CleanupError::InvalidTarget)
+        );
+        assert!(!crate::cleanup_journal::journal_path(&root).exists());
+
+        age_plugin_phone_windows_storage::remove_private_file(&locator_path).unwrap();
+        age_plugin_phone_windows_storage::remove_private_file(&root.join("desktop.state")).unwrap();
+        age_plugin_phone_windows_storage::remove_private_file(&wrong_desktop_path).unwrap();
+        age_plugin_phone_windows_storage::remove_private_file(&root.join("replay.state")).unwrap();
+        age_plugin_phone_windows_storage::remove_private_file(&root.join("replay.state.lock"))
+            .unwrap();
+        let wrong_desktop_id = wrong_desktop.desktop_id;
+        drop(wrong_desktop);
+        age_plugin_phone_windows_cng::remove_key_set(stub.desktop_id).unwrap();
+        age_plugin_phone_windows_cng::remove_key_set(wrong_desktop_id).unwrap();
+        remove_cleanup_lock(&root);
         std::fs::remove_dir(&root).unwrap();
     }
 }

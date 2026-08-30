@@ -153,7 +153,9 @@ release gate, not an open question about whether the ADB transport can carry the
 - [x] Preserve Doctor diagnostics only in explicitly marked development builds, with non-sensitive
   reports.
 - [x] Implement fingerprint-confirmed, journaled Windows local cleanup that removes only one
-  revoked pairing's replay state, TPM metadata, locator, exact CNG keys, and public stub.
+  revoked pairing's replay state, TPM metadata, locator, exact CNG keys, and public stub; when the
+  stub is already unavailable, allow the same private cleanup only through its exact canonical
+  locator without discovering or deleting other public stubs.
 - [x] Package, sign, and independently verify the first Windows 11 x64 and Android RC0 artifacts;
   label the private-root Windows package explicitly as test-signed.
 - [ ] Move Windows distribution signing to a publicly trusted free open-source program before

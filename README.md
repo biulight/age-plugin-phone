@@ -48,6 +48,7 @@ cargo run -p age-plugin-phone -- pair --help
 cargo run -p age-plugin-phone -- unwrap --help
 cargo run -p age-plugin-phone -- qr-capture-probe
 cargo run -p age-plugin-phone -- remove-desktop-state --help
+cargo run -p age-plugin-phone -- remove-orphaned-desktop-state --help
 cargo test --workspace
 
 cd apps/mobile
@@ -95,6 +96,13 @@ After phone-side revocation, `remove-desktop-state` requires the full transcript
 uses a private crash-safe journal to remove only that pairing's replay state, TPM metadata, locator,
 two exact CNG keys, and public stub. A pending cleanup makes the target pairing unavailable and may
 be resumed; it does not claim phone-side revocation or affect another pairing.
+
+If the public stub is already unavailable but its private locator remains,
+`remove-orphaned-desktop-state --locator PATH` is the recovery-only equivalent. It accepts only an
+exact canonical locator directly under the protected Windows configuration root, revalidates its
+desktop ID and response-replay scope, and requires the same full transcript fingerprint. It removes
+only private state; public stubs and phone-side revocation remain separate operations. Prefer the
+stub-based command whenever the public stub still exists.
 
 Windows now defaults to the Developer USB ADB Alpha for `pair`, `unwrap`, and standard age identity
 operations. Pairing still requires **Pair via Developer USB** on the phone. For unwrap, the desktop

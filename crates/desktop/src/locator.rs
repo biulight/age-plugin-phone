@@ -13,6 +13,7 @@ use thiserror::Error;
 
 use crate::cleanup_journal::{self, JournalError};
 use crate::pairing::PublicIdentityStub;
+use age_plugin_phone_protocol::{Id, ProtocolDigest};
 
 const LOCATOR_VERSION: u16 = 2;
 const MAX_LOCATOR_BYTES: u64 = 4_096;
@@ -22,6 +23,14 @@ const CONFIG_OVERRIDE: &str = "AGE_PLUGIN_PHONE_CONFIG_DIR";
 pub struct PairingLocator {
     pub desktop_state: PathBuf,
     pub replay_state: PathBuf,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct PairingLocatorRecord {
+    pub desktop_id: Id,
+    pub identity_id: Id,
+    pub transcript_fingerprint: ProtocolDigest,
+    pub locator: PairingLocator,
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -114,6 +123,26 @@ pub(crate) fn existing_pairing_locator_path(
     open_pairing_locator_record(root, stub).map(|(path, _)| path)
 }
 
+#[cfg(any(windows, test))]
+pub(crate) fn open_pairing_locator_for_cleanup(
+    root: &Path,
+    supplied_path: &Path,
+) -> Result<(PathBuf, PairingLocatorRecord), LocatorError> {
+    let directory =
+        std::path::absolute(checked_directory(root)?).map_err(|_| LocatorError::Invalid)?;
+    let path = std::path::absolute(supplied_path).map_err(|_| LocatorError::Invalid)?;
+    if path.parent() != Some(directory.as_path()) {
+        return Err(LocatorError::Invalid);
+    }
+    let record = decode_record(&read_locator_file(&path)?)?;
+    if path != locator_path_for_record(&directory, &record)
+        && path != legacy_locator_path_for_record(&directory, &record)
+    {
+        return Err(LocatorError::Invalid);
+    }
+    Ok((path, record))
+}
+
 fn open_pairing_locator_record(
     root: &Path,
     stub: &PublicIdentityStub,
@@ -174,12 +203,23 @@ fn read_locator_file(_path: &Path) -> Result<Vec<u8>, LocatorError> {
 }
 
 fn encode(stub: &PublicIdentityStub, locator: &PairingLocator) -> Result<Vec<u8>, LocatorError> {
-    let desktop = locator
+    encode_record(&PairingLocatorRecord {
+        desktop_id: stub.desktop_id,
+        identity_id: stub.identity_id,
+        transcript_fingerprint: stub.transcript_fingerprint,
+        locator: locator.clone(),
+    })
+}
+
+fn encode_record(record: &PairingLocatorRecord) -> Result<Vec<u8>, LocatorError> {
+    let desktop = record
+        .locator
         .desktop_state
         .to_str()
         .filter(|value| !value.contains('\n'))
         .ok_or(LocatorError::Invalid)?;
-    let replay = locator
+    let replay = record
+        .locator
         .replay_state
         .to_str()
         .filter(|value| !value.contains('\n'))
@@ -190,11 +230,11 @@ fn encode(stub: &PublicIdentityStub, locator: &PairingLocator) -> Result<Vec<u8>
         .map_err(|_| LocatorError::Invalid)?
         .u16(LOCATOR_VERSION)
         .map_err(|_| LocatorError::Invalid)?
-        .bytes(&stub.desktop_id)
+        .bytes(&record.desktop_id)
         .map_err(|_| LocatorError::Invalid)?
-        .bytes(&stub.identity_id)
+        .bytes(&record.identity_id)
         .map_err(|_| LocatorError::Invalid)?
-        .bytes(&stub.transcript_fingerprint)
+        .bytes(&record.transcript_fingerprint)
         .map_err(|_| LocatorError::Invalid)?
         .str(desktop)
         .map_err(|_| LocatorError::Invalid)?
@@ -204,27 +244,40 @@ fn encode(stub: &PublicIdentityStub, locator: &PairingLocator) -> Result<Vec<u8>
 }
 
 fn decode(stub: &PublicIdentityStub, bytes: &[u8]) -> Result<PairingLocator, LocatorError> {
+    let record = decode_record(bytes)?;
+    if record.desktop_id != stub.desktop_id
+        || record.identity_id != stub.identity_id
+        || record.transcript_fingerprint != stub.transcript_fingerprint
+    {
+        return Err(LocatorError::Invalid);
+    }
+    Ok(record.locator)
+}
+
+fn decode_record(bytes: &[u8]) -> Result<PairingLocatorRecord, LocatorError> {
     let mut decoder = Decoder::new(bytes);
     if decoder.array().map_err(|_| LocatorError::Invalid)? != Some(6)
         || decoder.u16().map_err(|_| LocatorError::Invalid)? != LOCATOR_VERSION
-        || decoder.bytes().map_err(|_| LocatorError::Invalid)? != stub.desktop_id
-        || decoder.bytes().map_err(|_| LocatorError::Invalid)? != stub.identity_id
-        || decoder.bytes().map_err(|_| LocatorError::Invalid)? != stub.transcript_fingerprint
     {
         return Err(LocatorError::Invalid);
     }
-    let locator = PairingLocator {
-        desktop_state: PathBuf::from(decoder.str().map_err(|_| LocatorError::Invalid)?),
-        replay_state: PathBuf::from(decoder.str().map_err(|_| LocatorError::Invalid)?),
+    let record = PairingLocatorRecord {
+        desktop_id: fixed(decoder.bytes().map_err(|_| LocatorError::Invalid)?)?,
+        identity_id: fixed(decoder.bytes().map_err(|_| LocatorError::Invalid)?)?,
+        transcript_fingerprint: fixed(decoder.bytes().map_err(|_| LocatorError::Invalid)?)?,
+        locator: PairingLocator {
+            desktop_state: PathBuf::from(decoder.str().map_err(|_| LocatorError::Invalid)?),
+            replay_state: PathBuf::from(decoder.str().map_err(|_| LocatorError::Invalid)?),
+        },
     };
     if decoder.position() != bytes.len()
-        || encode(stub, &locator).map_err(|_| LocatorError::Invalid)? != bytes
-        || !locator.desktop_state.is_absolute()
-        || !locator.replay_state.is_absolute()
+        || encode_record(&record).map_err(|_| LocatorError::Invalid)? != bytes
+        || !record.locator.desktop_state.is_absolute()
+        || !record.locator.replay_state.is_absolute()
     {
         return Err(LocatorError::Invalid);
     }
-    Ok(locator)
+    Ok(record)
 }
 
 pub(crate) fn pairing_locator_path(root: &Path, stub: &PublicIdentityStub) -> PathBuf {
@@ -237,6 +290,24 @@ fn locator_name(stub: &PublicIdentityStub) -> String {
 
 fn legacy_pairing_locator_path(root: &Path, stub: &PublicIdentityStub) -> PathBuf {
     root.join(format!("{}.cbor", hex(&stub.identity_id)))
+}
+
+#[cfg(any(windows, test))]
+fn locator_path_for_record(root: &Path, record: &PairingLocatorRecord) -> PathBuf {
+    root.join(format!(
+        "{}-{}.cbor",
+        hex(&record.identity_id),
+        hex(&record.desktop_id)
+    ))
+}
+
+#[cfg(any(windows, test))]
+fn legacy_locator_path_for_record(root: &Path, record: &PairingLocatorRecord) -> PathBuf {
+    root.join(format!("{}.cbor", hex(&record.identity_id)))
+}
+
+fn fixed<const N: usize>(bytes: &[u8]) -> Result<[u8; N], LocatorError> {
+    bytes.try_into().map_err(|_| LocatorError::Invalid)
 }
 
 fn ensure_not_pending(root: &Path, stub: &PublicIdentityStub) -> Result<(), LocatorError> {
@@ -526,6 +597,67 @@ mod tests {
             open_pairing_locator(&state, &stub),
             Err(LocatorError::Invalid),
         );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn cleanup_locator_requires_an_exact_private_canonical_path() {
+        use std::os::unix::fs::PermissionsExt as _;
+
+        let root = std::env::temp_dir().join(format!(
+            "age-phone-cleanup-locator-{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos(),
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let state = root.join("state");
+        let (stub, desktop, replay) = fixture(&root);
+        let locator_path = create_pairing_locator(&state, &stub, &desktop, &replay).unwrap();
+
+        let (cleanup_path, cleanup_record) =
+            open_pairing_locator_for_cleanup(&state, &locator_path).unwrap();
+        assert_eq!(cleanup_path, locator_path);
+        assert_eq!(cleanup_record.desktop_id, stub.desktop_id);
+        assert_eq!(cleanup_record.identity_id, stub.identity_id);
+        assert_eq!(
+            cleanup_record.transcript_fingerprint,
+            stub.transcript_fingerprint
+        );
+
+        let wrong_name = state.join("wrong-name.cbor");
+        std::fs::copy(&locator_path, &wrong_name).unwrap();
+        std::fs::set_permissions(&wrong_name, std::fs::Permissions::from_mode(0o600)).unwrap();
+        assert_eq!(
+            open_pairing_locator_for_cleanup(&state, &wrong_name),
+            Err(LocatorError::Invalid)
+        );
+        std::fs::remove_file(wrong_name).unwrap();
+        assert_eq!(
+            open_pairing_locator_for_cleanup(&state, &desktop),
+            Err(LocatorError::Invalid)
+        );
+
+        let legacy_path = legacy_pairing_locator_path(&state, &stub);
+        std::fs::rename(&locator_path, &legacy_path).unwrap();
+        assert_eq!(
+            open_pairing_locator_for_cleanup(&state, &legacy_path)
+                .unwrap()
+                .1
+                .identity_id,
+            stub.identity_id
+        );
+
+        let modern_hardlink = pairing_locator_path(&state, &stub);
+        std::fs::hard_link(&legacy_path, &modern_hardlink).unwrap();
+        assert_eq!(
+            open_pairing_locator_for_cleanup(&state, &legacy_path),
+            Err(LocatorError::Invalid)
+        );
+        std::fs::remove_file(modern_hardlink).unwrap();
+        assert!(open_pairing_locator_for_cleanup(&state, &legacy_path).is_ok());
         std::fs::remove_dir_all(root).unwrap();
     }
 }

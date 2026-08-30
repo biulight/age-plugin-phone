@@ -1,8 +1,8 @@
 # Windows and Android Alpha matrix
 
-Status: exact candidate `18a94c8` has closed the primary Developer USB and one-phone
-interoperability paths; fresh pairing, QR/replay, lifecycle, multi-phone, public-signing, and
-technical-user release gates remain open.
+Status: exact candidate `18a94c8` has closed fresh pairing, malformed Developer USB, and the primary
+one-phone interoperability paths; QR/replay, remaining lifecycle/invalidation, multi-phone,
+public-signing, and technical-user release gates remain open.
 
 This matrix separates the supported Alpha product from interoperability evidence. A row marked
 "required" is a release gate, not a promise that every version in that family is supported. The
@@ -14,14 +14,14 @@ physical run.
 | Area | Alpha requirement | Current evidence | Gate status |
 | --- | --- | --- | --- |
 | Desktop OS | Windows 11 client, x64; Windows Server, Windows 10, ARM64, virtualized/software TPM, and compatibility modes are rejected | Exact candidate completed the recorded runs on Windows 11 Pro 23H2 x64 build 22631.6199 | Required; broader Windows 11 update coverage pending |
-| Desktop custody | Enabled and ready TPM 2.0; Microsoft Platform Crypto Provider; distinct non-exportable P-256 ECDSA and ECDH keys; protected `%LOCALAPPDATA%` state | Intel TPM firmware `600.18.27.2176` was present, enabled, and ready; native CNG/storage tests and exact-candidate unwraps passed | Required; fresh exact-candidate pairing still pending |
-| Phone OS and custody | Android device whose live key inspection proves StrongBox P-256 ECDH, auth-per-use `BIOMETRIC_STRONG`, StrongBox P-256 signing, and the exact invalidation policy | Samsung `SM-F9660`, Android 16 / API 36, security patch `2026-07-05`, passed the exact-candidate per-operation authentication runs | Required; fresh exact-APK provisioning and at least one additional StrongBox family pending |
+| Desktop custody | Enabled and ready TPM 2.0; Microsoft Platform Crypto Provider; distinct non-exportable P-256 ECDSA and ECDH keys; protected `%LOCALAPPDATA%` state | Intel TPM firmware `600.18.27.2176` was present, enabled, and ready; native CNG/storage tests, fresh exact-candidate pairing, and unwraps passed | Required; recorded device passed, broader coverage pending |
+| Phone OS and custody | Android device whose live key inspection proves StrongBox P-256 ECDH, auth-per-use `BIOMETRIC_STRONG`, StrongBox P-256 signing, and the exact invalidation policy | Samsung `SM-F9660`, Android 16 / API 36, security patch `2026-07-05`, passed fresh exact-APK pairing and per-operation authentication | Required; recorded device passed, at least one additional StrongBox family pending |
 | Default transport | Developer USB through an explicitly selected online ADB device and `adb reverse`; USB debugging and Android ADB authorization are prerequisites, not authentication | Platform-tools 37.0.1 passed exact-package cold/background/repeated wake and interruption cleanup with one authorized device | Required; release package must pin and test an exact platform-tools range |
 | Fallback transport | Native QR with the same pairing and protocol; no security downgrade and no ADB state | An earlier baseline passed authenticated QR, but exact candidate `18a94c8` remains untested because this Windows host has no camera | Required; attach a UVC camera and rerun fallback/replay |
 | age client | Released reference `age` using standard `recipient-v1` and `identity-v1` plugin state machines | `age` 1.3.1 passed exact-candidate native and rage-cross phone decrypt plus independent recovery on two synthetic files | Required; one-phone/multi-file gate passed |
 | rage client | Released `rage` with the same standard plugin boundary and no client-specific protocol path | `rage` 0.12.1 passed native and age-cross phone decrypt plus independent recovery on the exact candidate | Required; one-phone/multi-file gate passed |
 | Shine | Existing `age_identity` and `age_recipients` configuration only; no Shine dependency, RPC, URI, environment interpretation, or ciphertext change in this repository | Shine 1.8.0 passed direct encrypt/decrypt, workspace seal, `env run`, and independent recovery with the exact candidate | Required; passed for the recorded version |
-| Recovery | Every important Alpha dataset has the phone recipient plus a verified independent recovery recipient as defined by ADR 0017 | age/rage cross-client and Shine sealed-workspace recovery matched synthetic digests without the phone or plugin | Required; migration to a fresh exact-candidate pairing remains pending |
+| Recovery | Every important Alpha dataset has the phone recipient plus a verified independent recovery recipient as defined by ADR 0017 | age/rage cross-client and Shine sealed-workspace recovery matched synthetic digests without the phone or plugin; recovery remained usable after revoking the fresh pairing | Required; fresh-pairing recovery passed, full replacement/re-encryption retirement remains pending |
 | macOS | Build and protocol interoperability validation only; not packaged or supported as the Alpha desktop product | Physical Android pairing and reference-age unwrap over QR/ADB were previously validated from macOS | Informational; not an Alpha release gate |
 
 Passing on one device never substitutes for runtime capability inspection. A phone model allowlist,
@@ -42,7 +42,7 @@ from the supported Windows/Android pair.
 
 | Scenario | Portable gate | Physical gate | Current state |
 | --- | --- | --- | --- |
-| Fresh identity and pairing, exact transcript comparison, restart, then standard age unwrap | Required | Required | Standard exact-candidate restart/unwrap passed, but the retained pairing originated under rejected commit `ec5ebb8`; fresh `18a94c8` pairing pending |
+| Fresh identity and pairing, exact transcript comparison, restart, then standard age unwrap | Required | Required | The fresh-pairing portion passed: a new `18a94c8` pairing with no retained phone pairing or active public Windows pairing passed full-fingerprint comparison, standard unwrap, repeated fresh biometrics, and independent recovery; recorded exact-candidate restart/cold-start paths remained valid. Fresh phone-identity provisioning remains pending with the identity-deletion/uninstall lifecycle row |
 | Automatic Developer USB unwrap wake on cold start, foreground, background, and repeated requests | Required | Required | Exact packaged artifacts passed all four wake modes without manual **Approve USB**; each unwrap required fresh biometrics |
 | Encrypt and decrypt with released reference age; multiple files and multiple phone identities | Required | Required | age 1.3.1 passed two-file native/cross-client phone and recovery paths; multiple phone identities remain open |
 | Encrypt and decrypt with released rage | Required | Required | rage 0.12.1 passed native/cross-client phone and recovery paths on two synthetic files |
@@ -50,14 +50,14 @@ from the supported Windows/Android pair.
 | Independent recovery decrypt, new-phone/new-pairing encryption, byte comparison, and retirement of old ciphertext | Required | Required | Independent recovery and byte comparison passed; fresh pairing/re-encryption and retirement remain pending |
 | Wrong paired physical phone | Required | Required | Portable coverage exists; physical gate pending from Milestone 4 |
 | Captured request and injected response replay after restart | Required | Required | Portable durable-replay coverage exists; exact physical gate is waiting for a Windows camera |
-| Cancellation, biometric mismatch then success, lock screen, timeout, no response, and malformed stream | Required | Required | Exact package passed cancellation, mismatch-then-success, lock, and timeout; malformed physical wake/stream injection remains |
+| Cancellation, biometric mismatch then success, lock screen, timeout, no response, and malformed stream | Required | Required | Exact package passed cancellation, mismatch-then-success, lock, timeout, malformed wake, and malformed stream without plaintext, reusable authorization, reverse residue, or a biometric prompt for malformed input |
 | Cable removal/reconnect, ADB daemon restart, nonexistent serial, unauthorized/offline device, multiple online devices, and device switch | Required | Required | Exact package passed cable and daemon interruption/recovery; remaining device-state permutations retain their earlier baseline evidence and require exact-package rerun where injectable |
 | Existing/stale reverse rule, Ctrl-C, normal exit, forced desktop process exit, and exact rule cleanup | Required | Required | Exact package passed forced exit and native-console Ctrl-C with no output/residue; fresh recovery requests required biometrics and matched digests |
 | QR fallback after ADB failure with a fresh authorization and no reverse residue | Required | Required | Exact package pending because the Windows host has no camera; no QR slot or ADB state was created |
-| Desktop restart, phone app restart/background/process death, malformed wake action, and replay persistence | Required | Required | Exact package passed desktop/ADB/app interruption and background/cold wake; malformed wake and full packaged lifecycle remain pending |
+| Desktop restart, phone app restart/background/process death, malformed wake action, and replay persistence | Required | Required | Exact package passed desktop/ADB/app interruption, background/cold wake, and malformed wake; captured-response replay after restart remains pending with the QR/replay row |
 | Revoke one desktop while another pairing remains usable | Required | Required | Journaled native revocation and portable isolation/restart tests implemented; physical gate pending |
 | TPM signing/selection invalidation and StrongBox identity/signing invalidation | Required | Required | Fail-closed primitives exist; lifecycle implementation and physical matrix pending |
-| Identity deletion, Android uninstall/reinstall, backup exclusion, and explicit desktop cleanup | Required | Required | Journaled phone deletion and Windows fingerprint-confirmed, journaled local cleanup are implemented with portable/native tests; packaged uninstall/reinstall and lifecycle gate pending |
+| Identity deletion, Android uninstall/reinstall, backup exclusion, and explicit desktop cleanup | Required | Required | Exact-candidate phone revocation and normal Windows cleanup passed. The exact-locator orphan recovery path passed Windows-native tests and unsigned physical implementation validation; packaged identity deletion, uninstall/reinstall, and invalidation remain pending |
 | Corrupt, missing, copied, insecure, full, or concurrently opened security state | Required | Required where injectable | Portable/native storage coverage exists; packaged lifecycle rerun pending |
 
 Every negative scenario passes only when it produces no plaintext or partial output, no reusable

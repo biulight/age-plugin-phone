@@ -7,18 +7,35 @@ use std::path::{Path, PathBuf};
 use minicbor::{Decoder, Encoder};
 use thiserror::Error;
 
+use age_plugin_phone_protocol::{Id, ProtocolDigest};
+
 use crate::pairing::PublicIdentityStub;
 
-const JOURNAL_VERSION: u16 = 1;
+const LEGACY_JOURNAL_VERSION: u16 = 1;
+const JOURNAL_VERSION: u16 = 2;
+const PAIRED_TARGET: u16 = 1;
+const ORPHAN_TARGET: u16 = 2;
 const JOURNAL_NAME: &str = "desktop-cleanup.cbor";
 const JOURNAL_LOCK_NAME: &str = "desktop-cleanup.lock";
 #[cfg(windows)]
 const MAX_JOURNAL_BYTES: u64 = 16_384;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum CleanupTarget {
+    Paired {
+        stub: PublicIdentityStub,
+        stub_path: PathBuf,
+    },
+    Orphan {
+        desktop_id: Id,
+        identity_id: Id,
+        transcript_fingerprint: ProtocolDigest,
+    },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct CleanupJournal {
-    pub stub: PublicIdentityStub,
-    pub stub_path: PathBuf,
+    pub target: CleanupTarget,
     pub locator_path: PathBuf,
     pub desktop_state: PathBuf,
     pub replay_state: PathBuf,
@@ -26,7 +43,6 @@ pub(crate) struct CleanupJournal {
 
 impl CleanupJournal {
     pub(crate) fn encode(&self) -> Result<Vec<u8>, JournalError> {
-        let stub_path = encoded_path(&self.stub_path)?;
         let locator_path = encoded_path(&self.locator_path)?;
         let desktop_state = encoded_path(&self.desktop_state)?;
         let replay_state = encoded_path(&self.replay_state)?;
@@ -35,11 +51,38 @@ impl CleanupJournal {
             .array(6)
             .map_err(|_| JournalError::Invalid)?
             .u16(JOURNAL_VERSION)
-            .map_err(|_| JournalError::Invalid)?
-            .bytes(&self.stub.encode())
-            .map_err(|_| JournalError::Invalid)?
-            .str(stub_path)
-            .map_err(|_| JournalError::Invalid)?
+            .map_err(|_| JournalError::Invalid)?;
+        match &self.target {
+            CleanupTarget::Paired { stub, stub_path } => {
+                encoder
+                    .u16(PAIRED_TARGET)
+                    .map_err(|_| JournalError::Invalid)?
+                    .array(2)
+                    .map_err(|_| JournalError::Invalid)?
+                    .bytes(&stub.encode())
+                    .map_err(|_| JournalError::Invalid)?
+                    .str(encoded_path(stub_path)?)
+                    .map_err(|_| JournalError::Invalid)?;
+            }
+            CleanupTarget::Orphan {
+                desktop_id,
+                identity_id,
+                transcript_fingerprint,
+            } => {
+                encoder
+                    .u16(ORPHAN_TARGET)
+                    .map_err(|_| JournalError::Invalid)?
+                    .array(3)
+                    .map_err(|_| JournalError::Invalid)?
+                    .bytes(desktop_id)
+                    .map_err(|_| JournalError::Invalid)?
+                    .bytes(identity_id)
+                    .map_err(|_| JournalError::Invalid)?
+                    .bytes(transcript_fingerprint)
+                    .map_err(|_| JournalError::Invalid)?;
+            }
+        }
+        encoder
             .str(locator_path)
             .map_err(|_| JournalError::Invalid)?
             .str(desktop_state)
@@ -51,39 +94,146 @@ impl CleanupJournal {
 
     pub(crate) fn decode(bytes: &[u8]) -> Result<Self, JournalError> {
         let mut decoder = Decoder::new(bytes);
-        if decoder.array().map_err(|_| JournalError::Invalid)? != Some(6)
-            || decoder.u16().map_err(|_| JournalError::Invalid)? != JOURNAL_VERSION
-        {
+        if decoder.array().map_err(|_| JournalError::Invalid)? != Some(6) {
             return Err(JournalError::Invalid);
         }
-        let value = Self {
-            stub: PublicIdentityStub::decode(decoder.bytes().map_err(|_| JournalError::Invalid)?)
-                .map_err(|_| JournalError::Invalid)?,
-            stub_path: PathBuf::from(decoder.str().map_err(|_| JournalError::Invalid)?),
-            locator_path: PathBuf::from(decoder.str().map_err(|_| JournalError::Invalid)?),
-            desktop_state: PathBuf::from(decoder.str().map_err(|_| JournalError::Invalid)?),
-            replay_state: PathBuf::from(decoder.str().map_err(|_| JournalError::Invalid)?),
+        let version = decoder.u16().map_err(|_| JournalError::Invalid)?;
+        let value = match version {
+            LEGACY_JOURNAL_VERSION => Self::decode_legacy(&mut decoder)?,
+            JOURNAL_VERSION => Self::decode_current(&mut decoder)?,
+            _ => return Err(JournalError::Invalid),
         };
-        if decoder.position() != bytes.len()
-            || value.encode().map_err(|_| JournalError::Invalid)? != bytes
-            || [
-                &value.stub_path,
-                &value.locator_path,
-                &value.desktop_state,
-                &value.replay_state,
-            ]
-            .iter()
-            .any(|path| !path.is_absolute() || path.file_name().is_none())
-        {
+        let canonical = match version {
+            LEGACY_JOURNAL_VERSION => value.encode_legacy()?,
+            JOURNAL_VERSION => value.encode()?,
+            _ => unreachable!(),
+        };
+        if decoder.position() != bytes.len() || canonical != bytes || !value.paths_are_valid() {
             return Err(JournalError::Invalid);
         }
         Ok(value)
     }
 
+    fn decode_legacy(decoder: &mut Decoder<'_>) -> Result<Self, JournalError> {
+        Ok(Self {
+            target: CleanupTarget::Paired {
+                stub: PublicIdentityStub::decode(
+                    decoder.bytes().map_err(|_| JournalError::Invalid)?,
+                )
+                .map_err(|_| JournalError::Invalid)?,
+                stub_path: PathBuf::from(decoder.str().map_err(|_| JournalError::Invalid)?),
+            },
+            locator_path: PathBuf::from(decoder.str().map_err(|_| JournalError::Invalid)?),
+            desktop_state: PathBuf::from(decoder.str().map_err(|_| JournalError::Invalid)?),
+            replay_state: PathBuf::from(decoder.str().map_err(|_| JournalError::Invalid)?),
+        })
+    }
+
+    fn decode_current(decoder: &mut Decoder<'_>) -> Result<Self, JournalError> {
+        let kind = decoder.u16().map_err(|_| JournalError::Invalid)?;
+        let target = match kind {
+            PAIRED_TARGET => {
+                if decoder.array().map_err(|_| JournalError::Invalid)? != Some(2) {
+                    return Err(JournalError::Invalid);
+                }
+                CleanupTarget::Paired {
+                    stub: PublicIdentityStub::decode(
+                        decoder.bytes().map_err(|_| JournalError::Invalid)?,
+                    )
+                    .map_err(|_| JournalError::Invalid)?,
+                    stub_path: PathBuf::from(decoder.str().map_err(|_| JournalError::Invalid)?),
+                }
+            }
+            ORPHAN_TARGET => {
+                if decoder.array().map_err(|_| JournalError::Invalid)? != Some(3) {
+                    return Err(JournalError::Invalid);
+                }
+                CleanupTarget::Orphan {
+                    desktop_id: fixed(decoder.bytes().map_err(|_| JournalError::Invalid)?)?,
+                    identity_id: fixed(decoder.bytes().map_err(|_| JournalError::Invalid)?)?,
+                    transcript_fingerprint: fixed(
+                        decoder.bytes().map_err(|_| JournalError::Invalid)?,
+                    )?,
+                }
+            }
+            _ => return Err(JournalError::Invalid),
+        };
+        Ok(Self {
+            target,
+            locator_path: PathBuf::from(decoder.str().map_err(|_| JournalError::Invalid)?),
+            desktop_state: PathBuf::from(decoder.str().map_err(|_| JournalError::Invalid)?),
+            replay_state: PathBuf::from(decoder.str().map_err(|_| JournalError::Invalid)?),
+        })
+    }
+
+    fn encode_legacy(&self) -> Result<Vec<u8>, JournalError> {
+        let CleanupTarget::Paired { stub, stub_path } = &self.target else {
+            return Err(JournalError::Invalid);
+        };
+        let mut encoder = Encoder::new(Vec::new());
+        encoder
+            .array(6)
+            .map_err(|_| JournalError::Invalid)?
+            .u16(LEGACY_JOURNAL_VERSION)
+            .map_err(|_| JournalError::Invalid)?
+            .bytes(&stub.encode())
+            .map_err(|_| JournalError::Invalid)?
+            .str(encoded_path(stub_path)?)
+            .map_err(|_| JournalError::Invalid)?
+            .str(encoded_path(&self.locator_path)?)
+            .map_err(|_| JournalError::Invalid)?
+            .str(encoded_path(&self.desktop_state)?)
+            .map_err(|_| JournalError::Invalid)?
+            .str(encoded_path(&self.replay_state)?)
+            .map_err(|_| JournalError::Invalid)?;
+        Ok(encoder.into_writer())
+    }
+
+    fn paths_are_valid(&self) -> bool {
+        let mut paths = vec![&self.locator_path, &self.desktop_state, &self.replay_state];
+        if let CleanupTarget::Paired { stub_path, .. } = &self.target {
+            paths.push(stub_path);
+        }
+        paths
+            .into_iter()
+            .all(|path| path.is_absolute() && path.file_name().is_some())
+    }
+
     pub(crate) fn targets(&self, stub: &PublicIdentityStub) -> bool {
-        self.stub.desktop_id == stub.desktop_id
-            && self.stub.identity_id == stub.identity_id
-            && self.stub.transcript_fingerprint == stub.transcript_fingerprint
+        self.desktop_id() == stub.desktop_id
+            && self.identity_id() == stub.identity_id
+            && self.transcript_fingerprint() == stub.transcript_fingerprint
+    }
+
+    pub(crate) fn paired(&self) -> Option<(&PublicIdentityStub, &Path)> {
+        match &self.target {
+            CleanupTarget::Paired { stub, stub_path } => Some((stub, stub_path)),
+            CleanupTarget::Orphan { .. } => None,
+        }
+    }
+
+    pub(crate) const fn desktop_id(&self) -> Id {
+        match &self.target {
+            CleanupTarget::Paired { stub, .. } => stub.desktop_id,
+            CleanupTarget::Orphan { desktop_id, .. } => *desktop_id,
+        }
+    }
+
+    pub(crate) const fn identity_id(&self) -> Id {
+        match &self.target {
+            CleanupTarget::Paired { stub, .. } => stub.identity_id,
+            CleanupTarget::Orphan { identity_id, .. } => *identity_id,
+        }
+    }
+
+    pub(crate) const fn transcript_fingerprint(&self) -> ProtocolDigest {
+        match &self.target {
+            CleanupTarget::Paired { stub, .. } => stub.transcript_fingerprint,
+            CleanupTarget::Orphan {
+                transcript_fingerprint,
+                ..
+            } => *transcript_fingerprint,
+        }
     }
 }
 
@@ -150,6 +300,10 @@ fn encoded_path(path: &Path) -> Result<&str, JournalError> {
         .ok_or(JournalError::Invalid)
 }
 
+fn fixed<const N: usize>(bytes: &[u8]) -> Result<[u8; N], JournalError> {
+    bytes.try_into().map_err(|_| JournalError::Invalid)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -201,44 +355,88 @@ mod tests {
         return PathBuf::from(format!("/private/{name}"));
     }
 
-    #[test]
-    fn journal_is_canonical_bound_and_strict() {
-        let value = CleanupJournal {
-            stub: stub(),
-            stub_path: absolute("identity.txt"),
+    fn paired_journal(stub_path: PathBuf) -> CleanupJournal {
+        CleanupJournal {
+            target: CleanupTarget::Paired {
+                stub: stub(),
+                stub_path,
+            },
             locator_path: absolute("locator.cbor"),
             desktop_state: absolute("desktop.state"),
             replay_state: absolute("replay.state"),
-        };
-        let encoded = value.encode().unwrap();
-        assert_eq!(CleanupJournal::decode(&encoded).unwrap(), value);
-        assert!(value.targets(&value.stub));
+        }
+    }
 
-        let mut trailing = encoded;
-        trailing.push(0);
+    fn orphan_journal() -> CleanupJournal {
+        CleanupJournal {
+            target: CleanupTarget::Orphan {
+                desktop_id: [1; 16],
+                identity_id: [2; 16],
+                transcript_fingerprint: [4; 32],
+            },
+            locator_path: absolute("locator.cbor"),
+            desktop_state: absolute("desktop.state"),
+            replay_state: absolute("replay.state"),
+        }
+    }
+
+    #[test]
+    fn paired_and_orphan_journals_are_canonical_bound_and_strict() {
+        let paired = paired_journal(absolute("identity.txt"));
+        let paired_stub = paired.paired().unwrap().0.clone();
+        assert!(paired.targets(&paired_stub));
+        assert!(orphan_journal().targets(&paired_stub));
+        for value in [paired.clone(), orphan_journal()] {
+            let encoded = value.encode().unwrap();
+            assert_eq!(CleanupJournal::decode(&encoded).unwrap(), value);
+
+            let mut trailing = encoded;
+            trailing.push(0);
+            assert_eq!(
+                CleanupJournal::decode(&trailing),
+                Err(JournalError::Invalid)
+            );
+        }
+
+        let mut unknown_target = orphan_journal().encode().unwrap();
+        let mut decoder = Decoder::new(&unknown_target);
+        assert_eq!(decoder.array().unwrap(), Some(6));
+        assert_eq!(decoder.u16().unwrap(), JOURNAL_VERSION);
+        let kind_start = decoder.position();
+        assert_eq!(decoder.u16().unwrap(), ORPHAN_TARGET);
+        let kind_end = decoder.position();
+        unknown_target[kind_end - 1] = 9;
+        assert!(kind_end - kind_start <= 3);
         assert_eq!(
-            CleanupJournal::decode(&trailing),
+            CleanupJournal::decode(&unknown_target),
             Err(JournalError::Invalid)
         );
+
+        let legacy = paired.encode_legacy().unwrap();
+        assert_eq!(CleanupJournal::decode(&legacy).unwrap(), paired);
     }
 
     #[test]
     fn journal_rejects_relative_and_mismatched_targets() {
-        let mut value = CleanupJournal {
-            stub: stub(),
-            stub_path: PathBuf::from("relative.txt"),
-            locator_path: absolute("locator.cbor"),
-            desktop_state: absolute("desktop.state"),
-            replay_state: absolute("replay.state"),
-        };
+        let mut value = paired_journal(PathBuf::from("relative.txt"));
         assert_eq!(
             CleanupJournal::decode(&value.encode().unwrap()),
             Err(JournalError::Invalid)
         );
-        value.stub_path = absolute("identity.txt");
-        let mut other = value.stub.clone();
+        let CleanupTarget::Paired { stub, stub_path } = &mut value.target else {
+            unreachable!();
+        };
+        *stub_path = absolute("identity.txt");
+        let mut other = stub.clone();
         other.desktop_id[0] ^= 1;
         assert!(!value.targets(&other));
+
+        let mut orphan = orphan_journal();
+        orphan.locator_path = PathBuf::from("relative.cbor");
+        assert_eq!(
+            CleanupJournal::decode(&orphan.encode().unwrap()),
+            Err(JournalError::Invalid)
+        );
     }
 
     #[cfg(windows)]
@@ -251,18 +449,21 @@ mod tests {
         ));
         age_plugin_phone_windows_storage::ensure_private_directory(&root).unwrap();
         let value = CleanupJournal {
-            stub: stub(),
-            stub_path: root.join("identity.txt"),
+            target: CleanupTarget::Paired {
+                stub: stub(),
+                stub_path: root.join("identity.txt"),
+            },
             locator_path: root.join("locator.cbor"),
             desktop_state: root.join("desktop.state"),
             replay_state: root.join("replay.state"),
         };
         create(&root, &value).unwrap();
+        let value_stub = value.paired().unwrap().0.clone();
         assert_eq!(
-            ensure_pairing_available(&root, &value.stub),
+            ensure_pairing_available(&root, &value_stub),
             Err(JournalError::Pending)
         );
-        let mut other = value.stub.clone();
+        let mut other = value_stub;
         other.desktop_id[0] ^= 1;
         assert_eq!(ensure_pairing_available(&root, &other), Ok(()));
         age_plugin_phone_windows_storage::remove_private_file(&journal_path(&root)).unwrap();

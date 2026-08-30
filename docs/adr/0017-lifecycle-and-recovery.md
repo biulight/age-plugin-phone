@@ -1,6 +1,6 @@
 # ADR 0017: identity lifecycle, revocation, and recovery
 
-- Status: implemented; packaged physical lifecycle validation pending
+- Status: implemented; packaged physical lifecycle validation partial
 - Date: 2026-08-27
 - Scope: phone replacement, recovery recipients, paired-desktop revocation, identity deletion,
   application removal, and hardware-key invalidation
@@ -98,10 +98,38 @@ concurrent replay owner, malformed or insecure file, or partial key deletion lea
 place and a later invocation may resume only that same cleanup. The command is unsupported outside
 the Windows Alpha product boundary.
 
+The stub-based command remains the normal and preferred path. If the public stub is already missing
+but its private locator remains, `age-plugin-phone remove-orphaned-desktop-state --locator PATH`
+provides a recovery-only path for that orphan. It accepts only a canonical modern or validated
+legacy locator at its exact expected filename directly under the protected configuration root. It
+then binds the full-fingerprint confirmation to the locator record, opens the referenced TPM state
+without provisioning, checks the desktop ID, and opens the existing desktop-response replay state
+with the recorded desktop and identity IDs before committing deletion. The orphan journal stores
+only those IDs, the fingerprint, and exact private paths; it never reconstructs the missing stub or
+discovers other public stubs. Cleanup removes the replay state, exact CNG key set, TPM metadata,
+locator, and replay lock, but no public file. The version 2 journal distinguishes normal and orphan
+targets, rejects unknown target variants, and can resume a version 1 normal-cleanup journal created
+by the previous implementation.
+
+Both commands share one private global cleanup lock and fail-closed journal, so they cannot start
+two local cleanups concurrently or switch target type while a cleanup is pending. If neither the
+public stub nor a valid locator remains, the command cannot infer the intended TPM/replay target;
+manual file-name guessing is not a supported cleanup path.
+
 The command tells the user to revoke the pairing on the phone first. If the phone is lost, it may
 still remove local state, but success does not claim that the unavailable phone deleted its pairing
 record. No cleanup path contacts the phone, recreates a replay scope, or provisions replacement
 keys.
+
+On 2026-08-31, the exact test-signed `18a94c8` pair completed fresh pairing, repeated phone and
+independent-recovery decrypts, phone-side revocation, fail-closed rejection of a later request, and
+normal fingerprint-confirmed Windows cleanup. A separate unsigned Windows-native diagnostic built
+from the orphan-cleanup working tree removed the previously retained validated legacy locator and
+its bound private state. Post-cleanup audit observed zero phone pairings, locators, public stubs,
+pairing state/replay locks, cleanup journals, ADB reverse rules, and related processes; the expected
+global cleanup lock remained. The unsigned diagnostic validates this implementation path but is not
+packaged-candidate or public-signing evidence. Identity deletion, uninstall/reinstall, hardware-key
+invalidation, and multi-pairing isolation remain open matrix rows.
 
 Re-pairing after revocation creates a new desktop ID, distinct TPM signing and selection keys, and a
 new transcript. Because old v2 ciphertext is bound to the old selection key, it must be recovered
