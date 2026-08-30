@@ -42,6 +42,17 @@ user. It must never export the long-term private key to the desktop.
 
 ## Current commands
 
+The Android build runs on Temurin JDK 17. Install the project JDK with [mise](https://mise.jdx.dev/)
+from the repository root:
+
+```console
+mise install
+mise exec -- java -version
+```
+
+With `mise activate` configured for your shell, entering the repository sets `JAVA_HOME`
+automatically. For scripts and non-interactive shells, run commands through `mise exec --`.
+
 ```console
 cargo run -p age-plugin-phone -- status
 cargo run -p age-plugin-phone -- pair --help
