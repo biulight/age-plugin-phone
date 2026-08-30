@@ -8,6 +8,11 @@ Fresh pairing, QR/replay, packaged lifecycle/invalidation, multi-phone, public-t
 signing, and technical-user gates remain open. The independent source review is complete, with
 native/physical evidence tracked separately.
 
+The current application posture is the owner-only technical preview defined in
+[`owner-only-preview.md`](owner-only-preview.md). External-device, public-signing, and
+technical-user gates below are intentionally deferred while no other user receives the
+application; they remain mandatory before a broader or public Alpha claim.
+
 ## Implemented product surface
 
 The Android release application registers the native identity plugin and uses a product-first UI.

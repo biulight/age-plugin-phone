@@ -13,6 +13,13 @@ Shine environments, or define a Shine-specific ciphertext format.
 > physical Android, signed-package, and interoperability gates remain open. Do not use it to
 > protect real secrets.
 
+The current deployment posture is an
+[owner-only technical preview](docs/owner-only-preview.md): one repository owner, one known
+Windows/TPM desktop, one capability-qualified StrongBox phone, and Developer USB as the normal
+route. UVC-camera QR evidence, a second StrongBox family, multi-phone testing, public Windows
+signing, and an external technical-user Alpha are recorded but deferred until broader use is
+planned. Deferred means unverified, not passed.
+
 ## Intended boundary
 
 ```text
@@ -173,6 +180,7 @@ Start with the [Android StrongBox PoC](docs/android-strongbox-poc.md), then read
 [Windows private storage ADR](docs/adr/0015-windows-private-storage.md),
 [common transport and ADB Alpha ADR](docs/adr/0016-common-transport-and-adb-alpha.md),
 [identity lifecycle and recovery ADR](docs/adr/0017-lifecycle-and-recovery.md),
+[owner-only technical preview scope](docs/owner-only-preview.md),
 [Windows and Android Alpha matrix](docs/alpha-matrix.md),
 [independent security review package](docs/security-review-package.md),
 [protocol draft](docs/protocol.md), and [threat model](docs/threat-model.md) before implementing a

@@ -6,6 +6,12 @@ one-phone interoperability paths, but those results are historical and do not tr
 active artifact pair. QR/replay, remaining lifecycle/invalidation, multi-phone, public-signing, and
 technical-user release gates remain open.
 
+The active deployment posture is an owner-only technical preview. The repository owner may continue
+single-device synthetic-data evaluation without claiming that this matrix is complete. UVC-camera
+QR/replay, second-family StrongBox, multi-phone, public-signing, and external technical-user rows
+are deferred, not passed. See [`owner-only-preview.md`](owner-only-preview.md). Every row remains a
+gate before broader use or a public Alpha claim.
+
 This matrix separates the supported Alpha product from interoperability evidence. A row marked
 "required" is a release gate, not a promise that every version in that family is supported. The
 release candidate must record exact OS, firmware, tool, application, and commit versions for every
@@ -93,4 +99,4 @@ serials should be redacted or replaced by run-local labels.
 The Alpha gate remains closed while any required row or scenario is pending, while an independent
 review finding is unresolved, or while protocol version 2 is still an unfrozen experimental format.
 macOS success cannot waive a Windows requirement, and QR success cannot waive the Developer USB
-matrix (or vice versa).
+matrix (or vice versa). Owner-only operation does not change this public-Alpha decision.

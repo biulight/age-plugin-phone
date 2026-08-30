@@ -9,6 +9,11 @@ Developer USB and age/rage/Shine interoperability paths only on the previous `18
 baseline. Active candidate `35bbb60` has verified packages but no physical results yet; this guide
 remains reusable for later exact artifact pairs and does not transfer evidence between them.
 
+The present use is the owner-only technical preview in
+[`owner-only-preview.md`](owner-only-preview.md). This guide may exercise the recorded single-device
+Developer USB path with synthetic data; it does not waive the deferred UVC, second-phone,
+public-signing, or external-user gates.
+
 Use one exact RC artifact set throughout the guide. Do not mix a desktop executable, Android APK,
 or evidence file from another commit or workflow attempt.
 

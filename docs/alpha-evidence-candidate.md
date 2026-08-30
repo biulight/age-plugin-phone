@@ -4,6 +4,8 @@ Status: active private-root test-signed candidate with independently verified pa
 no physical results yet. The preceding `18a94c8` candidate retains its historical one-phone
 physical evidence, but none of that evidence transfers to the new artifact pair. QR/replay,
 remaining lifecycle/invalidation, multi-phone, public-trust, and technical-user gates remain open.
+The active artifact pair is retained for owner-only synthetic-data evaluation; external-device and
+external-user evidence is deferred as recorded in [`owner-only-preview.md`](owner-only-preview.md).
 
 ## Candidate identity
 

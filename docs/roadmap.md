@@ -2,6 +2,13 @@
 
 ## Product sequencing principles
 
+Current deployment posture: this application is temporarily an owner-only technical preview as
+defined in [`owner-only-preview.md`](owner-only-preview.md). The UVC-camera QR/replay matrix,
+second capability-qualified StrongBox family, multi-phone interoperability, public Windows signing,
+and external technical-user Alpha remain recorded public-Alpha gates but are deferred until use
+expands beyond the repository owner. Deferral does not mark them complete or relax any security
+invariant.
+
 - Address the gap recorded by Shine decision 0032: Windows users need an independent fresh
   user-verification gesture for every age private-key operation without leaving a reusable age
   identity on the desktop. Windows 11 x64 is therefore the first desktop product target; macOS
@@ -118,7 +125,7 @@ release gate, not an open question about whether the ADB transport can carry the
   `UsbFfs` stale reverse rule; every case produced no plaintext and the fixed stale-rule parser
   rejected rather than overwrote the existing rule.
 - [ ] Complete the remaining Windows device matrix: a wrong paired physical device and injected
-  response replay.
+  response replay. Deferred during the owner-only preview; required before broader Alpha use.
 - [x] Complete Windows device and transport tests for native-console Ctrl-C, forced `age.exe`
   process exit, cable removal and reconnect, ADB daemon restart, multiple online devices,
   malformed stream, timeout/lock-screen failure, and QR fallback. Each negative path produced no
@@ -160,18 +167,21 @@ release gate, not an open question about whether the ADB transport can carry the
   label the private-root Windows package explicitly as test-signed.
 - [ ] Move Windows distribution signing to a publicly trusted free open-source program before
   claiming a publicly trusted Windows Alpha; macOS packaging is not an Alpha release gate.
+  Deferred while packages remain private and owner-only.
 - [x] Add CI for Windows Rust builds, Kotlin, TypeScript, deterministic vectors, negative tests,
   reproducible build inputs, and packaged-binary smoke tests.
 - [x] Complete exact-candidate interoperability with released age 1.3.1 and rage 0.12.1 across
   multiple synthetic files, both cross-client directions, the phone path, and an independent
   recovery recipient.
 - [ ] Complete multiple-phone interoperability, including a wrong paired physical phone and a
-  second capability-qualified StrongBox device family.
+  second capability-qualified StrongBox device family. Deferred during the single-owner,
+  single-phone preview.
 - [x] Use Shine's existing `age_identity` and `age_recipients` configuration to test direct
   encrypt/decrypt, workspace seal, runtime `env run`, and multi-recipient recovery end to end with
   Shine 1.8.0, without changing the Shine repository.
 - [ ] Run a multi-device compatibility and lifecycle matrix covering app and desktop restart,
   backgrounding, process death, permission denial, key invalidation, corrupt state, and upgrade.
+  Single-device checks may continue, but the complete matrix is deferred until broader use.
 - [x] After creating the exact ADB reverse rule, launch the Android application with one fixed,
   payload-free unwrap action so cold start and `singleTask` delivery both enter the same native USB
   unwrap controller. Do not place protocol messages, request fingerprints, caller hints, or other
@@ -183,7 +193,8 @@ release gate, not an open question about whether the ADB transport can carry the
   and Tauri command entry points are removed; malformed physical wake validation remains tracked in
   the Alpha matrix rather than reopening the completed product-flow item.
 - [ ] Conduct a limited technical-user Alpha that verifies Windows stores no reusable age private
-  identity and every unwrap requires fresh phone user verification.
+  identity and every unwrap requires fresh phone user verification. Deferred until someone other
+  than the repository owner will use the application.
 
 ## Milestone 7: production transport orchestration and platform expansion
 
