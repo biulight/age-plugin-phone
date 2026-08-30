@@ -1,13 +1,30 @@
 package io.github.biulight.phone_identity
 
 import android.hardware.biometrics.BiometricPrompt
+import app.tauri.annotation.InvokeArg
+import com.fasterxml.jackson.databind.ObjectMapper
+import java.lang.reflect.Modifier
 import java.security.KeyPairGenerator
 import java.security.spec.ECGenParameterSpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PhoneIdentityPluginTest {
+    @Test
+    fun revokePairingArgumentsRemainDeserializableInMinifiedBuilds() {
+        val argumentClass = RevokePairingArgs::class.java
+        assertTrue(Modifier.isPublic(argumentClass.modifiers))
+        assertTrue(argumentClass.isAnnotationPresent(InvokeArg::class.java))
+
+        val arguments = ObjectMapper().readValue(
+            """{"handle":"synthetic-handle"}""",
+            argumentClass,
+        )
+        assertEquals("synthetic-handle", arguments.handle)
+    }
+
     @Test
     fun cancellationAndTimeoutRemainDistinctFailures() {
         assertEquals(

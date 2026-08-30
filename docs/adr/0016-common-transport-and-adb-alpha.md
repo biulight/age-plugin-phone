@@ -57,6 +57,13 @@ native pairing or unwrap controller. Protocol bytes, session IDs, file keys, and
 cross the Tauri command boundary. Unwrap request verification and durable replay consumption still
 occur before a fresh `BiometricPrompt.CryptoObject(KeyAgreement)` authorization.
 
+Once an unwrap request is complete, the desktop-to-phone half of that one-shot stream has no valid
+remaining bytes. While biometric authorization is pending, the native plugin monitors that half
+for EOF, reset, timeout, or unexpected input. Any such event terminates the transport, cancels the
+exact `CancellationSignal`, and dismisses the authorization operation without restoring the
+consumed request. A local cancellation or the start of the one permitted phone response suppresses
+the monitor before closing or writing, so normal completion cannot be misclassified as peer loss.
+
 For unwrap only, after the exact reverse rule and cleanup guardian are active, the desktop runs one
 fixed `am start` command for `io.github.biulight.age_plugin_phone/.MainActivity` with action
 `io.github.biulight.age_plugin_phone.action.UNWRAP_USB`. The command has no extras, URI, caller hint,
@@ -88,16 +95,21 @@ selectable without changing the pairing or identity stub. Non-Windows builds def
   a second authorization protocol, and a dedicated USB proof of concept is deferred until Alpha
   evidence justifies its driver, permission, and compatibility costs.
 
-## Validation still required
+## Physical validation and remaining gates
 
 Portable Rust and Kotlin tests cover wrong purpose, direction, session ID, version, oversize,
 truncation, cancellation, device ambiguity, offline and unauthorized devices, stale reverse rules,
 real loopback success, silent-peer timeout, device switching, exact-rule cleanup, and cleanup-guard
-EOF/disarm behavior. They also cover fixed unwrap launch arguments and ordering, launch-failure
-cleanup, absence of request data in ADB arguments, cold-start wake queuing, exact payload rejection,
-one-shot delivery, and busy-operation rejection. Packaged cold/warm/background wake validation and
-the remaining wrong-paired-device and injected-response-replay physical cases remain Alpha gates.
-The completed items remain recorded below rather than collapsing the matrix into one pass.
+EOF/disarm behavior. Android tests additionally cover prompt-lifecycle notification on peer EOF or
+unexpected post-request input and suppression during local close. They also cover fixed unwrap
+launch arguments and ordering, launch-failure cleanup, absence of request data in ADB arguments,
+cold-start wake queuing, exact payload rejection, one-shot delivery, and busy-operation rejection.
+Exact test-signed candidate `18a94c8` completed packaged cold, foreground, background, and repeated
+wake validation. It also dismissed the pending biometric prompt after physical desktop process
+loss, ADB daemon restart, and USB removal. The remaining wrong-paired-device, malformed physical
+wake/stream, and injected-response-replay cases remain Alpha gates; QR/replay on the designated
+Windows host additionally requires attaching a camera. The completed items remain recorded below
+rather than collapsing the matrix into one pass.
 
 An Android 16 / API 36 physical device has also completed authenticated pairing and a standard
 `age --decrypt` unwrap through ADB reverse against a macOS desktop build. The recovered plaintext
@@ -139,12 +151,14 @@ change the rule, produced no plaintext, and removed the exact test rule afterwar
 An SSH-injected Ctrl-C was not accepted as the native-console cleanup-guardian result. Windows
 OpenSSH places the remote tree under its own lifetime controls, while Microsoft documents that a
 new console process group does not by itself escape a Job Object. A later direct Windows console
-run interrupted the waiting `age` process with Ctrl-C. The guardian removed the exact reverse rule,
-no plaintext output was created, the process tree exited, and a following request required a new
-phone biometric operation and recovered the expected plaintext. A separate run forcibly terminated
-the waiting native `age.exe` from another Windows process. Its guardian removed the reverse rule
-within two seconds, no plaintext or related process remained, and a newly authenticated request
-recovered the same 4,096-byte plaintext with a matching SHA-256.
+run against exact signed candidate `18a94c8` interrupted the waiting `age` process with Ctrl-C. The
+phone prompt disappeared, the guardian removed the exact reverse rule, no plaintext output was
+created, and the process tree exited. Independent audit observed zero reverse rules and plugin
+processes. A following request required a new phone biometric operation and recovered the expected
+synthetic plaintext with matching SHA-256. A separate exact-candidate run forcibly terminated the
+waiting native `age.exe` from another Windows process. Its guardian removed the reverse rule within
+two seconds, dismissed phone authentication, and left no plaintext or related process; a newly
+authenticated request recovered the same synthetic input.
 
 The Windows/Android run also exposed incorrect handling of a recoverable biometric mismatch.
 Android `BiometricPrompt` keeps an authentication operation active after `onAuthenticationFailed`;

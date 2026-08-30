@@ -13,6 +13,13 @@ Shine environments, or define a Shine-specific ciphertext format.
 > physical Android, signed-package, and interoperability gates remain open. Do not use it to
 > protect real secrets.
 
+The current deployment posture is an
+[owner-only technical preview](docs/owner-only-preview.md): one repository owner, one known
+Windows/TPM desktop, one capability-qualified StrongBox phone, and Developer USB as the normal
+route. UVC-camera QR evidence, a second StrongBox family, multi-phone testing, public Windows
+signing, and an external technical-user Alpha are recorded but deferred until broader use is
+planned. Deferred means unverified, not passed.
+
 ## Intended boundary
 
 ```text
@@ -42,11 +49,24 @@ user. It must never export the long-term private key to the desktop.
 
 ## Current commands
 
+The Android build runs on Temurin JDK 17. Install the project JDK with [mise](https://mise.jdx.dev/)
+from the repository root:
+
+```console
+mise install
+mise exec -- java -version
+```
+
+With `mise activate` configured for your shell, entering the repository sets `JAVA_HOME`
+automatically. For scripts and non-interactive shells, run commands through `mise exec --`.
+
 ```console
 cargo run -p age-plugin-phone -- status
 cargo run -p age-plugin-phone -- pair --help
 cargo run -p age-plugin-phone -- unwrap --help
 cargo run -p age-plugin-phone -- qr-capture-probe
+cargo run -p age-plugin-phone -- remove-desktop-state --help
+cargo run -p age-plugin-phone -- remove-orphaned-desktop-state --help
 cargo test --workspace
 
 cd apps/mobile
@@ -89,6 +109,18 @@ non-exportable P-256 keys in Microsoft Platform Crypto Provider, with no softwar
 Locator, metadata, replay, temporary, and lock files use protected current-user ACLs. Pairing,
 explicit unwrap, and standard `identity-v1` operations fail before protocol work unless the host is
 a Windows 11-or-later x64 client with an available TPM 2.0 and Platform Crypto Provider.
+
+After phone-side revocation, `remove-desktop-state` requires the full transcript fingerprint and
+uses a private crash-safe journal to remove only that pairing's replay state, TPM metadata, locator,
+two exact CNG keys, and public stub. A pending cleanup makes the target pairing unavailable and may
+be resumed; it does not claim phone-side revocation or affect another pairing.
+
+If the public stub is already unavailable but its private locator remains,
+`remove-orphaned-desktop-state --locator PATH` is the recovery-only equivalent. It accepts only an
+exact canonical locator directly under the protected Windows configuration root, revalidates its
+desktop ID and response-replay scope, and requires the same full transcript fingerprint. It removes
+only private state; public stubs and phone-side revocation remain separate operations. Prefer the
+stub-based command whenever the public stub still exists.
 
 Windows now defaults to the Developer USB ADB Alpha for `pair`, `unwrap`, and standard age identity
 operations. Pairing still requires **Pair via Developer USB** on the phone. For unwrap, the desktop
@@ -148,6 +180,7 @@ Start with the [Android StrongBox PoC](docs/android-strongbox-poc.md), then read
 [Windows private storage ADR](docs/adr/0015-windows-private-storage.md),
 [common transport and ADB Alpha ADR](docs/adr/0016-common-transport-and-adb-alpha.md),
 [identity lifecycle and recovery ADR](docs/adr/0017-lifecycle-and-recovery.md),
+[owner-only technical preview scope](docs/owner-only-preview.md),
 [Windows and Android Alpha matrix](docs/alpha-matrix.md),
 [independent security review package](docs/security-review-package.md),
 [protocol draft](docs/protocol.md), and [threat model](docs/threat-model.md) before implementing a

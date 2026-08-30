@@ -2,7 +2,15 @@ package io.github.biulight.phone_identity
 
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
+import java.io.PipedInputStream
+import java.io.PipedOutputStream
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertThrows
 import org.junit.Test
 
@@ -103,5 +111,50 @@ class StreamTransportTest {
                 null,
             )
         }
+    }
+
+    @Test
+    fun peerDisconnectNotifiesExactlyOnce() {
+        val input = PipedInputStream()
+        val output = PipedOutputStream(input)
+        val notified = CountDownLatch(1)
+        val calls = AtomicInteger()
+        PeerDisconnectMonitor(input) {
+            calls.incrementAndGet()
+            notified.countDown()
+        }.start()
+
+        output.close()
+
+        assertTrue(notified.await(1, TimeUnit.SECONDS))
+        assertEquals(1, calls.get())
+    }
+
+    @Test
+    fun unexpectedDesktopByteIsTerminal() {
+        val input = PipedInputStream()
+        val output = PipedOutputStream(input)
+        val notified = CountDownLatch(1)
+        PeerDisconnectMonitor(input) { notified.countDown() }.start()
+
+        output.write(1)
+        output.flush()
+
+        assertTrue(notified.await(1, TimeUnit.SECONDS))
+        output.close()
+    }
+
+    @Test
+    fun localSuppressionDoesNotReportPeerLoss() {
+        val input = PipedInputStream()
+        val output = PipedOutputStream(input)
+        val notified = CountDownLatch(1)
+        val monitor = PeerDisconnectMonitor(input) { notified.countDown() }
+        monitor.start()
+
+        monitor.suppress()
+        output.close()
+
+        assertFalse(notified.await(100, TimeUnit.MILLISECONDS))
     }
 }

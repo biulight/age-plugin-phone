@@ -1,6 +1,6 @@
 # ADR 0017: identity lifecycle, revocation, and recovery
 
-- Status: accepted design; product commands and UI are pending
+- Status: implemented; packaged physical lifecycle validation partial
 - Date: 2026-08-27
 - Scope: phone replacement, recovery recipients, paired-desktop revocation, identity deletion,
   application removal, and hardware-key invalidation
@@ -56,6 +56,16 @@ The caller writes a new ciphertext, verifies it through both the new phone recip
 remaining recovery path, and only then may replace or retire the old ciphertext. This project does
 not perform in-place age-header mutation.
 
+The exact test-signed candidate from commit `18a94c8` completed a physical recovery drill with
+synthetic data on 2026-08-30. age 1.3.1 and rage 0.12.1 each decrypted ciphertext created by the
+other client through both the phone identity and an independent recovery identity. Shine 1.8.0
+also completed direct decrypt, workspace seal and runtime decrypt, followed by recovery of the
+direct ciphertext and a copied sealed workspace without the phone or plugin. Recovered-output
+digests matched and the phone path required a fresh biometric operation for every unwrap. This
+evidence validates the independent recovery mechanism for the recorded candidate; migration to a
+fresh pairing, verification through both new paths, and retirement of old ciphertext remain part
+of the pending packaged lifecycle run.
+
 ## Paired-desktop revocation
 
 The phone is authoritative for whether a desktop may request an unwrap. Revoking one paired desktop
@@ -75,6 +85,51 @@ desktop is still available, local cleanup follows phone revocation and removes o
 pairing's public stub, locator, response-replay file, TPM metadata, and the two exact CNG keys. A
 local cleanup failure does not restore phone authorization. If the desktop is lost or suspected
 compromised, phone revocation proceeds without contacting it.
+
+On Windows, `age-plugin-phone remove-desktop-state --identity-stub PATH` implements that local
+cleanup. It displays the canonical full pairing transcript fingerprint and requires the user to
+type it exactly. Before the first destructive step it validates the public stub, private locator,
+response-replay scope, TPM metadata, and both TPM public keys, then durably creates one private
+cleanup journal. The journal binds the complete canonical stub and exact target paths. While it
+exists, locator opening rejects the target pairing before unwrap; unrelated pairings remain
+available. Replay state, the two exact CNG keys derived from the committed desktop ID, TPM metadata,
+locator, replay lock, public stub, and finally the journal are removed idempotently. A crash,
+concurrent replay owner, malformed or insecure file, or partial key deletion leaves the journal in
+place and a later invocation may resume only that same cleanup. The command is unsupported outside
+the Windows Alpha product boundary.
+
+The stub-based command remains the normal and preferred path. If the public stub is already missing
+but its private locator remains, `age-plugin-phone remove-orphaned-desktop-state --locator PATH`
+provides a recovery-only path for that orphan. It accepts only a canonical modern or validated
+legacy locator at its exact expected filename directly under the protected configuration root. It
+then binds the full-fingerprint confirmation to the locator record, opens the referenced TPM state
+without provisioning, checks the desktop ID, and opens the existing desktop-response replay state
+with the recorded desktop and identity IDs before committing deletion. The orphan journal stores
+only those IDs, the fingerprint, and exact private paths; it never reconstructs the missing stub or
+discovers other public stubs. Cleanup removes the replay state, exact CNG key set, TPM metadata,
+locator, and replay lock, but no public file. The version 2 journal distinguishes normal and orphan
+targets, rejects unknown target variants, and can resume a version 1 normal-cleanup journal created
+by the previous implementation.
+
+Both commands share one private global cleanup lock and fail-closed journal, so they cannot start
+two local cleanups concurrently or switch target type while a cleanup is pending. If neither the
+public stub nor a valid locator remains, the command cannot infer the intended TPM/replay target;
+manual file-name guessing is not a supported cleanup path.
+
+The command tells the user to revoke the pairing on the phone first. If the phone is lost, it may
+still remove local state, but success does not claim that the unavailable phone deleted its pairing
+record. No cleanup path contacts the phone, recreates a replay scope, or provisions replacement
+keys.
+
+On 2026-08-31, the exact test-signed `18a94c8` pair completed fresh pairing, repeated phone and
+independent-recovery decrypts, phone-side revocation, fail-closed rejection of a later request, and
+normal fingerprint-confirmed Windows cleanup. A separate unsigned Windows-native diagnostic built
+from the orphan-cleanup working tree removed the previously retained validated legacy locator and
+its bound private state. Post-cleanup audit observed zero phone pairings, locators, public stubs,
+pairing state/replay locks, cleanup journals, ADB reverse rules, and related processes; the expected
+global cleanup lock remained. The unsigned diagnostic validates this implementation path but is not
+packaged-candidate or public-signing evidence. Identity deletion, uninstall/reinstall, hardware-key
+invalidation, and multi-pairing isolation remain open matrix rows.
 
 Re-pairing after revocation creates a new desktop ID, distinct TPM signing and selection keys, and a
 new transcript. Because old v2 ciphertext is bound to the old selection key, it must be recovered
@@ -150,9 +205,9 @@ aliases, raw identifiers, protocol payloads, stanza bodies, QR contents, or priv
 
 ## Required implementation and negative tests
 
-This ADR defines behavior; the current Doctor UI is not a lifecycle-management UI. Milestone 6 must
-implement the native journals, management commands, and presentation flows before Alpha release.
-Tests must cover at least:
+The Android product UI implements journaled paired-desktop revocation and identity deletion, and the
+Windows CLI implements journaled local desktop cleanup. Doctor remains a development-only diagnostic
+surface. Packaged physical validation must cover at least:
 
 - revoking one desktop without deleting the identity or another pairing;
 - a request already captured from the revoked desktop and a replayed old response;

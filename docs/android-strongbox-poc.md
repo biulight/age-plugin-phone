@@ -38,9 +38,13 @@ StrongBox 中不可导出的 P-256 私钥
 开发启动命令：
 
 ```bash
+mise install
 cd apps/mobile
-JAVA_HOME=$(/usr/libexec/java_home -v 17) bun run tauri android dev
+mise exec -- bun run tauri android dev
 ```
+
+在 shell 中启用 `mise activate` 后，进入仓库时会自动设置 `JAVA_HOME`，也可以省略
+`mise exec --` 前缀。IDE 需要继承该环境，或在配置变更后从已激活的终端重新启动。
 
 Android 官方文档说明 StrongBox 的算法集合包含 P-256 ECDH，Android Keystore 提供
 `PURPOSE_AGREE_KEY`、每次使用认证和 `KeyInfo` 安全级别查询。但

@@ -218,7 +218,7 @@ impl WindowsCngKeySet {
                 match create_key(provider.raw(), &selection_name, NCRYPT_ECDH_P256_ALGORITHM) {
                     Ok(selection) => (signing, selection),
                     Err(error) => {
-                        signing.delete();
+                        let _ = signing.delete();
                         return Err(error);
                     }
                 }
@@ -267,6 +267,32 @@ impl WindowsCngKeySet {
     pub fn selection_public_key(&self) -> Result<EncodedPublicKey, Error> {
         export_public(self.selection.raw(), BCRYPT_ECDH_PUBLIC_P256_MAGIC)
     }
+}
+
+/// Removes the two exact role-separated keys derived from one committed desktop identifier.
+///
+/// Missing keys are accepted so a cleanup journal can resume after a crash between role deletion
+/// steps. No caller-provided key name is accepted, and the operation never provisions state.
+///
+/// # Errors
+///
+/// Returns an error when the platform provider is unavailable, a present key cannot be deleted,
+/// or either exact key remains afterward.
+pub fn remove_key_set(desktop_id: [u8; 16]) -> Result<(), Error> {
+    let provider = open_supported_provider()?;
+    let (signing_name, selection_name) = key_names(desktop_id);
+    if let Some(signing) = open_key(provider.raw(), &signing_name)? {
+        signing.delete()?;
+    }
+    if let Some(selection) = open_key(provider.raw(), &selection_name)? {
+        selection.delete()?;
+    }
+    if open_key(provider.raw(), &signing_name)?.is_some()
+        || open_key(provider.raw(), &selection_name)?.is_some()
+    {
+        return Err(Error::KeyState);
+    }
+    Ok(())
 }
 
 impl P256Signer for WindowsCngKeySet {
@@ -320,13 +346,14 @@ impl OwnedHandle {
         self.0
     }
 
-    fn delete(mut self) {
+    fn delete(mut self) -> Result<(), Error> {
         if self.0 != 0 {
-            unsafe {
-                NCryptDeleteKey(self.0, 0);
+            if unsafe { NCryptDeleteKey(self.0, 0) } != 0 {
+                return Err(Error::KeyState);
             }
             self.0 = 0;
         }
+        Ok(())
     }
 }
 
@@ -381,7 +408,7 @@ fn create_key(
     }
     let key = OwnedHandle(key);
     if unsafe { NCryptFinalizeKey(key.raw(), 0) } != 0 {
-        key.delete();
+        let _ = key.delete();
         return Err(Error::KeyState);
     }
     Ok(key)
@@ -622,10 +649,10 @@ mod tests {
             };
             let (signing_name, selection_name) = key_names(self.0);
             if let Ok(Some(key)) = open_key(provider.raw(), &signing_name) {
-                key.delete();
+                let _ = key.delete();
             }
             if let Ok(Some(key)) = open_key(provider.raw(), &selection_name) {
-                key.delete();
+                let _ = key.delete();
             }
         }
     }
@@ -669,6 +696,12 @@ mod tests {
         assert_eq!(reopened.signing_public_key().unwrap(), signing_public);
         assert_eq!(reopened.selection_public_key().unwrap(), selection_public);
         drop(reopened);
+        remove_key_set(id).unwrap();
+        remove_key_set(id).unwrap();
+        assert_eq!(
+            WindowsCngKeySet::open(id).err().unwrap(),
+            Error::PartialState
+        );
 
         let wrong_id = unique_id();
         let _wrong_cleanup = Cleanup(wrong_id);
@@ -691,6 +724,12 @@ mod tests {
             WindowsCngKeySet::open_or_create(id).err().unwrap(),
             Error::PartialState
         );
+        assert_eq!(
+            WindowsCngKeySet::open(id).err().unwrap(),
+            Error::PartialState
+        );
+        remove_key_set(id).unwrap();
+        remove_key_set(id).unwrap();
         assert_eq!(
             WindowsCngKeySet::open(id).err().unwrap(),
             Error::PartialState

@@ -13,7 +13,8 @@ mod windows;
 #[cfg(windows)]
 pub use windows::{
     Error, PrivateLock, atomic_create, atomic_replace, ensure_private_directory, open_private_lock,
-    read_private_file, validate_private_directory,
+    read_private_file, read_regular_file, remove_private_file, remove_regular_file,
+    validate_private_directory,
 };
 
 /// Whether this build contains the Windows storage boundary.
