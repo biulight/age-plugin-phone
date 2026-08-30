@@ -44,6 +44,9 @@ jobs:
           --skip windows::tests::partial_key_pair_fails_closed_without_repair
           --skip desktop_cleanup::tests::native_cleanup_removes_exact_files_and_tpm_keys
           --skip desktop_cleanup::tests::concurrent_replay_owner_prevents_cleanup_journal_creation
+          --skip desktop_cleanup::tests::native_orphan_cleanup_requires_exact_confirmation_and_removes_private_state
+          --skip desktop_cleanup::tests::orphan_cleanup_rejects_concurrent_replay_owner_without_a_journal
+          --skip desktop_cleanup::tests::orphan_cleanup_rejects_locator_bound_to_the_wrong_desktop_state
       - name: Packaged binary smoke test
         if: runner.os == 'Windows'
         shell: pwsh
