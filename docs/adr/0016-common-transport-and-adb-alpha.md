@@ -57,6 +57,13 @@ native pairing or unwrap controller. Protocol bytes, session IDs, file keys, and
 cross the Tauri command boundary. Unwrap request verification and durable replay consumption still
 occur before a fresh `BiometricPrompt.CryptoObject(KeyAgreement)` authorization.
 
+Once an unwrap request is complete, the desktop-to-phone half of that one-shot stream has no valid
+remaining bytes. While biometric authorization is pending, the native plugin monitors that half
+for EOF, reset, timeout, or unexpected input. Any such event terminates the transport, cancels the
+exact `CancellationSignal`, and dismisses the authorization operation without restoring the
+consumed request. A local cancellation or the start of the one permitted phone response suppresses
+the monitor before closing or writing, so normal completion cannot be misclassified as peer loss.
+
 For unwrap only, after the exact reverse rule and cleanup guardian are active, the desktop runs one
 fixed `am start` command for `io.github.biulight.age_plugin_phone/.MainActivity` with action
 `io.github.biulight.age_plugin_phone.action.UNWRAP_USB`. The command has no extras, URI, caller hint,
@@ -93,11 +100,14 @@ selectable without changing the pairing or identity stub. Non-Windows builds def
 Portable Rust and Kotlin tests cover wrong purpose, direction, session ID, version, oversize,
 truncation, cancellation, device ambiguity, offline and unauthorized devices, stale reverse rules,
 real loopback success, silent-peer timeout, device switching, exact-rule cleanup, and cleanup-guard
-EOF/disarm behavior. They also cover fixed unwrap launch arguments and ordering, launch-failure
-cleanup, absence of request data in ADB arguments, cold-start wake queuing, exact payload rejection,
-one-shot delivery, and busy-operation rejection. Packaged cold/warm/background wake validation and
-the remaining wrong-paired-device and injected-response-replay physical cases remain Alpha gates.
-The completed items remain recorded below rather than collapsing the matrix into one pass.
+EOF/disarm behavior. Android tests additionally cover prompt-lifecycle notification on peer EOF or
+unexpected post-request input and suppression during local close. They also cover fixed unwrap
+launch arguments and ordering, launch-failure cleanup, absence of request data in ADB arguments,
+cold-start wake queuing, exact payload rejection, one-shot delivery, and busy-operation rejection.
+Packaged cold/warm/background wake validation, prompt dismissal after physical desktop process
+loss, and the remaining wrong-paired-device and injected-response-replay physical cases remain
+Alpha gates. The completed items remain recorded below rather than collapsing the matrix into one
+pass.
 
 An Android 16 / API 36 physical device has also completed authenticated pairing and a standard
 `age --decrypt` unwrap through ADB reverse against a macOS desktop build. The recovered plaintext

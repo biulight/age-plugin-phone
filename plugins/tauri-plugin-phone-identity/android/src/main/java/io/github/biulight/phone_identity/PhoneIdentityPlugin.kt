@@ -546,6 +546,16 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 activeUsbSession = null
                 activePhoneUnwrap = pending
             }
+            session.watchPeerDisconnect {
+                mainHandler.post {
+                    finishPhoneUnwrap(
+                        pending.token,
+                        invoke,
+                        "usb_transport_failed",
+                        true,
+                    )
+                }
+            }
             session = null
             activity.runOnUiThread { showPhoneUnwrapPrompt(pending, invoke) }
         } catch (_: Exception) {

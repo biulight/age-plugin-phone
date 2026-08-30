@@ -64,6 +64,18 @@ the single rule was removed exactly before further work. No scenario row below i
 rejected artifact pair. The replacement guardian breaks away from a client Job object and retries
 removal of only the fixed rule for a bounded interval.
 
+Commit `932156c37f1edf3f7e22554a964b902af5543db0`, workflow run `33275366275`, attempt 1,
+produced signed artifacts with Windows executable SHA-256
+`37b3bcac78fa772b91d5ef49cca604f656d2478933fc07193b3b74c4c971d91a` and Android APK
+SHA-256 `98e9fa5bbeac381c477fa35bd7d785fc3cda69a86c04470c22a946f53a8c4a38`. Exact-package
+preflight observed one authorized ADB device, StrongBox support, a ready TPM, and the pinned client
+versions. Forced termination of the exact waiting `age.exe` produced no output, and the guardian
+left no reverse rule or related process. The candidate was nevertheless rejected because the
+phone's biometric authorization prompt remained visible after desktop process and transport
+cleanup; it disappeared only later. No scenario row below is closed by this run. The replacement
+binds the pending Android `CancellationSignal` to peer EOF, reset, timeout, or unexpected
+post-request input without restoring the already consumed request.
+
 Record the TPM manufacturer/firmware, Windows update revision, Android model/API/security patch,
 StrongBox inspection, platform-tools release, artifact signatures, and approved certificate
 identities only when the exact candidate is available.

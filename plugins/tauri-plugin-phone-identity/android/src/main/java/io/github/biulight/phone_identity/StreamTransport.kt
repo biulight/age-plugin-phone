@@ -18,6 +18,7 @@ internal class PhoneStreamSession private constructor(
 
     private var sessionId: ByteArray? = null
     private var closed = false
+    private var peerDisconnectMonitor: PeerDisconnectMonitor? = null
 
     fun receiveRequest(): ByteArray {
         check(!closed && sessionId == null)
@@ -34,6 +35,7 @@ internal class PhoneStreamSession private constructor(
     fun sendResponse(response: ByteArray) {
         check(!closed)
         val id = sessionId ?: throw StreamTransportException()
+        peerDisconnectMonitor?.suppress()
         val write = FutureTask<Unit> {
             StreamTransportCodec.write(
                 socket.getOutputStream(),
@@ -55,8 +57,17 @@ internal class PhoneStreamSession private constructor(
         }
     }
 
+    fun watchPeerDisconnect(onDisconnect: () -> Unit) {
+        check(!closed && sessionId != null && peerDisconnectMonitor == null)
+        PeerDisconnectMonitor(socket.getInputStream(), onDisconnect).also {
+            peerDisconnectMonitor = it
+            it.start()
+        }
+    }
+
     override fun close() {
         if (closed) return
+        peerDisconnectMonitor?.suppress()
         closed = true
         sessionId?.fill(0)
         sessionId = null
@@ -92,6 +103,47 @@ internal class PhoneStreamSession private constructor(
                 throw StreamTransportException(error)
             }
         }
+    }
+}
+
+/**
+ * Watches the otherwise-unused desktop-to-phone half of a one-shot session.
+ *
+ * EOF, reset, timeout, or any unexpected extra byte is terminal. Local close and the start of a
+ * response suppress the callback before they disturb the socket, so only peer-side loss reaches
+ * the biometric lifecycle.
+ */
+internal class PeerDisconnectMonitor(
+    private val input: InputStream,
+    private val onDisconnect: () -> Unit,
+) {
+    private val lock = Any()
+    private var terminal = false
+
+    fun start() {
+        Thread(
+            {
+                try {
+                    input.read()
+                } catch (_: Exception) {
+                    // EOF, reset, timeout, and malformed extra input are the same terminal signal.
+                }
+                val notify = synchronized(lock) {
+                    if (terminal) {
+                        false
+                    } else {
+                        terminal = true
+                        true
+                    }
+                }
+                if (notify) onDisconnect()
+            },
+            "phone-adb-peer-watch",
+        ).apply { isDaemon = true }.start()
+    }
+
+    fun suppress() {
+        synchronized(lock) { terminal = true }
     }
 }
 
