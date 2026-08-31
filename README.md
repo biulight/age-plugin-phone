@@ -141,7 +141,10 @@ explicit device selection.
 For the owner-only foreground Wi-Fi unwrap PoC, first tap **Approve · Wi-Fi** and keep the phone App
 visible. Then invoke age with `AGE_PLUGIN_PHONE_TRANSPORT=wifi` and
 `AGE_PLUGIN_PHONE_WIFI_ADDRESS=PHONE_PRIVATE_IPV4:47140`; unset
-`AGE_PLUGIN_PHONE_ADB_SERIAL`. The listener accepts one connection for 30 seconds. It provides no
+`AGE_PLUGIN_PHONE_ADB_SERIAL`. The listener accepts one connection for 30 seconds. **Cancel Wi-Fi
+listener** replaces **Approve · Wi-Fi** while the operation is active and explicitly stops the
+current listener, accepted socket, or pending biometric operation;
+it does not restore an accepted request or retry it. The experiment provides no
 pairing, discovery, background wake, automatic fallback, reconnect, or production support claim.
 The LAN route is untrusted and every accepted request still requires paired-desktop verification,
 durable replay consumption, and a fresh StrongBox-backed biometric operation.

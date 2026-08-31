@@ -7,6 +7,7 @@ import java.io.OutputStream
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
+import java.net.SocketTimeoutException
 import java.util.concurrent.FutureTask
 import java.util.concurrent.TimeUnit
 
@@ -134,6 +135,8 @@ internal class PhoneWifiListener private constructor(
                 server.accept(),
                 PhoneStreamSession.Purpose.UNWRAP,
             )
+        } catch (error: SocketTimeoutException) {
+            throw WifiListenerTimeoutException(error)
         } catch (error: Exception) {
             throw StreamTransportException(error)
         } finally {
@@ -153,11 +156,14 @@ internal class PhoneWifiListener private constructor(
         const val WIFI_UNWRAP_PORT = 47_140
         private const val ACCEPT_TIMEOUT_MS = 30_000
 
-        fun start(port: Int = WIFI_UNWRAP_PORT): PhoneWifiListener {
+        fun start(
+            port: Int = WIFI_UNWRAP_PORT,
+            acceptTimeoutMs: Int = ACCEPT_TIMEOUT_MS,
+        ): PhoneWifiListener {
             val server = ServerSocket()
             try {
                 server.reuseAddress = false
-                server.soTimeout = ACCEPT_TIMEOUT_MS
+                server.soTimeout = acceptTimeoutMs
                 server.bind(InetSocketAddress("0.0.0.0", port), 1)
                 return PhoneWifiListener(server)
             } catch (error: Exception) {
@@ -295,3 +301,5 @@ internal object StreamTransportCodec {
 }
 
 internal class StreamTransportException(cause: Throwable? = null) : Exception(cause)
+
+internal class WifiListenerTimeoutException(cause: Throwable) : Exception(cause)

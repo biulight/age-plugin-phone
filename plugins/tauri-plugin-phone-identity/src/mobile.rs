@@ -7,7 +7,7 @@ use tauri::{
 use crate::{
     AgreementReport, CapabilityReport, CleanupReport, Error, IdentityCustodyReport,
     IdentityStatusReport, LifecycleReport, PairingOfferScanReport, PairingStorageReport,
-    PhonePairingReport, PhoneUnwrapReport, ProbeKeyReport,
+    PhonePairingReport, PhoneUnwrapReport, ProbeKeyReport, WifiUnwrapStatusReport,
 };
 
 #[derive(serde::Serialize)]
@@ -19,6 +19,12 @@ struct RevokePairingArgs {
 const PLUGIN_IDENTIFIER: &str = "io.github.biulight.phone_identity";
 
 pub struct PhoneIdentity<R: Runtime>(PluginHandle<R>);
+
+impl<R: Runtime> Clone for PhoneIdentity<R> {
+    fn clone(&self) -> Self {
+        Self(self.0.clone())
+    }
+}
 
 pub fn init<R: Runtime, C: DeserializeOwned>(
     _app: &AppHandle<R>,
@@ -92,6 +98,18 @@ impl<R: Runtime> PhoneIdentity<R> {
     pub fn unwrap_phone_wifi(&self) -> Result<PhoneUnwrapReport, Error> {
         self.0
             .run_mobile_plugin("unwrapPhoneWifi", ())
+            .map_err(Into::into)
+    }
+
+    pub fn cancel_wifi_unwrap(&self) -> Result<LifecycleReport, Error> {
+        self.0
+            .run_mobile_plugin("cancelWifiUnwrap", ())
+            .map_err(Into::into)
+    }
+
+    pub fn wifi_unwrap_status(&self) -> Result<WifiUnwrapStatusReport, Error> {
+        self.0
+            .run_mobile_plugin("wifiUnwrapStatus", ())
             .map_err(Into::into)
     }
 

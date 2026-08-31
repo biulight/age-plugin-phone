@@ -29,6 +29,12 @@ pub struct LifecycleReport {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct WifiUnwrapStatusReport {
+    pub active: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 // The doctor intentionally reports each independently audited platform claim.
 #[allow(clippy::struct_excessive_bools)]
 pub struct CapabilityReport {

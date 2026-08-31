@@ -9,6 +9,8 @@ Allows product identity, pairing, unwrap, and lifecycle commands.
 - `allow-pair-phone-usb`
 - `allow-unwrap-phone`
 - `allow-unwrap-phone-wifi`
+- `allow-cancel-wifi-unwrap`
+- `allow-wifi-unwrap-status`
 - `allow-identity-status`
 - `allow-provision-identity`
 - `allow-revoke-pairing`
@@ -22,6 +24,32 @@ Allows product identity, pairing, unwrap, and lifecycle commands.
 <th>Description</th>
 </tr>
 
+
+<tr>
+<td>
+
+`phone-identity:allow-cancel-wifi-unwrap`
+
+</td>
+<td>
+
+Enables the cancel_wifi_unwrap command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:deny-cancel-wifi-unwrap`
+
+</td>
+<td>
+
+Denies the cancel_wifi_unwrap command without any pre-configured scope.
+
+</td>
+</tr>
 
 <tr>
 <td>
@@ -409,6 +437,32 @@ Enables the unwrap_phone_wifi command without any pre-configured scope.
 <td>
 
 Denies the unwrap_phone_wifi command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:allow-wifi-unwrap-status`
+
+</td>
+<td>
+
+Enables the wifi_unwrap_status command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:deny-wifi-unwrap-status`
+
+</td>
+<td>
+
+Denies the wifi_unwrap_status command without any pre-configured scope.
 
 </td>
 </tr>

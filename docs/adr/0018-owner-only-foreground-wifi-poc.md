@@ -21,8 +21,13 @@ remains in the foreground, this action opens one listener on TCP port `47140` fo
 seconds and accepts at most one connection. Leaving the foreground, cancellation, timeout,
 malformed input, peer loss, or completion closes the listener and any accepted socket.
 The product UI explicitly explains that other actions are disabled while this one-shot operation
-waits, and that an accepted peer remains bounded by the longer message and authorization timeouts;
-the disabled controls must not look like an unexplained application freeze.
+waits, and that an accepted peer remains bounded by the longer message and authorization timeouts.
+An explicit **Cancel Wi-Fi listener** action replaces **Approve · Wi-Fi** in the same control slot
+while the Wi-Fi operation owns the listener, an accepted socket, or its biometric prompt. Its
+visibility is restored from the native operation state when the WebView becomes visible again;
+it is not inferred only from one JavaScript invocation. Cancellation closes those exact resources,
+returns `user_cancelled`, and never restores a consumed request or starts a retry. The disabled
+controls must not look like an unexplained application freeze.
 
 The dedicated `android:build:wifi-poc` build path combines `tauri.wifi-poc.conf.json` with a guarded
 Gradle switch that adds the `.wifipoc` application-ID suffix, so its debug APK can be installed
@@ -84,7 +89,8 @@ protocol request.
 
 Portable Rust tests cover explicit private-address and fixed-port validation, one-shot exchange,
 wrong transport session binding, disconnect, and terminal reuse. Kotlin tests cover a real
-one-shot TCP listener, bounded request/response framing, listener cancellation, wrong
+one-shot TCP listener, bounded request/response framing, cancellation of a blocked listener and an
+accepted socket, port release, wrong
 purpose/direction/session/version, oversize, truncation, EOF, and unexpected post-request input.
 The existing protocol and state-machine tests continue to cover wrong desktop, wrong identity,
 replay, expiry, cancellation, malformed request, failed persistence, and bad response.

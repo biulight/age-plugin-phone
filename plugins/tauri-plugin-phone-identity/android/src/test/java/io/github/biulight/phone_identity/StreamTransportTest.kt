@@ -199,9 +199,64 @@ class StreamTransportTest {
     }
 
     @Test
-    fun closingForegroundWifiListenerCancelsAccept() {
+    fun closingForegroundWifiListenerCancelsBlockedAcceptAndReleasesPort() {
         val listener = PhoneWifiListener.start(0)
+        val port = listener.localPort
+        val entered = CountDownLatch(1)
+        val completed = CountDownLatch(1)
+        val rejected = AtomicReference(false)
+        Thread {
+            entered.countDown()
+            try {
+                listener.acceptUnwrap()
+            } catch (_: StreamTransportException) {
+                rejected.set(true)
+            } finally {
+                completed.countDown()
+            }
+        }.start()
+
+        assertTrue(entered.await(1, TimeUnit.SECONDS))
         listener.close()
-        assertThrows(StreamTransportException::class.java) { listener.acceptUnwrap() }
+        assertTrue(completed.await(1, TimeUnit.SECONDS))
+        assertTrue(rejected.get())
+
+        PhoneWifiListener.start(port).close()
+    }
+
+    @Test
+    fun foregroundWifiListenerReportsAcceptTimeoutAndReleasesPort() {
+        val listener = PhoneWifiListener.start(port = 0, acceptTimeoutMs = 25)
+        val port = listener.localPort
+
+        assertThrows(WifiListenerTimeoutException::class.java) { listener.acceptUnwrap() }
+        PhoneWifiListener.start(port).close()
+    }
+
+    @Test
+    fun closingAcceptedWifiSessionDisconnectsPeer() {
+        val listener = PhoneWifiListener.start(0)
+        val peerClosed = AtomicReference(false)
+        val client = Thread {
+            Socket().use { socket ->
+                socket.soTimeout = 1_000
+                socket.connect(InetSocketAddress("127.0.0.1", listener.localPort), 1_000)
+                peerClosed.set(
+                    try {
+                        socket.getInputStream().read() == -1
+                    } catch (_: Exception) {
+                        true
+                    },
+                )
+            }
+        }.apply { start() }
+
+        val session = listener.acceptUnwrap()
+        session.close()
+        listener.close()
+        client.join(1_000)
+
+        assertFalse(client.isAlive)
+        assertTrue(peerClosed.get())
     }
 }

@@ -206,6 +206,9 @@ release gate, not an open question about whether the ADB transport can carry the
   independent recovery paths produced the same synthetic plaintext digest. A stale pairing-bound
   recipient and a mismatched pairing state both failed without plaintext before the successful
   fresh pairing and re-encryption.
+- [x] Keep an explicit **Cancel Wi-Fi listener** control available throughout the foreground Wi-Fi
+  operation. It closes the owned listener or socket, cancels only the matching biometric session,
+  resolves the pending UI operation, and never restores or retries a consumed request.
 - [ ] Define one transport policy with explicit `auto`, `adb`, `ble`, `wifi`, and `qr` choices plus
   non-security capability and route hints. Availability may be checked before sending a request;
   after sending begins, do not race, switch, or silently retry on another transport. A retry creates

@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-wifi-unwrap-status"
+description = "Enables the wifi_unwrap_status command without any pre-configured scope."
+commands.allow = ["wifi_unwrap_status"]
+
+[[permission]]
+identifier = "deny-wifi-unwrap-status"
+description = "Denies the wifi_unwrap_status command without any pre-configured scope."
+commands.deny = ["wifi_unwrap_status"]
