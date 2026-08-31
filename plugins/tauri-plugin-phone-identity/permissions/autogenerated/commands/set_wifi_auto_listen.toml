@@ -1,0 +1,13 @@
+# Automatically generated - DO NOT EDIT!
+
+"$schema" = "../../schemas/schema.json"
+
+[[permission]]
+identifier = "allow-set-wifi-auto-listen"
+description = "Enables the set_wifi_auto_listen command without any pre-configured scope."
+commands.allow = ["set_wifi_auto_listen"]
+
+[[permission]]
+identifier = "deny-set-wifi-auto-listen"
+description = "Denies the set_wifi_auto_listen command without any pre-configured scope."
+commands.deny = ["set_wifi_auto_listen"]

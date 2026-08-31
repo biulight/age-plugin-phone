@@ -16,7 +16,7 @@ Shine environments, or define a Shine-specific ciphertext format.
 The current deployment posture is an
 [owner-only technical preview](docs/owner-only-preview.md): one repository owner, one known
 Windows/TPM desktop, one capability-qualified StrongBox phone, and Developer USB as the normal
-route. A foreground-only Wi-Fi unwrap PoC is available as an explicit owner experiment. UVC-camera
+route. An opt-in foreground Wi-Fi auto-listen PoC is available as an explicit owner experiment. UVC-camera
 QR evidence, a second StrongBox family, multi-phone testing, public Windows
 signing, and an external technical-user Alpha are recorded but deferred until broader use is
 planned. Deferred means unverified, not passed.
@@ -86,8 +86,8 @@ version, client/server edition, x64 architecture, TPM 2.0 availability, and Micr
 Crypto Provider availability without creating or opening persisted keys.
 
 The Android Alpha UI shows the StrongBox identity status and public recipient, offers explicit
-Developer USB or QR pairing, a QR approval fallback, and an owner-only foreground Wi-Fi unwrap
-action. It also lists paired desktops and provides native-confirmed revocation and identity
+Developer USB or QR pairing, a QR approval fallback, and an owner-only foreground Wi-Fi
+auto-listen toggle. It also lists paired desktops and provides native-confirmed revocation and identity
 deletion. A normal Developer USB unwrap launches the app automatically and enters the same native
 one-shot authorization controller. Revocation becomes
 durable before its pairing record is removed; identity deletion is journaled before pairings and
@@ -138,17 +138,19 @@ camera fallback without changing the pairing. For standard age invocations, set
 `AGE_PLUGIN_PHONE_TRANSPORT=qr` for that fallback or `AGE_PLUGIN_PHONE_ADB_SERIAL=SERIAL` for
 explicit device selection.
 
-For the owner-only foreground Wi-Fi unwrap PoC, first tap **Approve · Wi-Fi** and keep the phone App
-visible. Then invoke age with `AGE_PLUGIN_PHONE_TRANSPORT=wifi` and
+For the owner-only foreground Wi-Fi unwrap PoC, enable **Wi-Fi auto-listen** once and keep the phone
+App visible. The opt-in is stored in app-private non-backed-up state and defaults off. Then invoke
+age with `AGE_PLUGIN_PHONE_TRANSPORT=wifi` and
 `AGE_PLUGIN_PHONE_WIFI_ADDRESS=PHONE_PRIVATE_IPV4:47140`; unset
-`AGE_PLUGIN_PHONE_ADB_SERIAL`. The listener accepts one connection for 30 seconds. **Cancel Wi-Fi
-listener** replaces **Approve · Wi-Fi** while the operation is active and explicitly stops the
-current listener, accepted socket, or pending biometric operation;
-it does not restore an accepted request or retry it. The experiment provides no
-pairing, discovery, background wake, automatic fallback, reconnect, or production support claim.
+`AGE_PLUGIN_PHONE_ADB_SERIAL`. While enabled and foregrounded, the native listener automatically
+re-arms after bounded timeouts, failures, cancellation, or completion. **Pause · Wi-Fi
+auto-listen** closes the current listener, accepted socket, or pending biometric operation; it does
+not restore an accepted request or retry it on another transport. The experiment provides no
+pairing, discovery, background wake, automatic transport selection, fallback, or production support claim.
 The LAN route is untrusted and every accepted request still requires paired-desktop verification,
 durable replay consumption, and a fresh StrongBox-backed biometric operation.
-Build the side-by-side Android experiment with `bun run android:build:wifi-poc`. Its dedicated
+The toggle is available in every Android build. Build the side-by-side Android experiment with
+`bun run android:build:wifi-poc`; its dedicated
 build path uses a `.wifipoc` application-ID suffix and therefore has independent application
 storage, StrongBox keys, and pairings. An ordinary debug APK retains the signed preview's package ID
 and must not be installed over it.

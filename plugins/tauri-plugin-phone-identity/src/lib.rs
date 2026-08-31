@@ -3,7 +3,7 @@ mod models;
 pub use models::{
     AgreementReport, CapabilityReport, CleanupReport, IdentityCustodyReport, IdentityStatusReport,
     LifecycleReport, PairedDesktopSummary, PairingOfferScanReport, PairingStorageReport,
-    PhonePairingReport, PhoneUnwrapReport, ProbeKeyReport, WifiUnwrapStatusReport,
+    PhonePairingReport, PhoneUnwrapReport, ProbeKeyReport, WifiAutoListenStatusReport,
 };
 
 #[cfg(not(target_os = "android"))]
@@ -23,8 +23,6 @@ pub enum Error {
     #[cfg(target_os = "android")]
     #[error("native phone identity bridge failed")]
     Mobile(#[from] tauri::plugin::mobile::PluginInvokeError),
-    #[error("phone identity background task failed")]
-    BackgroundTask,
     #[error("phone identity is only available on Android")]
     Unsupported,
 }
@@ -266,55 +264,40 @@ fn unwrap_phone<R: Runtime>(
 
 #[tauri::command]
 #[allow(clippy::unnecessary_wraps)]
-async fn unwrap_phone_wifi<R: Runtime>(
+fn set_wifi_auto_listen<R: Runtime>(
     _app: AppHandle<R>,
     _identity: State<'_, PhoneIdentity<R>>,
-) -> Result<PhoneUnwrapReport, Error> {
+    enabled: bool,
+) -> Result<WifiAutoListenStatusReport, Error> {
     #[cfg(target_os = "android")]
-    {
-        let identity = _identity.inner().clone();
-        return tauri::async_runtime::spawn_blocking(move || identity.unwrap_phone_wifi())
-            .await
-            .map_err(|_| Error::BackgroundTask)?;
-    }
+    return _identity.set_wifi_auto_listen(enabled);
 
     #[cfg(not(target_os = "android"))]
-    Ok(PhoneUnwrapReport {
-        authenticated: false,
-        response_displayed: false,
-        request_fingerprint: None,
+    let _ = enabled;
+
+    #[cfg(not(target_os = "android"))]
+    Ok(WifiAutoListenStatusReport {
+        enabled: false,
+        state: "disabled".into(),
         error_category: Some("unsupported_api".into()),
     })
 }
 
 #[tauri::command]
 #[allow(clippy::unnecessary_wraps)]
-fn cancel_wifi_unwrap<R: Runtime>(
+fn wifi_auto_listen_status<R: Runtime>(
     _app: AppHandle<R>,
     _identity: State<'_, PhoneIdentity<R>>,
-) -> Result<LifecycleReport, Error> {
+) -> Result<WifiAutoListenStatusReport, Error> {
     #[cfg(target_os = "android")]
-    return _identity.cancel_wifi_unwrap();
+    return _identity.wifi_auto_listen_status();
 
     #[cfg(not(target_os = "android"))]
-    Ok(LifecycleReport {
-        completed: false,
-        state: "unsupported".into(),
+    Ok(WifiAutoListenStatusReport {
+        enabled: false,
+        state: "disabled".into(),
         error_category: Some("unsupported_api".into()),
     })
-}
-
-#[tauri::command]
-#[allow(clippy::unnecessary_wraps)]
-fn wifi_unwrap_status<R: Runtime>(
-    _app: AppHandle<R>,
-    _identity: State<'_, PhoneIdentity<R>>,
-) -> Result<WifiUnwrapStatusReport, Error> {
-    #[cfg(target_os = "android")]
-    return _identity.wifi_unwrap_status();
-
-    #[cfg(not(target_os = "android"))]
-    Ok(WifiUnwrapStatusReport { active: false })
 }
 
 #[tauri::command]
@@ -417,9 +400,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             pair_phone,
             pair_phone_usb,
             unwrap_phone,
-            unwrap_phone_wifi,
-            cancel_wifi_unwrap,
-            wifi_unwrap_status,
+            set_wifi_auto_listen,
+            wifi_auto_listen_status,
             identity_status,
             provision_identity,
             revoke_pairing,

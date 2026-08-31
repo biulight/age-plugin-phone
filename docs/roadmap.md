@@ -199,16 +199,21 @@ release gate, not an open question about whether the ADB transport can carry the
 ## Milestone 7: production transport orchestration and platform expansion
 
 - [x] Implement an owner-only, foreground-only Wi-Fi unwrap proof of concept over the common stream
-  boundary. It requires an explicit private IPv4 endpoint and phone action, supports no pairing,
+  boundary. It requires an explicit private IPv4 endpoint and opt-in phone mode, supports no pairing,
   discovery, background wake, `auto`, fallback, race, reconnect, or silent retry, and makes no
   production transport claim. The exact `3ff2cea` Windows build and side-by-side Android PoC build
   completed a physical LAN unwrap with a fresh StrongBox biometric operation; the phone and
   independent recovery paths produced the same synthetic plaintext digest. A stale pairing-bound
   recipient and a mismatched pairing state both failed without plaintext before the successful
   fresh pairing and re-encryption.
-- [x] Keep an explicit **Cancel Wi-Fi listener** control available throughout the foreground Wi-Fi
-  operation. It closes the owned listener or socket, cancels only the matching biometric session,
-  resolves the pending UI operation, and never restores or retries a consumed request.
+- [x] The initial one-shot flow kept an explicit **Cancel Wi-Fi listener** control throughout the
+  foreground operation. Its replacement, **Pause · Wi-Fi auto-listen**, preserves the same exact
+  listener/socket/biometric cancellation and never restores or retries a consumed request.
+- [x] Replace per-request **Approve · Wi-Fi** with an opt-in, persistent-off-by-default foreground
+  auto-listen mode in every Android build. It serializes one request at a time, re-arms only while
+  foregrounded with bounded backoff, yields an uncommitted listener to USB or local actions, and
+  preserves a fresh StrongBox authorization for every consumed request. Pausing or backgrounding
+  closes the exact listener, socket, or authorization without replay rollback or transport fallback.
 - [ ] Define one transport policy with explicit `auto`, `adb`, `ble`, `wifi`, and `qr` choices plus
   non-security capability and route hints. Availability may be checked before sending a request;
   after sending begins, do not race, switch, or silently retry on another transport. A retry creates

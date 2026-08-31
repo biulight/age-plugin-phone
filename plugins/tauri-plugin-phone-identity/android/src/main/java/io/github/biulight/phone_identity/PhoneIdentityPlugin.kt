@@ -35,6 +35,11 @@ class RevokePairingArgs {
     lateinit var handle: String
 }
 
+@InvokeArg
+class SetWifiAutoListenArgs {
+    var enabled: Boolean = false
+}
+
 @TauriPlugin(
     permissions = [Permission(strings = [Manifest.permission.CAMERA], alias = "camera")],
 )
@@ -42,6 +47,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     private val keys = ProbeKeyStore(activity)
     private val doctor = StrongBoxDoctor(activity, keys)
     private val productionIdentity = PhoneIdentityKeyStore.production(activity)
+    private val wifiAutoListenSetting = WifiAutoListenSetting.production(activity)
     private val mainHandler = Handler(Looper.getMainLooper())
     private val stateLock = Any()
     private val pairingDoctorLock = Any()
@@ -56,7 +62,12 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     private var activeWifiListener: PhoneWifiListener? = null
     private var activeWifiSession: PhoneStreamSession? = null
     private var activeWifiToken: UUID? = null
-    private var activeWifiInvoke: Invoke? = null
+    private var wifiAutoEnabled = wifiAutoListenSetting.enabled()
+    private var wifiForeground = false
+    private var wifiAutoState = if (wifiAutoEnabled) WIFI_STATE_SUSPENDED else WIFI_STATE_DISABLED
+    private var wifiAutoError: String? = null
+    private var wifiBindFailures = 0
+    private var wifiEvaluationGeneration = 0L
     private var activeLifecycle: PendingLifecycle? = null
     private var activeProvisioning = false
     private var cameraPermissionPending = false
@@ -71,6 +82,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
 
     init {
         UsbUnwrapWakeCoordinator.register(usbWakeOwner, ::startAutomaticUsbUnwrap)
+        WifiAutoListenForegroundCoordinator.register(usbWakeOwner, ::wifiForegroundChanged)
     }
 
     @Command
@@ -94,6 +106,10 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
 
     @Command
     fun doctorRunAgreement(invoke: Invoke) {
+        if (!preemptPassiveWifiForLocalOperation()) {
+            invoke.resolve(agreementReport(false, false, "authentication_failed"))
+            return
+        }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !hasKeyAgreementCryptoObject()) {
             invoke.resolve(agreementReport(false, false, "unsupported_api"))
             return
@@ -131,6 +147,10 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
 
     @Command
     fun provisionIdentity(invoke: Invoke) {
+        if (!preemptPassiveWifiForLocalOperation()) {
+            invoke.resolve(identityStatusReport("operation_active"))
+            return
+        }
         synchronized(stateLock) {
             if (nativeOperationActive()) {
                 invoke.resolve(identityStatusReport("operation_active"))
@@ -205,6 +225,10 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
 
     @Command
     fun scanPairingOffer(invoke: Invoke) {
+        if (!preemptPassiveWifiForLocalOperation()) {
+            invoke.resolve(pairingOfferScanReport(false, false, null, null, 0, "scan_active"))
+            return
+        }
         val granted = getPermissionState("camera") == PermissionState.GRANTED
         synchronized(stateLock) {
             if (nativeOperationActive()) {
@@ -222,6 +246,10 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
 
     @Command
     fun pairPhone(invoke: Invoke) {
+        if (!preemptPassiveWifiForLocalOperation()) {
+            invoke.resolve(phonePairingReport(false, null, null, "pairing_active"))
+            return
+        }
         val granted = getPermissionState("camera") == PermissionState.GRANTED
         synchronized(stateLock) {
             if (nativeOperationActive()) {
@@ -239,6 +267,10 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
 
     @Command
     fun unwrapPhone(invoke: Invoke) {
+        if (!preemptPassiveWifiForLocalOperation()) {
+            invoke.resolve(phoneUnwrapReport(false, false, null, "unwrap_active"))
+            return
+        }
         val granted = getPermissionState("camera") == PermissionState.GRANTED
         synchronized(stateLock) {
             if (nativeOperationActive()) {
@@ -256,6 +288,10 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
 
     @Command
     fun pairPhoneUsb(invoke: Invoke) {
+        if (!preemptPassiveWifiForLocalOperation()) {
+            invoke.resolve(phonePairingReport(false, null, null, "pairing_active"))
+            return
+        }
         val token = UUID.randomUUID()
         synchronized(stateLock) {
             if (nativeOperationActive()) {
@@ -268,38 +304,40 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     @Command
-    fun unwrapPhoneWifi(invoke: Invoke) {
-        val token = UUID.randomUUID()
-        synchronized(stateLock) {
-            if (nativeOperationActive()) {
-                invoke.resolve(phoneUnwrapReport(false, false, null, "unwrap_active"))
-                return
-            }
-            activeWifiToken = token
-            activeWifiInvoke = invoke
+    fun setWifiAutoListen(invoke: Invoke) {
+        val enabled = try {
+            invoke.parseArgs(SetWifiAutoListenArgs::class.java).enabled
+        } catch (_: Exception) {
+            invoke.resolve(wifiAutoListenStatusReport("malformed_request"))
+            return
         }
-        Thread({ runWifiUnwrap(token, invoke) }, "phone-wifi-unwrap").start()
+        try {
+            wifiAutoListenSetting.setEnabled(enabled)
+        } catch (_: Exception) {
+            invoke.resolve(wifiAutoListenStatusReport("wifi_setting_unavailable"))
+            return
+        }
+        synchronized(stateLock) {
+            wifiAutoEnabled = enabled
+            wifiAutoError = null
+            wifiEvaluationGeneration += 1
+            if (!enabled) wifiAutoState = WIFI_STATE_DISABLED
+        }
+        if (enabled) {
+            scheduleWifiAutoEvaluation(0)
+        } else {
+            stopWifiAutoOperation("user_cancelled", includePendingAuthorization = true)
+        }
+        invoke.resolve(wifiAutoListenStatusReport())
     }
 
     @Command
-    fun cancelWifiUnwrap(invoke: Invoke) {
-        val cancelled = cancelWifiOperation("user_cancelled", includePendingAuthorization = true)
-        invoke.resolve(
-            lifecycleReport(
-                completed = cancelled,
-                state = "ready",
-                error = if (cancelled) null else "wifi_not_active",
-            ),
-        )
-    }
-
-    @Command
-    fun wifiUnwrapStatus(invoke: Invoke) {
-        val active = synchronized(stateLock) { wifiOperationActive() }
-        invoke.resolve(JSObject().apply { put("active", active) })
+    fun wifiAutoListenStatus(invoke: Invoke) {
+        invoke.resolve(wifiAutoListenStatusReport())
     }
 
     private fun startAutomaticUsbUnwrap(): Boolean {
+        if (!preemptPassiveWifiForLocalOperation()) return false
         val token = UUID.randomUUID()
         synchronized(stateLock) {
             if (nativeOperationActive()) {
@@ -344,6 +382,11 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     override fun onStop() {
+        synchronized(stateLock) {
+            wifiForeground = false
+            wifiEvaluationGeneration += 1
+            if (wifiAutoEnabled) wifiAutoState = WIFI_STATE_SUSPENDED
+        }
         UsbUnwrapWakeCoordinator.clearPending()
         cancelActive("authentication_failed")
         cancelPendingPairing()
@@ -352,12 +395,13 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         cancelPhoneUnwrap("authentication_failed")
         cancelUnwrapResponse()
         cancelUsbSession()
-        cancelWifiOperation("authentication_failed", includePendingAuthorization = false)
+        stopWifiAutoOperation("authentication_failed", includePendingAuthorization = true)
         cancelLifecycle()
     }
 
     override fun onDestroy(activity: androidx.appcompat.app.AppCompatActivity) {
         UsbUnwrapWakeCoordinator.unregister(usbWakeOwner)
+        WifiAutoListenForegroundCoordinator.unregister(usbWakeOwner)
         cancelActive("authentication_failed")
         cancelPendingPairing()
         cancelQrScanner()
@@ -365,7 +409,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         cancelPhoneUnwrap("authentication_failed")
         cancelUnwrapResponse()
         cancelUsbSession()
-        cancelWifiOperation("authentication_failed", includePendingAuthorization = false)
+        stopWifiAutoOperation("authentication_failed", includePendingAuthorization = true)
         cancelLifecycle()
     }
 
@@ -610,7 +654,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    private fun runWifiUnwrap(token: UUID, invoke: Invoke) {
+    private fun runWifiAutoUnwrap(token: UUID) {
         var listener: PhoneWifiListener? = null
         var session: PhoneStreamSession? = null
         var request: ByteArray? = null
@@ -619,66 +663,70 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             synchronized(stateLock) {
                 if (activeWifiToken != token) throw StreamTransportException()
                 activeWifiListener = listener
+                wifiBindFailures = 0
+                wifiAutoState = WIFI_STATE_LISTENING
+                wifiAutoError = null
             }
             session = listener.acceptUnwrap()
             synchronized(stateLock) {
                 if (activeWifiToken != token) throw StreamTransportException()
                 if (activeWifiListener === listener) activeWifiListener = null
                 activeWifiSession = session
+                wifiAutoState = WIFI_STATE_HANDLING_REQUEST
             }
             listener = null
             request = session.receiveRequest()
             val pending = preparePhoneUnwrap(request).also {
-                it.invoke = invoke
                 it.streamSession = session
                 it.streamFailureCategory = WIFI_TRANSPORT_FAILURE
             }
             synchronized(stateLock) {
                 if (activeWifiToken != token) throw StreamTransportException()
                 activeWifiToken = null
-                activeWifiInvoke = null
                 activeWifiSession = null
                 activePhoneUnwrap = pending
+                wifiAutoState = WIFI_STATE_HANDLING_REQUEST
             }
             session.watchPeerDisconnect {
                 mainHandler.post {
                     finishPhoneUnwrap(
                         pending.token,
-                        invoke,
+                        null,
                         pending.streamFailureCategory ?: "wifi_transport_failed",
                         true,
                     )
                 }
             }
             session = null
-            activity.runOnUiThread { showPhoneUnwrapPrompt(pending, invoke) }
+            activity.runOnUiThread { showPhoneUnwrapPrompt(pending, null) }
         } catch (error: Exception) {
-            val ownedInvoke = synchronized(stateLock) {
+            val owned = synchronized(stateLock) {
                 if (activeWifiToken != token) {
-                    null
+                    false
                 } else {
                     activeWifiToken = null
-                    activeWifiInvoke.also {
-                        activeWifiInvoke = null
-                        if (activeWifiListener === listener) activeWifiListener = null
-                        if (activeWifiSession === session) activeWifiSession = null
+                    if (activeWifiListener === listener) activeWifiListener = null
+                    if (activeWifiSession === session) activeWifiSession = null
+                    wifiAutoError = if (error is WifiListenerTimeoutException) {
+                        null
+                    } else {
+                        WIFI_TRANSPORT_FAILURE
                     }
+                    true
                 }
             }
             listener?.close()
             session?.close()
-            ownedInvoke?.resolve(
-                phoneUnwrapReport(
-                    false,
-                    false,
-                    null,
-                    if (error is WifiListenerTimeoutException) {
-                        WIFI_LISTENER_TIMEOUT
-                    } else {
-                        WIFI_TRANSPORT_FAILURE
-                    },
-                ),
-            )
+            if (owned) {
+                val delay = if (listener == null && session == null &&
+                    error !is WifiListenerTimeoutException
+                ) {
+                    nextWifiBindRetryDelay()
+                } else {
+                    WIFI_SESSION_RETRY_DELAY_MILLIS
+                }
+                scheduleWifiAutoEvaluation(delay)
+            }
         } finally {
             request?.fill(0)
         }
@@ -821,7 +869,11 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                         owned.streamFailureCategory ?: "agreement_failed",
                     )
                 }
-                takeStreamResponse(owned.token)?.invoke?.resolve(report)
+                val completed = takeStreamResponse(owned.token)
+                completed?.invoke?.resolve(report)
+                if (completed?.streamFailureCategory == WIFI_TRANSPORT_FAILURE) {
+                    scheduleWifiAutoEvaluation(WIFI_SESSION_RETRY_DELAY_MILLIS)
+                }
                 return
             }
             val qrInvoke = invoke ?: throw OfflineEnvelopeCrypto.ProtocolException()
@@ -868,6 +920,9 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         if (cancel && !pending.cancellation.isCanceled) pending.cancellation.cancel()
         pending.streamSession?.close()
         invoke?.resolve(phoneUnwrapReport(false, false, pending.requestFingerprint, error))
+        if (pending.streamFailureCategory == WIFI_TRANSPORT_FAILURE) {
+            scheduleWifiAutoEvaluation(WIFI_SESSION_RETRY_DELAY_MILLIS)
+        }
     }
 
     private fun takePhoneUnwrap(token: UUID): PendingPhoneUnwrap? = synchronized(stateLock) {
@@ -899,6 +954,9 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         if (!pending.cancellation.isCanceled) pending.cancellation.cancel()
         pending.streamSession?.close()
         pending.invoke?.resolve(phoneUnwrapReport(false, false, pending.requestFingerprint, error))
+        if (pending.streamFailureCategory == WIFI_TRANSPORT_FAILURE) {
+            scheduleWifiAutoEvaluation(WIFI_SESSION_RETRY_DELAY_MILLIS)
+        }
     }
 
     private fun cancelUnwrapResponse() {
@@ -916,37 +974,40 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         session?.close()
     }
 
-    private fun cancelWifiOperation(
+    private fun stopWifiAutoOperation(
         error: String,
         includePendingAuthorization: Boolean,
     ): Boolean {
         var pending: PendingPhoneUnwrap? = null
         var listener: PhoneWifiListener? = null
         var session: PhoneStreamSession? = null
-        var unwrapInvoke: Invoke? = null
         var cancelled = false
         synchronized(stateLock) {
-            val currentPending = activePhoneUnwrap
+            wifiEvaluationGeneration += 1
+            val currentPending = activePhoneUnwrap?.takeIf {
+                it.streamFailureCategory == WIFI_TRANSPORT_FAILURE
+            } ?: activeStreamResponse?.takeIf {
+                it.streamFailureCategory == WIFI_TRANSPORT_FAILURE
+            }
             if (
                 includePendingAuthorization &&
-                currentPending?.streamFailureCategory == WIFI_TRANSPORT_FAILURE
+                currentPending != null
             ) {
-                activePhoneUnwrap = null
+                if (activePhoneUnwrap === currentPending) activePhoneUnwrap = null
+                if (activeStreamResponse === currentPending) activeStreamResponse = null
                 pending = currentPending
                 cancelled = true
             } else if (
-                activeWifiToken != null || activeWifiInvoke != null ||
-                activeWifiListener != null || activeWifiSession != null
+                activeWifiToken != null || activeWifiListener != null || activeWifiSession != null
             ) {
                 activeWifiToken = null
-                unwrapInvoke = activeWifiInvoke
-                activeWifiInvoke = null
                 listener = activeWifiListener
                 activeWifiListener = null
                 session = activeWifiSession
                 activeWifiSession = null
                 cancelled = true
             }
+            wifiAutoState = if (wifiAutoEnabled) WIFI_STATE_SUSPENDED else WIFI_STATE_DISABLED
         }
         pending?.let { current ->
             current.timeout?.let(mainHandler::removeCallbacks)
@@ -958,14 +1019,125 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         }
         listener?.close()
         session?.close()
-        unwrapInvoke?.resolve(phoneUnwrapReport(false, false, null, error))
         return cancelled
     }
 
     private fun wifiOperationActive(): Boolean =
-        activeWifiToken != null || activeWifiInvoke != null ||
-            activeWifiListener != null || activeWifiSession != null ||
-            activePhoneUnwrap?.streamFailureCategory == WIFI_TRANSPORT_FAILURE
+        activeWifiToken != null || activeWifiListener != null || activeWifiSession != null ||
+            activePhoneUnwrap?.streamFailureCategory == WIFI_TRANSPORT_FAILURE ||
+            activeStreamResponse?.streamFailureCategory == WIFI_TRANSPORT_FAILURE
+
+    private fun wifiForegroundChanged(foreground: Boolean) {
+        synchronized(stateLock) {
+            wifiForeground = foreground
+            wifiEvaluationGeneration += 1
+            wifiAutoState = if (wifiAutoEnabled) WIFI_STATE_SUSPENDED else WIFI_STATE_DISABLED
+        }
+        if (foreground) {
+            scheduleWifiAutoEvaluation(0)
+        } else {
+            stopWifiAutoOperation("authentication_failed", includePendingAuthorization = true)
+        }
+    }
+
+    private fun scheduleWifiAutoEvaluation(delayMillis: Long) {
+        val generation = synchronized(stateLock) {
+            if (!wifiAutoEnabled || !wifiForeground) return
+            if (!wifiOperationActive()) wifiAutoState = WIFI_STATE_SUSPENDED
+            wifiEvaluationGeneration += 1
+            wifiEvaluationGeneration
+        }
+        mainHandler.postDelayed({ evaluateWifiAutoListen(generation) }, delayMillis)
+    }
+
+    private fun evaluateWifiAutoListen(generation: Long) {
+        val shouldCheckPrerequisites = synchronized(stateLock) {
+            if (generation != wifiEvaluationGeneration || !wifiAutoEnabled || !wifiForeground) {
+                return
+            }
+            if (wifiOperationActive()) return
+            if (nonWifiOperationActive()) {
+                wifiAutoState = WIFI_STATE_SUSPENDED
+                false
+            } else {
+                true
+            }
+        }
+        if (!shouldCheckPrerequisites) {
+            scheduleWifiAutoEvaluation(WIFI_SUSPENDED_RECHECK_MILLIS)
+            return
+        }
+        val ready = wifiPrerequisitesReady()
+        val token = synchronized(stateLock) {
+            if (generation != wifiEvaluationGeneration || !wifiAutoEnabled || !wifiForeground ||
+                wifiOperationActive() || nonWifiOperationActive()
+            ) {
+                return
+            }
+            if (!ready) {
+                wifiAutoState = WIFI_STATE_WAITING_FOR_PREREQUISITES
+                wifiAutoError = null
+                null
+            } else {
+                UUID.randomUUID().also {
+                    activeWifiToken = it
+                    wifiAutoState = WIFI_STATE_LISTENING
+                    wifiAutoError = null
+                }
+            }
+        }
+        if (token == null) {
+            scheduleWifiAutoEvaluation(WIFI_SUSPENDED_RECHECK_MILLIS)
+        } else {
+            Thread({ runWifiAutoUnwrap(token) }, "phone-wifi-auto-listen").start()
+        }
+    }
+
+    private fun wifiPrerequisitesReady(): Boolean = try {
+        val status = identityStatusReport()
+        status.optString("state") == "ready" &&
+            status.optJSONArray("pairedDesktops")?.length()?.let { it > 0 } == true
+    } catch (_: Exception) {
+        false
+    }
+
+    private fun nextWifiBindRetryDelay(): Long = synchronized(stateLock) {
+        val delay = WifiAutoListenRetryPolicy.bindDelay(wifiBindFailures)
+        if (wifiBindFailures < Int.MAX_VALUE) wifiBindFailures += 1
+        delay
+    }
+
+    private fun preemptPassiveWifiForLocalOperation(): Boolean {
+        var listener: PhoneWifiListener? = null
+        synchronized(stateLock) {
+            if (activeWifiSession != null ||
+                activePhoneUnwrap?.streamFailureCategory == WIFI_TRANSPORT_FAILURE ||
+                activeStreamResponse?.streamFailureCategory == WIFI_TRANSPORT_FAILURE
+            ) {
+                return false
+            }
+            if (activeWifiToken != null || activeWifiListener != null) {
+                activeWifiToken = null
+                listener = activeWifiListener
+                activeWifiListener = null
+                wifiEvaluationGeneration += 1
+            }
+            if (wifiAutoEnabled) wifiAutoState = WIFI_STATE_SUSPENDED
+            wifiAutoError = null
+        }
+        listener?.close()
+        scheduleWifiAutoEvaluation(WIFI_SUSPENDED_RECHECK_MILLIS)
+        return true
+    }
+
+    private fun wifiAutoListenStatusReport(error: String? = null): JSObject =
+        synchronized(stateLock) {
+            JSObject().apply {
+                put("enabled", wifiAutoEnabled)
+                put("state", wifiAutoState)
+                put("errorCategory", error ?: wifiAutoError)
+            }
+        }
 
     private fun verifyPairingOfferForScan(message: ByteArray): PairingOfferScanDisplay {
         val verified = OfflineEnvelopeCrypto.verifyPairingOffer(message)
@@ -1237,6 +1409,16 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             pairingPermissionPending || unwrapPermissionPending || activeLifecycle != null ||
             activeProvisioning
 
+    private fun nonWifiOperationActive(): Boolean =
+        active != null || activeQrScanner != null || activePairingResponse != null ||
+            (activePhoneUnwrap != null &&
+                activePhoneUnwrap?.streamFailureCategory != WIFI_TRANSPORT_FAILURE) ||
+            (activeStreamResponse != null &&
+                activeStreamResponse?.streamFailureCategory != WIFI_TRANSPORT_FAILURE) ||
+            activeUnwrapResponse != null || activeUsbSession != null || activeUsbToken != null ||
+            cameraPermissionPending || pairingPermissionPending || unwrapPermissionPending ||
+            activeLifecycle != null || activeProvisioning
+
     private fun startLifecycleConfirmation(
         invoke: Invoke,
         title: String,
@@ -1244,6 +1426,10 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         positiveLabel: String,
         operation: () -> JSObject,
     ) {
+        if (!preemptPassiveWifiForLocalOperation()) {
+            invoke.resolve(lifecycleReport(false, "ready", "operation_active"))
+            return
+        }
         synchronized(stateLock) {
             if (nativeOperationActive()) {
                 invoke.resolve(lifecycleReport(false, "ready", "operation_active"))
@@ -1681,7 +1867,13 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     companion object {
         private const val AUTHENTICATION_TIMEOUT_MILLIS = 60_000L
         private const val WIFI_TRANSPORT_FAILURE = "wifi_transport_failed"
-        private const val WIFI_LISTENER_TIMEOUT = "wifi_listener_timeout"
+        private const val WIFI_STATE_DISABLED = "disabled"
+        private const val WIFI_STATE_WAITING_FOR_PREREQUISITES = "waiting_for_prerequisites"
+        private const val WIFI_STATE_LISTENING = "listening"
+        private const val WIFI_STATE_HANDLING_REQUEST = "handling_request"
+        private const val WIFI_STATE_SUSPENDED = "suspended"
+        private const val WIFI_SESSION_RETRY_DELAY_MILLIS = 1_000L
+        private const val WIFI_SUSPENDED_RECHECK_MILLIS = 1_000L
 
         private object BiometricManagerCompat {
             const val STRONG = 0x000F

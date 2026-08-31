@@ -29,8 +29,10 @@ pub struct LifecycleReport {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct WifiUnwrapStatusReport {
-    pub active: bool,
+pub struct WifiAutoListenStatusReport {
+    pub enabled: bool,
+    pub state: String,
+    pub error_category: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

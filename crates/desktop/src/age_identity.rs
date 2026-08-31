@@ -215,7 +215,7 @@ fn exchange_identity_wifi(
     callbacks: &mut impl Callbacks<identity::Error>,
 ) -> io::Result<Result<Zeroizing<Vec<u8>>, ExchangeError>> {
     let prompt = format!(
-        "Start Approve · Wi-Fi in the foreground on the paired phone before continuing.\nRequest fingerprint: {}\nThe LAN route is untrusted; phone verification and protocol authentication remain required.",
+        "Enable Wi-Fi auto-listen and keep the paired phone app in the foreground before continuing.\nRequest fingerprint: {}\nThe LAN route is untrusted; phone verification and protocol authentication remain required.",
         display.request_fingerprint,
     );
     let Ok(()) = callbacks.message(&prompt)? else {

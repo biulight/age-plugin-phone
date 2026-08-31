@@ -24,7 +24,10 @@ port, connect first, impersonate an address, observe, replace, delay, truncate, 
 stream bytes, or disconnect while authorization is pending. IP addresses, private-address routing,
 interface choice, and TCP connection success provide no protocol trust. Such a peer may deny
 service but must not reach a biometric prompt without a valid signed request from the paired
-desktop.
+desktop. Enabling foreground auto-listen expresses transport availability only; it is not cached
+authorization. Automatic re-arming lets an attacker repeat connection-level denial of service, and
+a compromised paired desktop may repeatedly present valid requests, but every unwrap still needs a
+fresh auth-per-use system verification.
 
 The phone operating system, hardware-backed key implementation, and user-verification UI are trusted
 within their documented guarantees.
@@ -66,3 +69,4 @@ key is unrecoverable by design.
   authentication or phone user authorization.
 - Treating a LAN address, private subnet, Wi-Fi association, or successful TCP connection as peer
   authentication or phone user authorization.
+- Treating an enabled or foreground Wi-Fi auto-listener as phone user authorization.

@@ -9,9 +9,8 @@ const COMMANDS: &[&str] = &[
     "pair_phone",
     "pair_phone_usb",
     "unwrap_phone",
-    "unwrap_phone_wifi",
-    "cancel_wifi_unwrap",
-    "wifi_unwrap_status",
+    "set_wifi_auto_listen",
+    "wifi_auto_listen_status",
 ];
 
 fn main() {

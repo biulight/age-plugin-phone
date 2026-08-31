@@ -7,13 +7,18 @@ use tauri::{
 use crate::{
     AgreementReport, CapabilityReport, CleanupReport, Error, IdentityCustodyReport,
     IdentityStatusReport, LifecycleReport, PairingOfferScanReport, PairingStorageReport,
-    PhonePairingReport, PhoneUnwrapReport, ProbeKeyReport, WifiUnwrapStatusReport,
+    PhonePairingReport, PhoneUnwrapReport, ProbeKeyReport, WifiAutoListenStatusReport,
 };
 
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RevokePairingArgs {
     handle: String,
+}
+
+#[derive(serde::Serialize)]
+struct SetWifiAutoListenArgs {
+    enabled: bool,
 }
 
 const PLUGIN_IDENTIFIER: &str = "io.github.biulight.phone_identity";
@@ -95,21 +100,15 @@ impl<R: Runtime> PhoneIdentity<R> {
             .map_err(Into::into)
     }
 
-    pub fn unwrap_phone_wifi(&self) -> Result<PhoneUnwrapReport, Error> {
+    pub fn set_wifi_auto_listen(&self, enabled: bool) -> Result<WifiAutoListenStatusReport, Error> {
         self.0
-            .run_mobile_plugin("unwrapPhoneWifi", ())
+            .run_mobile_plugin("setWifiAutoListen", SetWifiAutoListenArgs { enabled })
             .map_err(Into::into)
     }
 
-    pub fn cancel_wifi_unwrap(&self) -> Result<LifecycleReport, Error> {
+    pub fn wifi_auto_listen_status(&self) -> Result<WifiAutoListenStatusReport, Error> {
         self.0
-            .run_mobile_plugin("cancelWifiUnwrap", ())
-            .map_err(Into::into)
-    }
-
-    pub fn wifi_unwrap_status(&self) -> Result<WifiUnwrapStatusReport, Error> {
-        self.0
-            .run_mobile_plugin("wifiUnwrapStatus", ())
+            .run_mobile_plugin("wifiAutoListenStatus", ())
             .map_err(Into::into)
     }
 

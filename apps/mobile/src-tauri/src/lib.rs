@@ -21,7 +21,7 @@ fn project_status() -> ProjectStatus {
         protocol_version: PROTOCOL_VERSION,
         qr_transport: "native bidirectional pairing prototype",
         usb_transport: "Developer USB ADB reverse Alpha",
-        wifi_transport: "owner-only foreground unwrap PoC",
+        wifi_transport: "opt-in foreground auto-listen PoC",
         ble_transport: "not implemented",
         key_backend: "StrongBox dual-key custody validated",
         doctor_enabled: cfg!(debug_assertions),
