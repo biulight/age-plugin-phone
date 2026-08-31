@@ -1,6 +1,6 @@
 //! Standard age `identity-v1` adapter for one-shot phone unwraps.
 
-use std::{collections::HashMap, io, path::PathBuf};
+use std::{collections::HashMap, io, net::SocketAddr, path::PathBuf};
 
 use age_core::format::{FileKey, Stanza};
 use age_plugin::{
@@ -25,6 +25,7 @@ use crate::{
     qr_scanner::{DEFAULT_SCAN_TIMEOUT, ScanError, ScannerHandle},
     qr_terminal::render_terminal_frame,
     unwrap::{DesktopUnwrapSession, UnwrapDisplay, now_unix},
+    wifi::WifiSession,
 };
 
 const QR_CHUNK_BYTES: usize = 600;
@@ -88,55 +89,12 @@ impl IdentityPluginV1 for PhoneIdentityPlugin {
                 internal("unsupported phone transport selection"),
             ));
         };
-        let adb_serial = match std::env::var("AGE_PLUGIN_PHONE_ADB_SERIAL") {
-            Ok(serial) => Some(serial),
-            Err(std::env::VarError::NotPresent) => None,
-            Err(std::env::VarError::NotUnicode(_)) => {
-                return Ok(all_supported_files_error(
-                    &files,
-                    internal("ADB device selection is malformed"),
-                ));
-            }
+        let route = match identity_route_options(transport) {
+            Ok(route) => route,
+            Err(error) => return Ok(all_supported_files_error(&files, error)),
         };
         unwrap_with_exchange(&self.identities, files, &root, |request, display| {
-            if transport == IdentityTransport::Adb {
-                let prompt = format!(
-                    "The paired phone app will open for Developer USB approval.\nRequest fingerprint: {}\nADB is an untrusted transport; phone verification and protocol authentication remain required.",
-                    display.request_fingerprint,
-                );
-                let Ok(()) = callbacks.message(&prompt)? else {
-                    return Ok(Err(ExchangeError::Cancelled));
-                };
-                let Ok(mut session) = AdbReverseSession::connect(
-                    SystemAdb::default(),
-                    adb_serial.as_deref(),
-                    SessionPurpose::Unwrap,
-                    DEFAULT_CONNECT_TIMEOUT,
-                    DEFAULT_MESSAGE_TIMEOUT,
-                    TransportLimits::default(),
-                    &mut OsRng,
-                ) else {
-                    return Ok(Err(ExchangeError::Failed));
-                };
-                return Ok(session
-                    .exchange(SessionPurpose::Unwrap, request)
-                    .map_err(|_| ExchangeError::Failed));
-            }
-            let prompt = match render_request_prompt(request, display) {
-                Ok(prompt) => prompt,
-                Err(error) => return Ok(Err(error)),
-            };
-            let Ok(()) = callbacks.message(&prompt)? else {
-                return Ok(Err(ExchangeError::Cancelled));
-            };
-            let scanner = ScannerHandle::start_default_camera(DEFAULT_SCAN_TIMEOUT);
-            Ok(scanner.wait().map_err(|error| match error {
-                ScanError::Cancelled => ExchangeError::Cancelled,
-                ScanError::InvalidTransfer => ExchangeError::InvalidResponse,
-                ScanError::CameraUnavailable | ScanError::UnsupportedFrame | ScanError::Timeout => {
-                    ExchangeError::Failed
-                }
-            }))
+            exchange_identity_transport(&route, request, display, &mut callbacks)
         })
     }
 }
@@ -145,12 +103,20 @@ impl IdentityPluginV1 for PhoneIdentityPlugin {
 enum IdentityTransport {
     Adb,
     Qr,
+    Wifi,
+}
+
+struct IdentityRoute {
+    transport: IdentityTransport,
+    adb_serial: Option<String>,
+    wifi_address: Option<SocketAddr>,
 }
 
 fn identity_transport() -> Option<IdentityTransport> {
     match std::env::var("AGE_PLUGIN_PHONE_TRANSPORT").as_deref() {
         Ok("adb") => Some(IdentityTransport::Adb),
         Ok("qr") => Some(IdentityTransport::Qr),
+        Ok("wifi") => Some(IdentityTransport::Wifi),
         Err(std::env::VarError::NotPresent) => Some(if cfg!(windows) {
             IdentityTransport::Adb
         } else {
@@ -158,6 +124,137 @@ fn identity_transport() -> Option<IdentityTransport> {
         }),
         Ok(_) | Err(std::env::VarError::NotUnicode(_)) => None,
     }
+}
+
+fn valid_identity_route_options(
+    transport: IdentityTransport,
+    adb_serial: Option<&str>,
+    wifi_address: Option<SocketAddr>,
+) -> bool {
+    match transport {
+        IdentityTransport::Adb => wifi_address.is_none(),
+        IdentityTransport::Qr => adb_serial.is_none() && wifi_address.is_none(),
+        IdentityTransport::Wifi => adb_serial.is_none() && wifi_address.is_some(),
+    }
+}
+
+fn identity_route_options(transport: IdentityTransport) -> Result<IdentityRoute, identity::Error> {
+    let adb_serial = optional_env("AGE_PLUGIN_PHONE_ADB_SERIAL")
+        .map_err(|_| internal("ADB device selection is malformed"))?;
+    let wifi_address = optional_env("AGE_PLUGIN_PHONE_WIFI_ADDRESS")?
+        .map(|value| {
+            value
+                .parse::<SocketAddr>()
+                .map_err(|_| internal("Wi-Fi endpoint selection is malformed"))
+        })
+        .transpose()?;
+    if !valid_identity_route_options(transport, adb_serial.as_deref(), wifi_address) {
+        return Err(internal("phone transport options are inconsistent"));
+    }
+    Ok(IdentityRoute {
+        transport,
+        adb_serial,
+        wifi_address,
+    })
+}
+
+fn optional_env(name: &str) -> Result<Option<String>, identity::Error> {
+    match std::env::var(name) {
+        Ok(value) => Ok(Some(value)),
+        Err(std::env::VarError::NotPresent) => Ok(None),
+        Err(std::env::VarError::NotUnicode(_)) => Err(internal("environment value is malformed")),
+    }
+}
+
+fn exchange_identity_transport(
+    route: &IdentityRoute,
+    request: &[u8],
+    display: &UnwrapDisplay,
+    callbacks: &mut impl Callbacks<identity::Error>,
+) -> io::Result<Result<Zeroizing<Vec<u8>>, ExchangeError>> {
+    match route.transport {
+        IdentityTransport::Adb => exchange_identity_adb(route, request, display, callbacks),
+        IdentityTransport::Wifi => exchange_identity_wifi(route, request, display, callbacks),
+        IdentityTransport::Qr => exchange_identity_qr(request, display, callbacks),
+    }
+}
+
+fn exchange_identity_adb(
+    route: &IdentityRoute,
+    request: &[u8],
+    display: &UnwrapDisplay,
+    callbacks: &mut impl Callbacks<identity::Error>,
+) -> io::Result<Result<Zeroizing<Vec<u8>>, ExchangeError>> {
+    let prompt = format!(
+        "The paired phone app will open for Developer USB approval.\nRequest fingerprint: {}\nADB is an untrusted transport; phone verification and protocol authentication remain required.",
+        display.request_fingerprint,
+    );
+    let Ok(()) = callbacks.message(&prompt)? else {
+        return Ok(Err(ExchangeError::Cancelled));
+    };
+    let Ok(mut session) = AdbReverseSession::connect(
+        SystemAdb::default(),
+        route.adb_serial.as_deref(),
+        SessionPurpose::Unwrap,
+        DEFAULT_CONNECT_TIMEOUT,
+        DEFAULT_MESSAGE_TIMEOUT,
+        TransportLimits::default(),
+        &mut OsRng,
+    ) else {
+        return Ok(Err(ExchangeError::Failed));
+    };
+    Ok(session
+        .exchange(SessionPurpose::Unwrap, request)
+        .map_err(|_| ExchangeError::Failed))
+}
+
+fn exchange_identity_wifi(
+    route: &IdentityRoute,
+    request: &[u8],
+    display: &UnwrapDisplay,
+    callbacks: &mut impl Callbacks<identity::Error>,
+) -> io::Result<Result<Zeroizing<Vec<u8>>, ExchangeError>> {
+    let prompt = format!(
+        "Enable Wi-Fi auto-listen and keep the paired phone app in the foreground before continuing.\nRequest fingerprint: {}\nThe LAN route is untrusted; phone verification and protocol authentication remain required.",
+        display.request_fingerprint,
+    );
+    let Ok(()) = callbacks.message(&prompt)? else {
+        return Ok(Err(ExchangeError::Cancelled));
+    };
+    let Ok(mut session) = WifiSession::connect(
+        route.wifi_address.expect("validated Wi-Fi endpoint"),
+        DEFAULT_CONNECT_TIMEOUT,
+        DEFAULT_MESSAGE_TIMEOUT,
+        TransportLimits::default(),
+        &mut OsRng,
+    ) else {
+        return Ok(Err(ExchangeError::Failed));
+    };
+    Ok(session
+        .exchange(SessionPurpose::Unwrap, request)
+        .map_err(|_| ExchangeError::Failed))
+}
+
+fn exchange_identity_qr(
+    request: &[u8],
+    display: &UnwrapDisplay,
+    callbacks: &mut impl Callbacks<identity::Error>,
+) -> io::Result<Result<Zeroizing<Vec<u8>>, ExchangeError>> {
+    let prompt = match render_request_prompt(request, display) {
+        Ok(prompt) => prompt,
+        Err(error) => return Ok(Err(error)),
+    };
+    let Ok(()) = callbacks.message(&prompt)? else {
+        return Ok(Err(ExchangeError::Cancelled));
+    };
+    let scanner = ScannerHandle::start_default_camera(DEFAULT_SCAN_TIMEOUT);
+    Ok(scanner.wait().map_err(|error| match error {
+        ScanError::Cancelled => ExchangeError::Cancelled,
+        ScanError::InvalidTransfer => ExchangeError::InvalidResponse,
+        ScanError::CameraUnavailable | ScanError::UnsupportedFrame | ScanError::Timeout => {
+            ExchangeError::Failed
+        }
+    }))
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -856,5 +953,40 @@ mod tests {
     fn test_constructor_uses_explicit_config_root() {
         let plugin = PhoneIdentityPlugin::with_config_root(PathBuf::from("/tmp/test-only"));
         assert_eq!(plugin.config_root.unwrap(), PathBuf::from("/tmp/test-only"));
+    }
+
+    #[test]
+    fn route_options_require_one_explicit_transport() {
+        let wifi = SocketAddr::from(([192, 168, 1, 20], crate::wifi::WIFI_UNWRAP_PORT));
+        assert!(valid_identity_route_options(
+            IdentityTransport::Adb,
+            None,
+            None
+        ));
+        assert!(valid_identity_route_options(
+            IdentityTransport::Adb,
+            Some("phone"),
+            None,
+        ));
+        assert!(!valid_identity_route_options(
+            IdentityTransport::Adb,
+            None,
+            Some(wifi),
+        ));
+        assert!(valid_identity_route_options(
+            IdentityTransport::Wifi,
+            None,
+            Some(wifi),
+        ));
+        assert!(!valid_identity_route_options(
+            IdentityTransport::Wifi,
+            Some("phone"),
+            Some(wifi),
+        ));
+        assert!(!valid_identity_route_options(
+            IdentityTransport::Qr,
+            None,
+            Some(wifi),
+        ));
     }
 }

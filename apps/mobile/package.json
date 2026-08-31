@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "android:build:wifi-poc": "AGE_PLUGIN_PHONE_WIFI_POC_BUILD=1 tauri android build --debug --apk --target aarch64 --ci --config src-tauri/tauri.wifi-poc.conf.json",
     "tauri": "tauri"
   },
   "dependencies": {

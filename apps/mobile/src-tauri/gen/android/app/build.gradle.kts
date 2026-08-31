@@ -17,6 +17,7 @@ val releaseKeystorePath = System.getenv("AGE_PLUGIN_PHONE_ANDROID_KEYSTORE")
 val releaseKeystorePassword = System.getenv("AGE_PLUGIN_PHONE_ANDROID_STORE_PASSWORD")
 val releaseKeyAlias = System.getenv("AGE_PLUGIN_PHONE_ANDROID_KEY_ALIAS")
 val releaseKeyPassword = System.getenv("AGE_PLUGIN_PHONE_ANDROID_KEY_PASSWORD")
+val wifiPocBuild = System.getenv("AGE_PLUGIN_PHONE_WIFI_POC_BUILD") == "1"
 val releaseSigningConfigured = listOf(
     releaseKeystorePath,
     releaseKeystorePassword,
@@ -48,6 +49,10 @@ android {
     }
     buildTypes {
         getByName("debug") {
+            // Keep owner experiments installable beside the signed preview. Debug builds must
+            // never require uninstalling the release application and destroying its StrongBox
+            // identity or pairing state.
+            if (wifiPocBuild) applicationIdSuffix = ".wifipoc"
             manifestPlaceholders["usesCleartextTraffic"] = "true"
             isDebuggable = true
             isJniDebuggable = true

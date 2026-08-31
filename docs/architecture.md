@@ -134,6 +134,9 @@ specified by [`ADR 0016`](adr/0016-common-transport-and-adb-alpha.md). Stream fr
 session ID, purpose, direction, and bounded body length but provides no authentication. Windows
 defaults to ADB while QR remains a pairing-independent fallback. Android loopback stream bytes stay
 inside the native Kotlin plugin and enter the same strict pairing and unwrap controllers as QR.
+[`ADR 0018`](adr/0018-owner-only-foreground-wifi-poc.md) reuses that stream boundary for an opt-in
+foreground-only Wi-Fi auto-listen experiment. Its private IPv4 route and foreground listener are
+untrusted delivery hints and add no pairing, discovery, fallback, or authorization behavior.
 
 Identity replacement, paired-desktop revocation, deletion, application removal, and TPM/StrongBox
 invalidation are specified by [`ADR 0017`](adr/0017-lifecycle-and-recovery.md). Version 2
@@ -158,6 +161,14 @@ and complete responses in memory; only digest-checked complete bytes reach proto
 ADB reverse is explicitly Developer USB mode. ADB device state and serials are untrusted endpoint
 selection data only. The desktop uses an ephemeral loopback listener, passes no protocol bytes to
 the ADB process, rejects an existing reverse rule, and removes only the exact rule it created.
+
+The owner-only Wi-Fi PoC reverses the TCP role: after the user persistently opts in, Android keeps
+one listener available only while the application is foregrounded and the desktop connects to a
+numeric private IPv4 endpoint. The listener serializes requests and automatically re-arms with
+bounded retry delays; leaving the foreground or pausing the mode closes its exact resources. It
+carries only unwrap over the same bounded stream frame. LAN reachability, peer address, listener
+availability, and connection success provide no authentication or approval, and the PoC has no
+discovery, background wake, automatic transport selection, or fallback.
 
 ## Integration invariant
 

@@ -8,6 +8,8 @@ Allows product identity, pairing, unwrap, and lifecycle commands.
 - `allow-pair-phone`
 - `allow-pair-phone-usb`
 - `allow-unwrap-phone`
+- `allow-set-wifi-auto-listen`
+- `allow-wifi-auto-listen-status`
 - `allow-identity-status`
 - `allow-provision-identity`
 - `allow-revoke-pairing`
@@ -363,6 +365,32 @@ Denies the scan_pairing_offer command without any pre-configured scope.
 <tr>
 <td>
 
+`phone-identity:allow-set-wifi-auto-listen`
+
+</td>
+<td>
+
+Enables the set_wifi_auto_listen command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:deny-set-wifi-auto-listen`
+
+</td>
+<td>
+
+Denies the set_wifi_auto_listen command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
 `phone-identity:allow-unwrap-phone`
 
 </td>
@@ -382,6 +410,32 @@ Enables the unwrap_phone command without any pre-configured scope.
 <td>
 
 Denies the unwrap_phone command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:allow-wifi-auto-listen-status`
+
+</td>
+<td>
+
+Enables the wifi_auto_listen_status command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:deny-wifi-auto-listen-status`
+
+</td>
+<td>
+
+Denies the wifi_auto_listen_status command without any pre-configured scope.
 
 </td>
 </tr>

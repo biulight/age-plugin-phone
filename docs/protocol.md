@@ -133,7 +133,9 @@ are never authentication inputs.
 ## Common stream transport
 
 [`ADR 0016`](adr/0016-common-transport-and-adb-alpha.md) defines a protocol-independent, one-shot
-stream envelope for ADB and future byte streams. Its random session ID, purpose, direction, and
+stream envelope for ADB and other byte streams. The owner-only foreground Wi-Fi experiment in
+[`ADR 0018`](adr/0018-owner-only-foreground-wifi-poc.md) carries unwrap through the same envelope
+without changing any signed message. Its random session ID, purpose, direction, and
 length fields prevent accidental stream confusion and bound allocation; they are not signed peer
 identity. Pairing offers, pairing responses, unwrap requests, and unwrap responses remain unchanged
 canonical signed messages. A transport failure never permits replay rollback, cached authorization,

@@ -3,7 +3,7 @@ mod models;
 pub use models::{
     AgreementReport, CapabilityReport, CleanupReport, IdentityCustodyReport, IdentityStatusReport,
     LifecycleReport, PairedDesktopSummary, PairingOfferScanReport, PairingStorageReport,
-    PhonePairingReport, PhoneUnwrapReport, ProbeKeyReport,
+    PhonePairingReport, PhoneUnwrapReport, ProbeKeyReport, WifiAutoListenStatusReport,
 };
 
 #[cfg(not(target_os = "android"))]
@@ -264,6 +264,44 @@ fn unwrap_phone<R: Runtime>(
 
 #[tauri::command]
 #[allow(clippy::unnecessary_wraps)]
+fn set_wifi_auto_listen<R: Runtime>(
+    _app: AppHandle<R>,
+    _identity: State<'_, PhoneIdentity<R>>,
+    enabled: bool,
+) -> Result<WifiAutoListenStatusReport, Error> {
+    #[cfg(target_os = "android")]
+    return _identity.set_wifi_auto_listen(enabled);
+
+    #[cfg(not(target_os = "android"))]
+    let _ = enabled;
+
+    #[cfg(not(target_os = "android"))]
+    Ok(WifiAutoListenStatusReport {
+        enabled: false,
+        state: "disabled".into(),
+        error_category: Some("unsupported_api".into()),
+    })
+}
+
+#[tauri::command]
+#[allow(clippy::unnecessary_wraps)]
+fn wifi_auto_listen_status<R: Runtime>(
+    _app: AppHandle<R>,
+    _identity: State<'_, PhoneIdentity<R>>,
+) -> Result<WifiAutoListenStatusReport, Error> {
+    #[cfg(target_os = "android")]
+    return _identity.wifi_auto_listen_status();
+
+    #[cfg(not(target_os = "android"))]
+    Ok(WifiAutoListenStatusReport {
+        enabled: false,
+        state: "disabled".into(),
+        error_category: Some("unsupported_api".into()),
+    })
+}
+
+#[tauri::command]
+#[allow(clippy::unnecessary_wraps)]
 fn pair_phone_usb<R: Runtime>(
     _app: AppHandle<R>,
     _identity: State<'_, PhoneIdentity<R>>,
@@ -362,6 +400,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             pair_phone,
             pair_phone_usb,
             unwrap_phone,
+            set_wifi_auto_listen,
+            wifi_auto_listen_status,
             identity_status,
             provision_identity,
             revoke_pairing,
