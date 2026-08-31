@@ -140,6 +140,10 @@ visible. Then invoke age with `AGE_PLUGIN_PHONE_TRANSPORT=wifi` and
 pairing, discovery, background wake, automatic fallback, reconnect, or production support claim.
 The LAN route is untrusted and every accepted request still requires paired-desktop verification,
 durable replay consumption, and a fresh StrongBox-backed biometric operation.
+Build the side-by-side Android experiment with `bun run android:build:wifi-poc`. Its dedicated
+build path uses a `.wifipoc` application-ID suffix and therefore has independent application
+storage, StrongBox keys, and pairings. An ordinary debug APK retains the signed preview's package ID
+and must not be installed over it.
 
 > [!CAUTION]
 > Developer USB requires Android USB debugging and ADB authorization. An ADB-authorized desktop has

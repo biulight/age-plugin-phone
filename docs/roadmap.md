@@ -201,7 +201,11 @@ release gate, not an open question about whether the ADB transport can carry the
 - [x] Implement an owner-only, foreground-only Wi-Fi unwrap proof of concept over the common stream
   boundary. It requires an explicit private IPv4 endpoint and phone action, supports no pairing,
   discovery, background wake, `auto`, fallback, race, reconnect, or silent retry, and makes no
-  production transport claim.
+  production transport claim. The exact `3ff2cea` Windows build and side-by-side Android PoC build
+  completed a physical LAN unwrap with a fresh StrongBox biometric operation; the phone and
+  independent recovery paths produced the same synthetic plaintext digest. A stale pairing-bound
+  recipient and a mismatched pairing state both failed without plaintext before the successful
+  fresh pairing and re-encryption.
 - [ ] Define one transport policy with explicit `auto`, `adb`, `ble`, `wifi`, and `qr` choices plus
   non-security capability and route hints. Availability may be checked before sending a request;
   after sending begins, do not race, switch, or silently retry on another transport. A retry creates

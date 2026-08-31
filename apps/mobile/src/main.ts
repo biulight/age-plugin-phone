@@ -91,7 +91,7 @@ function renderDesktops(desktops: PairedDesktopSummary[]): void {
 async function refreshIdentity(): Promise<void> { renderIdentity(await invoke<IdentityStatusReport>("plugin:phone-identity|identity_status")); }
 
 async function runProduct(command: string): Promise<void> {
-  if (busy) return; setBusy(true); if (operationResult) operationResult.textContent = command === "unwrap_phone_wifi" ? "Listening once on Wi-Fi port 47140. Keep this app in the foreground, then start the desktop request." : "Waiting for the native phone flow…";
+  if (busy) return; setBusy(true); if (operationResult) operationResult.textContent = command === "unwrap_phone_wifi" ? "Listening once on Wi-Fi port 47140. Other actions are disabled while the listener waits for one desktop request (up to 30 seconds); keep this app in the foreground. An accepted peer then remains bounded by the message and authorization timeouts." : "Waiting for the native phone flow…";
   try {
     if (command.startsWith("pair")) {
       const report = await invoke<PhonePairingReport>(`plugin:phone-identity|${command}`);
