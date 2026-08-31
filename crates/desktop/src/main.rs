@@ -22,6 +22,9 @@ use age_plugin_phone::qr_scanner::{DEFAULT_SCAN_TIMEOUT, ScannerHandle};
 use age_plugin_phone::qr_terminal::{
     DEFAULT_FRAME_INTERVAL_MS, FrameScheduler, render_offline_html, render_terminal_frame,
 };
+use age_plugin_phone::transport_policy::{
+    TransportChoice, TransportHints, TransportKind, TransportOperation, resolve_transport,
+};
 use age_plugin_phone::unwrap::{DesktopUnwrapSession, now_unix};
 use age_plugin_phone::wifi::{WIFI_UNWRAP_PORT, WifiSession};
 use age_plugin_phone_protocol::{
@@ -31,7 +34,7 @@ use age_plugin_phone_protocol::{
 use age_plugin_phone_recipient_p256::{STANZA_TAG, TaggedStanza};
 use age_plugin_phone_transport::{DesktopTransport, SessionPurpose, TransportLimits};
 use base64::{Engine as _, engine::general_purpose::STANDARD_NO_PAD};
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand};
 use p256::ecdsa::SigningKey;
 use rand_core::{OsRng, RngCore as _};
 use zeroize::Zeroizing;
@@ -70,11 +73,11 @@ enum Command {
         /// Durable desktop response-replay state; must be an absolute path.
         #[arg(long)]
         replay_state: PathBuf,
-        /// Bidirectional message transport. ADB is the Windows Alpha default; QR remains fallback.
-        #[arg(long, value_enum, default_value_t = TransportChoice::default())]
+        /// Bidirectional message transport: auto, adb, ble, wifi, or qr.
+        #[arg(long, default_value_t = TransportChoice::default())]
         transport: TransportChoice,
         /// Explicit ADB device serial. Required when multiple devices are listed by ADB.
-        #[arg(long, requires = "transport")]
+        #[arg(long)]
         adb_serial: Option<String>,
     },
     /// Exercise one real paired unwrap over Developer USB, foreground Wi-Fi, or QR.
@@ -95,14 +98,14 @@ enum Command {
         /// Untrusted application/caller display hint shown on the phone.
         #[arg(long)]
         caller_hint: Option<String>,
-        /// Bidirectional message transport. ADB is the Windows Alpha default; QR remains fallback.
-        #[arg(long, value_enum, default_value_t = TransportChoice::default())]
+        /// Bidirectional message transport: auto, adb, ble, wifi, or qr.
+        #[arg(long, default_value_t = TransportChoice::default())]
         transport: TransportChoice,
         /// Explicit ADB device serial. Required when multiple devices are listed by ADB.
-        #[arg(long, requires = "transport")]
+        #[arg(long)]
         adb_serial: Option<String>,
         /// Explicit private IPv4 phone endpoint for the foreground Wi-Fi proof of concept.
-        #[arg(long, requires = "transport")]
+        #[arg(long)]
         wifi_address: Option<SocketAddr>,
     },
     /// Display a signed, disposable pairing offer to exercise QR capture only.
@@ -129,19 +132,6 @@ enum Command {
         #[arg(long)]
         locator: PathBuf,
     },
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
-enum TransportChoice {
-    Adb,
-    Qr,
-    Wifi,
-}
-
-impl Default for TransportChoice {
-    fn default() -> Self {
-        if cfg!(windows) { Self::Adb } else { Self::Qr }
-    }
 }
 
 struct Handler;
@@ -175,6 +165,7 @@ fn main() -> io::Result<()> {
             println!("qr_capture_probe: available");
             println!("pairing_transport: adb_reverse_or_desktop_camera_qr");
             println!("unwrap_transport: adb_reverse_or_foreground_wifi_or_desktop_camera_qr");
+            println!("transport_policy: auto_or_explicit_single_route");
             println!("wifi_transport: owner_only_foreground_poc_port_{WIFI_UNWRAP_PORT}");
             println!("ble_transport: not_implemented");
             println!("mobile_identity: android_strongbox_pairing");
@@ -306,7 +297,15 @@ fn run_pair(
     adb_serial: Option<&str>,
 ) -> io::Result<()> {
     ensure_desktop_platform_supported()?;
-    validate_pairing_transport_options(transport, adb_serial)?;
+    let route = resolve_transport(
+        transport,
+        TransportOperation::Pairing,
+        TransportHints {
+            adb_serial: adb_serial.map(str::to_owned),
+            wifi_address: None,
+        },
+    )
+    .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error.to_string()))?;
     ensure_pairing_outputs_available(identity_output, replay_state)?;
     let desktop_state_existed = desktop_state.exists();
     let config_root = default_config_root()
@@ -334,12 +333,16 @@ fn run_pair(
     .map_err(|_| io::Error::other("failed to create pairing offer"))?;
     let started = Instant::now();
     let mut stdout = io::stdout().lock();
-    let response = match transport {
-        TransportChoice::Adb => {
-            exchange_adb(SessionPurpose::Pairing, &session.signed_offer(), adb_serial)
+    let response = match route.kind() {
+        TransportKind::Adb => exchange_adb(
+            SessionPurpose::Pairing,
+            &session.signed_offer(),
+            route.adb_serial(),
+        ),
+        TransportKind::Qr => exchange_pairing_qr(&session.signed_offer(), started, &mut stdout),
+        TransportKind::Ble | TransportKind::Wifi => {
+            unreachable!("unsupported pairing transports are rejected before session creation")
         }
-        TransportChoice::Qr => exchange_pairing_qr(&session.signed_offer(), started, &mut stdout),
-        TransportChoice::Wifi => unreachable!("Wi-Fi pairing is rejected before session creation"),
     };
     let response = match response {
         Ok(response) => response,
@@ -585,7 +588,15 @@ fn run_unwrap(
     wifi_address: Option<SocketAddr>,
 ) -> io::Result<()> {
     ensure_desktop_platform_supported()?;
-    validate_unwrap_transport_options(transport, adb_serial, wifi_address)?;
+    let route = resolve_transport(
+        transport,
+        TransportOperation::Unwrap,
+        TransportHints {
+            adb_serial: adb_serial.map(str::to_owned),
+            wifi_address,
+        },
+    )
+    .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error.to_string()))?;
     let stub = read_identity_stub_file(identity_stub)
         .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid public identity stub"))?;
     let desktop = DesktopKeyState::open(desktop_state)
@@ -610,19 +621,22 @@ fn run_unwrap(
     let started = Instant::now();
     let display = session.display();
     let mut stdout = io::stdout().lock();
-    let response = match transport {
-        TransportChoice::Adb => exchange_adb(
+    let response = match route.kind() {
+        TransportKind::Adb => exchange_adb(
             SessionPurpose::Unwrap,
             &session.signed_request(),
-            adb_serial,
+            route.adb_serial(),
         ),
-        TransportChoice::Qr => {
+        TransportKind::Qr => {
             exchange_unwrap_qr(&session.signed_request(), &display, started, &mut stdout)
         }
-        TransportChoice::Wifi => exchange_wifi(
+        TransportKind::Wifi => exchange_wifi(
             &session.signed_request(),
-            wifi_address.expect("validated Wi-Fi endpoint"),
+            route.wifi_address().expect("validated Wi-Fi endpoint"),
         ),
+        TransportKind::Ble => {
+            unreachable!("unimplemented BLE is rejected before session creation")
+        }
     };
     let response = match response {
         Ok(response) => response,
@@ -698,49 +712,6 @@ fn print_windows_platform_status() {
         "microsoft_platform_crypto_provider: {}",
         report.platform_provider.as_str()
     );
-}
-
-fn validate_pairing_transport_options(
-    transport: TransportChoice,
-    adb_serial: Option<&str>,
-) -> io::Result<()> {
-    if transport == TransportChoice::Wifi {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "foreground Wi-Fi is an unwrap-only owner experiment",
-        ));
-    }
-    if transport == TransportChoice::Qr && adb_serial.is_some() {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "--adb-serial is valid only with --transport adb",
-        ));
-    }
-    Ok(())
-}
-
-fn validate_unwrap_transport_options(
-    transport: TransportChoice,
-    adb_serial: Option<&str>,
-    wifi_address: Option<SocketAddr>,
-) -> io::Result<()> {
-    match transport {
-        TransportChoice::Adb if wifi_address.is_none() => Ok(()),
-        TransportChoice::Qr if adb_serial.is_none() && wifi_address.is_none() => Ok(()),
-        TransportChoice::Wifi if adb_serial.is_none() && wifi_address.is_some() => Ok(()),
-        TransportChoice::Adb => Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "--wifi-address is valid only with --transport wifi",
-        )),
-        TransportChoice::Qr => Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "ADB and Wi-Fi options are invalid with --transport qr",
-        )),
-        TransportChoice::Wifi => Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "--transport wifi requires only --wifi-address",
-        )),
-    }
 }
 
 fn exchange_adb(
@@ -949,23 +920,39 @@ mod tests {
     use super::*;
 
     #[test]
-    fn explicit_transport_options_do_not_fallback_or_mix_routes() {
-        let wifi = SocketAddr::from(([192, 168, 1, 20], WIFI_UNWRAP_PORT));
-        assert!(validate_pairing_transport_options(TransportChoice::Wifi, None).is_err());
-        assert!(validate_pairing_transport_options(TransportChoice::Adb, Some("phone")).is_ok());
-        assert!(validate_pairing_transport_options(TransportChoice::Qr, Some("phone")).is_err());
-
-        assert!(validate_unwrap_transport_options(TransportChoice::Wifi, None, Some(wifi)).is_ok());
-        assert!(validate_unwrap_transport_options(TransportChoice::Wifi, None, None).is_err());
-        assert!(
-            validate_unwrap_transport_options(TransportChoice::Wifi, Some("phone"), Some(wifi))
-                .is_err()
+    fn auto_accepts_one_route_hint_without_an_explicit_transport_option() {
+        let options = Options::try_parse_from([
+            "age-plugin-phone",
+            "unwrap",
+            "--identity-stub",
+            "/tmp/identity",
+            "--desktop-state",
+            "/tmp/desktop",
+            "--replay-state",
+            "/tmp/replay",
+            "--stanza-arg",
+            "arg",
+            "--stanza-body",
+            "body",
+            "--wifi-address",
+            "192.168.1.20:47140",
+        ])
+        .unwrap();
+        let Some(Command::Unwrap {
+            transport,
+            adb_serial,
+            wifi_address,
+            ..
+        }) = options.command
+        else {
+            panic!("unwrap command must parse");
+        };
+        assert_eq!(transport, TransportChoice::Auto);
+        assert_eq!(adb_serial, None);
+        assert_eq!(
+            wifi_address,
+            Some(SocketAddr::from(([192, 168, 1, 20], WIFI_UNWRAP_PORT)))
         );
-        assert!(
-            validate_unwrap_transport_options(TransportChoice::Adb, Some("phone"), None).is_ok()
-        );
-        assert!(validate_unwrap_transport_options(TransportChoice::Adb, None, Some(wifi)).is_err());
-        assert!(validate_unwrap_transport_options(TransportChoice::Qr, None, Some(wifi)).is_err());
     }
 
     #[test]

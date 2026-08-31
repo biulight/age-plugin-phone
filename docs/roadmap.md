@@ -214,10 +214,12 @@ release gate, not an open question about whether the ADB transport can carry the
   foregrounded with bounded backoff, yields an uncommitted listener to USB or local actions, and
   preserves a fresh StrongBox authorization for every consumed request. Pausing or backgrounding
   closes the exact listener, socket, or authorization without replay rollback or transport fallback.
-- [ ] Define one transport policy with explicit `auto`, `adb`, `ble`, `wifi`, and `qr` choices plus
+- [x] Define one transport policy with explicit `auto`, `adb`, `ble`, `wifi`, and `qr` choices plus
   non-security capability and route hints. Availability may be checked before sending a request;
   after sending begins, do not race, switch, or silently retry on another transport. A retry creates
-  a fresh protocol request.
+  a fresh protocol request. [`ADR 0019`](adr/0019-unified-transport-policy.md) resolves one route
+  before protocol-session creation, centralizes CLI and standard age selection, preserves the
+  Windows ADB and non-Windows QR defaults, and reserves BLE as fail-closed until its reviewed PoC.
 - [ ] After the automated Developer USB flow, remaining physical matrix, independent review, and
   technical-user Alpha are complete, implement a native BLE proof of concept over the reviewed
   common transport interface, with untrusted discovery, bounded fragmentation, explicit phone

@@ -105,7 +105,7 @@ impl Drop for WifiSession {
     }
 }
 
-fn validate_endpoint(endpoint: SocketAddr) -> Result<(), WifiError> {
+pub(crate) fn validate_endpoint(endpoint: SocketAddr) -> Result<(), WifiError> {
     let IpAddr::V4(address) = endpoint.ip() else {
         return Err(WifiError::InvalidEndpoint);
     };

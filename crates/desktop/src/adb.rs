@@ -470,7 +470,7 @@ fn parse_devices(output: &str) -> Result<Vec<Device>, AdbError> {
     Ok(devices)
 }
 
-fn valid_serial(serial: &str) -> bool {
+pub(crate) fn valid_serial(serial: &str) -> bool {
     !serial.is_empty()
         && serial.len() <= 128
         && serial

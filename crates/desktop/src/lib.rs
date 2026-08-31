@@ -9,5 +9,6 @@ pub mod locator;
 pub mod pairing;
 pub mod qr_scanner;
 pub mod qr_terminal;
+pub mod transport_policy;
 pub mod unwrap;
 pub mod wifi;

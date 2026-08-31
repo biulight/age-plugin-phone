@@ -137,6 +137,10 @@ inside the native Kotlin plugin and enter the same strict pairing and unwrap con
 [`ADR 0018`](adr/0018-owner-only-foreground-wifi-poc.md) reuses that stream boundary for an opt-in
 foreground-only Wi-Fi auto-listen experiment. Its private IPv4 route and foreground listener are
 untrusted delivery hints and add no pairing, discovery, fallback, or authorization behavior.
+[`ADR 0019`](adr/0019-unified-transport-policy.md) resolves `auto`, ADB, BLE, Wi-Fi, or QR into one
+desktop route before a protocol session is created. Route hints pin one transport; an attempt never
+races, switches, or silently retries after sending begins, and BLE remains unavailable until its
+separately reviewed native proof of concept.
 
 Identity replacement, paired-desktop revocation, deletion, application removal, and TPM/StrongBox
 invalidation are specified by [`ADR 0017`](adr/0017-lifecycle-and-recovery.md). Version 2
@@ -168,7 +172,12 @@ numeric private IPv4 endpoint. The listener serializes requests and automaticall
 bounded retry delays; leaving the foreground or pausing the mode closes its exact resources. It
 carries only unwrap over the same bounded stream frame. LAN reachability, peer address, listener
 availability, and connection success provide no authentication or approval, and the PoC has no
-discovery, background wake, automatic transport selection, or fallback.
+discovery, background wake, or fallback.
+
+The unified desktop policy makes one deterministic choice before creating a pairing or unwrap
+session. `auto` uses an explicit ADB or Wi-Fi route hint when present; otherwise it preserves ADB on
+Windows and QR on other desktop platforms. This is not availability racing or fallback. A failed
+attempt terminates, and a user retry creates a fresh signed protocol request.
 
 ## Integration invariant
 
