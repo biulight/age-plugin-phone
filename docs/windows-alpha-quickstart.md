@@ -28,10 +28,20 @@ Do not install the private test root system-wide merely to suppress an untrusted
 The test signature proves artifact identity only when checked against the separately approved test
 root and evidence. It is not public publisher trust.
 
+### Runtime prerequisites
+
 Extract `age-plugin-phone.exe` without renaming it and place its directory on the current user's
-`PATH`. Install the APK from the same RC set on the test phone. Then open a new PowerShell 7 session
-and install the pinned Windows rage release into a versioned per-user directory. The digest below
-is the SHA-256 published for the upstream v0.12.1 Windows x64 asset:
+`PATH`. Install the APK from the same RC set on the test phone. The normal Shine path uses the
+standard `age` CLI, `age-plugin-phone`, ADB, and the Android application; it does not require
+`rage`.
+
+### Alpha interoperability validation tool
+
+`rage` is an alternative age-compatible client, not a runtime dependency of `age-plugin-phone` or
+Shine. It is optional outside this validation, but the pinned release is required to complete this
+guide's cross-client Alpha checks in section 3. Open a new PowerShell 7 session and install it into
+a versioned per-user directory. The digest below is the SHA-256 published for the upstream v0.12.1
+Windows x64 asset:
 
 ```powershell
 $rageVersion = "0.12.1"

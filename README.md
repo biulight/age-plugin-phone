@@ -27,7 +27,8 @@ planned. Deferred means unverified, not passed.
 age-compatible application
           |
           v
-       age/rage
+age-compatible client
+    (age or rage)
           |
           v
  age-plugin-phone  <--- QR / BLE / USB / Wi-Fi --->  phone app
@@ -35,6 +36,10 @@ age-compatible application
                                                    v
                                       hardware-backed private key
 ```
+
+`age` and `rage` are alternative compatible clients; an installation does not require both. The
+Windows Alpha quick start installs a pinned `rage` release only to validate cross-client
+interoperability. Shine uses the standard `age` CLI and does not require `rage` at runtime.
 
 The phone should release only the file key for the single age recipient stanza approved by the
 user. It must never export the long-term private key to the desktop.
