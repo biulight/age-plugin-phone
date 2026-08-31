@@ -119,3 +119,29 @@ pairing's public stub, and that mismatched one-sided pairing state produces no p
 therefore re-encrypted the disposable plaintext to the fresh pairing-bound phone recipient plus
 the unchanged independent recovery recipient before the successful Wi-Fi unwrap. No discovery,
 background, reconnect, fallback, or production-transport claim follows from this result.
+
+On 2026-09-01, source commit `503f0e8add7850557208f7f1055e6432e7c68626` and the installed
+side-by-side `.wifipoc` base APK with SHA-256
+`EE8C0D6B1F63D83749E4AC8E01C98A5127EA6C89B0D0F76702343249043A17E3` completed the
+foreground auto-listen continuation on the same Samsung test phone. The persisted mode remained
+off until explicitly enabled, released port `47140` when backgrounded or paused, and resumed after
+the application returned to the foreground. An empty LAN connection produced no biometric prompt
+and the single listener re-armed. Two consecutive reference-age Wi-Fi unwraps, without toggling the
+mode between them, each required a new system biometric operation and produced the same synthetic
+plaintext SHA-256 recorded above. Cancelling a third biometric operation produced no output and
+the listener re-armed without restoring that request.
+
+Supporting physical checks confirmed that a Developer USB request suspended the passive listener,
+completed only after a fresh biometric operation, and then allowed auto-listen to resume. Because
+the packaged desktop USB wake intentionally names the normal signed application, this side-by-side
+check used a test-only desktop binary whose sole routing change named the `.wifipoc` component; it
+is not packaged-candidate USB evidence. Entering the native QR scanner likewise suspended the
+listener, and cancelling returned `user_cancelled` before auto-listen resumed. The Windows test
+instance had no camera, so a real desktop QR unwrap ended at its five-minute capture deadline with
+no plaintext rather than completing a QR round trip.
+
+The differently signed normal application was not uninstalled or replaced. Android rejected an
+attempt to install the current ordinary debug APK over that package because the signatures differ.
+The continuation therefore validates the side-by-side owner PoC and its shared source, but it does
+not claim exact signed-normal-package, camera-complete QR, discovery, background service, or
+production transport evidence.
