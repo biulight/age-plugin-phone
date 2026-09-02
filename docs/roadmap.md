@@ -131,6 +131,10 @@ release gate, not an open question about whether the ADB transport can carry the
   malformed stream, timeout/lock-screen failure, and QR fallback. Each negative path produced no
   plaintext or reverse residue. Each recovery request required a new phone biometric operation and
   succeeded.
+- [x] Record an owner-only UGREEN Camera 2K QR exploratory run: physical pairing, standard `age`
+  unwrap, phone cancellation, no-response expiry, and old-response rejection passed with one
+  StrongBox phone. This is not exact-candidate evidence and does not close the remaining
+  wrong-device, post-restart replay, or public-Alpha gates.
 - [x] Rebuild and device-test the Android biometric mismatch regression. An unrecognized scan kept
   the same one-shot prompt pending, a registered fingerprint then completed it, Cancel remained
   terminal, and both recovery paths required a new biometric operation without reverse residue.

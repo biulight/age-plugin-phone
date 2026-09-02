@@ -319,6 +319,7 @@ fn run_pair(
     }
     let state = DesktopKeyState::open_or_create(desktop_state, &mut OsRng)
         .map_err(|_| io::Error::other("desktop authentication state is unavailable"))?;
+    let desktop_id = state.desktop_id;
     let selection_public = state
         .selection_public_key()
         .map_err(|_| io::Error::other("desktop selection key is unavailable"))?;
@@ -348,6 +349,19 @@ fn run_pair(
         Ok(response) => response,
         Err(error) => {
             session.cancel();
+            drop(session);
+            drop(state);
+            if !rollback_failed_pairing(
+                desktop_state,
+                replay_state,
+                None,
+                !desktop_state_existed,
+                desktop_id,
+            ) {
+                return Err(io::Error::other(
+                    "pairing transport failed and local rollback is incomplete",
+                ));
+            }
             return Err(error);
         }
     };

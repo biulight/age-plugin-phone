@@ -187,6 +187,26 @@ expected global cleanup lock remained. The diagnostic executable and temporary b
 deleted. This is implementation validation only and is excluded from the signed-candidate scenario
 results above.
 
+## 2026-09-03 owner-only UVC QR exploratory evidence
+
+A Windows console-session run with a newly attached UGREEN Camera 2K and the owner's one Samsung
+`SM-F9660` StrongBox phone completed physical QR pairing, then a standard `age` QR unwrap of
+synthetic data. The phone required a fresh biometric operation for the unwrap; the desktop accepted
+the response through the camera, durably consumed it, and the synthetic byte comparison succeeded.
+
+The same setup also exercised phone-side biometric cancellation, an unanswered request through
+desktop expiry, and a response QR retained from one successful request shown to a different fresh
+request. Each negative path retained no synthetic plaintext. Cancellation and expiry did not update
+desktop response replay state. The old-response case exited without output and did not update that
+state.
+
+These are single-device physical observations only. The run used installed owner-development
+binaries and a console-session launcher, not the active exact signed Windows/Android artifact pair;
+it therefore closes no active-candidate row. The initial SSH service-session attempt could not open
+the UVC stream, confirming that the physical camera test must run in the logged-in console session.
+No second StrongBox-capable phone was available, so wrong-paired-device, multi-phone, and
+second-device-family evidence remains blocked.
+
 ## Evidence restrictions
 
 Record only exact versions, public capability results, artifact and synthetic-output digests,

@@ -22,7 +22,9 @@ that the active artifact pair has passed the corresponding physical matrix.
 
 The following work is recorded but deferred while the application remains owner-only:
 
-- attach a Windows UVC camera and rerun exact-candidate QR fallback plus captured-response replay;
+- rerun exact-candidate QR fallback plus captured-response replay with the attached Windows UVC
+  camera; the owner-only exploratory run is recorded in `alpha-evidence-candidate.md` but does not
+  transfer to an exact candidate;
 - test a wrong paired physical phone, multiple phone identities, and a second independently
   capability-qualified StrongBox device family;
 - complete the remaining multi-device lifecycle, invalidation, upgrade, and migration matrix;
