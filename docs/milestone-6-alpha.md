@@ -1,12 +1,12 @@
 # Milestone 6 Alpha release and evidence
 
 Status: repository implementation is in progress. Active private-root test-signed candidate
-`35bbb60` has independently verified packages and awaits physical testing. The preceding
-`18a94c8` candidate passed the primary one-phone Developer USB, age 1.3.1, rage 0.12.1, Shine
-1.8.0, and independent-recovery paths, but those results do not transfer to the new artifact pair.
-Fresh pairing, QR/replay, packaged lifecycle/invalidation, multi-phone, public-trust Windows
-signing, and technical-user gates remain open. The independent source review is complete, with
-native/physical evidence tracked separately.
+`be1e85e` has independently verified packages and passed the minimal exact-package regression for
+the first developer prerelease. The preceding `18a94c8` candidate passed broader one-phone age,
+rage, Shine, and negative-path work, but those results do not transfer to the new artifact pair.
+QR/replay, packaged lifecycle/invalidation, multi-phone, public-trust Windows signing, and
+technical-user gates remain open. The independent source review is complete, with native/physical
+evidence tracked separately.
 
 The current application posture is the owner-only technical preview defined in
 [`owner-only-preview.md`](owner-only-preview.md). External-device, public-signing, and
@@ -80,10 +80,11 @@ pipeline test until the project qualifies for and is accepted into a public code
 
 The first RC0 execution completed both signing jobs and independent artifact verification. The
 later candidate from commit `18a94c8` completed the historical physical rows recorded in
-[`alpha-evidence-candidate.md`](alpha-evidence-candidate.md). Active candidate `35bbb60` completed
-both signing jobs and independent package verification in workflow `33326611527`, attempt 1; it
-must rerun the physical rows rather than inherit the previous candidate's results. None of these
-results make the private Windows test root publicly trusted.
+[`alpha-evidence-candidate.md`](alpha-evidence-candidate.md). Active candidate `be1e85e` completed
+both signing jobs and independent package verification in workflow `33671049489`, attempt 1, then
+passed the documented minimal Developer USB, independent-recovery, foreground Wi-Fi, and lifecycle
+publication regression. Broader historical rows still require an exact-candidate rerun. None of
+these results make the private Windows test root publicly trusted.
 
 ## Remaining external gates
 

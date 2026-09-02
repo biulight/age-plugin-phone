@@ -14,6 +14,12 @@ secrets.
 - One independently verified private-root test-signed Windows/Android artifact pair at a time.
 - Synthetic or otherwise disposable data with a separately verified independent recovery recipient.
 
+The `v0.1.0-alpha.1` pair from commit `be1e85e` passed the owner-preview publication regression on
+the recorded single-device setup: fresh exact-package pairing, Developer USB unwrap, independent
+recovery, foreground Wi-Fi unwrap, foreground/background listener lifecycle, final listener pause,
+and zero ADB reverse residue. This supports publication of the developer prerelease only; it does
+not mark any deferred public-Alpha gate as passed.
+
 QR framing, native camera transport, private multi-phone stanza selection, lifecycle controls, and
 strict wrong-device/replay rejection remain implemented capabilities. Their presence does not mean
 that the active artifact pair has passed the corresponding physical matrix.

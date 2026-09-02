@@ -1,10 +1,12 @@
 # Windows and Android Alpha matrix
 
-Status: active candidate `35bbb60` has verified test-signed packages and awaits physical testing.
-The preceding `18a94c8` candidate closed fresh pairing, malformed Developer USB, and the primary
-one-phone interoperability paths, but those results are historical and do not transfer to the
-active artifact pair. QR/replay, remaining lifecycle/invalidation, multi-phone, public-signing, and
-technical-user release gates remain open.
+Status: active candidate `be1e85e` has verified test-signed packages and has passed the minimal
+single-device publication regression for the `v0.1.0-alpha.1` developer prerelease: fresh pairing,
+one Developer USB unwrap, independent recovery, one foreground Wi-Fi unwrap, and foreground
+lifecycle termination/resume. The preceding `18a94c8` candidate retains broader historical
+one-phone interoperability evidence, but those results do not transfer to the active artifact
+pair. QR/replay, remaining lifecycle/invalidation, multi-phone, public-signing, and technical-user
+release gates remain open.
 
 The active deployment posture is an owner-only technical preview. The repository owner may continue
 single-device synthetic-data evaluation without claiming that this matrix is complete. UVC-camera
@@ -21,15 +23,16 @@ physical run.
 
 | Area | Alpha requirement | Current evidence | Gate status |
 | --- | --- | --- | --- |
-| Desktop OS | Windows 11 client, x64; Windows Server, Windows 10, ARM64, virtualized/software TPM, and compatibility modes are rejected | Exact candidate completed the recorded runs on Windows 11 Pro 23H2 x64 build 22631.6199 | Required; broader Windows 11 update coverage pending |
-| Desktop custody | Enabled and ready TPM 2.0; Microsoft Platform Crypto Provider; distinct non-exportable P-256 ECDSA and ECDH keys; protected `%LOCALAPPDATA%` state | Intel TPM firmware `600.18.27.2176` was present, enabled, and ready; native CNG/storage tests, fresh exact-candidate pairing, and unwraps passed | Required; recorded device passed, broader coverage pending |
-| Phone OS and custody | Android device whose live key inspection proves StrongBox P-256 ECDH, auth-per-use `BIOMETRIC_STRONG`, StrongBox P-256 signing, and the exact invalidation policy | Samsung `SM-F9660`, Android 16 / API 36, security patch `2026-07-05`, passed fresh exact-APK pairing and per-operation authentication | Required; recorded device passed, at least one additional StrongBox family pending |
-| Default transport | Developer USB through an explicitly selected online ADB device and `adb reverse`; USB debugging and Android ADB authorization are prerequisites, not authentication | Platform-tools 37.0.1 passed exact-package cold/background/repeated wake and interruption cleanup with one authorized device | Required; release package must pin and test an exact platform-tools range |
+| Desktop OS | Windows 11 client, x64; Windows Server, Windows 10, ARM64, virtualized/software TPM, and compatibility modes are rejected | `be1e85e` completed the minimal regression on Windows 11 Pro 23H2 x64 build 22631.6199 | Required; broader Windows 11 update coverage pending |
+| Desktop custody | Enabled and ready TPM 2.0; Microsoft Platform Crypto Provider; distinct non-exportable P-256 ECDSA and ECDH keys; protected `%LOCALAPPDATA%` state | `be1e85e` observed a ready TPM 2.0, Microsoft Platform Crypto Provider support, fresh isolated TPM state, pairing, and two unwraps; the Intel firmware record remains historical | Required; recorded device passed the minimal regression, broader coverage pending |
+| Phone OS and custody | Android device whose live key inspection proves StrongBox P-256 ECDH, auth-per-use `BIOMETRIC_STRONG`, StrongBox P-256 signing, and the exact invalidation policy | Exact `be1e85e` APK on Samsung `SM-F9660`, Android 16 / API 36, security patch `2026-07-05`, passed fresh StrongBox identity provisioning, pairing, and two fresh biometric operations | Required; recorded device passed, at least one additional StrongBox family pending |
+| Default transport | Developer USB through an explicitly selected online ADB device and `adb reverse`; USB debugging and Android ADB authorization are prerequisites, not authentication | Platform-tools 37.0.1 passed one exact-`be1e85e` Developer USB unwrap with a fresh phone biometric and zero final reverse-rule residue; the broader cold/background/repeated evidence remains historical | Required; broader exact-package lifecycle permutations pending |
+| Experimental transport | Explicit, default-off foreground Wi-Fi unwrap to one numeric private IPv4 endpoint on port `47140` | Exact `be1e85e` packages passed one fresh-biometric unwrap, foreground/background close and resume, final pause, and zero ADB reverse residue | Owner-only developer-prerelease evidence; not a public-Alpha transport gate |
 | Fallback transport | Native QR with the same pairing and protocol; no security downgrade and no ADB state | Owner-only exploratory pairing, standard `age` unwrap, cancellation, timeout, and old-response rejection passed with a UGREEN Camera 2K; the run did not use an exact signed candidate | Required; rerun fallback/replay against one exact candidate pair |
-| age client | Released reference `age` using standard `recipient-v1` and `identity-v1` plugin state machines | `age` 1.3.1 passed exact-candidate native and rage-cross phone decrypt plus independent recovery on two synthetic files | Required; one-phone/multi-file gate passed |
-| rage client | Released `rage` with the same standard plugin boundary and no client-specific protocol path | `rage` 0.12.1 passed native and age-cross phone decrypt plus independent recovery on the exact candidate | Required; one-phone/multi-file gate passed |
-| Shine | Existing `age_identity` and `age_recipients` configuration only; no Shine dependency, RPC, URI, environment interpretation, or ciphertext change in this repository | Shine 1.8.0 passed direct encrypt/decrypt, workspace seal, `env run`, and independent recovery with the exact candidate | Required; passed for the recorded version |
-| Recovery | Every important Alpha dataset has the phone recipient plus a verified independent recovery recipient as defined by ADR 0017 | age/rage cross-client and Shine sealed-workspace recovery matched synthetic digests without the phone or plugin; recovery remained usable after revoking the fresh pairing | Required; fresh-pairing recovery passed, full replacement/re-encryption retirement remains pending |
+| age client | Released reference `age` using standard `recipient-v1` and `identity-v1` plugin state machines | `age` 1.3.1 passed one exact-`be1e85e` phone decrypt plus independent recovery; broader two-file and cross-client work remains on `18a94c8` | Required; active-candidate multi-file and multiple-identity work pending |
+| rage client | Released `rage` with the same standard plugin boundary and no client-specific protocol path | `rage` 0.12.1 passed native and age-cross phone decrypt plus independent recovery on historical candidate `18a94c8` | Required; active-candidate physical rerun pending |
+| Shine | Existing `age_identity` and `age_recipients` configuration only; no Shine dependency, RPC, URI, environment interpretation, or ciphertext change in this repository | Shine 1.8.0 passed direct encrypt/decrypt, workspace seal, `env run`, and independent recovery on historical candidate `18a94c8` | Required; active-candidate physical rerun pending |
+| Recovery | Every important Alpha dataset has the phone recipient plus a verified independent recovery recipient as defined by ADR 0017 | `be1e85e` independently recovered the publication-regression ciphertext without the phone; broader cross-client, Shine, revocation, and retirement evidence remains historical | Required; minimal recovery passed, replacement/re-encryption retirement remains pending |
 | macOS | Build and protocol interoperability validation only; not packaged or supported as the Alpha desktop product | Physical Android pairing and reference-age unwrap over QR/ADB were previously validated from macOS | Informational; not an Alpha release gate |
 
 Passing on one device never substitutes for runtime capability inspection. A phone model allowlist,
@@ -49,12 +52,12 @@ Android artifacts. "Portable" means deterministic Rust/Kotlin coverage; "physica
 from the supported Windows/Android pair.
 
 Current-state entries below describe the preceding `18a94c8` physical baseline unless they
-explicitly name `35bbb60`. Treat every physical row as pending for the active candidate until it is
-rerun with that exact package pair.
+explicitly name `be1e85e`. Only the named minimal publication scenarios transfer to the active
+candidate; every other physical row remains pending until rerun with that exact package pair.
 
 | Scenario | Portable gate | Physical gate | Current state |
 | --- | --- | --- | --- |
-| Fresh identity and pairing, exact transcript comparison, restart, then standard age unwrap | Required | Required | The fresh-pairing portion passed: a new `18a94c8` pairing with no retained phone pairing or active public Windows pairing passed full-fingerprint comparison, standard unwrap, repeated fresh biometrics, and independent recovery; recorded exact-candidate restart/cold-start paths remained valid. Fresh phone-identity provisioning remains pending with the identity-deletion/uninstall lifecycle row |
+| Fresh identity and pairing, exact transcript comparison, restart, then standard age unwrap | Required | Required | `be1e85e` passed fresh StrongBox identity provisioning, isolated TPM state, complete-fingerprint Developer USB pairing, one fresh-biometric standard unwrap, and independent recovery. Restart and broader lifecycle permutations remain pending for this candidate |
 | Automatic Developer USB unwrap wake on cold start, foreground, background, and repeated requests | Required | Required | Exact packaged artifacts passed all four wake modes without manual **Approve USB**; each unwrap required fresh biometrics |
 | Encrypt and decrypt with released reference age; multiple files and multiple phone identities | Required | Required | age 1.3.1 passed two-file native/cross-client phone and recovery paths; multiple phone identities remain open |
 | Encrypt and decrypt with released rage | Required | Required | rage 0.12.1 passed native/cross-client phone and recovery paths on two synthetic files |

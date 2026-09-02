@@ -4,10 +4,10 @@ This guide validates one signed Windows/Android RC pair with synthetic data befo
 identity through Shine. It does not close the full Alpha matrix and is not approval to protect real
 secrets. The independent source review is complete, but protocol v2 remains unfrozen and the
 remaining QR/replay, lifecycle/invalidation, multi-phone, public-signing, and
-technical-user gates are still open. The recorded candidate has completed the primary one-phone
-Developer USB and age/rage/Shine interoperability paths only on the previous `18a94c8` physical
-baseline. Active candidate `35bbb60` has verified packages but no physical results yet; this guide
-remains reusable for later exact artifact pairs and does not transfer evidence between them.
+technical-user gates are still open. Candidate `be1e85e` completed a minimal exact-package
+Developer USB, independent-recovery, and foreground Wi-Fi publication regression. Broader
+age/rage/Shine and negative-path results remain on earlier historical candidates and do not
+transfer; this guide remains reusable for later exact artifact pairs.
 
 The present use is the owner-only technical preview in
 [`owner-only-preview.md`](owner-only-preview.md). This guide may exercise the recorded single-device

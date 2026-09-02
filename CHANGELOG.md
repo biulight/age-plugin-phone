@@ -20,6 +20,14 @@ First test-signed developer prerelease.
   deletion, and crash-safe Windows cleanup.
 - Independent recovery-recipient workflows and signed Windows/Android artifact generation.
 
+### Validation
+
+- Exact test-signed artifacts from commit `be1e85e` passed fresh StrongBox identity provisioning,
+  full-fingerprint Developer USB pairing, a fresh-biometric Developer USB unwrap, and an
+  independent-recovery decrypt of the same synthetic ciphertext.
+- The same exact package pair passed an explicit foreground Wi-Fi unwrap, foreground/background
+  listener termination and resume, final listener pause, and zero ADB reverse-rule residue.
+
 ### Known limitations
 
 - Protocol version 2 is experimental and may change incompatibly.

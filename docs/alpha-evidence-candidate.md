@@ -1,21 +1,22 @@
 # Alpha candidate evidence
 
 Status: active private-root test-signed candidate with independently verified package evidence and
-no physical results yet. The preceding `18a94c8` candidate retains its historical one-phone
-physical evidence, but none of that evidence transfers to the new artifact pair. QR/replay,
-remaining lifecycle/invalidation, multi-phone, public-trust, and technical-user gates remain open.
-The active artifact pair is retained for owner-only synthetic-data evaluation; external-device and
-external-user evidence is deferred as recorded in [`owner-only-preview.md`](owner-only-preview.md).
+a completed minimal exact-package developer-prerelease regression. The preceding `18a94c8`
+candidate retains broader historical one-phone evidence, but none of that evidence transfers to
+the new artifact pair. QR/replay, remaining lifecycle/invalidation, multi-phone, public-trust, and
+technical-user gates remain open. The active artifact pair is retained for owner-only
+synthetic-data evaluation; external-device and external-user evidence is deferred as recorded in
+[`owner-only-preview.md`](owner-only-preview.md).
 
 ## Candidate identity
 
 | Field | Recorded value |
 | --- | --- |
-| Repository commit | `35bbb6077d679c7a84d8ce6972175124d272bf61` |
-| Windows executable SHA-256 | `0cf05bce8033185130b83d7247423a6233a16e0cf26416f617f46ffddacec5e8` |
-| Windows ZIP SHA-256 | `57857465fe463a699003b91492add58f287a27fc93ba7c886539a1340dc4442f` |
-| Android APK SHA-256 | `1952bf0fbb951b42c4ab0ee7792e7162660b11985095027f9e537affe0210d86` |
-| Signing workflow run and attempt | `33326611527`, attempt 1 |
+| Repository commit | `be1e85e364e67a55ab750f72c591205014ea1938` |
+| Windows executable SHA-256 | `857c7bc19fd8961d0b41652edee0a7334f0f4186932eec220105b0e01c0210e5` |
+| Windows ZIP SHA-256 | `5c0b44334d39ea933aa1d207d962df21bfd4c981577409ae566048430daebbff` |
+| Android APK SHA-256 | `68d75747596b4c20f91af866343dd85d15bcf05496b2eadd83e814b9b97d1014` |
+| Signing workflow run and attempt | `33671049489`, attempt 1 |
 | Windows signature scope | Private Alpha root with trusted timestamp; signer certificate SHA-256 `d64e82d01bb5835b292a0abbf38759a2c36aaa7003af46809e6a5d730e239215`; public trust remains open |
 | Android signing certificate | One v2 signer; certificate SHA-256 `9a3e5a00a0a363ca58bbe0abfa1bbc0e36cbdce58e314c0c0dbfa94baff1d58b` |
 
@@ -26,9 +27,35 @@ The downloaded Windows executable, Windows ZIP, and Android APK matched their up
 records. The Windows evidence bound the package to the commit and run above, validated the private
 test-root chain in memory, and recorded the expected lack of public trust. The Android evidence
 reported exactly one APK Signature Scheme v2 signer with the registered certificate fingerprint
-and bound the APK to the same commit and run. GitHub artifact records `9736439270` and `9736495833`
-were present and unexpired when independently downloaded. This verifies package identity only; it
-does not close a physical matrix row.
+and bound the APK to the same commit and run. GitHub artifact records `9862630479` and `9862823420`
+were present and unexpired when independently downloaded. Package identity and the deliberately
+small physical publication regression below are separate claims.
+
+## 2026-09-03 exact-package developer-prerelease regression
+
+The exact artifacts above were installed without replacing the existing side-by-side Wi-Fi PoC.
+The Windows executable reported `0.1.0-alpha.1`, and the normal Android package reported the same
+version. The environment was Windows 11 x64 build 22631 with TPM 2.0 ready and Microsoft Platform
+Crypto Provider support, plus one Samsung `SM-F9660` on Android 16 / API 36 with security patch
+`2026-07-05`. Reference age was 1.3.1 and platform-tools was 37.0.1.
+
+A newly provisioned exact-package StrongBox identity and a new isolated Windows TPM state completed
+Developer USB pairing after both endpoints displayed and accepted the same complete transcript
+fingerprint. A fresh Developer USB unwrap required a new phone biometric operation. The recovered
+synthetic output and a separate independent-recovery decrypt both matched input SHA-256
+`7066ad5e93629c9678deb7d7d0b12a482df51b21e8ee1cbcbc8bf7dd82993653`.
+
+The same exact pairing then completed an explicitly selected foreground Wi-Fi unwrap to the fixed
+private IPv4 port. The phone required another fresh biometric operation, and the output matched the
+same synthetic digest. A payload-free reachability check observed the listener available while the
+app was foregrounded, unavailable after the app moved to the background, and available again after
+the app returned to the foreground. Pausing the persisted mode closed the final listener. The ADB
+reverse-rule count was zero before the Wi-Fi unwrap and after the completed regression.
+
+This passes the minimal exact-signed-package gate stated by the developer prerelease notes. It does
+not inherit the historical age/rage/Shine matrix, close camera QR/replay, exercise a wrong phone or
+second StrongBox family, complete lifecycle/invalidation, provide public Windows trust, or create a
+public-Alpha claim.
 
 ## Previous physical-evidence baseline
 
@@ -132,8 +159,9 @@ multi-pairing isolation.
 
 ## Previous-candidate scenario results
 
-The following table records `18a94c8` only. Every physical status for the active candidate remains
-pending until the same scenario is rerun against its exact Windows and Android packages.
+The following table records `18a94c8` only. Except for the separate minimal publication regression
+recorded above, physical status for the active candidate remains pending until the same scenario is
+rerun against its exact Windows and Android packages.
 
 | Scenario group | Status | Coarse result and non-sensitive evidence |
 | --- | --- | --- |
@@ -160,6 +188,13 @@ new biometric operation.
 
 ## Implementation verification (not candidate evidence)
 
+On 2026-09-03, exact commit `be1e85e364e67a55ab750f72c591205014ea1938` passed local Rust
+formatting, workspace Clippy with warnings denied, all 89 portable Rust tests in 20 suites, the
+locked TypeScript production build, and Kotlin unit tests under JDK 17. CI workflow `33670707104`
+passed Linux and Windows Rust, Windows packaged-binary smoke, mobile, reproducible-version, and
+released age/rage interoperability jobs. Signing workflow `33671049489`, attempt 1, completed both
+jobs and produced the independently verified packages recorded in the active candidate table.
+
 On 2026-08-31, exact commit `35bbb6077d679c7a84d8ce6972175124d272bf61` passed local Rust
 formatting, workspace Clippy with warnings denied, all 79 portable Rust tests in 20 suites, the
 locked TypeScript production build, and the Kotlin unit-test target under JDK 17. Pull-request CI
@@ -168,7 +203,7 @@ reproducible-input, and released age/rage interoperability jobs. The hosted Wind
 TPM, so its command skips only the five native desktop-cleanup tests that provision Platform Crypto
 Provider keys; those tests retain their separate native Windows evidence and physical gate.
 Signing workflow `33326611527`, attempt 1, then completed both jobs and produced the independently
-verified packages recorded above.
+verified package pair that this active candidate supersedes.
 
 On 2026-08-30, exact commit `18a94c8d683457dcaa0aa50a485a999036f805df` passed the mandatory
 Rust formatting, workspace Clippy, and workspace test commands; Android Kotlin unit tests; and the

@@ -9,9 +9,10 @@ Shine environments, or define a Shine-specific ciphertext format.
 
 > [!WARNING]
 > This repository is an experimental prototype. An independent source review has been completed
-> and its actionable finding resolved, but protocol v2 remains unfrozen and native Windows,
-> physical Android, signed-package, and interoperability gates remain open. Do not use it to
-> protect real secrets.
+> and its actionable finding resolved. The first exact test-signed Windows/Android pair has passed
+> a minimal one-phone Developer USB, independent-recovery, and foreground Wi-Fi regression, but
+> protocol v2 remains unfrozen and the complete lifecycle, replay, multi-phone, public-signing, and
+> external-user gates remain open. Do not use it to protect real secrets.
 
 The first installable snapshot is
 [`v0.1.0-alpha.1`](docs/releases/v0.1.0-alpha.1.md), a test-signed developer prerelease for
