@@ -196,6 +196,18 @@ certificate and the certificate on a Play-delivered APK are identical.
 7. Compare the recorded certificate identities with the approved release credential records.
 8. Run every required physical scenario in `alpha-matrix.md` against these exact packages.
 
+For a developer prerelease, dispatch the workflow with the manifest version without a leading `v`
+(for example, `0.1.0-alpha.1`). The workflow rejects a requested version that differs from the
+Cargo workspace, mobile package, or Tauri application manifest and includes that version in both
+artifact names.
+
+After the exact signed pair completes the release-specific physical regression, create an annotated
+`vVERSION` tag on the signed commit and publish a GitHub prerelease. Attach the two versioned
+packages, their SHA-256 files, and both signature-verification records. The release notes must state
+the immutable commit, workflow run and attempt, test-root Windows trust scope, Android certificate
+fingerprint, known limitations, and synthetic-data-only boundary. Do not publish or move the tag
+before the evidence has been checked, and never replace an asset under an existing tag.
+
 Each job records the immutable commit, workflow run and attempt, signing certificate identity, exact
 artifact hashes, and verification output. Release evidence must not contain private keys, passwords,
 keystore contents, key aliases, raw protocol messages, QR contents, stanza bodies, file keys,

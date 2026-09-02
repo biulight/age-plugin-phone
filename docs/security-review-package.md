@@ -175,3 +175,7 @@ strict parsing, or transport independence keep the Alpha gate closed.
   Windows execution and the remaining physical/package evidence stay open as separate Alpha gates.
 - Protocol version 2 is deliberately unfrozen. Upgrade, downgrade-rejection, and compatibility
   policy will be decided only after findings are resolved.
+- `cargo audit` also reports RUSTSEC-2024-0429 through the Linux-only Tauri GTK dependency graph.
+  The Windows and Android release artifacts do not include GTK, and this project does not call the
+  affected `glib::VariantStrIter` API. Reassess this rationale when Tauri changes that dependency
+  graph or if a Linux product package is introduced.

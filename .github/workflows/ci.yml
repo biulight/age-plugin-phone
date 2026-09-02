@@ -116,6 +116,7 @@ jobs:
           test -f apps/mobile/bun.lock
           test -f apps/mobile/src-tauri/gen/android/gradle/wrapper/gradle-wrapper.properties
           grep -q '^distributionSha256Sum=' apps/mobile/src-tauri/gen/android/gradle/wrapper/gradle-wrapper.properties
+          scripts/check-release-version.sh
 
   released-client-interoperability:
     runs-on: ubuntu-latest

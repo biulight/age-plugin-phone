@@ -50,7 +50,7 @@ dependencies = [
 
 [[package]]
 name = "age-plugin-phone"
-version = "0.0.1"
+version = "0.1.0-alpha.1"
 dependencies = [
  "age-core",
  "age-plugin",
@@ -75,7 +75,7 @@ dependencies = [
 
 [[package]]
 name = "age-plugin-phone-mobile"
-version = "0.0.1"
+version = "0.1.0-alpha.1"
 dependencies = [
  "age-plugin-phone-protocol",
  "serde",
@@ -86,7 +86,7 @@ dependencies = [
 
 [[package]]
 name = "age-plugin-phone-protocol"
-version = "0.0.1"
+version = "0.1.0-alpha.1"
 dependencies = [
  "age-plugin-phone-recipient-p256",
  "age-plugin-phone-windows-storage",
@@ -106,7 +106,7 @@ dependencies = [
 
 [[package]]
 name = "age-plugin-phone-recipient-p256"
-version = "0.0.1"
+version = "0.1.0-alpha.1"
 dependencies = [
  "base64 0.22.1",
  "bech32",
@@ -123,7 +123,7 @@ dependencies = [
 
 [[package]]
 name = "age-plugin-phone-transport"
-version = "0.0.1"
+version = "0.1.0-alpha.1"
 dependencies = [
  "rand_core",
  "thiserror 2.0.20",
@@ -132,7 +132,7 @@ dependencies = [
 
 [[package]]
 name = "age-plugin-phone-windows-cng"
-version = "0.0.1"
+version = "0.1.0-alpha.1"
 dependencies = [
  "age-plugin-phone-protocol",
  "age-plugin-phone-recipient-p256",
@@ -146,7 +146,7 @@ dependencies = [
 
 [[package]]
 name = "age-plugin-phone-windows-storage"
-version = "0.0.1"
+version = "0.1.0-alpha.1"
 dependencies = [
  "thiserror 2.0.20",
  "windows-sys 0.61.2",
@@ -4394,7 +4394,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-phone-identity"
-version = "0.0.1"
+version = "0.1.0-alpha.1"
 dependencies = [
  "serde",
  "tauri",

@@ -2,12 +2,34 @@ name: Test-signed Alpha artifacts
 
 on:
   workflow_dispatch:
+    inputs:
+      release_version:
+        description: SemVer without the leading v; must match every application manifest
+        required: true
+        default: 0.1.0-alpha.1
+        type: string
 
 permissions:
   contents: read
 
 jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    outputs:
+      release_version: ${{ steps.version.outputs.release_version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - id: version
+        name: Validate release version
+        env:
+          REQUESTED_RELEASE_VERSION: ${{ inputs.release_version }}
+        run: |
+          version="$(scripts/check-release-version.sh "$REQUESTED_RELEASE_VERSION")"
+          test -f "docs/releases/v$version.md"
+          printf 'release_version=%s\n' "$version" >> "$GITHUB_OUTPUT"
+
   windows:
+    needs: metadata
     runs-on: windows-latest
     environment: alpha-release
     permissions:
@@ -187,14 +209,18 @@ jobs:
           if ($rootHash -ne $env:WINDOWS_TEST_ROOT_CERTIFICATE_SHA256_VALIDATED) {
             throw "Authenticode signer chained to an unexpected test root"
           }
-          $package = "target/release/age-plugin-phone-windows-x64-alpha-test-signed.zip"
-          Compress-Archive -Path target/release/age-plugin-phone.exe,README.md,LICENSE,docs/milestone-6-alpha.md -DestinationPath $package
+          $releaseVersion = "${{ needs.metadata.outputs.release_version }}"
+          $packageName = "age-plugin-phone-$releaseVersion-windows-x64-alpha-test-signed.zip"
+          $package = "target/release/$packageName"
+          $releaseNotes = "docs/releases/v$releaseVersion.md"
+          Compress-Archive -Path target/release/age-plugin-phone.exe,README.md,CHANGELOG.md,SECURITY.md,LICENSE,$releaseNotes,docs/windows-alpha-quickstart.md -DestinationPath $package
           $exeHash = (Get-FileHash target/release/age-plugin-phone.exe -Algorithm SHA256).Hash.ToLowerInvariant()
           $packageHash = (Get-FileHash $package -Algorithm SHA256).Hash.ToLowerInvariant()
           "$exeHash  age-plugin-phone.exe" | Set-Content -Encoding utf8NoBOM target/release/SHA256SUMS.txt
-          "$packageHash  age-plugin-phone-windows-x64-alpha-test-signed.zip" | Add-Content -Encoding utf8NoBOM target/release/SHA256SUMS.txt
+          "$packageHash  $packageName" | Add-Content -Encoding utf8NoBOM target/release/SHA256SUMS.txt
           @(
             "commit: $env:GITHUB_SHA",
+            "release_version: $releaseVersion",
             "workflow_run: $env:GITHUB_RUN_ID",
             "workflow_run_attempt: $env:GITHUB_RUN_ATTEMPT",
             "integrity_validation: Authenticode content and signature valid; public-trust verification rejected only the private test root",
@@ -209,10 +235,10 @@ jobs:
           exit 0
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: age-plugin-phone-windows-x64-alpha-test-signed
+          name: age-plugin-phone-${{ needs.metadata.outputs.release_version }}-windows-x64-alpha-test-signed
           if-no-files-found: error
           path: |
-            target/release/age-plugin-phone-windows-x64-alpha-test-signed.zip
+            target/release/age-plugin-phone-${{ needs.metadata.outputs.release_version }}-windows-x64-alpha-test-signed.zip
             target/release/SHA256SUMS.txt
             target/release/signature-verification.txt
       - name: Remove restored Windows test certificate
@@ -227,6 +253,7 @@ jobs:
           Remove-Item -LiteralPath $pfx, $rootCertificate -Force -ErrorAction SilentlyContinue
 
   android:
+    needs: metadata
     runs-on: ubuntu-latest
     environment: alpha-release
     steps:
@@ -281,6 +308,7 @@ jobs:
       - name: Verify Android signature and digest
         env:
           ANDROID_CERTIFICATE_SHA256: ${{ secrets.ANDROID_CERTIFICATE_SHA256 }}
+          RELEASE_VERSION: ${{ needs.metadata.outputs.release_version }}
         run: |
           set -euo pipefail
           outputs=apps/mobile/src-tauri/gen/android/app/build/outputs/apk
@@ -303,19 +331,22 @@ jobs:
           )
           test "${#signer_digests[@]}" -eq 1 || { echo "::error::Expected exactly one Android APK signing certificate"; exit 1; }
           test "${signer_digests[0]}" = "$expected" || { echo "::error::Signed APK certificate fingerprint mismatch"; exit 1; }
-          sha256sum "${apks[0]}" | tee "$evidence_dir/SHA256SUMS.txt"
+          release_apk="$evidence_dir/age-plugin-phone-$RELEASE_VERSION-android-arm64.apk"
+          mv "${apks[0]}" "$release_apk"
+          sha256sum "$release_apk" | tee "$evidence_dir/SHA256SUMS.txt"
           {
             echo "commit: $GITHUB_SHA"
+            echo "release_version: $RELEASE_VERSION"
             echo "workflow_run: $GITHUB_RUN_ID"
             echo "workflow_run_attempt: $GITHUB_RUN_ATTEMPT"
             echo "certificate_sha256: ${expected,,}"
           } >> "$evidence"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: age-plugin-phone-android-alpha
+          name: age-plugin-phone-${{ needs.metadata.outputs.release_version }}-android-alpha
           if-no-files-found: error
           path: |
-            apps/mobile/src-tauri/gen/android/app/build/outputs/apk/**/release/*.apk
+            apps/mobile/src-tauri/gen/android/app/build/outputs/apk/**/release/age-plugin-phone-*.apk
             apps/mobile/src-tauri/gen/android/app/build/outputs/apk/**/release/SHA256SUMS.txt
             apps/mobile/src-tauri/gen/android/app/build/outputs/apk/**/release/signature-verification.txt
       - name: Remove restored Android signing key

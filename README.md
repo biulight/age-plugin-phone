@@ -13,6 +13,11 @@ Shine environments, or define a Shine-specific ciphertext format.
 > physical Android, signed-package, and interoperability gates remain open. Do not use it to
 > protect real secrets.
 
+The first installable snapshot is
+[`v0.1.0-alpha.1`](docs/releases/v0.1.0-alpha.1.md), a test-signed developer prerelease for
+synthetic or disposable data with a separately verified independent recovery recipient. Publishing
+that snapshot does not constitute a public-Alpha, stable-protocol, or production-secret claim.
+
 The current deployment posture is an
 [owner-only technical preview](docs/owner-only-preview.md): one repository owner, one known
 Windows/TPM desktop, one capability-qualified StrongBox phone, and Developer USB as the normal
