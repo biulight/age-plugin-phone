@@ -201,16 +201,24 @@ jobs:
         run: |
           target/release/age-plugin-phone.exe --help
           target/release/age-plugin-phone.exe setup --help
-          # A private test root must make the system-trust verification return nonzero. Newer
-          # PowerShell runners can promote that expected native exit into a terminating error,
-          # which would bypass the explicit status and custom-root checks below.
-          $previousNativeCommandUseErrorActionPreference = $PSNativeCommandUseErrorActionPreference
-          $PSNativeCommandUseErrorActionPreference = $false
+          # A private test root must make the system-trust verification return nonzero. Invoke
+          # SignTool through Start-Process so newer PowerShell runners cannot promote that
+          # expected native exit into a terminating error before the explicit checks below.
+          $verifyStdout = Join-Path $env:RUNNER_TEMP "alpha-signature-verify.stdout"
+          $verifyStderr = Join-Path $env:RUNNER_TEMP "alpha-signature-verify.stderr"
           try {
-            $verification = @(& $env:SIGNTOOL_PATH verify /pa /all /v target/release/age-plugin-phone.exe 2>&1)
-            $verifyExitCode = $LASTEXITCODE
+            $verificationProcess = Start-Process -FilePath $env:SIGNTOOL_PATH -ArgumentList @(
+              "verify", "/pa", "/all", "/v", "target/release/age-plugin-phone.exe"
+            ) -NoNewWindow -PassThru -Wait -RedirectStandardOutput $verifyStdout -RedirectStandardError $verifyStderr
+            $verifyExitCode = $verificationProcess.ExitCode
+            $verification = @()
+            foreach ($output in @($verifyStdout, $verifyStderr)) {
+              if (Test-Path -LiteralPath $output -PathType Leaf) {
+                $verification += Get-Content -LiteralPath $output
+              }
+            }
           } finally {
-            $PSNativeCommandUseErrorActionPreference = $previousNativeCommandUseErrorActionPreference
+            Remove-Item -LiteralPath $verifyStdout, $verifyStderr -Force -ErrorAction SilentlyContinue
           }
           $verification | Set-Content -Encoding utf8NoBOM target/release/signature-verification.txt
           $signature = Get-AuthenticodeSignature target/release/age-plugin-phone.exe
