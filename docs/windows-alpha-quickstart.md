@@ -147,9 +147,13 @@ The decrypt command must cause a new approval request and fresh strong biometric
 paired phone. Developer USB creates its exact reverse rule and then opens the Android application
 automatically; there is no separate **Approve USB** button. Only the fixed, payload-free wake action
 crosses the ADB command line, and the signed request is still verified and durably consumed before
-the biometric prompt. Cancellation, timeout, cable failure, an unauthorized device, or a wrong
-paired phone must fail without plaintext or partial output. Retrying after any interruption must
-create a new request and require another biometric operation.
+the biometric prompt. Developer USB and Wi-Fi age unwraps do not emit a `message` callback by
+default, so a successful command can reserve stdout for plaintext. Set
+`$env:AGE_PLUGIN_PHONE_MESSAGES = "1"` before the age command to opt into payload-free desktop
+guidance. Explicit QR always renders its one-time request in the terminal. Approval details remain
+on the phone, while errors still fail the age command. Cancellation, timeout, cable failure, an
+unauthorized device, or a wrong paired phone must fail without plaintext or partial output.
+Retrying after any interruption must create a new request and require another biometric operation.
 
 Now prove that the independent recovery path decrypts the same ciphertext without the phone:
 

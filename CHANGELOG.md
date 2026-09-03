@@ -11,6 +11,13 @@ recovery recipient.
 - Added `setup --json`, a versioned public handoff that reports the created public identity stub
   path and phone recipient for callers such as Shine while keeping interactive pairing on stderr.
 
+### Changed
+
+- Developer USB and Wi-Fi unwraps no longer emit informational `message` callbacks by default. Set
+  `AGE_PLUGIN_PHONE_MESSAGES=1` to opt into desktop guidance; QR continues to render its one-time
+  request in the terminal because that output is functional. Age clients may still present their
+  own progress indicators independently of the plugin.
+
 ## [0.1.0-alpha.1] - 2026-09-03
 
 First test-signed developer prerelease.

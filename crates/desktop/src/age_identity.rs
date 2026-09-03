@@ -97,8 +97,9 @@ impl IdentityPluginV1 for PhoneIdentityPlugin {
             Ok(route) => route,
             Err(error) => return Ok(all_supported_files_error(&files, error)),
         };
+        let messages_enabled = identity_messages_enabled();
         unwrap_with_exchange(&self.identities, files, &root, |request, display| {
-            exchange_identity_transport(&route, request, display, &mut callbacks)
+            exchange_identity_transport(&route, request, display, messages_enabled, &mut callbacks)
         })
     }
 }
@@ -109,6 +110,19 @@ fn identity_transport() -> Option<TransportChoice> {
         Err(std::env::VarError::NotPresent) => Some(TransportChoice::Auto),
         Err(std::env::VarError::NotUnicode(_)) => None,
     }
+}
+
+fn identity_messages_enabled() -> bool {
+    std::env::var("AGE_PLUGIN_PHONE_MESSAGES")
+        .ok()
+        .is_some_and(|value| parse_message_setting(&value))
+}
+
+fn parse_message_setting(value: &str) -> bool {
+    matches!(
+        value.trim().to_ascii_lowercase().as_str(),
+        "1" | "true" | "yes" | "on"
+    )
 }
 
 fn identity_route_options(transport: TransportChoice) -> Result<TransportRoute, identity::Error> {
@@ -144,11 +158,16 @@ fn exchange_identity_transport(
     route: &TransportRoute,
     request: &[u8],
     display: &UnwrapDisplay,
+    messages_enabled: bool,
     callbacks: &mut impl Callbacks<identity::Error>,
 ) -> io::Result<Result<Zeroizing<Vec<u8>>, ExchangeError>> {
     match route.kind() {
-        TransportKind::Adb => exchange_identity_adb(route, request, display, callbacks),
-        TransportKind::Wifi => exchange_identity_wifi(route, request, display, callbacks),
+        TransportKind::Adb => {
+            exchange_identity_adb(route, request, display, messages_enabled, callbacks)
+        }
+        TransportKind::Wifi => {
+            exchange_identity_wifi(route, request, display, messages_enabled, callbacks)
+        }
         TransportKind::Qr => exchange_identity_qr(request, display, callbacks),
         TransportKind::Ble => {
             unreachable!("unimplemented BLE is rejected before request creation")
@@ -160,15 +179,18 @@ fn exchange_identity_adb(
     route: &TransportRoute,
     request: &[u8],
     display: &UnwrapDisplay,
+    messages_enabled: bool,
     callbacks: &mut impl Callbacks<identity::Error>,
 ) -> io::Result<Result<Zeroizing<Vec<u8>>, ExchangeError>> {
-    let prompt = format!(
-        "The paired phone app will open for Developer USB approval.\nRequest fingerprint: {}\nADB is an untrusted transport; phone verification and protocol authentication remain required.",
-        display.request_fingerprint,
-    );
-    let Ok(()) = callbacks.message(&prompt)? else {
-        return Ok(Err(ExchangeError::Cancelled));
-    };
+    if messages_enabled {
+        let prompt = format!(
+            "The paired phone app will open for Developer USB approval.\nRequest fingerprint: {}\nADB is an untrusted transport; phone verification and protocol authentication remain required.",
+            display.request_fingerprint,
+        );
+        let Ok(()) = callbacks.message(&prompt)? else {
+            return Ok(Err(ExchangeError::Cancelled));
+        };
+    }
     let Ok(mut session) = AdbReverseSession::connect(
         SystemAdb::default(),
         route.adb_serial(),
@@ -189,15 +211,18 @@ fn exchange_identity_wifi(
     route: &TransportRoute,
     request: &[u8],
     display: &UnwrapDisplay,
+    messages_enabled: bool,
     callbacks: &mut impl Callbacks<identity::Error>,
 ) -> io::Result<Result<Zeroizing<Vec<u8>>, ExchangeError>> {
-    let prompt = format!(
-        "Enable Wi-Fi auto-listen and keep the paired phone app in the foreground before continuing.\nRequest fingerprint: {}\nThe LAN route is untrusted; phone verification and protocol authentication remain required.",
-        display.request_fingerprint,
-    );
-    let Ok(()) = callbacks.message(&prompt)? else {
-        return Ok(Err(ExchangeError::Cancelled));
-    };
+    if messages_enabled {
+        let prompt = format!(
+            "Enable Wi-Fi auto-listen and keep the paired phone app in the foreground before continuing.\nRequest fingerprint: {}\nThe LAN route is untrusted; phone verification and protocol authentication remain required.",
+            display.request_fingerprint,
+        );
+        let Ok(()) = callbacks.message(&prompt)? else {
+            return Ok(Err(ExchangeError::Cancelled));
+        };
+    }
     let Ok(mut session) = WifiSession::connect(
         route.wifi_address().expect("validated Wi-Fi endpoint"),
         DEFAULT_CONNECT_TIMEOUT,
@@ -715,6 +740,16 @@ mod tests {
     impl Drop for Fixture {
         fn drop(&mut self) {
             std::fs::remove_dir_all(&self.root).unwrap();
+        }
+    }
+
+    #[test]
+    fn desktop_message_setting_is_explicit() {
+        for enabled in ["1", "true", "TRUE", "yes", "on", " on "] {
+            assert!(parse_message_setting(enabled));
+        }
+        for disabled in ["", "0", "false", "no", "off", "unexpected"] {
+            assert!(!parse_message_setting(disabled));
         }
     }
 

@@ -112,10 +112,14 @@ The Android Alpha UI shows the StrongBox identity status and public recipient, o
 Developer USB or QR pairing, a QR approval fallback, and an owner-only foreground Wi-Fi
 auto-listen toggle. It also lists paired desktops and provides native-confirmed revocation and identity
 deletion. A normal Developer USB unwrap launches the app automatically and enters the same native
-one-shot authorization controller. Revocation becomes
-durable before its pairing record is removed; identity deletion is journaled before pairings and
-StrongBox aliases are destroyed. Interrupted deletion remains unavailable and cannot recreate an
-empty replay scope.
+one-shot authorization controller; the phone remains the authoritative approval UI. Developer USB
+and Wi-Fi standard-age unwraps emit no informational callback by default. Set
+`AGE_PLUGIN_PHONE_MESSAGES=1` before an age invocation to opt into payload-free desktop guidance;
+the age client may independently present its own progress indicator. Explicit QR remains visible
+because its terminal callback carries the one-time request that the phone must scan. Revocation
+becomes durable before its pairing record is removed; identity deletion is journaled before
+pairings and StrongBox aliases are destroyed. Interrupted deletion remains unavailable and cannot
+recreate an empty replay scope.
 
 The Android build's **Pair · QR** action scans the desktop offer, signs and
 renders the phone response entirely in native UI, and shows the full transcript fingerprint. The

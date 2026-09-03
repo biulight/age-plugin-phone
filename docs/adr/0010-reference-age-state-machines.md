@@ -37,6 +37,14 @@ passed to protocol verification. Raw requests, responses, stanza bodies, file ke
 and QR text are never written to messages, files, or logs. Callback cancellation, scanner
 cancellation, camera failure, and timeout close the session.
 
+Developer USB and foreground Wi-Fi do not use the `message` callback by default. The phone presents
+the authenticated request and fresh biometric authorization, while transport preparation remains
+the caller's responsibility. Repeating payload-free guidance through `message` made standard age
+clients print a multi-line notice plus a waiting banner for every successful unwrap and polluted
+programmatic callers. `AGE_PLUGIN_PHONE_MESSAGES=1` explicitly opts into that guidance for either
+transport. QR always retains the callback because it carries the rendered one-time request rather
+than an informational status message.
+
 ## Multiple inputs
 
 Unknown stanza types are ignored as required by age. Each file with a supported stanza receives a
