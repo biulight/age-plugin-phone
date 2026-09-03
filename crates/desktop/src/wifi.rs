@@ -23,7 +23,7 @@ use zeroize::Zeroizing;
 
 pub const WIFI_UNWRAP_PORT: u16 = 47_140;
 pub const WIFI_DISCOVERY_PORT: u16 = 47_141;
-pub const DEFAULT_DISCOVERY_TIMEOUT: Duration = Duration::from_millis(900);
+pub const DEFAULT_DISCOVERY_TIMEOUT: Duration = Duration::from_secs(3);
 
 const DISCOVERY_MAGIC: &[u8; 4] = b"APWD";
 const DISCOVERY_VERSION: u16 = 1;

@@ -273,8 +273,10 @@ release gate, not an open question about whether the ADB transport can carry the
   broadcast routing, a periodic Android listener re-arm gap, and duplicate StrongBox signing for UDP
   retransmits. Discovery now covers each eligible Windows IPv4 subnet, the foreground listener no
   longer cycles while idle, and one exact query is signed only once. Twelve consecutive discovery
-  windows and a real `shine` decrypt with `adb` absent from `PATH` passed. The broader adverse-condition
-  matrix remains open.
+  windows and a real `shine` decrypt with `adb` absent from `PATH` passed. A subsequent ordinary-path
+  retry exposed that production still used a 900-millisecond window while the successful physical
+  probe used three seconds; production now uses the physically exercised window. The broader
+  adverse-condition matrix remains open.
 - [ ] Retain ADB as a development, diagnostics, and recovery transport after a production
   convenience transport is available; do not treat the technical-Alpha default as a
   general-availability commitment.

@@ -28,8 +28,11 @@ unwrap request. It always targets `255.255.255.255`; on Windows it also derives 
 directed broadcast for every active private or link-local IPv4 interface with a valid subnet mask.
 This prevents a VPN or virtual default route from swallowing discovery on a multi-homed desktop.
 Failure to enumerate interfaces retains the limited-broadcast target. It retransmits the same query
-every 200 milliseconds for a total 900-millisecond window and accepts only private or link-local
-IPv4 response sources. The discovered TCP endpoint always uses the existing fixed port `47140`.
+every 200 milliseconds for a total three-second window and accepts only private or link-local IPv4
+response sources. The window covers observed StrongBox signing and Android scheduling latency; a
+900-millisecond production window succeeded only intermittently even though earlier three-second
+diagnostic probes were stable. The discovered TCP endpoint always uses the existing fixed port
+`47140`.
 
 A query is exactly 72 bytes:
 
@@ -168,6 +171,12 @@ cancellation, and exact retransmits reuse one public signed response. After rein
 `.wifipoc` build, 12 consecutive three-second signed discovery windows passed across the old timeout
 boundary. A real `shine env secret decrypt TEST_SECRET` returned `test123` with `adb` deliberately
 absent from `PATH`, proving that the saved `auto` pairing completed through Wi-Fi.
+
+The first owner retry after that validation found roughly one success in ten through the ordinary
+command path. Audit showed that the diagnostic probe used a three-second window while the production
+constant still allowed only 900 milliseconds. Production discovery now uses the same three-second
+window; this timeout change still occurs entirely before pairing-offer or unwrap-request creation and
+does not add an in-flight retry or transport switch.
 
 The remaining physical matrix includes discovery on Windows and Android, no listener, wrong and
 multiple phones, hostile first connection, backgrounding, network change, pairing cancellation,
