@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-No version is supported for production secrets. `0.1.0-alpha.1` is an experimental,
+No version is supported for production secrets. `0.1.0-alpha.2` is an experimental,
 test-signed developer prerelease for synthetic or disposable data with an independent recovery
 recipient.
 

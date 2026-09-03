@@ -14,8 +14,8 @@ Shine environments, or define a Shine-specific ciphertext format.
 > protocol v2 remains unfrozen and the complete lifecycle, replay, multi-phone, public-signing, and
 > external-user gates remain open. Do not use it to protect real secrets.
 
-The first installable snapshot is
-[`v0.1.0-alpha.1`](docs/releases/v0.1.0-alpha.1.md), a test-signed developer prerelease for
+The latest installable snapshot is
+[`v0.1.0-alpha.2`](docs/releases/v0.1.0-alpha.2.md), a test-signed developer prerelease for
 synthetic or disposable data with a separately verified independent recovery recipient. Publishing
 that snapshot does not constitute a public-Alpha, stable-protocol, or production-secret claim.
 

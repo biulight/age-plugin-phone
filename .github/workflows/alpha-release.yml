@@ -6,7 +6,7 @@ on:
       release_version:
         description: SemVer without the leading v; must match every application manifest
         required: true
-        default: 0.1.0-alpha.1
+        default: 0.1.0-alpha.2
         type: string
 
 permissions:
