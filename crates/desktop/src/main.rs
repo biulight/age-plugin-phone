@@ -42,6 +42,8 @@ use base64::{Engine as _, engine::general_purpose::STANDARD_NO_PAD};
 use clap::{Parser, Subcommand};
 use p256::ecdsa::SigningKey;
 use rand_core::{OsRng, RngCore as _};
+#[cfg(any(windows, test))]
+use serde::Serialize;
 use zeroize::Zeroizing;
 
 #[derive(Debug, Parser)]
@@ -91,6 +93,9 @@ enum Command {
         /// Explicit ADB device serial. Required when multiple devices are listed by ADB.
         #[arg(long)]
         adb_serial: Option<String>,
+        /// Emit one versioned public setup result as JSON on stdout.
+        #[arg(long, conflicts_with = "cleanup")]
+        json: bool,
     },
     /// Complete an authenticated pairing over Developer USB or QR.
     Pair {
@@ -214,7 +219,15 @@ fn main() -> io::Result<()> {
             cleanup,
             transport,
             adb_serial,
-        } => run_setup(label, resume, cleanup, transport, adb_serial.as_deref()),
+            json,
+        } => run_setup(
+            label,
+            resume,
+            cleanup,
+            transport,
+            adb_serial.as_deref(),
+            json,
+        ),
         Command::Pair {
             label,
             desktop_state,
@@ -406,8 +419,9 @@ fn run_pair(
             return Err(error);
         }
     };
+    let stub =
+        complete_pairing_interaction(&mut session, &response, started, &mut stdout, |_| Ok(()))?;
     drop(stdout);
-    let stub = complete_pairing_interaction(&mut session, &response, started, |_| Ok(()))?;
     drop(session);
     drop(state);
     commit_pairing_state(
@@ -471,6 +485,7 @@ fn complete_pairing_interaction(
     session: &mut DesktopPairingSession,
     response: &[u8],
     started: Instant,
+    output: &mut impl io::Write,
     mut on_verified: impl FnMut(&age_plugin_phone::pairing::PublicIdentityStub) -> io::Result<()>,
 ) -> io::Result<age_plugin_phone::pairing::PublicIdentityStub> {
     let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
@@ -484,14 +499,12 @@ fn complete_pairing_interaction(
         .map_err(|_| io::Error::other("verified pairing candidate is unavailable"))?;
     on_verified(&candidate)?;
 
-    let mut stdout = io::stdout().lock();
     writeln!(
-        stdout,
+        output,
         "\x1b[2J\x1b[HCompare this full fingerprint with the phone:\n{}\n\nType the full fingerprint to confirm:",
         display.transcript_fingerprint,
     )?;
-    stdout.flush()?;
-    drop(stdout);
+    output.flush()?;
     let mut confirmation = String::new();
     io::stdin().read_line(&mut confirmation)?;
     let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
@@ -529,6 +542,7 @@ fn run_setup(
     cleanup: bool,
     transport: TransportChoice,
     adb_serial: Option<&str>,
+    json: bool,
 ) -> io::Result<()> {
     if resume || cleanup {
         if label.is_some() || transport != TransportChoice::Auto || adb_serial.is_some() {
@@ -539,7 +553,7 @@ fn run_setup(
         }
         ensure_desktop_platform_supported()?;
         return if resume {
-            resume_setup()
+            resume_setup(json)
         } else {
             cleanup_setup()
         };
@@ -673,7 +687,11 @@ fn run_setup(
         }
     };
     let started = Instant::now();
-    let mut stdout = io::stdout().lock();
+    let mut interaction: Box<dyn io::Write> = if json {
+        Box::new(io::stderr())
+    } else {
+        Box::new(io::stdout())
+    };
     let response = match prepared_transport {
         PreparedSetupTransport::Adb(serial) => exchange_adb(
             SessionPurpose::Pairing,
@@ -683,7 +701,7 @@ fn run_setup(
         PreparedSetupTransport::Qr(scanner) => exchange_pairing_qr_with_scanner(
             &session.signed_offer(),
             started,
-            &mut stdout,
+            &mut interaction,
             &scanner,
         ),
     };
@@ -696,14 +714,19 @@ fn run_setup(
             return rollback_setup_error(&root, &journal, error.to_string(), false);
         }
     };
-    drop(stdout);
-    let stub = match complete_pairing_interaction(&mut session, &response, started, |candidate| {
-        journal
-            .set_candidate(candidate.clone())
-            .map_err(|_| io::Error::other("verified pairing candidate is invalid"))?;
-        setup::replace(&root, &journal)
-            .map_err(|_| io::Error::other("failed to journal the verified phone response"))
-    }) {
+    let stub = match complete_pairing_interaction(
+        &mut session,
+        &response,
+        started,
+        &mut interaction,
+        |candidate| {
+            journal
+                .set_candidate(candidate.clone())
+                .map_err(|_| io::Error::other("verified pairing candidate is invalid"))?;
+            setup::replace(&root, &journal)
+                .map_err(|_| io::Error::other("failed to journal the verified phone response"))
+        },
+    ) {
         Ok(stub) => stub,
         Err(error) => {
             drop(session);
@@ -733,7 +756,7 @@ fn run_setup(
             "confirmed setup commit is incomplete; use setup --resume or setup --cleanup",
         )
     })?;
-    print_setup_outputs(&journal.identity_stub, &stub)
+    print_setup_outputs(&journal.identity_stub, &stub, json, &mut interaction)
 }
 
 #[cfg(not(windows))]
@@ -743,6 +766,7 @@ fn run_setup(
     _cleanup: bool,
     _transport: TransportChoice,
     _adb_serial: Option<&str>,
+    _json: bool,
 ) -> io::Result<()> {
     Err(io::Error::new(
         io::ErrorKind::Unsupported,
@@ -751,7 +775,7 @@ fn run_setup(
 }
 
 #[cfg(windows)]
-fn resume_setup() -> io::Result<()> {
+fn resume_setup(json: bool) -> io::Result<()> {
     let root = default_config_root()
         .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
     let _lifecycle_lock = setup::acquire_lifecycle_lock(&root)
@@ -765,9 +789,16 @@ fn resume_setup() -> io::Result<()> {
         ));
     }
     let fingerprint = journal.confirmation_text();
-    println!(
+    let mut interaction: Box<dyn io::Write> = if json {
+        Box::new(io::stderr())
+    } else {
+        Box::new(io::stdout())
+    };
+    writeln!(
+        interaction,
         "Resume only this confirmed setup.\nFull transcript fingerprint: {fingerprint}\nType the full fingerprint to continue:"
-    );
+    )?;
+    interaction.flush()?;
     let mut entered = String::new();
     io::stdin().read_line(&mut entered)?;
     if entered.trim_end() != fingerprint {
@@ -788,6 +819,8 @@ fn resume_setup() -> io::Result<()> {
             .candidate
             .as_ref()
             .expect("confirmed journal candidate"),
+        json,
+        &mut interaction,
     )
 }
 
@@ -846,24 +879,71 @@ fn rollback_setup_error(
     }
 }
 
+#[cfg(any(windows, test))]
+#[derive(Serialize)]
+struct SetupResult<'a> {
+    schema_version: u16,
+    identity_path: &'a std::path::Path,
+    recipient: &'a str,
+}
+
+#[cfg(any(windows, test))]
+fn write_setup_result_json(
+    mut output: impl io::Write,
+    identity_path: &std::path::Path,
+    recipient: &str,
+) -> io::Result<()> {
+    serde_json::to_writer(
+        &mut output,
+        &SetupResult {
+            schema_version: 1,
+            identity_path,
+            recipient,
+        },
+    )
+    .map_err(|_| io::Error::other("failed to encode public setup result"))?;
+    writeln!(output)
+}
+
 #[cfg(windows)]
 fn print_setup_outputs(
     identity_output: &std::path::Path,
     stub: &age_plugin_phone::pairing::PublicIdentityStub,
+    json: bool,
+    interaction: &mut impl io::Write,
 ) -> io::Result<()> {
     let recipient = stub
         .selectable_recipient()
         .map_err(|_| io::Error::other("failed to encode selectable recipient"))?;
-    println!("Recipient: {recipient}");
-    println!("Public identity stub: {}", identity_output.display());
-    println!("Encrypt with a standard age client: age -e -r {recipient} ...");
-    println!(
-        "Decrypt with a standard age client: age -d -i \"{}\" ...",
-        identity_output.display()
-    );
-    println!(
-        "Pairing success is not a recovery drill. Retained data also needs an independently verified recovery recipient."
-    );
+    if json {
+        writeln!(
+            interaction,
+            "Pairing success is not a recovery drill. Retained data also needs an independently verified recovery recipient."
+        )?;
+        interaction.flush()?;
+        write_setup_result_json(io::stdout().lock(), identity_output, &recipient)?;
+    } else {
+        writeln!(interaction, "Recipient: {recipient}")?;
+        writeln!(
+            interaction,
+            "Public identity stub: {}",
+            identity_output.display()
+        )?;
+        writeln!(
+            interaction,
+            "Encrypt with a standard age client: age -e -r {recipient} ..."
+        )?;
+        writeln!(
+            interaction,
+            "Decrypt with a standard age client: age -d -i \"{}\" ...",
+            identity_output.display()
+        )?;
+        writeln!(
+            interaction,
+            "Pairing success is not a recovery drill. Retained data also needs an independently verified recovery recipient."
+        )?;
+        interaction.flush()?;
+    }
     Ok(())
 }
 
@@ -1426,6 +1506,7 @@ mod tests {
             cleanup,
             transport,
             adb_serial,
+            json,
         }) = options.command
         else {
             panic!("setup command must parse");
@@ -1434,9 +1515,15 @@ mod tests {
         assert!(!resume && !cleanup);
         assert_eq!(transport, TransportChoice::Auto);
         assert_eq!(adb_serial.as_deref(), Some("phone-a"));
+        assert!(!json);
 
-        assert!(Options::try_parse_from(["age-plugin-phone", "setup", "--resume"]).is_ok());
+        assert!(
+            Options::try_parse_from(["age-plugin-phone", "setup", "--resume", "--json"]).is_ok()
+        );
         assert!(Options::try_parse_from(["age-plugin-phone", "setup", "--cleanup"]).is_ok());
+        assert!(
+            Options::try_parse_from(["age-plugin-phone", "setup", "--cleanup", "--json"]).is_err()
+        );
         assert!(Options::try_parse_from(["age-plugin-phone", "setup"]).is_err());
         assert!(
             Options::try_parse_from(["age-plugin-phone", "setup", "--resume", "--cleanup",])
@@ -1472,6 +1559,7 @@ mod tests {
             false,
             TransportChoice::Auto,
             None,
+            false,
         )
         .unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::Unsupported);
@@ -1487,6 +1575,26 @@ mod tests {
         assert_eq!(
             validate_setup_label(&"桌".repeat(22)).unwrap_err().kind(),
             io::ErrorKind::InvalidInput
+        );
+    }
+
+    #[test]
+    fn setup_json_contains_only_versioned_public_fields() {
+        let mut output = Vec::new();
+        write_setup_result_json(
+            &mut output,
+            std::path::Path::new("C:/Users/example/identity.txt"),
+            "age1phone1example",
+        )
+        .unwrap();
+        let value: serde_json::Value = serde_json::from_slice(&output).unwrap();
+        assert_eq!(
+            value,
+            serde_json::json!({
+                "schema_version": 1,
+                "identity_path": "C:/Users/example/identity.txt",
+                "recipient": "age1phone1example",
+            })
         );
     }
 

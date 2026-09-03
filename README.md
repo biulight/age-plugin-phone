@@ -75,6 +75,7 @@ automatically. For scripts and non-interactive shells, run commands through `mis
 ```console
 cargo run -p age-plugin-phone -- status
 cargo run -p age-plugin-phone -- setup --help
+cargo run -p age-plugin-phone -- setup --label "Work laptop" --json
 cargo run -p age-plugin-phone -- pair --help
 cargo run -p age-plugin-phone -- unwrap --help
 cargo run -p age-plugin-phone -- qr-capture-probe
@@ -99,6 +100,13 @@ creating state, allocates create-only TPM metadata, replay, locator, and public-
 `setup --resume` can finish only a durably confirmed local commit; `setup --cleanup` removes the
 exact incomplete attempt recorded by the protected setup journal. The explicit `pair` command
 remains an advanced diagnostic path.
+
+Callers that need to configure a standard age client can add `--json` to a new setup or
+`setup --resume`. Pairing prompts, QR presentation, fingerprint confirmation, and recovery warnings
+then remain on stderr, while successful stdout contains exactly one versioned JSON object with the
+public `identity_path` and `recipient`. Failed setup emits no success object, and cleanup deliberately
+has no JSON mode. This interface exposes no TPM identifiers, replay paths, locators, device serials,
+or protocol payloads.
 
 The Android Alpha UI shows the StrongBox identity status and public recipient, offers explicit
 Developer USB or QR pairing, a QR approval fallback, and an owner-only foreground Wi-Fi

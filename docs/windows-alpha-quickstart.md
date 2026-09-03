@@ -84,6 +84,11 @@ On the phone, choose **Pair via Developer USB**. Compare the complete fingerprin
 then type the full fingerprint into the desktop prompt. Do not approve a partial or visually similar
 fingerprint. Success prints the public identity-stub path and a `Recipient: age1phone...` value.
 
+Automation that only needs the public standard-age configuration handoff may add `--json`. The
+interactive pairing and full-fingerprint confirmation remain visible on stderr; stdout is reserved
+for one versioned object containing only the public identity path and recipient. Do not treat this
+output mode as non-interactive setup or as permission to skip the phone comparison.
+
 Copy the printed public identity-stub path into the variable used by the remaining steps:
 
 ```powershell

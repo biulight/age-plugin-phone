@@ -76,6 +76,13 @@ Success prints only the public recipient, public identity-stub path, standard ag
 explicit warning that pairing is not a recovery drill. It never prints private paths, ADB serials,
 key aliases, or protocol payloads.
 
+New setup and `setup --resume` also accept `--json` for ordinary age-client wrappers. In that mode,
+all interactive presentation remains on stderr and successful stdout contains exactly one JSON
+object with `schema_version = 1`, `identity_path`, and `recipient`. Cleanup rejects `--json`, failed
+setup writes no result object, and future incompatible result shapes require a new schema version.
+The structured result is a public configuration handoff only; it does not expose or authorize any
+private setup state.
+
 ## Consequences
 
 - The normal Windows path no longer asks callers such as Shine to reproduce plugin storage rules.
@@ -87,6 +94,8 @@ key aliases, or protocol payloads.
   no desktop command claims remote revocation.
 - The age recipient, `recipient-v1`, `identity-v1`, Android protocol, and Shine integration remain
   unchanged.
+- Callers can consume setup output without parsing human text or discovering plugin-owned paths;
+  they still cannot reproduce or take ownership of the plugin lifecycle.
 
 ## Validation
 

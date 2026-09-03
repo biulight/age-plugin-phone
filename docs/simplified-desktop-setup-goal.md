@@ -61,7 +61,8 @@ The result remains an ordinary standard age plugin identity:
 
 The setup command must not edit Shine configuration, parse Shine workspaces, or emit a
 Shine-specific identity format. Shine may continue to consume the resulting stub through its
-existing `age_identity` and `age_recipients` settings without any pairing integration.
+standard age identity and recipient settings. An optional caller integration may consume the
+versioned public `--json` result, but it must not discover or reproduce plugin-owned setup state.
 
 ## Safety and lifecycle requirements
 
@@ -104,8 +105,8 @@ The goal is met only when all of the following are demonstrated:
 - The resulting recipient encrypts through released standard age `recipient-v1`, and the resulting
   stub decrypts through standard `identity-v1` with a fresh strong biometric operation for every
   file-key unwrap.
-- Existing Shine `age_identity` and `age_recipients` configuration can consume the output without a
-  Shine code or ciphertext change.
+- Existing Shine age identity and recipient configuration can consume the output without any
+  ciphertext change or plugin-specific runtime boundary.
 - Multiple ADB devices fail before pairing state is created and provide an actionable explicit
   selection instruction; no device is selected by label or enumeration order.
 - Cancellation, wrong fingerprint, phone rejection, timeout, process interruption, storage

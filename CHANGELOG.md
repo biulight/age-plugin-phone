@@ -6,6 +6,11 @@ recovery recipient.
 
 ## [Unreleased]
 
+### Added
+
+- Added `setup --json`, a versioned public handoff that reports the created public identity stub
+  path and phone recipient for callers such as Shine while keeping interactive pairing on stderr.
+
 ## [0.1.0-alpha.1] - 2026-09-03
 
 First test-signed developer prerelease.
