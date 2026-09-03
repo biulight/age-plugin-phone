@@ -1,13 +1,11 @@
 # Windows Alpha quick start
 
-This guide validates one signed Windows/Android RC pair with synthetic data before using the phone
-identity through Shine. It does not close the full Alpha matrix and is not approval to protect real
-secrets. The independent source review is complete, but protocol v2 remains unfrozen and the
-remaining QR/replay, lifecycle/invalidation, multi-phone, public-signing, and
-technical-user gates are still open. Candidate `be1e85e` completed a minimal exact-package
-Developer USB, independent-recovery, and foreground Wi-Fi publication regression. Broader
-age/rage/Shine and negative-path results remain on earlier historical candidates and do not
-transfer; this guide remains reusable for later exact artifact pairs.
+This guide validates one exact signed Windows/Android developer-prerelease pair with synthetic data
+before using the phone identity for retained data. It does not close the full Alpha matrix and is
+not approval to protect real secrets. The independent source review is complete, but protocol v2
+remains unfrozen and the remaining QR/replay, lifecycle/invalidation, multi-phone, public-signing,
+and technical-user gates are still open. Historical results from another commit or artifact pair
+do not transfer; this guide remains reusable for each new exact artifact pair.
 
 The present use is the owner-only technical preview in
 [`owner-only-preview.md`](owner-only-preview.md). This guide may exercise the recorded single-device
@@ -33,7 +31,7 @@ root and evidence. It is not public publisher trust.
 Extract `age-plugin-phone.exe` without renaming it and place its directory on the current user's
 `PATH`. Install the APK from the same RC set on the test phone. The normal Shine path uses the
 standard `age` CLI, `age-plugin-phone`, ADB, and the Android application; it does not require
-`rage`.
+`rage`. The guided phone-identity shortcut in section 2 requires Shine 2.0.0-rc.1 or later.
 
 ### Alpha interoperability validation tool
 
@@ -73,21 +71,44 @@ cryptographic authentication.
 
 ## 2. Set up the Windows desktop and phone
 
-Start managed setup as one PowerShell command. It checks the supported Windows/TPM boundary and
-Developer USB device selection before allocating unique create-only state paths:
+Choose one setup entry point. For the normal Shine validation path, use its guided shortcut:
 
 ```powershell
-age-plugin-phone setup --label "Windows Alpha"
+shine env secret identity init --phone --label "NUC WiFi Pair" --transport auto
 ```
 
-On the phone, choose **Pair via Developer USB**. Compare the complete fingerprint on both endpoints,
-then type the full fingerprint into the desktop prompt. Do not approve a partial or visually similar
-fingerprint. Success prints the public identity-stub path and a `Recipient: age1phone...` value.
+This invokes the plugin's transactional managed setup and leaves the pairing interaction in the
+terminal. It does not move TPM, replay, locator, interruption, or cleanup state into Shine. After a
+successful setup, Shine validates the plugin's versioned public result and appends only the public
+identity-stub path to the current user's global `age_identities` list. It does not change
+`secret_backend` or add an encryption recipient.
 
-Automation that only needs the public standard-age configuration handoff may add `--json`. The
-interactive pairing and full-fingerprint confirmation remain visible on stderr; stdout is reserved
-for one versioned object containing only the public identity path and recipient. Do not treat this
-output mode as non-interactive setup or as permission to skip the phone comparison.
+For Wi-Fi pairing, keep the phone application in the foreground and choose **Pair · Wi-Fi** before
+running the command. With `auto`, the desktop first performs one bounded pairing discovery. Exactly
+one responding foreground listener selects Wi-Fi. If no listener responds, Windows selects
+Developer USB/ADB before creating the pairing offer; choose **Pair · USB** on the phone. Ambiguous
+discovery or a local discovery error fails closed, and an attempt never switches transport after
+protocol work begins.
+
+Compare the complete fingerprint on both endpoints, then type the full fingerprint into the desktop
+prompt. Do not approve a partial or visually similar fingerprint. Success prints the public
+identity-stub path, the `age1phone...` recipient, and the global Shine configuration path.
+
+For standard-age validation without the Shine handoff, run the plugin directly instead:
+
+```powershell
+age-plugin-phone setup --label "Windows Alpha" --transport auto
+```
+
+The direct command creates the same plugin-owned pairing state and prints the same public identity
+path and recipient, but it does not edit Shine configuration. Section 4 shows the current manual
+configuration form for this path.
+
+Shine consumes the plugin's `setup --json` handoff internally. Other automation may use that option
+directly, but the interactive pairing and full-fingerprint confirmation remain visible on stderr;
+stdout is reserved for one versioned object containing only the public identity path and recipient.
+Do not treat this output mode as non-interactive setup or as permission to skip the phone
+comparison.
 
 Copy the printed public identity-stub path into the variable used by the remaining steps:
 
@@ -100,23 +121,28 @@ The identity stub contains public pairing material, not the phone's long-term pr
 desktop state refers to distinct non-exportable TPM signing and stanza-selection keys. The durable
 replay state and private locator remain under `%LOCALAPPDATA%\age-plugin-phone`.
 
-When more than one ADB device is online, use this form instead of the preceding pairing command and
-retain the selection for later age invocations:
+When more than one ADB device is online, pin Developer USB during setup and retain the selection for
+later standard-age invocations:
 
 ```powershell
 $adbSerial = "<selected-adb-serial>"
-age-plugin-phone setup --label "Windows Alpha" --adb-serial $adbSerial
+shine env secret identity init --phone --label "Windows Alpha" --transport adb --adb-serial $adbSerial
 $env:AGE_PLUGIN_PHONE_ADB_SERIAL = $adbSerial
 ```
+
+For the direct plugin path, replace the Shine command above with
+`age-plugin-phone setup --label "Windows Alpha" --transport adb --adb-serial $adbSerial`.
 
 Treat device serials and the desktop label only as untrusted routing and display hints. They never
 replace fingerprint comparison, protocol verification, or the fresh phone biometric operation.
 
-If setup is interrupted, rerunning a new setup fails closed while its protected journal exists.
-Use `age-plugin-phone setup --resume` only when the desktop had already accepted the complete
-fingerprint; otherwise use `age-plugin-phone setup --cleanup`, then revoke any matching fingerprint
-retained on the phone. These modes never infer targets or claim phone-side revocation. The explicit
-`pair` command with user-supplied paths remains available only for advanced diagnostics.
+If setup is interrupted, rerunning either setup entry point fails closed while the plugin's
+protected journal exists. Use `age-plugin-phone setup --resume` only when the desktop had already
+accepted the complete fingerprint; otherwise use `age-plugin-phone setup --cleanup`, then revoke
+any matching fingerprint retained on the phone. These modes never infer targets or claim phone-side
+revocation. If pairing succeeds but Shine cannot save its global configuration, do not start a new
+pairing; add the TOML-safe `age_identities` entry printed by Shine. The explicit `pair` command with
+user-supplied paths remains available only for advanced diagnostics.
 
 ## 3. Prove a reference-age round trip
 
@@ -144,16 +170,24 @@ if ((Get-FileHash .\probe.txt -Algorithm SHA256).Hash -ne (Get-FileHash .\probe.
 ```
 
 The decrypt command must cause a new approval request and fresh strong biometric operation on the
-paired phone. Developer USB creates its exact reverse rule and then opens the Android application
+paired phone. A saved `auto` preference first performs authenticated discovery for that exact
+pairing. Exactly one matching foreground **Wi-Fi auto-listen** endpoint selects Wi-Fi; no matching
+response selects Developer USB/ADB on Windows before the signed unwrap request is created.
+Ambiguity or a local discovery error fails closed. Once a route is selected, the attempt never
+races, switches, or silently retries another transport.
+
+For the Wi-Fi path, enable **Wi-Fi auto-listen** and keep the phone application in the foreground.
+For Developer USB, the desktop creates its exact reverse rule and opens the Android application
 automatically; there is no separate **Approve USB** button. Only the fixed, payload-free wake action
 crosses the ADB command line, and the signed request is still verified and durably consumed before
 the biometric prompt. Developer USB and Wi-Fi age unwraps do not emit a `message` callback by
 default, so a successful command can reserve stdout for plaintext. Set
 `$env:AGE_PLUGIN_PHONE_MESSAGES = "1"` before the age command to opt into payload-free desktop
 guidance. Explicit QR always renders its one-time request in the terminal. Approval details remain
-on the phone, while errors still fail the age command. Cancellation, timeout, cable failure, an
-unauthorized device, or a wrong paired phone must fail without plaintext or partial output.
-Retrying after any interruption must create a new request and require another biometric operation.
+on the phone, while errors still fail the age command. Cancellation, timeout, cable or network
+failure, an unauthorized device, or a wrong paired phone must fail without plaintext or partial
+output. Retrying after any interruption must create a new request and require another biometric
+operation.
 
 Now prove that the independent recovery path decrypts the same ciphertext without the phone:
 
@@ -162,8 +196,9 @@ age -d -i .\recovery-test-identity.txt -o .\probe.recovery.txt .\probe.txt.age
 if ((Get-FileHash .\probe.txt -Algorithm SHA256).Hash -ne (Get-FileHash .\probe.recovery.txt -Algorithm SHA256).Hash) { throw "recovery round-trip digest mismatch" }
 ```
 
-Do not proceed to Shine until both digest comparisons pass. Record only non-sensitive versions,
-artifact digests, scenario results, and recovered-output digests as described by
+Do not proceed to Shine secret sealing or runtime decryption until both digest comparisons pass.
+Record only non-sensitive versions, artifact digests, scenario results, and recovered-output
+digests as described by
 [`alpha-matrix.md`](alpha-matrix.md). Never record plaintext, private state paths, device serials,
 raw protocol messages, QR contents, stanza bodies, file keys, or key aliases.
 
@@ -180,16 +215,35 @@ if ((Get-FileHash .\probe.txt -Algorithm SHA256).Hash -ne (Get-FileHash .\probe.
 if ((Get-FileHash .\probe.txt -Algorithm SHA256).Hash -ne (Get-FileHash .\probe.recovery-from-rage.txt -Algorithm SHA256).Hash) { throw "rage recovery digest mismatch" }
 ```
 
-## 4. Use the existing Shine boundary
+## 4. Use Shine's managed identity configuration
 
 Shine invokes the standard `age` CLI. This repository adds no Shine-specific protocol, RPC, URI, or
-ciphertext format. Configure the public phone identity stub as the current Windows user's decryption
-identity in `~/.shine/config.toml`:
+ciphertext format.
+
+If section 2 used `shine env secret identity init --phone`, the public stub is already present in
+the current user's global `age_identities`. Confirm that Shine can enumerate the configured public
+stub without printing its contents:
+
+```powershell
+shine env secret identity list
+```
+
+If section 2 used `age-plugin-phone setup` directly, append the printed public stub path to the
+global `~/.shine/config.toml` instead:
 
 ```toml
-secret_backend = "age"
-age_identity = "C:/Users/<user>/AppData/Local/age-plugin-phone/identity.txt"
+age_identities = ["C:/Users/<user>/AppData/Local/age-plugin-phone/identity-....txt"]
 ```
+
+The singular `age_identity` setting remains a legacy compatibility field. Shine merges it before
+the ordered `age_identities` list, so preserve an existing entry when it is still needed for
+recovery or historical ciphertext; use `age_identities` for new phone stubs. A project that
+explicitly sets either identity field replaces the global identity set. For that reason, the guided
+phone command stops before pairing when the active project has such an override instead of creating
+a pairing that the project would ignore.
+
+The guided command intentionally leaves the existing secret backend unchanged. The workspace
+configuration below selects `age` explicitly for this test.
 
 Put the public phone and independent recovery recipients in the project's commit-ready
 `shine.workspace.toml`:
@@ -221,9 +275,11 @@ shine env run --mode development -- pwsh -NoProfile -Command 'if ($env:AGE_PLUGI
 ```
 
 Sealing uses public recipients and does not need phone authorization. Decrypting during `env run`
-must invoke `age-plugin-phone.exe` and cause a fresh phone biometric operation. Independently decrypt
-or reseal through the recovery identity before treating the recovery portion of the matrix as
-passed. Never make the phone the only recipient for important data.
+must invoke `age-plugin-phone.exe` and cause a fresh phone biometric operation. With the saved
+`auto` preference, keep **Wi-Fi auto-listen** enabled in the foreground to use Wi-Fi; otherwise
+Windows selects Developer USB before creating the request. Independently decrypt or reseal through
+the recovery identity before treating the recovery portion of the matrix as passed. Never make the
+phone the only recipient for important data.
 
 ## 5. Revoke and remove one test pairing
 
@@ -277,7 +333,15 @@ public stub when possible or identify the intended pairing by its full fingerpri
   `age-plugin-phone.exe`, its directory is on the current user's `PATH`, and the PowerShell session
   was opened after the `PATH` change.
 - If several devices appear in `adb devices`, pass `--transport adb --adb-serial SERIAL` during
-  pairing and set `AGE_PLUGIN_PHONE_ADB_SERIAL` for standard age invocations.
+  direct plugin pairing, or use the equivalent Shine `--phone --transport adb --adb-serial SERIAL`
+  form, and set `AGE_PLUGIN_PHONE_ADB_SERIAL` for later standard-age invocations.
+- If the Shine shortcut reports that the active project overrides age identities, remove or update
+  that intentional project override before pairing. Do not rerun from another directory merely to
+  bypass a project policy you still expect the project to use.
+- If `auto` does not select Wi-Fi, confirm that the phone application is in the foreground and that
+  the correct one-shot **Pair · Wi-Fi** action or persistent **Wi-Fi auto-listen** mode is active for
+  the operation. No response selects Developer USB on Windows; ambiguity or discovery failure is an
+  error, and there is no in-flight fallback.
 - Pairing uses create-new semantics and does not overwrite an existing identity stub or replay
   state. Use the documented lifecycle and recovery process instead of deleting or replacing only
   one state file.
