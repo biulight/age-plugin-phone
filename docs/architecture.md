@@ -140,7 +140,10 @@ untrusted delivery hints and add no pairing, discovery, fallback, or authorizati
 [`ADR 0019`](adr/0019-unified-transport-policy.md) resolves `auto`, ADB, BLE, Wi-Fi, or QR into one
 desktop route before a protocol session is created. Route hints pin one transport; an attempt never
 races, switches, or silently retries after sending begins, and BLE remains unavailable until its
-separately reviewed native proof of concept.
+separately reviewed native proof of concept. [`ADR 0021`](adr/0021-wifi-discovery-and-pairing.md)
+adds a bounded pairing-scoped discovery exchange, Wi-Fi-first `auto`, a private per-pairing route
+preference, and an explicit one-shot foreground Wi-Fi pairing mode without changing signed pairing
+or unwrap messages.
 
 Identity replacement, paired-desktop revocation, deletion, application removal, and TPM/StrongBox
 invalidation are specified by [`ADR 0017`](adr/0017-lifecycle-and-recovery.md). Version 2
@@ -166,18 +169,32 @@ ADB reverse is explicitly Developer USB mode. ADB device state and serials are u
 selection data only. The desktop uses an ephemeral loopback listener, passes no protocol bytes to
 the ADB process, rejects an existing reverse rule, and removes only the exact rule it created.
 
-The owner-only Wi-Fi PoC reverses the TCP role: after the user persistently opts in, Android keeps
+The foreground Wi-Fi transport reverses the TCP role: after the user persistently opts in, Android keeps
 one listener available only while the application is foregrounded and the desktop connects to a
-numeric private IPv4 endpoint. The listener serializes requests and automatically re-arms with
-bounded retry delays; leaving the foreground or pausing the mode closes its exact resources. It
+discovered private IPv4 endpoint. The listener serializes requests and automatically re-arms with
+bounded retry delays after a completed or failed session; an idle passive accept remains armed until
+the lifecycle owner closes it, so it does not introduce periodic discovery gaps. Leaving the
+foreground or pausing the mode closes its exact resources. It
 carries only unwrap over the same bounded stream frame. LAN reachability, peer address, listener
-availability, and connection success provide no authentication or approval, and the PoC has no
-discovery, background wake, or fallback.
+availability, and connection success provide no authentication or approval. A fixed-width UDP
+query is sent to the limited broadcast address and, on multi-homed Windows hosts, each eligible
+private IPv4 subnet broadcast. It selects only the exact pairing whose StrongBox phone-signing key
+authenticates the response. Retransmits of one exact strict query reuse its in-memory public signed
+response so transport loss cannot amplify one discovery into repeated StrongBox operations;
+the discovered address remains an untrusted route hint. There is no background wake or in-flight
+fallback.
+
+Wi-Fi pairing is available only after the phone user explicitly opens a one-shot foreground pairing
+listener. Pre-pairing discovery is necessarily unauthenticated, but the existing signed offer,
+StrongBox-signed response, and complete two-ended transcript comparison remain the pairing trust
+boundary. The persistent unwrap auto-listener never accepts pairing.
 
 The unified desktop policy makes one deterministic choice before creating a pairing or unwrap
-session. `auto` uses an explicit ADB or Wi-Fi route hint when present; otherwise it preserves ADB on
-Windows and QR on other desktop platforms. This is not availability racing or fallback. A failed
-attempt terminates, and a user retry creates a fresh signed protocol request.
+session. An explicit route hint still pins one route. Without one, `auto` performs bounded Wi-Fi
+discovery first; exactly one authenticated matching unwrap response selects Wi-Fi, while no response
+preserves ADB on Windows and QR on other desktop platforms. Ambiguity fails closed. This is not
+availability racing or in-flight fallback. A failed attempt terminates, and a user retry creates a
+fresh signed protocol request.
 
 ## Integration invariant
 

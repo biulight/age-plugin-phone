@@ -7,6 +7,7 @@ Allows product identity, pairing, unwrap, and lifecycle commands.
 - `allow-scan-pairing-offer`
 - `allow-pair-phone`
 - `allow-pair-phone-usb`
+- `allow-pair-phone-wifi`
 - `allow-unwrap-phone`
 - `allow-set-wifi-auto-listen`
 - `allow-wifi-auto-listen-status`
@@ -280,6 +281,32 @@ Enables the pair_phone_usb command without any pre-configured scope.
 <td>
 
 Denies the pair_phone_usb command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:allow-pair-phone-wifi`
+
+</td>
+<td>
+
+Enables the pair_phone_wifi command without any pre-configured scope.
+
+</td>
+</tr>
+
+<tr>
+<td>
+
+`phone-identity:deny-pair-phone-wifi`
+
+</td>
+<td>
+
+Denies the pair_phone_wifi command without any pre-configured scope.
 
 </td>
 </tr>

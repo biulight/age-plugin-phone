@@ -14,11 +14,12 @@ partial write after process loss.
 
 ## Decision
 
-The Windows Alpha adds `age-plugin-phone setup --label LABEL` as its normal entry point. `auto`
-continues to resolve to one Developer USB ADB route; `--transport qr` remains an explicit fallback,
-and `--adb-serial` pins one untrusted ADB route hint. Wi-Fi and BLE are not pairing routes. The
-existing explicit `pair` command remains available for diagnostics and does not become a second
-managed setup format.
+The Windows Alpha adds `age-plugin-phone setup --label LABEL` as its normal entry point. As amended
+by ADR 0021, `auto` performs bounded Wi-Fi pairing discovery first and otherwise resolves to one
+Developer USB ADB route; `--transport wifi` requires the phone's explicit foreground **Pair via
+Wi-Fi** mode, `--transport qr` remains an explicit route, and `--adb-serial` pins one untrusted ADB
+route hint. BLE is not a pairing route. The existing explicit `pair` command remains available for
+diagnostics and does not become a second managed setup format.
 
 Setup is Windows-only because this product path requires the Windows 11 x64, TPM 2.0, Microsoft
 Platform Crypto Provider, protected filesystem, and crash-safe cleanup boundaries. Non-Windows
@@ -38,13 +39,15 @@ random desktop ID allocates three create-only direct children:
 - `replay-<desktop-id>.state` for desktop response replay; and
 - `identity-<desktop-id>.txt` for the public age plugin identity.
 
-Labels, ADB serials, device names, and routes never enter filenames or the setup journal. The
-locator retains its existing identity-and-desktop-bound canonical filename.
+Labels, ADB serials, device names, and discovered routes never enter filenames or the setup journal.
+The non-security transport choice does enter the journal so resume cannot change it. The locator
+retains its existing identity-and-desktop-bound canonical filename.
 
 Before provisioning either CNG key, setup durably creates `desktop-setup.cbor` with a protected
 current-user ACL. Its fixed canonical encoding binds a random recovery code, exact desktop ID,
-exact paths, stage, and—after response verification—the canonical public pairing candidate. Unknown
-versions, stages, fields, non-canonical encodings, or path mismatches fail closed. Setup uses a new
+exact paths, transport preference, stage, and—after response verification—the canonical public
+pairing candidate. Unknown versions, stages, fields, non-canonical encodings, or path mismatches
+fail closed. Setup uses a new
 strict CNG create operation that refuses complete or partial pre-existing key sets and removes the
 first role if the second cannot be created.
 
@@ -82,6 +85,10 @@ object with `schema_version = 1`, `identity_path`, and `recipient`. Cleanup reje
 setup writes no result object, and future incompatible result shapes require a new schema version.
 The structured result is a public configuration handoff only; it does not expose or authorize any
 private setup state.
+
+Commit stores the transport preference in the private pairing locator. Later standard-age unwraps
+use it when no diagnostic environment override is present. The preference does not enter the public
+identity, pairing transcript, replay scope, or cryptographic trust boundary.
 
 ## Consequences
 

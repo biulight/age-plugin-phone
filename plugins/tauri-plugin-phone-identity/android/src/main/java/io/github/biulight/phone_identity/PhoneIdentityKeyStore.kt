@@ -231,6 +231,17 @@ internal class PhoneIdentityKeyStore private constructor(
         }
     }
 
+    fun createWifiDiscoveryResponse(query: WifiDiscoveryQuery): ByteArray = synchronized(processLock) {
+        val provision = open()
+        if (!MessageDigest.isEqual(provision.public.identityId, query.identityId)) {
+            throw KeyStoreException(Category.MALFORMED)
+        }
+        val store = keyStore()
+        val signingPrivate = store.getKey(signingAlias(provision.public.identityId), null) as? PrivateKey
+            ?: throw KeyStoreException(Category.MISSING)
+        WifiDiscoveryCodec.signedResponse(query, signingPrivate)
+    }
+
     fun cleanup(): Boolean = synchronized(processLock) {
         val root = prepareRoot()
         val stateFile = File(root, STATE_FILE_NAME)

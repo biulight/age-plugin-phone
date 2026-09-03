@@ -94,6 +94,12 @@ impl<R: Runtime> PhoneIdentity<R> {
             .map_err(Into::into)
     }
 
+    pub fn pair_phone_wifi(&self) -> Result<PhonePairingReport, Error> {
+        self.0
+            .run_mobile_plugin("pairPhoneWifi", ())
+            .map_err(Into::into)
+    }
+
     pub fn unwrap_phone(&self) -> Result<PhoneUnwrapReport, Error> {
         self.0
             .run_mobile_plugin("unwrapPhone", ())

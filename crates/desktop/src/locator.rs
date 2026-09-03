@@ -13,9 +13,11 @@ use thiserror::Error;
 
 use crate::cleanup_journal::{self, JournalError};
 use crate::pairing::PublicIdentityStub;
+use crate::transport_policy::TransportChoice;
 use age_plugin_phone_protocol::{Id, ProtocolDigest};
 
-const LOCATOR_VERSION: u16 = 2;
+const LOCATOR_VERSION: u16 = 3;
+const LEGACY_LOCATOR_VERSION: u16 = 2;
 const MAX_LOCATOR_BYTES: u64 = 4_096;
 const CONFIG_OVERRIDE: &str = "AGE_PLUGIN_PHONE_CONFIG_DIR";
 
@@ -23,6 +25,7 @@ const CONFIG_OVERRIDE: &str = "AGE_PLUGIN_PHONE_CONFIG_DIR";
 pub struct PairingLocator {
     pub desktop_state: PathBuf,
     pub replay_state: PathBuf,
+    pub transport: TransportChoice,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -96,12 +99,29 @@ pub fn create_pairing_locator(
     desktop_state: &Path,
     replay_state: &Path,
 ) -> Result<PathBuf, LocatorError> {
+    create_pairing_locator_with_transport(
+        root,
+        stub,
+        desktop_state,
+        replay_state,
+        TransportChoice::Auto,
+    )
+}
+
+pub fn create_pairing_locator_with_transport(
+    root: &Path,
+    stub: &PublicIdentityStub,
+    desktop_state: &Path,
+    replay_state: &Path,
+    transport: TransportChoice,
+) -> Result<PathBuf, LocatorError> {
     let directory = prepare_directory(root)?;
     ensure_not_pending(&directory, stub)?;
     let path = pairing_locator_path(&directory, stub);
     let locator = PairingLocator {
         desktop_state: absolute_existing(desktop_state)?,
         replay_state: absolute_existing(replay_state)?,
+        transport,
     };
     let encoded = encode(stub, &locator)?;
     create_private_file(&path, &encoded)?;
@@ -250,7 +270,7 @@ fn encode_record(record: &PairingLocatorRecord) -> Result<Vec<u8>, LocatorError>
         .ok_or(LocatorError::Invalid)?;
     let mut encoder = Encoder::new(Vec::new());
     encoder
-        .array(6)
+        .array(7)
         .map_err(|_| LocatorError::Invalid)?
         .u16(LOCATOR_VERSION)
         .map_err(|_| LocatorError::Invalid)?
@@ -263,6 +283,8 @@ fn encode_record(record: &PairingLocatorRecord) -> Result<Vec<u8>, LocatorError>
         .str(desktop)
         .map_err(|_| LocatorError::Invalid)?
         .str(replay)
+        .map_err(|_| LocatorError::Invalid)?
+        .str(&record.locator.transport.to_string())
         .map_err(|_| LocatorError::Invalid)?;
     Ok(encoder.into_writer())
 }
@@ -280,9 +302,12 @@ fn decode(stub: &PublicIdentityStub, bytes: &[u8]) -> Result<PairingLocator, Loc
 
 fn decode_record(bytes: &[u8]) -> Result<PairingLocatorRecord, LocatorError> {
     let mut decoder = Decoder::new(bytes);
-    if decoder.array().map_err(|_| LocatorError::Invalid)? != Some(6)
-        || decoder.u16().map_err(|_| LocatorError::Invalid)? != LOCATOR_VERSION
-    {
+    let fields = decoder.array().map_err(|_| LocatorError::Invalid)?;
+    let version = decoder.u16().map_err(|_| LocatorError::Invalid)?;
+    if !matches!(
+        (fields, version),
+        (Some(7), LOCATOR_VERSION) | (Some(6), LEGACY_LOCATOR_VERSION)
+    ) {
         return Err(LocatorError::Invalid);
     }
     let record = PairingLocatorRecord {
@@ -292,16 +317,57 @@ fn decode_record(bytes: &[u8]) -> Result<PairingLocatorRecord, LocatorError> {
         locator: PairingLocator {
             desktop_state: PathBuf::from(decoder.str().map_err(|_| LocatorError::Invalid)?),
             replay_state: PathBuf::from(decoder.str().map_err(|_| LocatorError::Invalid)?),
+            transport: if version == LOCATOR_VERSION {
+                decoder
+                    .str()
+                    .map_err(|_| LocatorError::Invalid)?
+                    .parse()
+                    .map_err(|_| LocatorError::Invalid)?
+            } else {
+                TransportChoice::Auto
+            },
         },
     };
     if decoder.position() != bytes.len()
-        || encode_record(&record).map_err(|_| LocatorError::Invalid)? != bytes
+        || if version == LOCATOR_VERSION {
+            encode_record(&record).map_err(|_| LocatorError::Invalid)? != bytes
+        } else {
+            encode_legacy_record(&record).map_err(|_| LocatorError::Invalid)? != bytes
+        }
         || !record.locator.desktop_state.is_absolute()
         || !record.locator.replay_state.is_absolute()
     {
         return Err(LocatorError::Invalid);
     }
     Ok(record)
+}
+
+fn encode_legacy_record(record: &PairingLocatorRecord) -> Result<Vec<u8>, LocatorError> {
+    let desktop = encoded_locator_path(&record.locator.desktop_state)?;
+    let replay = encoded_locator_path(&record.locator.replay_state)?;
+    let mut encoder = Encoder::new(Vec::new());
+    encoder
+        .array(6)
+        .map_err(|_| LocatorError::Invalid)?
+        .u16(LEGACY_LOCATOR_VERSION)
+        .map_err(|_| LocatorError::Invalid)?
+        .bytes(&record.desktop_id)
+        .map_err(|_| LocatorError::Invalid)?
+        .bytes(&record.identity_id)
+        .map_err(|_| LocatorError::Invalid)?
+        .bytes(&record.transcript_fingerprint)
+        .map_err(|_| LocatorError::Invalid)?
+        .str(desktop)
+        .map_err(|_| LocatorError::Invalid)?
+        .str(replay)
+        .map_err(|_| LocatorError::Invalid)?;
+    Ok(encoder.into_writer())
+}
+
+fn encoded_locator_path(path: &Path) -> Result<&str, LocatorError> {
+    path.to_str()
+        .filter(|value| !value.contains('\n'))
+        .ok_or(LocatorError::Invalid)
 }
 
 pub(crate) fn pairing_locator_path(root: &Path, stub: &PublicIdentityStub) -> PathBuf {
@@ -557,7 +623,14 @@ mod tests {
         std::fs::create_dir(&root).unwrap();
         let state = root.join("state");
         let (stub, desktop, replay) = fixture(&root);
-        let locator_path = create_pairing_locator(&state, &stub, &desktop, &replay).unwrap();
+        let locator_path = create_pairing_locator_with_transport(
+            &state,
+            &stub,
+            &desktop,
+            &replay,
+            TransportChoice::Wifi,
+        )
+        .unwrap();
         assert_eq!(
             std::fs::metadata(&state).unwrap().permissions().mode() & 0o777,
             0o700,
@@ -575,6 +648,7 @@ mod tests {
             PairingLocator {
                 desktop_state: desktop.canonicalize().unwrap(),
                 replay_state: replay.canonicalize().unwrap(),
+                transport: TransportChoice::Wifi,
             },
         );
         assert_eq!(
@@ -597,6 +671,7 @@ mod tests {
             PairingLocator {
                 desktop_state: other_desktop.canonicalize().unwrap(),
                 replay_state: other_replay.canonicalize().unwrap(),
+                transport: TransportChoice::Auto,
             },
         );
         std::fs::remove_file(other_locator).unwrap();

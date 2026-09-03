@@ -141,6 +141,12 @@ identity. Pairing offers, pairing responses, unwrap requests, and unwrap respons
 canonical signed messages. A transport failure never permits replay rollback, cached authorization,
 or a weaker cryptographic path.
 
+[`ADR 0021`](adr/0021-wifi-discovery-and-pairing.md) adds a separate fixed-width UDP discovery
+exchange that completes before the common stream session and before a signed offer or request is
+created. Existing-pairing discovery responses are signed by the paired phone key; pairing discovery
+is an untrusted route hint because no phone key is trusted yet. Neither form changes or authorizes
+the application protocol.
+
 ## Lifecycle and compatibility
 
 The experimental version 2 paired recipient binds the phone identity and desktop selection public

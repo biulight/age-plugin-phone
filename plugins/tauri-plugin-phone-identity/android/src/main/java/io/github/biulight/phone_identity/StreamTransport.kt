@@ -129,11 +129,11 @@ internal class PhoneWifiListener private constructor(
 ) : AutoCloseable {
     val localPort: Int get() = server.localPort
 
-    fun acceptUnwrap(): PhoneStreamSession {
+    fun accept(purpose: PhoneStreamSession.Purpose): PhoneStreamSession {
         try {
             return PhoneStreamSession.fromAccepted(
                 server.accept(),
-                PhoneStreamSession.Purpose.UNWRAP,
+                purpose,
             )
         } catch (error: SocketTimeoutException) {
             throw WifiListenerTimeoutException(error)
@@ -143,6 +143,8 @@ internal class PhoneWifiListener private constructor(
             close()
         }
     }
+
+    fun acceptUnwrap(): PhoneStreamSession = accept(PhoneStreamSession.Purpose.UNWRAP)
 
     override fun close() {
         try {
@@ -160,9 +162,14 @@ internal class PhoneWifiListener private constructor(
             port: Int = WIFI_UNWRAP_PORT,
             acceptTimeoutMs: Int = ACCEPT_TIMEOUT_MS,
         ): PhoneWifiListener {
+            require(acceptTimeoutMs >= 0)
             val server = ServerSocket()
             try {
-                server.reuseAddress = false
+                // The foreground owner intentionally rebinds this fixed port after each one-shot
+                // session. Android may retain the accepted connection in TIME_WAIT after sending
+                // the response; SO_REUSEADDR permits the next exclusive listener to bind without
+                // permitting a second listener while this ServerSocket remains active.
+                server.reuseAddress = true
                 server.soTimeout = acceptTimeoutMs
                 server.bind(InetSocketAddress("0.0.0.0", port), 1)
                 return PhoneWifiListener(server)

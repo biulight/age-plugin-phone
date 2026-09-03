@@ -320,6 +320,24 @@ fn pair_phone_usb<R: Runtime>(
 
 #[tauri::command]
 #[allow(clippy::unnecessary_wraps)]
+fn pair_phone_wifi<R: Runtime>(
+    _app: AppHandle<R>,
+    _identity: State<'_, PhoneIdentity<R>>,
+) -> Result<PhonePairingReport, Error> {
+    #[cfg(target_os = "android")]
+    return _identity.pair_phone_wifi();
+
+    #[cfg(not(target_os = "android"))]
+    Ok(PhonePairingReport {
+        paired: false,
+        desktop_label: None,
+        transcript_fingerprint: None,
+        error_category: Some("unsupported_api".into()),
+    })
+}
+
+#[tauri::command]
+#[allow(clippy::unnecessary_wraps)]
 fn identity_status<R: Runtime>(
     _app: AppHandle<R>,
     _identity: State<'_, PhoneIdentity<R>>,
@@ -399,6 +417,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             scan_pairing_offer,
             pair_phone,
             pair_phone_usb,
+            pair_phone_wifi,
             unwrap_phone,
             set_wifi_auto_listen,
             wifi_auto_listen_status,

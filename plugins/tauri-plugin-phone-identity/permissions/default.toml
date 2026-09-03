@@ -6,6 +6,7 @@ permissions = [
     "allow-scan-pairing-offer",
     "allow-pair-phone",
     "allow-pair-phone-usb",
+    "allow-pair-phone-wifi",
     "allow-unwrap-phone",
     "allow-set-wifi-auto-listen",
     "allow-wifi-auto-listen-status",

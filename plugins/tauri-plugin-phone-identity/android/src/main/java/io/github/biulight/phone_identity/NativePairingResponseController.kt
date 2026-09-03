@@ -18,6 +18,7 @@ import com.google.zxing.MultiFormatWriter
 internal data class PreparedPhonePairing(
     val display: PairingConfirmationDisplay,
     val responseFrames: List<EncodedQrFrame>,
+    val responseDelivery: String?,
 )
 
 /** Keeps response QR contents and confirmation below the native presentation boundary. */
@@ -56,11 +57,8 @@ internal class NativePairingResponseController(
             setBackgroundColor(Color.WHITE)
         }
         root.addView(TextView(activity).apply {
-            text = if (prepared.responseFrames.isEmpty()) {
-                "Developer USB response sent to the desktop"
-            } else {
-                "Scan this response on the desktop"
-            }
+            text = prepared.responseDelivery?.let { "$it response sent to the desktop" }
+                ?: "Scan this response on the desktop"
             textSize = 21f
             setTextColor(Color.BLACK)
             gravity = Gravity.CENTER

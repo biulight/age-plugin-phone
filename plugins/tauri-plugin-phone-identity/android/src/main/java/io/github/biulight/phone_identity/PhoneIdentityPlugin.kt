@@ -60,6 +60,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     private var activeUsbSession: PhoneStreamSession? = null
     private var activeUsbToken: UUID? = null
     private var activeWifiListener: PhoneWifiListener? = null
+    private var activeWifiDiscovery: WifiDiscoveryResponder? = null
     private var activeWifiSession: PhoneStreamSession? = null
     private var activeWifiToken: UUID? = null
     private var wifiAutoEnabled = wifiAutoListenSetting.enabled()
@@ -304,6 +305,24 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     }
 
     @Command
+    fun pairPhoneWifi(invoke: Invoke) {
+        if (!preemptPassiveWifiForLocalOperation()) {
+            invoke.resolve(phonePairingReport(false, null, null, "pairing_active"))
+            return
+        }
+        val token = UUID.randomUUID()
+        synchronized(stateLock) {
+            if (nativeOperationActive()) {
+                invoke.resolve(phonePairingReport(false, null, null, "pairing_active"))
+                return
+            }
+            activeWifiToken = token
+            wifiAutoState = WIFI_STATE_SUSPENDED
+        }
+        Thread({ runWifiPairing(token, invoke) }, "phone-wifi-pairing").start()
+    }
+
+    @Command
     fun setWifiAutoListen(invoke: Invoke) {
         val enabled = try {
             invoke.parseArgs(SetWifiAutoListenArgs::class.java).enabled
@@ -484,7 +503,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 activeUsbSession = session
             }
             request = session.receiveRequest()
-            val prepared = preparePhonePairingUsb(request, session)
+            val prepared = preparePhonePairingStream(request, session, "Developer USB")
             synchronized(stateLock) { activeUsbSession = null }
             session = null
             activity.runOnUiThread {
@@ -511,9 +530,94 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         }
     }
 
-    private fun preparePhonePairingUsb(
+    private fun runWifiPairing(token: UUID, invoke: Invoke) {
+        var listener: PhoneWifiListener? = null
+        var discovery: WifiDiscoveryResponder? = null
+        var session: PhoneStreamSession? = null
+        var request: ByteArray? = null
+        try {
+            val endpoints = startWifiPairingEndpoints()
+            listener = endpoints.first
+            discovery = endpoints.second
+            synchronized(stateLock) {
+                if (activeWifiToken != token) throw StreamTransportException()
+                activeWifiListener = listener
+                activeWifiDiscovery = discovery
+                activeWifiSession = null
+            }
+            session = listener.accept(PhoneStreamSession.Purpose.PAIRING)
+            discovery.close()
+            discovery = null
+            synchronized(stateLock) {
+                if (activeWifiToken != token) throw StreamTransportException()
+                activeWifiListener = null
+                activeWifiDiscovery = null
+                activeWifiSession = session
+            }
+            listener = null
+            request = session.receiveRequest()
+            val prepared = preparePhonePairingStream(request, session, "Wi-Fi")
+            synchronized(stateLock) {
+                if (activeWifiToken != token) throw StreamTransportException()
+                activeWifiToken = null
+                activeWifiSession = null
+            }
+            session = null
+            activity.runOnUiThread {
+                showPairingResponse(prepared, invoke)
+            }
+        } catch (_: Exception) {
+            cancelPendingPairing()
+            synchronized(stateLock) {
+                if (activeWifiToken == token) activeWifiToken = null
+                if (activeWifiListener === listener) activeWifiListener = null
+                if (activeWifiDiscovery === discovery) activeWifiDiscovery = null
+                if (activeWifiSession === session) activeWifiSession = null
+            }
+            listener?.close()
+            discovery?.close()
+            session?.close()
+            invoke.resolve(phonePairingReport(false, null, null, WIFI_TRANSPORT_FAILURE))
+            scheduleWifiAutoEvaluation(WIFI_SESSION_RETRY_DELAY_MILLIS)
+        } finally {
+            request?.fill(0)
+        }
+    }
+
+    private fun startWifiPairingEndpoints(): Pair<PhoneWifiListener, WifiDiscoveryResponder> {
+        // A foreground auto-listener may leave the fixed local ports briefly unavailable while
+        // its worker unwinds. This bounded handoff happens before discovery answers or an offer is
+        // received; it never retries, replays, or switches a protocol session.
+        repeat(WIFI_LOCAL_HANDOFF_ATTEMPTS) { attempt ->
+            var listener: PhoneWifiListener? = null
+            var discovery: WifiDiscoveryResponder? = null
+            try {
+                listener = PhoneWifiListener.start()
+                discovery = WifiDiscoveryResponder.start(PhoneStreamSession.Purpose.PAIRING) { query ->
+                    WifiDiscoveryCodec.responsePrefix(query)
+                }
+                return listener to discovery
+            } catch (error: Exception) {
+                listener?.close()
+                discovery?.close()
+                if (attempt == WIFI_LOCAL_HANDOFF_ATTEMPTS - 1) {
+                    throw StreamTransportException(error)
+                }
+                try {
+                    Thread.sleep(WIFI_LOCAL_HANDOFF_RETRY_MILLIS)
+                } catch (interrupted: InterruptedException) {
+                    Thread.currentThread().interrupt()
+                    throw StreamTransportException(interrupted)
+                }
+            }
+        }
+        throw StreamTransportException()
+    }
+
+    private fun preparePhonePairingStream(
         message: ByteArray,
         session: PhoneStreamSession,
+        responseDelivery: String,
     ): PreparedPhonePairing {
         try {
             productionIdentity.open()
@@ -525,7 +629,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         return try {
             val display = pairingConfirmation.begin(message, signedResponse)
             session.sendResponse(signedResponse)
-            PreparedPhonePairing(display, emptyList())
+            PreparedPhonePairing(display, emptyList(), responseDelivery)
         } finally {
             signedResponse.fill(0)
         }
@@ -544,6 +648,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             PreparedPhonePairing(
                 display,
                 QrFraming.fragment(signedResponse, RESPONSE_QR_CHUNK_BYTES),
+                null,
             )
         } finally {
             signedResponse.fill(0)
@@ -558,6 +663,10 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 pairingConfirmation,
                 onComplete = { committed ->
                     synchronized(stateLock) { activePairingResponse = null }
+                    // The confirmation dialog has reached a terminal state. Re-arm the passive
+                    // listener now instead of leaving the main screen suspended until the next
+                    // periodic foreground-operation check.
+                    scheduleWifiAutoEvaluation(0)
                     invoke.resolve(
                         phonePairingReport(
                             true,
@@ -569,6 +678,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 },
                 onFailure = { category ->
                     synchronized(stateLock) { activePairingResponse = null }
+                    scheduleWifiAutoEvaluation(0)
                     invoke.resolve(phonePairingReport(false, null, null, category))
                 },
             )
@@ -656,21 +766,31 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
 
     private fun runWifiAutoUnwrap(token: UUID) {
         var listener: PhoneWifiListener? = null
+        var discovery: WifiDiscoveryResponder? = null
         var session: PhoneStreamSession? = null
         var request: ByteArray? = null
         try {
-            listener = PhoneWifiListener.start()
+            // The passive foreground listener is closed by lifecycle/cancellation. An infinite
+            // accept avoids a discovery outage every time a bounded one-shot accept would expire.
+            listener = PhoneWifiListener.start(acceptTimeoutMs = 0)
+            discovery = WifiDiscoveryResponder.start(PhoneStreamSession.Purpose.UNWRAP) { query ->
+                wifiUnwrapDiscoveryResponse(query)
+            }
             synchronized(stateLock) {
                 if (activeWifiToken != token) throw StreamTransportException()
                 activeWifiListener = listener
+                activeWifiDiscovery = discovery
                 wifiBindFailures = 0
                 wifiAutoState = WIFI_STATE_LISTENING
                 wifiAutoError = null
             }
             session = listener.acceptUnwrap()
+            discovery.close()
+            discovery = null
             synchronized(stateLock) {
                 if (activeWifiToken != token) throw StreamTransportException()
                 if (activeWifiListener === listener) activeWifiListener = null
+                activeWifiDiscovery = null
                 activeWifiSession = session
                 wifiAutoState = WIFI_STATE_HANDLING_REQUEST
             }
@@ -706,6 +826,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 } else {
                     activeWifiToken = null
                     if (activeWifiListener === listener) activeWifiListener = null
+                    if (activeWifiDiscovery === discovery) activeWifiDiscovery = null
                     if (activeWifiSession === session) activeWifiSession = null
                     wifiAutoError = if (error is WifiListenerTimeoutException) {
                         null
@@ -716,6 +837,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 }
             }
             listener?.close()
+            discovery?.close()
             session?.close()
             if (owned) {
                 val delay = if (listener == null && session == null &&
@@ -729,6 +851,24 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             }
         } finally {
             request?.fill(0)
+        }
+    }
+
+    private fun wifiUnwrapDiscoveryResponse(query: WifiDiscoveryQuery): ByteArray? {
+        if (query.purpose != PhoneStreamSession.Purpose.UNWRAP) return null
+        return try {
+            PairingStateStore.open(activity, query.desktopId, query.identityId).use { store ->
+                val record = store.pairingRecord()
+                if (!MessageDigest.isEqual(record.desktopId, query.desktopId) ||
+                    !MessageDigest.isEqual(record.identityId, query.identityId)
+                ) {
+                    null
+                } else {
+                    productionIdentity.createWifiDiscoveryResponse(query)
+                }
+            }
+        } catch (_: Exception) {
+            null
         }
     }
 
@@ -872,7 +1012,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 val completed = takeStreamResponse(owned.token)
                 completed?.invoke?.resolve(report)
                 if (completed?.streamFailureCategory == WIFI_TRANSPORT_FAILURE) {
-                    scheduleWifiAutoEvaluation(WIFI_SESSION_RETRY_DELAY_MILLIS)
+                    scheduleWifiAutoEvaluation(0)
                 }
                 return
             }
@@ -980,6 +1120,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
     ): Boolean {
         var pending: PendingPhoneUnwrap? = null
         var listener: PhoneWifiListener? = null
+        var discovery: WifiDiscoveryResponder? = null
         var session: PhoneStreamSession? = null
         var cancelled = false
         synchronized(stateLock) {
@@ -998,11 +1139,14 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 pending = currentPending
                 cancelled = true
             } else if (
-                activeWifiToken != null || activeWifiListener != null || activeWifiSession != null
+                activeWifiToken != null || activeWifiListener != null ||
+                    activeWifiDiscovery != null || activeWifiSession != null
             ) {
                 activeWifiToken = null
                 listener = activeWifiListener
                 activeWifiListener = null
+                discovery = activeWifiDiscovery
+                activeWifiDiscovery = null
                 session = activeWifiSession
                 activeWifiSession = null
                 cancelled = true
@@ -1018,12 +1162,14 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             )
         }
         listener?.close()
+        discovery?.close()
         session?.close()
         return cancelled
     }
 
     private fun wifiOperationActive(): Boolean =
-        activeWifiToken != null || activeWifiListener != null || activeWifiSession != null ||
+        activeWifiToken != null || activeWifiListener != null || activeWifiDiscovery != null ||
+            activeWifiSession != null ||
             activePhoneUnwrap?.streamFailureCategory == WIFI_TRANSPORT_FAILURE ||
             activeStreamResponse?.streamFailureCategory == WIFI_TRANSPORT_FAILURE
 
@@ -1109,6 +1255,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
 
     private fun preemptPassiveWifiForLocalOperation(): Boolean {
         var listener: PhoneWifiListener? = null
+        var discovery: WifiDiscoveryResponder? = null
         synchronized(stateLock) {
             if (activeWifiSession != null ||
                 activePhoneUnwrap?.streamFailureCategory == WIFI_TRANSPORT_FAILURE ||
@@ -1116,16 +1263,19 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             ) {
                 return false
             }
-            if (activeWifiToken != null || activeWifiListener != null) {
+            if (activeWifiToken != null || activeWifiListener != null || activeWifiDiscovery != null) {
                 activeWifiToken = null
                 listener = activeWifiListener
                 activeWifiListener = null
+                discovery = activeWifiDiscovery
+                activeWifiDiscovery = null
                 wifiEvaluationGeneration += 1
             }
             if (wifiAutoEnabled) wifiAutoState = WIFI_STATE_SUSPENDED
             wifiAutoError = null
         }
         listener?.close()
+        discovery?.close()
         scheduleWifiAutoEvaluation(WIFI_SUSPENDED_RECHECK_MILLIS)
         return true
     }
@@ -1404,7 +1554,8 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             activePhoneUnwrap != null || activeStreamResponse != null ||
             activeUnwrapResponse != null ||
             activeUsbSession != null || activeUsbToken != null ||
-            activeWifiListener != null || activeWifiSession != null || activeWifiToken != null ||
+            activeWifiListener != null || activeWifiDiscovery != null ||
+            activeWifiSession != null || activeWifiToken != null ||
             cameraPermissionPending ||
             pairingPermissionPending || unwrapPermissionPending || activeLifecycle != null ||
             activeProvisioning
@@ -1874,6 +2025,8 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         private const val WIFI_STATE_SUSPENDED = "suspended"
         private const val WIFI_SESSION_RETRY_DELAY_MILLIS = 1_000L
         private const val WIFI_SUSPENDED_RECHECK_MILLIS = 1_000L
+        private const val WIFI_LOCAL_HANDOFF_ATTEMPTS = 10
+        private const val WIFI_LOCAL_HANDOFF_RETRY_MILLIS = 100L
 
         private object BiometricManagerCompat {
             const val STRONG = 0x000F

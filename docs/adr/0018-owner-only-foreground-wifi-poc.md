@@ -4,6 +4,10 @@
 - Date: 2026-08-31
 - Scope: opt-in foreground Wi-Fi auto-listen routing for unwrap only
 
+> Historical PoC decision. ADR 0021 supersedes its explicit-address, no-discovery, no-`auto`, and
+> no-Wi-Fi-pairing limitations while retaining the foreground-only listener, untrusted-route, and
+> fresh-per-unwrap authorization boundaries.
+
 ## Context
 
 Developer USB is reliable for the current technical preview but requires USB debugging, broad ADB

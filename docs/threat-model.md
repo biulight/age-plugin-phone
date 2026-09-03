@@ -29,6 +29,13 @@ authorization. Automatic re-arming lets an attacker repeat connection-level deni
 a compromised paired desktop may repeatedly present valid requests, but every unwrap still needs a
 fresh auth-per-use system verification.
 
+Assume the same LAN peer can observe pairing identifiers in short-lived Wi-Fi discovery queries and
+can forge, suppress, replay, or multiply discovery packets. An existing-pairing route is selected
+only after a nonce-bound response verifies under the paired phone-signing key. Pre-pairing discovery
+has no trusted phone key and therefore provides availability only: a forged response may redirect or
+deny service, but the signed pairing response and complete transcript comparison must still prevent
+an incorrect pairing from being committed. The persistent unwrap listener never accepts pairing.
+
 The phone operating system, hardware-backed key implementation, and user-verification UI are trusted
 within their documented guarantees.
 
