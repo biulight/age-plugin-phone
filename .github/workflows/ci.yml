@@ -53,6 +53,7 @@ jobs:
         run: |
           cargo build --release --locked -p age-plugin-phone
           target/release/age-plugin-phone.exe --help
+          target/release/age-plugin-phone.exe setup --help
 
   mobile:
     runs-on: ubuntu-latest

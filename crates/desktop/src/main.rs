@@ -7,6 +7,8 @@ use std::{
 };
 
 use age_plugin::{PluginHandler, run_state_machine};
+#[cfg(windows)]
+use age_plugin_phone::adb::preflight_device;
 use age_plugin_phone::adb::{
     AdbReverseSession, DEFAULT_CONNECT_TIMEOUT, DEFAULT_MESSAGE_TIMEOUT, SystemAdb,
     run_cleanup_guard,
@@ -22,6 +24,9 @@ use age_plugin_phone::qr_scanner::{DEFAULT_SCAN_TIMEOUT, ScannerHandle};
 use age_plugin_phone::qr_terminal::{
     DEFAULT_FRAME_INTERVAL_MS, FrameScheduler, render_offline_html, render_terminal_frame,
 };
+use age_plugin_phone::setup;
+#[cfg(windows)]
+use age_plugin_phone::setup::{SetupJournal, SetupStage};
 use age_plugin_phone::transport_policy::{
     TransportChoice, TransportHints, TransportKind, TransportOperation, resolve_transport,
 };
@@ -59,6 +64,34 @@ enum Command {
     },
     /// Report implementation status and read-only Windows Alpha capabilities.
     Status,
+    /// Create one phone-backed identity using managed Windows paths.
+    Setup {
+        /// Untrusted desktop label shown on both endpoints.
+        #[arg(
+            long,
+            required_unless_present_any = ["resume", "cleanup"],
+            conflicts_with_all = ["resume", "cleanup"]
+        )]
+        label: Option<String>,
+        /// Resume the exact locally confirmed setup recorded in the setup journal.
+        #[arg(
+            long,
+            conflicts_with_all = ["cleanup", "label", "transport", "adb_serial"]
+        )]
+        resume: bool,
+        /// Remove the exact incomplete setup recorded in the setup journal.
+        #[arg(
+            long,
+            conflicts_with_all = ["resume", "label", "transport", "adb_serial"]
+        )]
+        cleanup: bool,
+        /// Bidirectional message transport: auto, adb, ble, wifi, or qr.
+        #[arg(long, default_value_t = TransportChoice::default())]
+        transport: TransportChoice,
+        /// Explicit ADB device serial. Required when multiple devices are listed by ADB.
+        #[arg(long)]
+        adb_serial: Option<String>,
+    },
     /// Complete an authenticated pairing over Developer USB or QR.
     Pair {
         /// Untrusted desktop label shown on both endpoints.
@@ -175,6 +208,13 @@ fn main() -> io::Result<()> {
             print_windows_platform_status();
             Ok(())
         }
+        Command::Setup {
+            label,
+            resume,
+            cleanup,
+            transport,
+            adb_serial,
+        } => run_setup(label, resume, cleanup, transport, adb_serial.as_deref()),
         Command::Pair {
             label,
             desktop_state,
@@ -312,6 +352,7 @@ fn run_pair(
         .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
     prepare_config_root(&config_root)
         .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
+    ensure_no_setup_pending_for_pair(&config_root)?;
     #[cfg(windows)]
     {
         ensure_windows_private_state_path(&config_root, desktop_state)?;
@@ -365,25 +406,8 @@ fn run_pair(
             return Err(error);
         }
     };
-    let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
-    let display = session
-        .receive_response(&response, elapsed_ms)
-        .map_err(|_| {
-            io::Error::new(io::ErrorKind::PermissionDenied, "pairing response rejected")
-        })?;
-    writeln!(
-        stdout,
-        "\x1b[2J\x1b[HCompare this full fingerprint with the phone:\n{}\n\nType the full fingerprint to confirm:",
-        display.transcript_fingerprint,
-    )?;
-    stdout.flush()?;
     drop(stdout);
-    let mut confirmation = String::new();
-    io::stdin().read_line(&mut confirmation)?;
-    let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
-    let stub = session
-        .confirm(confirmation.trim(), elapsed_ms)
-        .map_err(|_| io::Error::new(io::ErrorKind::PermissionDenied, "pairing not confirmed"))?;
+    let stub = complete_pairing_interaction(&mut session, &response, started, |_| Ok(()))?;
     drop(session);
     drop(state);
     commit_pairing_state(
@@ -420,6 +444,62 @@ fn ensure_windows_private_state_path(
     Ok(())
 }
 
+fn ensure_no_setup_pending_for_pair(config_root: &std::path::Path) -> io::Result<()> {
+    if setup::read_optional(config_root)
+        .map_err(|_| io::Error::other("desktop setup recovery state is unavailable"))?
+        .is_some()
+    {
+        return Err(io::Error::other(
+            "an incomplete managed setup must be resumed or cleaned before explicit pairing",
+        ));
+    }
+    Ok(())
+}
+
+#[cfg(any(windows, test))]
+fn validate_setup_label(label: &str) -> io::Result<()> {
+    if label.len() > 64 {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "desktop label must be at most 64 UTF-8 bytes",
+        ));
+    }
+    Ok(())
+}
+
+fn complete_pairing_interaction(
+    session: &mut DesktopPairingSession,
+    response: &[u8],
+    started: Instant,
+    mut on_verified: impl FnMut(&age_plugin_phone::pairing::PublicIdentityStub) -> io::Result<()>,
+) -> io::Result<age_plugin_phone::pairing::PublicIdentityStub> {
+    let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+    let display = session
+        .receive_response(response, elapsed_ms)
+        .map_err(|_| {
+            io::Error::new(io::ErrorKind::PermissionDenied, "pairing response rejected")
+        })?;
+    let candidate = session
+        .pending_stub()
+        .map_err(|_| io::Error::other("verified pairing candidate is unavailable"))?;
+    on_verified(&candidate)?;
+
+    let mut stdout = io::stdout().lock();
+    writeln!(
+        stdout,
+        "\x1b[2J\x1b[HCompare this full fingerprint with the phone:\n{}\n\nType the full fingerprint to confirm:",
+        display.transcript_fingerprint,
+    )?;
+    stdout.flush()?;
+    drop(stdout);
+    let mut confirmation = String::new();
+    io::stdin().read_line(&mut confirmation)?;
+    let elapsed_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+    session
+        .confirm(confirmation.trim(), elapsed_ms)
+        .map_err(|_| io::Error::new(io::ErrorKind::PermissionDenied, "pairing not confirmed"))
+}
+
 fn print_pairing_outputs(
     identity_output: &std::path::Path,
     stub: &age_plugin_phone::pairing::PublicIdentityStub,
@@ -432,6 +512,357 @@ fn print_pairing_outputs(
         "Recipient: {}",
         stub.selectable_recipient()
             .map_err(|_| io::Error::other("failed to encode selectable recipient"))?
+    );
+    Ok(())
+}
+
+#[cfg(windows)]
+enum PreparedSetupTransport {
+    Adb(String),
+    Qr(ScannerHandle),
+}
+
+#[cfg(windows)]
+fn run_setup(
+    label: Option<String>,
+    resume: bool,
+    cleanup: bool,
+    transport: TransportChoice,
+    adb_serial: Option<&str>,
+) -> io::Result<()> {
+    if resume || cleanup {
+        if label.is_some() || transport != TransportChoice::Auto || adb_serial.is_some() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "setup recovery modes do not accept label or transport options",
+            ));
+        }
+        ensure_desktop_platform_supported()?;
+        return if resume {
+            resume_setup()
+        } else {
+            cleanup_setup()
+        };
+    }
+
+    let label = label
+        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "new setup requires --label"))?;
+    validate_setup_label(&label)?;
+    let route = resolve_transport(
+        transport,
+        TransportOperation::Pairing,
+        TransportHints {
+            adb_serial: adb_serial.map(str::to_owned),
+            wifi_address: None,
+        },
+    )
+    .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error.to_string()))?;
+    ensure_desktop_platform_supported()?;
+    let prepared_transport = match route.kind() {
+        TransportKind::Adb => {
+            let mut adb = SystemAdb::default();
+            let serial = preflight_device(&mut adb, route.adb_serial()).map_err(|error| {
+                let message = if matches!(
+                    error,
+                    age_plugin_phone::adb::AdbError::DeviceSelectionRequired
+                ) {
+                    "multiple Android devices require --adb-serial SERIAL; no setup state was created"
+                        .to_owned()
+                } else {
+                    format!("Developer USB preflight failed: {error}; no setup state was created")
+                };
+                io::Error::other(message)
+            })?;
+            PreparedSetupTransport::Adb(serial)
+        }
+        TransportKind::Qr => PreparedSetupTransport::Qr(
+            ScannerHandle::start_default_camera_checked(DEFAULT_SCAN_TIMEOUT).map_err(|error| {
+                io::Error::other(format!(
+                    "QR camera preflight failed: {error}; no setup state was created"
+                ))
+            })?,
+        ),
+        TransportKind::Ble | TransportKind::Wifi => {
+            unreachable!("unsupported setup transports are rejected by policy")
+        }
+    };
+
+    let root = default_config_root()
+        .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
+    prepare_config_root(&root)
+        .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
+    let _lifecycle_lock = setup::acquire_lifecycle_lock(&root)
+        .map_err(|error| io::Error::other(error.to_string()))?;
+    setup::ensure_no_cleanup_pending(&root).map_err(|error| io::Error::other(error.to_string()))?;
+    if setup::read_optional(&root)
+        .map_err(|error| io::Error::other(error.to_string()))?
+        .is_some()
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            "an incomplete setup exists; use setup --resume or setup --cleanup",
+        ));
+    }
+
+    let mut setup_code = [0_u8; 16];
+    let mut desktop_id = [0_u8; 16];
+    OsRng.fill_bytes(&mut setup_code);
+    OsRng.fill_bytes(&mut desktop_id);
+    let mut journal = SetupJournal::new(&root, setup_code, desktop_id);
+    if [
+        &journal.desktop_state,
+        &journal.replay_state,
+        &journal.identity_stub,
+    ]
+    .into_iter()
+    .any(|path| path.exists())
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            "random setup path collision; no state was modified",
+        ));
+    }
+    setup::create(&root, &journal).map_err(|error| io::Error::other(error.to_string()))?;
+
+    let state = match DesktopKeyState::create_new(&journal.desktop_state, desktop_id) {
+        Ok(state) => state,
+        Err(_) => {
+            return rollback_setup_error(
+                &root,
+                &journal,
+                "failed to create new TPM desktop state; no existing key was reused".to_owned(),
+                false,
+            );
+        }
+    };
+    journal.set_pairing();
+    if let Err(error) = setup::replace(&root, &journal) {
+        drop(state);
+        return rollback_setup_error(&root, &journal, error.to_string(), false);
+    }
+
+    let selection_public = match state.selection_public_key() {
+        Ok(key) => key,
+        Err(_) => {
+            drop(state);
+            return rollback_setup_error(
+                &root,
+                &journal,
+                "desktop selection key is unavailable".to_owned(),
+                false,
+            );
+        }
+    };
+    let mut session = match DesktopPairingSession::begin(
+        state.desktop_id,
+        label,
+        state.signer(),
+        selection_public,
+        0,
+        &mut OsRng,
+    ) {
+        Ok(session) => session,
+        Err(_) => {
+            drop(state);
+            return rollback_setup_error(
+                &root,
+                &journal,
+                "failed to create pairing offer".to_owned(),
+                false,
+            );
+        }
+    };
+    let started = Instant::now();
+    let mut stdout = io::stdout().lock();
+    let response = match prepared_transport {
+        PreparedSetupTransport::Adb(serial) => exchange_adb(
+            SessionPurpose::Pairing,
+            &session.signed_offer(),
+            Some(&serial),
+        ),
+        PreparedSetupTransport::Qr(scanner) => exchange_pairing_qr_with_scanner(
+            &session.signed_offer(),
+            started,
+            &mut stdout,
+            &scanner,
+        ),
+    };
+    let response = match response {
+        Ok(response) => response,
+        Err(error) => {
+            session.cancel();
+            drop(session);
+            drop(state);
+            return rollback_setup_error(&root, &journal, error.to_string(), false);
+        }
+    };
+    drop(stdout);
+    let stub = match complete_pairing_interaction(&mut session, &response, started, |candidate| {
+        journal
+            .set_candidate(candidate.clone())
+            .map_err(|_| io::Error::other("verified pairing candidate is invalid"))?;
+        setup::replace(&root, &journal)
+            .map_err(|_| io::Error::other("failed to journal the verified phone response"))
+    }) {
+        Ok(stub) => stub,
+        Err(error) => {
+            drop(session);
+            drop(state);
+            return rollback_setup_error(&root, &journal, error.to_string(), true);
+        }
+    };
+    if journal.set_confirmed(&stub).is_err() || setup::replace(&root, &journal).is_err() {
+        drop(session);
+        drop(state);
+        return rollback_setup_error(
+            &root,
+            &journal,
+            "failed to journal confirmed setup".to_owned(),
+            true,
+        );
+    }
+    drop(session);
+    drop(state);
+    setup::commit_confirmed(
+        &root,
+        &journal,
+        now_unix().map_err(|_| io::Error::other("system clock is unavailable"))?,
+    )
+    .map_err(|_| {
+        io::Error::other(
+            "confirmed setup commit is incomplete; use setup --resume or setup --cleanup",
+        )
+    })?;
+    print_setup_outputs(&journal.identity_stub, &stub)
+}
+
+#[cfg(not(windows))]
+fn run_setup(
+    _label: Option<String>,
+    _resume: bool,
+    _cleanup: bool,
+    _transport: TransportChoice,
+    _adb_serial: Option<&str>,
+) -> io::Result<()> {
+    Err(io::Error::new(
+        io::ErrorKind::Unsupported,
+        "simplified setup is supported only on the Windows Alpha platform; use explicit pair for diagnostics",
+    ))
+}
+
+#[cfg(windows)]
+fn resume_setup() -> io::Result<()> {
+    let root = default_config_root()
+        .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
+    let _lifecycle_lock = setup::acquire_lifecycle_lock(&root)
+        .map_err(|error| io::Error::other(error.to_string()))?;
+    setup::ensure_no_cleanup_pending(&root).map_err(|error| io::Error::other(error.to_string()))?;
+    let journal = setup::read(&root).map_err(|error| io::Error::other(error.to_string()))?;
+    if journal.stage != SetupStage::Confirmed {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "this setup was not fully confirmed and may only be removed with setup --cleanup",
+        ));
+    }
+    let fingerprint = journal.confirmation_text();
+    println!(
+        "Resume only this confirmed setup.\nFull transcript fingerprint: {fingerprint}\nType the full fingerprint to continue:"
+    );
+    let mut entered = String::new();
+    io::stdin().read_line(&mut entered)?;
+    if entered.trim_end() != fingerprint {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "setup resume confirmation did not match",
+        ));
+    }
+    setup::commit_confirmed(
+        &root,
+        &journal,
+        now_unix().map_err(|_| io::Error::other("system clock is unavailable"))?,
+    )
+    .map_err(|_| io::Error::other("confirmed setup remains incomplete"))?;
+    print_setup_outputs(
+        &journal.identity_stub,
+        journal
+            .candidate
+            .as_ref()
+            .expect("confirmed journal candidate"),
+    )
+}
+
+#[cfg(windows)]
+fn cleanup_setup() -> io::Result<()> {
+    let root = default_config_root()
+        .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
+    let _lifecycle_lock = setup::acquire_lifecycle_lock(&root)
+        .map_err(|error| io::Error::other(error.to_string()))?;
+    setup::ensure_no_cleanup_pending(&root).map_err(|error| io::Error::other(error.to_string()))?;
+    let journal = setup::read(&root).map_err(|error| io::Error::other(error.to_string()))?;
+    let confirmation = journal.confirmation_text();
+    println!(
+        "Remove only the incomplete setup recorded by the private journal.\nConfirmation: {confirmation}\nType the complete value to remove it:"
+    );
+    let mut entered = String::new();
+    io::stdin().read_line(&mut entered)?;
+    if entered.trim_end() != confirmation {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "setup cleanup confirmation did not match",
+        ));
+    }
+    let phone_may_be_paired = journal.candidate.is_some();
+    setup::cleanup_owned(&root, &journal)
+        .map_err(|_| io::Error::other("incomplete setup cleanup remains pending"))?;
+    if phone_may_be_paired {
+        println!(
+            "Incomplete desktop setup removed. Revoke the matching full fingerprint on the phone; local cleanup is not phone-side revocation."
+        );
+    } else {
+        println!("Incomplete desktop setup removed.");
+    }
+    Ok(())
+}
+
+#[cfg(windows)]
+fn rollback_setup_error(
+    root: &std::path::Path,
+    journal: &SetupJournal,
+    message: String,
+    phone_may_be_paired: bool,
+) -> io::Result<()> {
+    match setup::cleanup_owned(root, journal) {
+        Ok(()) => {
+            let suffix = if phone_may_be_paired {
+                "; local state was removed, but the matching phone pairing must be revoked"
+            } else {
+                "; local setup state was removed"
+            };
+            Err(io::Error::other(format!("{message}{suffix}")))
+        }
+        Err(_) => Err(io::Error::other(format!(
+            "{message}; rollback is incomplete, use setup --cleanup"
+        ))),
+    }
+}
+
+#[cfg(windows)]
+fn print_setup_outputs(
+    identity_output: &std::path::Path,
+    stub: &age_plugin_phone::pairing::PublicIdentityStub,
+) -> io::Result<()> {
+    let recipient = stub
+        .selectable_recipient()
+        .map_err(|_| io::Error::other("failed to encode selectable recipient"))?;
+    println!("Recipient: {recipient}");
+    println!("Public identity stub: {}", identity_output.display());
+    println!("Encrypt with a standard age client: age -e -r {recipient} ...");
+    println!(
+        "Decrypt with a standard age client: age -d -i \"{}\" ...",
+        identity_output.display()
+    );
+    println!(
+        "Pairing success is not a recovery drill. Retained data also needs an independently verified recovery recipient."
     );
     Ok(())
 }
@@ -767,11 +1198,20 @@ fn exchange_pairing_qr(
     started: Instant,
     output: &mut impl io::Write,
 ) -> io::Result<Zeroizing<Vec<u8>>> {
+    let scanner = ScannerHandle::start_default_camera(DEFAULT_SCAN_TIMEOUT);
+    exchange_pairing_qr_with_scanner(request, started, output, &scanner)
+}
+
+fn exchange_pairing_qr_with_scanner(
+    request: &[u8],
+    started: Instant,
+    output: &mut impl io::Write,
+    scanner: &ScannerHandle,
+) -> io::Result<Zeroizing<Vec<u8>>> {
     let frames = fragment_qr_message(request, 120, &mut OsRng)
         .map_err(|_| io::Error::other("failed to fragment pairing offer"))?;
     let mut scheduler = FrameScheduler::new(&frames, DEFAULT_FRAME_INTERVAL_MS)
         .map_err(|_| io::Error::other("failed to schedule pairing QR"))?;
-    let scanner = ScannerHandle::start_default_camera(DEFAULT_SCAN_TIMEOUT);
     loop {
         match scanner.try_result() {
             Ok(Some(response)) => return Ok(response),
@@ -966,6 +1406,87 @@ mod tests {
         assert_eq!(
             wifi_address,
             Some(SocketAddr::from(([192, 168, 1, 20], WIFI_UNWRAP_PORT)))
+        );
+    }
+
+    #[test]
+    fn setup_cli_separates_new_resume_and_cleanup_modes() {
+        let options = Options::try_parse_from([
+            "age-plugin-phone",
+            "setup",
+            "--label",
+            "Work laptop",
+            "--adb-serial",
+            "phone-a",
+        ])
+        .unwrap();
+        let Some(Command::Setup {
+            label,
+            resume,
+            cleanup,
+            transport,
+            adb_serial,
+        }) = options.command
+        else {
+            panic!("setup command must parse");
+        };
+        assert_eq!(label.as_deref(), Some("Work laptop"));
+        assert!(!resume && !cleanup);
+        assert_eq!(transport, TransportChoice::Auto);
+        assert_eq!(adb_serial.as_deref(), Some("phone-a"));
+
+        assert!(Options::try_parse_from(["age-plugin-phone", "setup", "--resume"]).is_ok());
+        assert!(Options::try_parse_from(["age-plugin-phone", "setup", "--cleanup"]).is_ok());
+        assert!(Options::try_parse_from(["age-plugin-phone", "setup"]).is_err());
+        assert!(
+            Options::try_parse_from(["age-plugin-phone", "setup", "--resume", "--cleanup",])
+                .is_err()
+        );
+        assert!(
+            Options::try_parse_from([
+                "age-plugin-phone",
+                "setup",
+                "--resume",
+                "--label",
+                "desktop",
+            ])
+            .is_err()
+        );
+        assert!(
+            Options::try_parse_from([
+                "age-plugin-phone",
+                "setup",
+                "--cleanup",
+                "--adb-serial",
+                "phone-a",
+            ])
+            .is_err()
+        );
+    }
+
+    #[test]
+    fn simplified_setup_is_explicitly_unsupported_off_windows() {
+        let error = run_setup(
+            Some("desktop".to_owned()),
+            false,
+            false,
+            TransportChoice::Auto,
+            None,
+        )
+        .unwrap_err();
+        assert_eq!(error.kind(), io::ErrorKind::Unsupported);
+    }
+
+    #[test]
+    fn setup_label_uses_the_protocol_byte_limit() {
+        assert!(validate_setup_label(&"x".repeat(64)).is_ok());
+        assert_eq!(
+            validate_setup_label(&"x".repeat(65)).unwrap_err().kind(),
+            io::ErrorKind::InvalidInput
+        );
+        assert_eq!(
+            validate_setup_label(&"桌".repeat(22)).unwrap_err().kind(),
+            io::ErrorKind::InvalidInput
         );
     }
 

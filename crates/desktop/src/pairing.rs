@@ -296,6 +296,23 @@ pub struct DesktopKeyState {
 
 #[cfg(windows)]
 impl DesktopKeyState {
+    pub fn create_new(path: &Path, desktop_id: Id) -> Result<Self, PairingError> {
+        if path.exists() {
+            return Err(PairingError::State);
+        }
+        let keys = age_plugin_phone_windows_cng::WindowsCngKeySet::create_new(desktop_id)
+            .map_err(|_| PairingError::State)?;
+        let mut encoded = [0_u8; 21];
+        encoded[..5].copy_from_slice(DESKTOP_TPM_STATE_MAGIC);
+        encoded[5..].copy_from_slice(&desktop_id);
+        if age_plugin_phone_windows_storage::atomic_create(path, &encoded).is_err() {
+            drop(keys);
+            let _ = age_plugin_phone_windows_cng::remove_key_set(desktop_id);
+            return Err(PairingError::State);
+        }
+        Ok(Self { desktop_id, keys })
+    }
+
     pub fn open_or_create(
         path: &Path,
         random: &mut (impl CryptoRng + RngCore),
@@ -522,16 +539,20 @@ impl DesktopPairingSession {
         if displayed_fingerprint != hex(&fingerprint) {
             return Err(PairingError::FingerprintMismatch);
         }
-        Ok(PublicIdentityStub {
-            desktop_id: self.offer.payload.desktop_id,
-            identity_id: response.payload.identity_id,
-            recipient: response.payload.recipient,
-            desktop_signing_public_key: self.offer.payload.desktop_signing_public_key,
-            desktop_selection_public_key: self.offer.payload.desktop_selection_public_key,
-            phone_signing_public_key: response.payload.phone_signing_public_key,
-            offer_digest: self.offer.digest(),
-            transcript_fingerprint: fingerprint,
-        })
+        Ok(self.stub_from_response(&response, fingerprint))
+    }
+
+    /// Returns the authenticated public pairing candidate before local fingerprint confirmation.
+    /// The candidate is public material only and must not be activated until `confirm` succeeds.
+    pub fn pending_stub(&self) -> Result<PublicIdentityStub, PairingError> {
+        let State::Confirming {
+            response,
+            fingerprint,
+        } = &self.state
+        else {
+            return Err(PairingError::SessionClosed);
+        };
+        Ok(self.stub_from_response(response, *fingerprint))
     }
 
     pub fn cancel(&mut self) {
@@ -547,6 +568,23 @@ impl DesktopPairingSession {
             return Err(PairingError::Timeout);
         }
         Ok(())
+    }
+
+    fn stub_from_response(
+        &self,
+        response: &SignedPairingResponse,
+        fingerprint: ProtocolDigest,
+    ) -> PublicIdentityStub {
+        PublicIdentityStub {
+            desktop_id: self.offer.payload.desktop_id,
+            identity_id: response.payload.identity_id,
+            recipient: response.payload.recipient.clone(),
+            desktop_signing_public_key: self.offer.payload.desktop_signing_public_key,
+            desktop_selection_public_key: self.offer.payload.desktop_selection_public_key,
+            phone_signing_public_key: response.payload.phone_signing_public_key,
+            offer_digest: self.offer.digest(),
+            transcript_fingerprint: fingerprint,
+        }
     }
 }
 
@@ -667,9 +705,11 @@ mod tests {
         let display = session
             .receive_response(&response(&session, &phone).encode(), 101)
             .unwrap();
+        let pending = session.pending_stub().unwrap();
         let stub = session
             .confirm(&display.transcript_fingerprint, 102)
             .unwrap();
+        assert_eq!(pending, stub);
         assert_eq!(PublicIdentityStub::decode(&stub.encode()).unwrap(), stub);
         assert_eq!(
             stub.plugin_identity().unwrap(),

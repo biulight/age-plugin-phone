@@ -340,6 +340,19 @@ impl<R: AdbRunner> AdbReverseSession<R> {
     }
 }
 
+/// Resolves and validates one Developer USB device without creating a reverse rule.
+///
+/// The returned serial is an untrusted routing hint. `AdbReverseSession::connect` revalidates it
+/// immediately before opening the transport.
+pub fn preflight_device(
+    runner: &mut impl AdbRunner,
+    requested_serial: Option<&str>,
+) -> Result<String, AdbError> {
+    let serial = select_device(runner, requested_serial)?;
+    reject_existing_rule(runner, &serial, &format!("tcp:{ANDROID_LOOPBACK_PORT}"))?;
+    Ok(serial)
+}
+
 fn launch_android_unwrap(runner: &mut impl AdbRunner, serial: &str) -> Result<(), AdbError> {
     runner
         .run(&[
@@ -953,6 +966,23 @@ mod tests {
         assert_eq!(
             select_device(&mut many, None),
             Err(AdbError::DeviceSelectionRequired)
+        );
+    }
+
+    #[test]
+    fn preflight_pins_one_device_and_checks_the_fixed_rule_without_creating_it() {
+        let mut runner = FakeRunner {
+            outputs: VecDeque::from([
+                Ok("List of devices attached\nphone-a\tdevice\n".to_owned()),
+                Ok(String::new()),
+            ]),
+            ..FakeRunner::default()
+        };
+        let calls = Arc::clone(&runner.calls);
+        assert_eq!(preflight_device(&mut runner, None).unwrap(), "phone-a");
+        assert_eq!(
+            calls.lock().unwrap().as_slice(),
+            &[vec!["devices"], vec!["-s", "phone-a", "reverse", "--list"],]
         );
     }
 

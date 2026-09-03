@@ -1,6 +1,6 @@
 # Simplified desktop identity setup goal
 
-Status: proposed product goal; not an implemented command or release claim.
+Status: implemented in source; exact packaged Windows/Android acceptance validation remains pending.
 
 ## Motivation
 
@@ -121,13 +121,13 @@ The goal is met only when all of the following are demonstrated:
 
 ## Delivery sequence
 
-1. Write an ADR defining the command name, default path allocation, create/commit transaction,
+1. [x] Write an ADR defining the command name, default path allocation, create/commit transaction,
    interruption semantics, safe output, and compatibility with the existing explicit `pair`
    command.
-2. Implement the setup orchestrator by composing the existing capability probe, transport policy,
+2. [x] Implement the setup orchestrator by composing the existing capability probe, transport policy,
    pairing controller, Windows storage, and identity-stub boundaries rather than duplicating them.
 3. Add negative portable and Windows-native coverage before physical testing.
-4. Update the Windows quick start to use the simplified command while retaining the explicit form
+4. [x] Update the Windows quick start to use the simplified command while retaining the explicit form
    as a diagnostic or advanced path.
 5. Validate the packaged command on the exact Windows/Android candidate and record only
    non-sensitive evidence in the Alpha matrix.

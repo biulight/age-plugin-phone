@@ -68,6 +68,12 @@ pub fn remove_desktop_state(
         &crate::cleanup_journal::journal_lock_path(&root),
     )
     .map_err(|_| CleanupError::Busy)?;
+    if crate::setup::read_optional(&root)
+        .map_err(|_| CleanupError::Storage)?
+        .is_some()
+    {
+        return Err(CleanupError::Busy);
+    }
 
     let journal = match crate::cleanup_journal::read(&root).map_err(|_| CleanupError::Storage)? {
         Some(journal) => {
@@ -148,6 +154,12 @@ fn remove_orphaned_desktop_state_in(
         &crate::cleanup_journal::journal_lock_path(root),
     )
     .map_err(|_| CleanupError::Busy)?;
+    if crate::setup::read_optional(root)
+        .map_err(|_| CleanupError::Storage)?
+        .is_some()
+    {
+        return Err(CleanupError::Busy);
+    }
 
     let journal = match crate::cleanup_journal::read(root).map_err(|_| CleanupError::Storage)? {
         Some(journal) => {

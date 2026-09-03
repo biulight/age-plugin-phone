@@ -74,6 +74,7 @@ automatically. For scripts and non-interactive shells, run commands through `mis
 
 ```console
 cargo run -p age-plugin-phone -- status
+cargo run -p age-plugin-phone -- setup --help
 cargo run -p age-plugin-phone -- pair --help
 cargo run -p age-plugin-phone -- unwrap --help
 cargo run -p age-plugin-phone -- qr-capture-probe
@@ -90,6 +91,14 @@ bun run tauri ios init
 On Windows, `status` performs a read-only Alpha capability probe. It reports the actual Windows
 version, client/server edition, x64 architecture, TPM 2.0 availability, and Microsoft Platform
 Crypto Provider availability without creating or opening persisted keys.
+
+On the supported Windows Alpha path, the normal identity entry point is
+`age-plugin-phone setup --label LABEL`. It preflights Windows and the selected transport before
+creating state, allocates create-only TPM metadata, replay, locator, and public-stub paths under
+`%LOCALAPPDATA%\age-plugin-phone`, and retains complete transcript-fingerprint comparison.
+`setup --resume` can finish only a durably confirmed local commit; `setup --cleanup` removes the
+exact incomplete attempt recorded by the protected setup journal. The explicit `pair` command
+remains an advanced diagnostic path.
 
 The Android Alpha UI shows the StrongBox identity status and public recipient, offers explicit
 Developer USB or QR pairing, a QR approval fallback, and an owner-only foreground Wi-Fi
@@ -115,8 +124,9 @@ the platform configuration directory so the public identity stub contains no pri
 `AGE_PLUGIN_PHONE_CONFIG_DIR` to the same absolute directory for pairing and age invocations only
 when an isolated non-default location is required.
 
-On Windows, the configuration directory is `%LOCALAPPDATA%\age-plugin-phone`. Pairing requires the
-`--desktop-state` and `--replay-state` paths to be direct children of that directory. The desktop
+On Windows, the configuration directory is `%LOCALAPPDATA%\age-plugin-phone`. Managed setup chooses
+unique direct-child paths automatically. Explicit `pair` still requires `--desktop-state` and
+`--replay-state` to be direct children of that directory. The desktop
 state contains only a TPM key locator ID: signing and private stanza selection use distinct,
 non-exportable P-256 keys in Microsoft Platform Crypto Provider, with no software or DPAPI fallback.
 Locator, metadata, replay, temporary, and lock files use protected current-user ACLs. Pairing,

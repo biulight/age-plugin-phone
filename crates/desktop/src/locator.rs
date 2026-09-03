@@ -45,6 +45,8 @@ pub enum LocatorError {
     Invalid,
     #[error("desktop cleanup is pending for this pairing")]
     CleanupPending,
+    #[error("desktop setup is pending for this pairing")]
+    SetupPending,
     #[error("pairing locator could not be durably stored")]
     Storage,
 }
@@ -149,12 +151,34 @@ fn open_pairing_locator_record(
 ) -> Result<(PathBuf, PairingLocator), LocatorError> {
     let directory = checked_directory(root)?;
     ensure_not_pending(&directory, stub)?;
+    crate::setup::ensure_pairing_available(&directory, stub)
+        .map_err(|_| LocatorError::SetupPending)?;
     for path in [
         pairing_locator_path(&directory, stub),
         legacy_pairing_locator_path(&directory, stub),
     ] {
         match read_locator_file(&path) {
             Ok(bytes) => return decode(stub, &bytes).map(|locator| (path, locator)),
+            Err(LocatorError::Missing) => {}
+            Err(error) => return Err(error),
+        }
+    }
+    Err(LocatorError::Missing)
+}
+
+#[cfg(windows)]
+pub(crate) fn open_pairing_locator_for_setup(
+    root: &Path,
+    stub: &PublicIdentityStub,
+) -> Result<PairingLocator, LocatorError> {
+    let directory = checked_directory(root)?;
+    ensure_not_pending(&directory, stub)?;
+    for path in [
+        pairing_locator_path(&directory, stub),
+        legacy_pairing_locator_path(&directory, stub),
+    ] {
+        match read_locator_file(&path) {
+            Ok(bytes) => return decode(stub, &bytes),
             Err(LocatorError::Missing) => {}
             Err(error) => return Err(error),
         }

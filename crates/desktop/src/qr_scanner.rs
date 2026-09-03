@@ -158,6 +158,41 @@ impl ScannerHandle {
         }
     }
 
+    /// Starts the default camera and waits until its stream is open before returning the worker.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the camera cannot be opened or the worker does not
+    /// report readiness before `timeout`.
+    pub fn start_default_camera_checked(timeout: Duration) -> Result<Self, ScanError> {
+        let (sender, receiver) = mpsc::sync_channel(1);
+        let (ready_sender, ready_receiver) = mpsc::sync_channel(1);
+        let cancelled = Arc::new(AtomicBool::new(false));
+        let worker_cancelled = Arc::clone(&cancelled);
+        thread::spawn(move || {
+            let result = match open_default_camera_stream() {
+                Ok(camera) => {
+                    let _ = ready_sender.send(Ok(()));
+                    scan_camera(camera, timeout, &worker_cancelled)
+                }
+                Err(error) => {
+                    let _ = ready_sender.send(Err(error));
+                    Err(error)
+                }
+            };
+            let _ = sender.send(result);
+        });
+        match ready_receiver.recv_timeout(Duration::from_secs(10)) {
+            Ok(Ok(())) => Ok(Self {
+                receiver,
+                cancelled,
+                timeout,
+            }),
+            Ok(Err(error)) => Err(error),
+            Err(_) => Err(ScanError::CameraUnavailable),
+        }
+    }
+
     /// Polls the camera worker without blocking.
     ///
     /// # Errors
@@ -204,7 +239,15 @@ fn scan_default_camera(
     timeout: Duration,
     cancelled: &AtomicBool,
 ) -> Result<Zeroizing<Vec<u8>>, ScanError> {
-    let mut camera = open_default_camera_stream()?;
+    let camera = open_default_camera_stream()?;
+    scan_camera(camera, timeout, cancelled)
+}
+
+fn scan_camera(
+    mut camera: Camera,
+    timeout: Duration,
+    cancelled: &AtomicBool,
+) -> Result<Zeroizing<Vec<u8>>, ScanError> {
     let resolution = camera.resolution();
     let pixels = u64::from(resolution.width_x).saturating_mul(u64::from(resolution.height_y));
     if pixels == 0 || pixels > MAX_FRAME_PIXELS {

@@ -71,28 +71,25 @@ below. On the phone, confirm that the application reports an available StrongBox
 biometric authentication. ADB authorization and device identity are transport prerequisites, not
 cryptographic authentication.
 
-## 2. Pair the Windows desktop and phone
+## 2. Set up the Windows desktop and phone
 
-Create the default private configuration directory and define the three output paths:
-
-```powershell
-$pluginConfig = Join-Path $env:LOCALAPPDATA "age-plugin-phone"
-New-Item -ItemType Directory -Force -Path $pluginConfig | Out-Null
-$desktopState = Join-Path $pluginConfig "desktop.state"
-$identityStub = Join-Path $pluginConfig "identity.txt"
-$replayState = Join-Path $pluginConfig "replay.state"
-```
-
-Start pairing as one PowerShell command. Avoid backtick line continuations when copying commands
-between terminals:
+Start managed setup as one PowerShell command. It checks the supported Windows/TPM boundary and
+Developer USB device selection before allocating unique create-only state paths:
 
 ```powershell
-age-plugin-phone pair --label "Windows Alpha" --desktop-state $desktopState --identity-output $identityStub --replay-state $replayState --transport adb
+age-plugin-phone setup --label "Windows Alpha"
 ```
 
 On the phone, choose **Pair via Developer USB**. Compare the complete fingerprint on both endpoints,
 then type the full fingerprint into the desktop prompt. Do not approve a partial or visually similar
 fingerprint. Success prints the public identity-stub path and a `Recipient: age1phone...` value.
+
+Copy the printed public identity-stub path into the variable used by the remaining steps:
+
+```powershell
+$pluginConfig = Join-Path $env:LOCALAPPDATA "age-plugin-phone"
+$identityStub = "<printed-public-identity-stub-path>"
+```
 
 The identity stub contains public pairing material, not the phone's long-term private key. The
 desktop state refers to distinct non-exportable TPM signing and stanza-selection keys. The durable
@@ -103,12 +100,18 @@ retain the selection for later age invocations:
 
 ```powershell
 $adbSerial = "<selected-adb-serial>"
-age-plugin-phone pair --label "Windows Alpha" --desktop-state $desktopState --identity-output $identityStub --replay-state $replayState --transport adb --adb-serial $adbSerial
+age-plugin-phone setup --label "Windows Alpha" --adb-serial $adbSerial
 $env:AGE_PLUGIN_PHONE_ADB_SERIAL = $adbSerial
 ```
 
 Treat device serials and the desktop label only as untrusted routing and display hints. They never
 replace fingerprint comparison, protocol verification, or the fresh phone biometric operation.
+
+If setup is interrupted, rerunning a new setup fails closed while its protected journal exists.
+Use `age-plugin-phone setup --resume` only when the desktop had already accepted the complete
+fingerprint; otherwise use `age-plugin-phone setup --cleanup`, then revoke any matching fingerprint
+retained on the phone. These modes never infer targets or claim phone-side revocation. The explicit
+`pair` command with user-supplied paths remains available only for advanced diagnostics.
 
 ## 3. Prove a reference-age round trip
 

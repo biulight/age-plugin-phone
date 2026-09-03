@@ -183,6 +183,42 @@ pub struct WindowsCngKeySet {
 }
 
 impl WindowsCngKeySet {
+    /// Provisions one new role-separated key pair and refuses to reuse any existing key.
+    ///
+    /// If provisioning or validation fails after creating a key, both exact names are removed
+    /// before returning. A pre-existing complete or partial set is never modified.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the platform is unsupported, either exact key already exists, key
+    /// provisioning fails, or the new keys do not satisfy the non-exportable role constraints.
+    pub fn create_new(desktop_id: [u8; 16]) -> Result<Self, Error> {
+        let provider = open_supported_provider()?;
+        let (signing_name, selection_name) = key_names(desktop_id);
+        let signing = open_key(provider.raw(), &signing_name)?;
+        let selection = open_key(provider.raw(), &selection_name)?;
+        if signing.is_some() || selection.is_some() {
+            return Err(Error::PartialState);
+        }
+
+        let signing = create_key(provider.raw(), &signing_name, NCRYPT_ECDSA_P256_ALGORITHM)?;
+        let selection =
+            match create_key(provider.raw(), &selection_name, NCRYPT_ECDH_P256_ALGORITHM) {
+                Ok(selection) => selection,
+                Err(error) => {
+                    let _ = signing.delete();
+                    return Err(error);
+                }
+            };
+        match Self::validate(provider, signing, selection) {
+            Ok(keys) => Ok(keys),
+            Err(error) => {
+                remove_key_set(desktop_id).map_err(|_| Error::KeyState)?;
+                Err(error)
+            }
+        }
+    }
+
     /// Opens an existing complete key pair without provisioning missing keys.
     ///
     /// # Errors

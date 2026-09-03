@@ -57,6 +57,7 @@ candidate; every other physical row remains pending until rerun with that exact 
 
 | Scenario | Portable gate | Physical gate | Current state |
 | --- | --- | --- | --- |
+| Managed `setup` with automatic create-only paths, full fingerprint comparison, interruption resume/cleanup, and no overwrite | Required | Required | Portable journal, CLI, preflight, and fail-closed activation coverage implemented; exact packaged Windows/Android physical run pending |
 | Fresh identity and pairing, exact transcript comparison, restart, then standard age unwrap | Required | Required | `be1e85e` passed fresh StrongBox identity provisioning, isolated TPM state, complete-fingerprint Developer USB pairing, one fresh-biometric standard unwrap, and independent recovery. Restart and broader lifecycle permutations remain pending for this candidate |
 | Automatic Developer USB unwrap wake on cold start, foreground, background, and repeated requests | Required | Required | Exact packaged artifacts passed all four wake modes without manual **Approve USB**; each unwrap required fresh biometrics |
 | Encrypt and decrypt with released reference age; multiple files and multiple phone identities | Required | Required | age 1.3.1 passed two-file native/cross-client phone and recovery paths; multiple phone identities remain open |

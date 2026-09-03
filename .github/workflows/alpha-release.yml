@@ -176,6 +176,7 @@ jobs:
         shell: pwsh
         run: |
           target/release/age-plugin-phone.exe --help
+          target/release/age-plugin-phone.exe setup --help
           $verification = @(& $env:SIGNTOOL_PATH verify /pa /all /v target/release/age-plugin-phone.exe 2>&1)
           $verifyExitCode = $LASTEXITCODE
           $verification | Set-Content -Encoding utf8NoBOM target/release/signature-verification.txt
