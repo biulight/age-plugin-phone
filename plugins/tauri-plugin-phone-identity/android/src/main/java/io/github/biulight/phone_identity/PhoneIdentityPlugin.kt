@@ -1008,7 +1008,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 val completed = takeStreamResponse(owned.token)
                 completed?.invoke?.resolve(report)
                 if (completed?.streamFailureCategory == WIFI_TRANSPORT_FAILURE) {
-                    scheduleWifiAutoEvaluation(WIFI_SESSION_RETRY_DELAY_MILLIS)
+                    scheduleWifiAutoEvaluation(0)
                 }
                 return
             }

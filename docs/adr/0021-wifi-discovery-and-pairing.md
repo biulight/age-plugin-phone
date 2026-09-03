@@ -178,6 +178,19 @@ constant still allowed only 900 milliseconds. Production discovery now uses the 
 window; this timeout change still occurs entirely before pairing-offer or unwrap-request creation and
 does not add an in-flight retry or transport switch.
 
+The same retry pattern also exposed a transport-lifecycle defect that discovery-only probes could
+not exercise. The Android one-shot listener closes after accepting a TCP session, and the phone
+actively closes the accepted socket after sending the response. With `SO_REUSEADDR` disabled, the
+fixed local port `47140` could remain unavailable during TCP `TIME_WAIT`; the auto-listener then
+failed to rebind and therefore never restarted its UDP responder. The listener now enables
+`SO_REUSEADDR` before binding. Android still permits only one active listener on the fixed address,
+while a new foreground owner can rebind immediately after the previous one-shot session closes.
+The common signed request/response protocol continues to treat the TCP peer and route as untrusted.
+After a completed Wi-Fi response, the next listener is scheduled immediately rather than imposing
+the failure-retry delay; failed, cancelled, or malformed sessions retain bounded retry behavior.
+Desktop errors also distinguish failure to connect after authenticated discovery from a connected
+session that returned no valid response, without exposing request or response bytes.
+
 The remaining physical matrix includes discovery on Windows and Android, no listener, wrong and
 multiple phones, hostile first connection, backgrounding, network change, pairing cancellation,
 unwrap cancellation, timeout, replay, and a fresh user-initiated recovery attempt through ADB.

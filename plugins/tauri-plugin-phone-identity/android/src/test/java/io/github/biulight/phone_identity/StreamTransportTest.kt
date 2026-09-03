@@ -164,6 +164,7 @@ class StreamTransportTest {
     @Test
     fun foregroundWifiListenerAcceptsOneBoundedUnwrap() {
         val listener = PhoneWifiListener.start(0)
+        val port = listener.localPort
         val response = AtomicReference<ByteArray>()
         val client = Thread {
             Socket().use { socket ->
@@ -196,6 +197,7 @@ class StreamTransportTest {
 
         assertFalse(client.isAlive)
         assertArrayEquals(byteArrayOf(7, 8, 9), response.get())
+        PhoneWifiListener.start(port).close()
     }
 
     @Test

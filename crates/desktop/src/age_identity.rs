@@ -259,7 +259,7 @@ fn exchange_identity_wifi(
         TransportLimits::default(),
         &mut OsRng,
     ) else {
-        return Ok(Err(ExchangeError::Failed));
+        return Ok(Err(ExchangeError::ConnectionFailed));
     };
     Ok(session
         .exchange(SessionPurpose::Unwrap, request)
@@ -291,6 +291,7 @@ fn exchange_identity_qr(
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum ExchangeError {
     Cancelled,
+    ConnectionFailed,
     InvalidResponse,
     Failed,
 }
@@ -437,6 +438,16 @@ where
                 errors.push(identity_error(identity_index, "phone unwrap cancelled"));
                 results.insert(file_index, Err(errors));
                 return Ok(results);
+            }
+            Err(ExchangeError::ConnectionFailed) => {
+                session.cancel();
+                errors.push(stanza_error(
+                    file_index,
+                    stanza_index,
+                    "phone Wi-Fi connection unavailable after discovery",
+                ));
+                results.insert(file_index, Err(errors));
+                continue;
             }
             Err(ExchangeError::InvalidResponse | ExchangeError::Failed) => {
                 session.cancel();

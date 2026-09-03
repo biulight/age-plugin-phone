@@ -276,7 +276,10 @@ release gate, not an open question about whether the ADB transport can carry the
   windows and a real `shine` decrypt with `adb` absent from `PATH` passed. A subsequent ordinary-path
   retry exposed that production still used a 900-millisecond window while the successful physical
   probe used three seconds; production now uses the physically exercised window. The broader
-  adverse-condition matrix remains open.
+  retry pattern also identified fixed-port `TIME_WAIT` rebinding after the first successful TCP
+  unwrap; the Android listener now uses exclusive active binding with `SO_REUSEADDR` so the next
+  one-shot foreground listener can re-arm immediately. The broader adverse-condition matrix remains
+  open.
 - [ ] Retain ADB as a development, diagnostics, and recovery transport after a production
   convenience transport is available; do not treat the technical-Alpha default as a
   general-availability commitment.
