@@ -35,6 +35,7 @@ marker() {
   local key=$2
   local values=()
   while IFS= read -r value; do
+    value="${value%$'\r'}"
     values+=("$value")
   done < <(sed -nE "s/^${key}: (.*)$/\\1/p" "$file")
   [[ ${#values[@]} -eq 1 ]] || fail "expected exactly one $key marker in $(basename "$file")"

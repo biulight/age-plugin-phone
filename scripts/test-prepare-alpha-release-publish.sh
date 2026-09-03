@@ -32,7 +32,11 @@ trust_scope: private test root validated in memory and not installed in a Window
 certificate_sha256: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 root_certificate_sha256: bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 EOF
-mv "$windows_dir/signature-verification.txt" "$windows_dir/age-plugin-phone-$version-windows-signature-verification.txt"
+windows_evidence="$windows_dir/age-plugin-phone-$version-windows-signature-verification.txt"
+mv "$windows_dir/signature-verification.txt" "$windows_evidence"
+# Windows PowerShell writes the real signing evidence with CRLF line endings.
+awk '{ printf "%s\r\n", $0 }' "$windows_evidence" > "$temp_root/windows-evidence.crlf"
+mv "$temp_root/windows-evidence.crlf" "$windows_evidence"
 android_apk="$android_dir/age-plugin-phone-$version-android-arm64.apk"
 printf 'synthetic Android APK\n' > "$android_apk"
 sha256sum "$android_apk" > "$android_dir/age-plugin-phone-$version-android-SHA256SUMS.txt"
