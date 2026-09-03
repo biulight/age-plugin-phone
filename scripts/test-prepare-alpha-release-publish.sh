@@ -49,9 +49,9 @@ stage="$temp_root/stage"
 body="$temp_root/release-body.md"
 scripts/prepare-alpha-release-publish.sh "$temp_root/artifacts" "$stage" "$body" "$version" "$commit" "$run"
 [[ $(find "$stage" -type f | wc -l | tr -d ' ') == 6 ]]
-rg -q "commit=$commit run=$run attempt=1" "$body"
-rg -q 'Windows test-root certificate SHA-256' "$body"
-rg -q 'synthetic or disposable data' "$body"
+grep -q "commit=$commit run=$run attempt=1" "$body"
+grep -q 'Windows test-root certificate SHA-256' "$body"
+grep -q 'synthetic or disposable data' "$body"
 for asset in \
   "age-plugin-phone-$version-windows-x64-alpha-test-signed.zip" \
   "age-plugin-phone-$version-android-arm64.apk" \

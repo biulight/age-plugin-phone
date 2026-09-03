@@ -309,7 +309,7 @@ fn render_request_prompt(request: &[u8], display: &UnwrapDisplay) -> Result<Stri
     ))
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(windows)))]
 fn unwrap_with_exchange<F>(
     identities: &[(usize, PublicIdentityStub)],
     files: Vec<Vec<Stanza>>,
