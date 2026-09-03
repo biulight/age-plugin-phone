@@ -4,6 +4,9 @@
 - Date: 2026-09-01
 - Scope: deterministic desktop selection of QR, Developer USB ADB, foreground Wi-Fi, and future BLE transports
 
+> Amended by ADR 0021: Wi-Fi now supports explicit foreground pairing and bounded discovery;
+> route resolution remains single-choice and completes before protocol-session creation.
+
 ## Context
 
 ADR 0016 defines a bounded one-request/one-response stream boundary, but transport selection still
@@ -27,15 +30,16 @@ The current capability matrix is:
 | --- | --- | --- | --- |
 | Developer USB ADB | yes | yes | implemented; Windows `auto` default |
 | QR | yes | yes | implemented; non-Windows `auto` default and offline fallback |
-| foreground Wi-Fi | no | yes | implemented owner-only PoC; requires an explicit private IPv4 endpoint |
+| foreground Wi-Fi | yes | yes | source implemented; discovery and physical validation pending |
 | BLE | reserved | reserved | unavailable until the separately gated native PoC exists |
 
 `auto` is deterministic and performs no race:
 
 1. conflicting route hints fail closed;
 2. an explicit ADB serial selects ADB;
-3. an explicit Wi-Fi endpoint selects Wi-Fi for unwrap only; and
-4. without a route hint, Windows selects ADB and other desktop platforms select QR.
+3. an explicit Wi-Fi endpoint selects Wi-Fi;
+4. without a route hint, bounded discovery may select exactly one matching Wi-Fi route; and
+5. no matching discovery response preserves ADB on Windows and QR on other desktop platforms.
 
 These are route and capability hints only. They do not authenticate a phone, authorize an unwrap,
 or weaken the signed pairing and request verification above the transport. A future capability
@@ -56,7 +60,7 @@ phone user verification.
 ## Route-hint rules
 
 - `adb` accepts only an optional ADB serial.
-- `wifi` accepts exactly one Wi-Fi endpoint and is unwrap-only.
+- `wifi` accepts exactly one discovered or diagnostic Wi-Fi endpoint for pairing or unwrap.
 - `qr` accepts no route hint.
 - `ble` accepts no route hint until its discovery and explicit-selection model is reviewed.
 - `auto` accepts at most one transport-specific hint; a hint pins the single route rather than
@@ -78,7 +82,8 @@ in-flight protocol request to another connection or transport.
 - CLI commands and the standard age identity state machine share one parser, capability matrix,
   route validation, and platform default.
 - Adding a transport requires an explicit capability and policy update plus negative contract tests.
-- `auto` initially preserves the existing Windows ADB and non-Windows QR behavior; it is not a
-  best-effort fallback mechanism.
+- `auto` checks Wi-Fi availability before protocol-session creation, then preserves the existing
+  Windows ADB and non-Windows QR behavior when no matching listener responds. It is not an
+  in-flight best-effort fallback mechanism.
 - BLE is visible as a reserved explicit choice and fails closed until a native implementation is
   reviewed and enabled.

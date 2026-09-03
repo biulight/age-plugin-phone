@@ -8,6 +8,7 @@ const COMMANDS: &[&str] = &[
     "scan_pairing_offer",
     "pair_phone",
     "pair_phone_usb",
+    "pair_phone_wifi",
     "unwrap_phone",
     "set_wifi_auto_listen",
     "wifi_auto_listen_status",

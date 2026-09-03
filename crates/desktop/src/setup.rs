@@ -10,8 +10,10 @@ use minicbor::{Decoder, Encoder, data::Type};
 use thiserror::Error;
 
 use crate::pairing::PublicIdentityStub;
+use crate::transport_policy::TransportChoice;
 
-const SETUP_VERSION: u16 = 1;
+const SETUP_VERSION: u16 = 2;
+const LEGACY_SETUP_VERSION: u16 = 1;
 const JOURNAL_NAME: &str = "desktop-setup.cbor";
 #[cfg(windows)]
 const MAX_JOURNAL_BYTES: u64 = 32_768;
@@ -45,6 +47,7 @@ pub struct SetupJournal {
     pub desktop_state: PathBuf,
     pub replay_state: PathBuf,
     pub identity_stub: PathBuf,
+    pub transport: TransportChoice,
     pub candidate: Option<PublicIdentityStub>,
 }
 
@@ -59,7 +62,21 @@ impl SetupJournal {
             desktop_state: root.join(format!("desktop-{suffix}.state")),
             replay_state: root.join(format!("replay-{suffix}.state")),
             identity_stub: root.join(format!("identity-{suffix}.txt")),
+            transport: TransportChoice::Auto,
             candidate: None,
+        }
+    }
+
+    #[must_use]
+    pub fn new_with_transport(
+        root: &Path,
+        setup_code: Id,
+        desktop_id: Id,
+        transport: TransportChoice,
+    ) -> Self {
+        Self {
+            transport,
+            ..Self::new(root, setup_code, desktop_id)
         }
     }
 
@@ -104,9 +121,104 @@ impl SetupJournal {
     fn encode(&self) -> Result<Vec<u8>, SetupError> {
         let mut encoder = Encoder::new(Vec::new());
         encoder
-            .array(8)
+            .array(9)
             .map_err(|_| SetupError::Invalid)?
             .u16(SETUP_VERSION)
+            .map_err(|_| SetupError::Invalid)?
+            .u16(self.stage as u16)
+            .map_err(|_| SetupError::Invalid)?
+            .bytes(&self.setup_code)
+            .map_err(|_| SetupError::Invalid)?
+            .bytes(&self.desktop_id)
+            .map_err(|_| SetupError::Invalid)?
+            .str(encoded_path(&self.desktop_state)?)
+            .map_err(|_| SetupError::Invalid)?
+            .str(encoded_path(&self.replay_state)?)
+            .map_err(|_| SetupError::Invalid)?
+            .str(encoded_path(&self.identity_stub)?)
+            .map_err(|_| SetupError::Invalid)?
+            .str(&self.transport.to_string())
+            .map_err(|_| SetupError::Invalid)?;
+        if let Some(candidate) = &self.candidate {
+            encoder
+                .bytes(&candidate.encode())
+                .map_err(|_| SetupError::Invalid)?;
+        } else {
+            encoder.null().map_err(|_| SetupError::Invalid)?;
+        }
+        Ok(encoder.into_writer())
+    }
+
+    fn decode(bytes: &[u8]) -> Result<Self, SetupError> {
+        let mut decoder = Decoder::new(bytes);
+        let fields = decoder.array().map_err(|_| SetupError::Invalid)?;
+        let version = decoder.u16().map_err(|_| SetupError::Invalid)?;
+        if !matches!(
+            (fields, version),
+            (Some(9), SETUP_VERSION) | (Some(8), LEGACY_SETUP_VERSION)
+        ) {
+            return Err(SetupError::Invalid);
+        }
+        let stage = SetupStage::decode(decoder.u16().map_err(|_| SetupError::Invalid)?)?;
+        let setup_code = fixed(decoder.bytes().map_err(|_| SetupError::Invalid)?)?;
+        let desktop_id = fixed(decoder.bytes().map_err(|_| SetupError::Invalid)?)?;
+        let desktop_state = PathBuf::from(decoder.str().map_err(|_| SetupError::Invalid)?);
+        let replay_state = PathBuf::from(decoder.str().map_err(|_| SetupError::Invalid)?);
+        let identity_stub = PathBuf::from(decoder.str().map_err(|_| SetupError::Invalid)?);
+        let transport = if version == SETUP_VERSION {
+            decoder
+                .str()
+                .map_err(|_| SetupError::Invalid)?
+                .parse()
+                .map_err(|_| SetupError::Invalid)?
+        } else {
+            TransportChoice::Auto
+        };
+        let candidate = match decoder.datatype().map_err(|_| SetupError::Invalid)? {
+            Type::Null => {
+                decoder.null().map_err(|_| SetupError::Invalid)?;
+                None
+            }
+            Type::Bytes => Some(
+                PublicIdentityStub::decode(decoder.bytes().map_err(|_| SetupError::Invalid)?)
+                    .map_err(|_| SetupError::Invalid)?,
+            ),
+            _ => return Err(SetupError::Invalid),
+        };
+        let value = Self {
+            stage,
+            setup_code,
+            desktop_id,
+            desktop_state,
+            replay_state,
+            identity_stub,
+            transport,
+            candidate,
+        };
+        if decoder.position() != bytes.len()
+            || if version == SETUP_VERSION {
+                value.encode()? != bytes
+            } else {
+                value.encode_legacy()? != bytes
+            }
+            || value.candidate.is_some()
+                != matches!(stage, SetupStage::ResponseVerified | SetupStage::Confirmed)
+            || value
+                .candidate
+                .as_ref()
+                .is_some_and(|candidate| candidate.desktop_id != desktop_id)
+        {
+            return Err(SetupError::Invalid);
+        }
+        Ok(value)
+    }
+
+    fn encode_legacy(&self) -> Result<Vec<u8>, SetupError> {
+        let mut encoder = Encoder::new(Vec::new());
+        encoder
+            .array(8)
+            .map_err(|_| SetupError::Invalid)?
+            .u16(LEGACY_SETUP_VERSION)
             .map_err(|_| SetupError::Invalid)?
             .u16(self.stage as u16)
             .map_err(|_| SetupError::Invalid)?
@@ -128,53 +240,6 @@ impl SetupJournal {
             encoder.null().map_err(|_| SetupError::Invalid)?;
         }
         Ok(encoder.into_writer())
-    }
-
-    fn decode(bytes: &[u8]) -> Result<Self, SetupError> {
-        let mut decoder = Decoder::new(bytes);
-        if decoder.array().map_err(|_| SetupError::Invalid)? != Some(8)
-            || decoder.u16().map_err(|_| SetupError::Invalid)? != SETUP_VERSION
-        {
-            return Err(SetupError::Invalid);
-        }
-        let stage = SetupStage::decode(decoder.u16().map_err(|_| SetupError::Invalid)?)?;
-        let setup_code = fixed(decoder.bytes().map_err(|_| SetupError::Invalid)?)?;
-        let desktop_id = fixed(decoder.bytes().map_err(|_| SetupError::Invalid)?)?;
-        let desktop_state = PathBuf::from(decoder.str().map_err(|_| SetupError::Invalid)?);
-        let replay_state = PathBuf::from(decoder.str().map_err(|_| SetupError::Invalid)?);
-        let identity_stub = PathBuf::from(decoder.str().map_err(|_| SetupError::Invalid)?);
-        let candidate = match decoder.datatype().map_err(|_| SetupError::Invalid)? {
-            Type::Null => {
-                decoder.null().map_err(|_| SetupError::Invalid)?;
-                None
-            }
-            Type::Bytes => Some(
-                PublicIdentityStub::decode(decoder.bytes().map_err(|_| SetupError::Invalid)?)
-                    .map_err(|_| SetupError::Invalid)?,
-            ),
-            _ => return Err(SetupError::Invalid),
-        };
-        let value = Self {
-            stage,
-            setup_code,
-            desktop_id,
-            desktop_state,
-            replay_state,
-            identity_stub,
-            candidate,
-        };
-        if decoder.position() != bytes.len()
-            || value.encode()? != bytes
-            || value.candidate.is_some()
-                != matches!(stage, SetupStage::ResponseVerified | SetupStage::Confirmed)
-            || value
-                .candidate
-                .as_ref()
-                .is_some_and(|candidate| candidate.desktop_id != desktop_id)
-        {
-            return Err(SetupError::Invalid);
-        }
-        Ok(value)
     }
 
     fn validate_root(&self, root: &Path) -> Result<(), SetupError> {
@@ -367,11 +432,12 @@ pub fn commit_confirmed(
         ),
     }
 
-    match crate::locator::create_pairing_locator(
+    match crate::locator::create_pairing_locator_with_transport(
         root,
         stub,
         &value.desktop_state,
         &value.replay_state,
+        value.transport,
     ) {
         Ok(_) => {}
         Err(crate::locator::LocatorError::AlreadyExists) => {
@@ -379,6 +445,7 @@ pub fn commit_confirmed(
                 .map_err(|_| SetupError::Invalid)?;
             if locator.desktop_state != value.desktop_state
                 || locator.replay_state != value.replay_state
+                || locator.transport != value.transport
             {
                 return Err(SetupError::Invalid);
             }
@@ -527,7 +594,8 @@ mod tests {
 
     #[test]
     fn journal_is_canonical_and_stage_bound() {
-        let mut value = SetupJournal::new(&root(), [1; 16], [2; 16]);
+        let mut value =
+            SetupJournal::new_with_transport(&root(), [1; 16], [2; 16], TransportChoice::Wifi);
         for stage in [SetupStage::Provisioning, SetupStage::Pairing] {
             value.stage = stage;
             let encoded = value.encode().unwrap();
@@ -543,6 +611,11 @@ mod tests {
         let mut trailing = encoded;
         trailing.push(0);
         assert_eq!(SetupJournal::decode(&trailing), Err(SetupError::Invalid));
+
+        let legacy = value.encode_legacy().unwrap();
+        let decoded = SetupJournal::decode(&legacy).unwrap();
+        assert_eq!(decoded.transport, TransportChoice::Auto);
+        assert_eq!(decoded.candidate, value.candidate);
     }
 
     #[test]

@@ -15,7 +15,9 @@ use age_plugin_phone::adb::{
 };
 use age_plugin_phone::age_identity::PhoneIdentityPlugin;
 use age_plugin_phone::age_recipient::PhoneRecipientPlugin;
-use age_plugin_phone::locator::{create_pairing_locator, default_config_root, prepare_config_root};
+use age_plugin_phone::locator::{
+    create_pairing_locator_with_transport, default_config_root, prepare_config_root,
+};
 use age_plugin_phone::pairing::{
     DesktopKeyState, DesktopPairingSession, MAX_PAIRING_SESSION_AGE_MS, create_identity_stub_file,
     read_identity_stub_file,
@@ -28,10 +30,14 @@ use age_plugin_phone::setup;
 #[cfg(windows)]
 use age_plugin_phone::setup::{SetupJournal, SetupStage};
 use age_plugin_phone::transport_policy::{
-    TransportChoice, TransportHints, TransportKind, TransportOperation, resolve_transport,
+    TransportChoice, TransportHints, TransportKind, TransportOperation, TransportRoute,
+    resolve_transport,
 };
 use age_plugin_phone::unwrap::{DesktopUnwrapSession, now_unix};
-use age_plugin_phone::wifi::{WIFI_UNWRAP_PORT, WifiSession};
+use age_plugin_phone::wifi::{
+    DEFAULT_DISCOVERY_TIMEOUT, WIFI_UNWRAP_PORT, WifiError, WifiSession, discover_pairing_endpoint,
+    discover_unwrap_endpoint,
+};
 use age_plugin_phone_protocol::{
     DEFAULT_REPLAY_CAPACITY, FileReplayGuard, PROTOCOL_VERSION, PairingOffer, ReplayRole,
     ReplayScope, SignedPairingOffer, fragment_qr_message,
@@ -201,10 +207,12 @@ fn main() -> io::Result<()> {
             println!("status: common-transport-adb-alpha");
             println!("protocol_version: {PROTOCOL_VERSION}");
             println!("qr_capture_probe: available");
-            println!("pairing_transport: adb_reverse_or_desktop_camera_qr");
+            println!("pairing_transport: adb_reverse_or_foreground_wifi_or_desktop_camera_qr");
             println!("unwrap_transport: adb_reverse_or_foreground_wifi_or_desktop_camera_qr");
-            println!("transport_policy: auto_or_explicit_single_route");
-            println!("wifi_transport: owner_only_foreground_poc_port_{WIFI_UNWRAP_PORT}");
+            println!("transport_policy: wifi_discovery_then_explicit_single_route");
+            println!(
+                "wifi_transport: foreground_discovery_port_47141_stream_port_{WIFI_UNWRAP_PORT}"
+            );
             println!("ble_transport: not_implemented");
             println!("mobile_identity: android_strongbox_pairing");
             println!("age_recipient_v1: available");
@@ -350,22 +358,9 @@ fn run_pair(
     adb_serial: Option<&str>,
 ) -> io::Result<()> {
     ensure_desktop_platform_supported()?;
-    let route = resolve_transport(
-        transport,
-        TransportOperation::Pairing,
-        TransportHints {
-            adb_serial: adb_serial.map(str::to_owned),
-            wifi_address: None,
-        },
-    )
-    .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error.to_string()))?;
     ensure_pairing_outputs_available(identity_output, replay_state)?;
     let desktop_state_existed = desktop_state.exists();
-    let config_root = default_config_root()
-        .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
-    prepare_config_root(&config_root)
-        .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
-    ensure_no_setup_pending_for_pair(&config_root)?;
+    let config_root = prepare_pairing_config_root()?;
     #[cfg(windows)]
     {
         ensure_windows_private_state_path(&config_root, desktop_state)?;
@@ -374,6 +369,41 @@ fn run_pair(
     let state = DesktopKeyState::open_or_create(desktop_state, &mut OsRng)
         .map_err(|_| io::Error::other("desktop authentication state is unavailable"))?;
     let desktop_id = state.desktop_id;
+    let wifi_address = match discover_pairing_wifi(desktop_id, transport, adb_serial) {
+        Ok(address) => address,
+        Err(error) => {
+            drop(state);
+            let _ = rollback_failed_pairing(
+                desktop_state,
+                replay_state,
+                None,
+                !desktop_state_existed,
+                desktop_id,
+            );
+            return Err(error);
+        }
+    };
+    let route = match resolve_transport(
+        transport,
+        TransportOperation::Pairing,
+        TransportHints {
+            adb_serial: adb_serial.map(str::to_owned),
+            wifi_address,
+        },
+    ) {
+        Ok(route) => route,
+        Err(error) => {
+            drop(state);
+            let _ = rollback_failed_pairing(
+                desktop_state,
+                replay_state,
+                None,
+                !desktop_state_existed,
+                desktop_id,
+            );
+            return Err(io::Error::new(io::ErrorKind::InvalidInput, error));
+        }
+    };
     let selection_public = state
         .selection_public_key()
         .map_err(|_| io::Error::other("desktop selection key is unavailable"))?;
@@ -388,17 +418,7 @@ fn run_pair(
     .map_err(|_| io::Error::other("failed to create pairing offer"))?;
     let started = Instant::now();
     let mut stdout = io::stdout().lock();
-    let response = match route.kind() {
-        TransportKind::Adb => exchange_adb(
-            SessionPurpose::Pairing,
-            &session.signed_offer(),
-            route.adb_serial(),
-        ),
-        TransportKind::Qr => exchange_pairing_qr(&session.signed_offer(), started, &mut stdout),
-        TransportKind::Ble | TransportKind::Wifi => {
-            unreachable!("unsupported pairing transports are rejected before session creation")
-        }
-    };
+    let response = exchange_pairing_route(&route, &session.signed_offer(), started, &mut stdout);
     let response = match response {
         Ok(response) => response,
         Err(error) => {
@@ -431,8 +451,55 @@ fn run_pair(
         identity_output,
         replay_state,
         !desktop_state_existed,
+        transport,
     )?;
     print_pairing_outputs(identity_output, &stub)
+}
+
+fn prepare_pairing_config_root() -> io::Result<PathBuf> {
+    let config_root = default_config_root()
+        .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
+    prepare_config_root(&config_root)
+        .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
+    ensure_no_setup_pending_for_pair(&config_root)?;
+    Ok(config_root)
+}
+
+fn discover_pairing_wifi(
+    desktop_id: [u8; 16],
+    transport: TransportChoice,
+    adb_serial: Option<&str>,
+) -> io::Result<Option<SocketAddr>> {
+    if adb_serial.is_some() || !matches!(transport, TransportChoice::Auto | TransportChoice::Wifi) {
+        return Ok(None);
+    }
+    match discover_pairing_endpoint(desktop_id, DEFAULT_DISCOVERY_TIMEOUT, &mut OsRng) {
+        Ok(address) => Ok(Some(address)),
+        Err(WifiError::DiscoveryUnavailable) if transport == TransportChoice::Auto => Ok(None),
+        Err(error) => Err(io::Error::other(error.to_string())),
+    }
+}
+
+fn exchange_pairing_route(
+    route: &TransportRoute,
+    offer: &[u8],
+    started: Instant,
+    output: &mut impl io::Write,
+) -> io::Result<Zeroizing<Vec<u8>>> {
+    match route.kind() {
+        TransportKind::Adb => exchange_adb(SessionPurpose::Pairing, offer, route.adb_serial()),
+        TransportKind::Qr => exchange_pairing_qr(offer, started, output),
+        TransportKind::Wifi => exchange_wifi(
+            SessionPurpose::Pairing,
+            offer,
+            route
+                .wifi_address()
+                .expect("validated Wi-Fi pairing endpoint"),
+        ),
+        TransportKind::Ble => {
+            unreachable!("unsupported pairing transports are rejected before session creation")
+        }
+    }
 }
 
 #[cfg(windows)]
@@ -532,6 +599,7 @@ fn print_pairing_outputs(
 #[cfg(windows)]
 enum PreparedSetupTransport {
     Adb(String),
+    Wifi(SocketAddr),
     Qr(ScannerHandle),
 }
 
@@ -563,12 +631,26 @@ fn run_setup(
     let label = label
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "new setup requires --label"))?;
     validate_setup_label(&label)?;
+    let mut desktop_id = [0_u8; 16];
+    OsRng.fill_bytes(&mut desktop_id);
+    let mut wifi_address = None;
+    if adb_serial.is_none() && matches!(transport, TransportChoice::Auto | TransportChoice::Wifi) {
+        match discover_pairing_endpoint(desktop_id, DEFAULT_DISCOVERY_TIMEOUT, &mut OsRng) {
+            Ok(discovered) => wifi_address = Some(discovered),
+            Err(WifiError::DiscoveryUnavailable) if transport == TransportChoice::Auto => {}
+            Err(error) => {
+                return Err(io::Error::other(format!(
+                    "Wi-Fi pairing discovery failed: {error}; no setup state was created"
+                )));
+            }
+        }
+    }
     let route = resolve_transport(
         transport,
         TransportOperation::Pairing,
         TransportHints {
             adb_serial: adb_serial.map(str::to_owned),
-            wifi_address: None,
+            wifi_address,
         },
     )
     .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error.to_string()))?;
@@ -597,7 +679,12 @@ fn run_setup(
                 ))
             })?,
         ),
-        TransportKind::Ble | TransportKind::Wifi => {
+        TransportKind::Wifi => PreparedSetupTransport::Wifi(
+            route
+                .wifi_address()
+                .expect("validated Wi-Fi pairing endpoint"),
+        ),
+        TransportKind::Ble => {
             unreachable!("unsupported setup transports are rejected by policy")
         }
     };
@@ -620,10 +707,8 @@ fn run_setup(
     }
 
     let mut setup_code = [0_u8; 16];
-    let mut desktop_id = [0_u8; 16];
     OsRng.fill_bytes(&mut setup_code);
-    OsRng.fill_bytes(&mut desktop_id);
-    let mut journal = SetupJournal::new(&root, setup_code, desktop_id);
+    let mut journal = SetupJournal::new_with_transport(&root, setup_code, desktop_id, transport);
     if [
         &journal.desktop_state,
         &journal.replay_state,
@@ -685,6 +770,9 @@ fn run_setup(
             &session.signed_offer(),
             Some(&serial),
         ),
+        PreparedSetupTransport::Wifi(endpoint) => {
+            exchange_wifi(SessionPurpose::Pairing, &session.signed_offer(), endpoint)
+        }
         PreparedSetupTransport::Qr(scanner) => exchange_pairing_qr_with_scanner(
             &session.signed_offer(),
             started,
@@ -955,6 +1043,7 @@ fn commit_pairing_state(
     identity_output: &std::path::Path,
     replay_state: &std::path::Path,
     desktop_state_created: bool,
+    transport: TransportChoice,
 ) -> io::Result<()> {
     let pairing = age_plugin_phone_protocol::PairingRecord {
         desktop_id: stub.desktop_id,
@@ -982,8 +1071,13 @@ fn commit_pairing_state(
         ));
     };
     drop(replay);
-    let Ok(locator_path) = create_pairing_locator(config_root, stub, desktop_state, replay_state)
-    else {
+    let Ok(locator_path) = create_pairing_locator_with_transport(
+        config_root,
+        stub,
+        desktop_state,
+        replay_state,
+        transport,
+    ) else {
         let rolled_back = rollback_failed_pairing(
             desktop_state,
             replay_state,
@@ -1095,6 +1189,9 @@ fn run_unwrap(
     wifi_address: Option<SocketAddr>,
 ) -> io::Result<()> {
     ensure_desktop_platform_supported()?;
+    let stub = read_identity_stub_file(identity_stub)
+        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid public identity stub"))?;
+    let wifi_address = discover_unwrap_wifi(&stub, transport, adb_serial, wifi_address)?;
     let route = resolve_transport(
         transport,
         TransportOperation::Unwrap,
@@ -1104,8 +1201,6 @@ fn run_unwrap(
         },
     )
     .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error.to_string()))?;
-    let stub = read_identity_stub_file(identity_stub)
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid public identity stub"))?;
     let desktop = DesktopKeyState::open(desktop_state)
         .map_err(|_| io::Error::other("desktop authentication state is unavailable"))?;
     let body = STANDARD_NO_PAD
@@ -1138,6 +1233,7 @@ fn run_unwrap(
             exchange_unwrap_qr(&session.signed_request(), &display, started, &mut stdout)
         }
         TransportKind::Wifi => exchange_wifi(
+            SessionPurpose::Unwrap,
             &session.signed_request(),
             route.wifi_address().expect("validated Wi-Fi endpoint"),
         ),
@@ -1178,6 +1274,31 @@ fn run_unwrap(
         "\x1b[2J\x1b[HAuthenticated one-time unwrap completed."
     )?;
     Ok(())
+}
+
+fn discover_unwrap_wifi(
+    stub: &age_plugin_phone::pairing::PublicIdentityStub,
+    transport: TransportChoice,
+    adb_serial: Option<&str>,
+    wifi_address: Option<SocketAddr>,
+) -> io::Result<Option<SocketAddr>> {
+    if adb_serial.is_some()
+        || wifi_address.is_some()
+        || !matches!(transport, TransportChoice::Auto | TransportChoice::Wifi)
+    {
+        return Ok(wifi_address);
+    }
+    match discover_unwrap_endpoint(
+        stub.desktop_id,
+        stub.identity_id,
+        &stub.phone_signing_public_key,
+        DEFAULT_DISCOVERY_TIMEOUT,
+        &mut OsRng,
+    ) {
+        Ok(address) => Ok(Some(address)),
+        Err(WifiError::DiscoveryUnavailable) if transport == TransportChoice::Auto => Ok(None),
+        Err(error) => Err(io::Error::other(error.to_string())),
+    }
 }
 
 #[cfg(windows)]
@@ -1241,7 +1362,11 @@ fn exchange_adb(
         .map_err(|_| io::Error::other("ADB transport session failed closed"))
 }
 
-fn exchange_wifi(request: &[u8], endpoint: SocketAddr) -> io::Result<Zeroizing<Vec<u8>>> {
+fn exchange_wifi(
+    purpose: SessionPurpose,
+    request: &[u8],
+    endpoint: SocketAddr,
+) -> io::Result<Zeroizing<Vec<u8>>> {
     let mut transport = WifiSession::connect(
         endpoint,
         DEFAULT_CONNECT_TIMEOUT,
@@ -1251,7 +1376,7 @@ fn exchange_wifi(request: &[u8], endpoint: SocketAddr) -> io::Result<Zeroizing<V
     )
     .map_err(|error| io::Error::other(error.to_string()))?;
     transport
-        .exchange(SessionPurpose::Unwrap, request)
+        .exchange(purpose, request)
         .map_err(|_| io::Error::other("Wi-Fi transport session failed closed"))
 }
 

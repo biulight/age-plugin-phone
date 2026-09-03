@@ -85,7 +85,7 @@ pub const TRANSPORT_CAPABILITIES: [TransportCapability; 4] = [
     },
     TransportCapability {
         kind: TransportKind::Wifi,
-        pairing: false,
+        pairing: true,
         unwrap: true,
         implemented: true,
     },
@@ -378,7 +378,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_unsupported_wifi_pairing_and_unimplemented_ble() {
+    fn accepts_wifi_pairing_and_rejects_unimplemented_ble() {
         assert_eq!(
             resolve_transport_for_platform(
                 TransportChoice::Wifi,
@@ -388,8 +388,10 @@ mod tests {
                     wifi_address: Some(wifi_address()),
                 },
                 true,
-            ),
-            Err(TransportPolicyError::UnsupportedOperation)
+            )
+            .unwrap()
+            .kind(),
+            TransportKind::Wifi
         );
         for operation in [TransportOperation::Pairing, TransportOperation::Unwrap] {
             assert_eq!(

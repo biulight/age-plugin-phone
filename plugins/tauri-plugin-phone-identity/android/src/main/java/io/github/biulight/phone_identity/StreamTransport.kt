@@ -129,11 +129,11 @@ internal class PhoneWifiListener private constructor(
 ) : AutoCloseable {
     val localPort: Int get() = server.localPort
 
-    fun acceptUnwrap(): PhoneStreamSession {
+    fun accept(purpose: PhoneStreamSession.Purpose): PhoneStreamSession {
         try {
             return PhoneStreamSession.fromAccepted(
                 server.accept(),
-                PhoneStreamSession.Purpose.UNWRAP,
+                purpose,
             )
         } catch (error: SocketTimeoutException) {
             throw WifiListenerTimeoutException(error)
@@ -143,6 +143,8 @@ internal class PhoneWifiListener private constructor(
             close()
         }
     }
+
+    fun acceptUnwrap(): PhoneStreamSession = accept(PhoneStreamSession.Purpose.UNWRAP)
 
     override fun close() {
         try {

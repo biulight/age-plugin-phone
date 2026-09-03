@@ -157,29 +157,31 @@ desktop ID and response-replay scope, and requires the same full transcript fing
 only private state; public stubs and phone-side revocation remain separate operations. Prefer the
 stub-based command whenever the public stub still exists.
 
-The unified `auto` transport policy defaults to the Developer USB ADB Alpha on Windows and QR on
-other desktop platforms for `pair`, `unwrap`, and standard age identity operations. It resolves one
-route before creating the protocol session and never races, switches, or silently retries after
-sending begins. Pairing over ADB still requires **Pair via Developer USB** on the phone. For unwrap,
-the desktop creates the exact reverse rule and launches one fixed, payload-free Android action;
-cold start and an existing `singleTask` instance both enter the native USB controller without a
-manual pre-step.
+The unified `auto` transport policy performs a bounded Wi-Fi discovery before pairing or unwrap.
+Exactly one matching foreground listener selects Wi-Fi; with no listener, it defaults to the
+Developer USB ADB Alpha on Windows and QR on other desktop platforms. It resolves one route before
+creating the protocol session and never races, switches, or silently retries after sending begins.
+Pairing over ADB still requires **Pair via Developer USB** on the phone. Wi-Fi pairing requires the
+explicit one-shot **Pair · Wi-Fi** action. For ADB unwrap, the desktop creates the exact reverse rule
+and launches one fixed, payload-free Android action; cold start and an existing `singleTask`
+instance both enter the native USB controller without a manual pre-step.
 Use `--adb-serial SERIAL` when multiple devices are listed by ADB. `--transport qr` selects the
 camera fallback without changing the pairing. For standard age invocations, set
 `AGE_PLUGIN_PHONE_TRANSPORT=qr` for that fallback or `AGE_PLUGIN_PHONE_ADB_SERIAL=SERIAL` for
 explicit device selection. The accepted choices are `auto`, `adb`, `ble`, `wifi`, and `qr`; `ble`
 is reserved and fails closed until its native proof of concept is reviewed and implemented.
 
-For the owner-only foreground Wi-Fi unwrap PoC, enable **Wi-Fi auto-listen** once and keep the phone
-App visible. The opt-in is stored in app-private non-backed-up state and defaults off. Then invoke
-age with `AGE_PLUGIN_PHONE_TRANSPORT=wifi` and
-`AGE_PLUGIN_PHONE_WIFI_ADDRESS=PHONE_PRIVATE_IPV4:47140`; unset
-`AGE_PLUGIN_PHONE_ADB_SERIAL`. While enabled and foregrounded, the native listener automatically
+For foreground Wi-Fi unwrap, enable **Wi-Fi auto-listen** once and keep the phone app visible. The
+opt-in is stored in app-private non-backed-up state and defaults off. Standard age automatically
+discovers the listener selected by the paired public identity; no address environment variable is
+needed. A pairing created with `--transport wifi` persists Wi-Fi-only routing, while `auto` prefers
+the matching Wi-Fi listener and otherwise uses the platform default before creating a request.
+`AGE_PLUGIN_PHONE_TRANSPORT` and `AGE_PLUGIN_PHONE_WIFI_ADDRESS` remain diagnostic overrides. While
+enabled and foregrounded, the native listener automatically
 re-arms after bounded timeouts, failures, cancellation, or completion. **Pause · Wi-Fi
 auto-listen** closes the current listener, accepted socket, or pending biometric operation; it does
-not restore an accepted request or retry it on another transport. With `auto`, an explicit Wi-Fi
-address pins this one route; it does not create discovery or fallback. The experiment provides no
-pairing, discovery, background wake, or production support claim.
+not restore an accepted request or retry it on another transport. There is no background wake or
+production support claim.
 The LAN route is untrusted and every accepted request still requires paired-desktop verification,
 durable replay consumption, and a fresh StrongBox-backed biometric operation.
 The toggle is available in every Android build. Build the side-by-side Android experiment with

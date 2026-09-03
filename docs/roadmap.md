@@ -228,10 +228,48 @@ release gate, not an open question about whether the ADB transport can carry the
   technical-user Alpha are complete, implement a native BLE proof of concept over the reviewed
   common transport interface, with untrusted discovery, bounded fragmentation, explicit phone
   selection, and fail-closed reconnect.
-- [ ] Evaluate Wi-Fi discovery, cold-start behavior, background lifetime, interface binding, LAN
-  isolation, and response routing before promoting the foreground owner PoC into a production
-  transport. Wi-Fi must deliver requests to the same native authorization controller and must not
-  require a weaker or cached approval path.
+- [x] Specify a small, versioned Wi-Fi discovery protocol before promoting the foreground owner
+  PoC. Discovery must finish before an offer or unwrap request is created, return one concrete
+  private or link-local IPv4 route, use strict bounded messages and deadlines, and treat every
+  address, interface, service name, and discovery packet as an untrusted delivery hint. Prefer a
+  nonce-bound, pairing-scoped authenticated response over a stable public phone advertisement;
+  publish Rust/Kotlin vectors and negative tests for spoofing, replay, malformed packets, timeout,
+  wrong pairing, and multiple matching phones before enabling it by default.
+- [x] Remove manual `AGE_PLUGIN_PHONE_WIFI_ADDRESS` configuration from the normal age and Shine
+  flow. Keep an explicit address, if retained at all, as a clearly diagnostic route override.
+  Resolve discovery only after the matching public identity and private pairing locator are known,
+  so a LAN with several phones does not select an arbitrary listener. No discovered value may be
+  written into a signed protocol message, public identity stub, filename, or log.
+- [x] Make the managed setup transport a per-pairing, non-security routing preference instead of a
+  one-command-only choice. `shine env secret identity init --phone --transport wifi` must pair over
+  Wi-Fi and make later standard-age unwraps discover and use Wi-Fi without environment variables.
+  `--transport auto` must persist `auto`; later unwraps probe Wi-Fi first, use it when exactly one
+  authenticated matching route is available, and otherwise select the existing platform default
+  before creating the protocol request. An explicit `wifi` preference fails when discovery is
+  unavailable or ambiguous rather than falling back. Environment and diagnostic CLI overrides may
+  take precedence, but the preference must remain outside the public identity, pairing transcript,
+  and cryptographic trust boundary.
+- [x] Preserve the unified one-route lifecycle while adding Wi-Fi-first `auto`: discovery and
+  capability checks may examine multiple candidate routes, but resolution must end in exactly one
+  route before protocol-session creation. Once an offer or unwrap request is created or sent, do
+  not race, switch, reconnect, replay, or silently retry through ADB, QR, BLE, or another address;
+  a user retry creates a fresh session, nonce, expiry, and one-time key.
+- [x] Add an explicit foreground **Pair via Wi-Fi** mode and carry the existing signed pairing
+  offer/response through the common stream boundary. The phone must open a bounded one-shot pairing
+  listener only after a local user action; the ordinary Wi-Fi auto-listen mode remains unwrap-only
+  and must never create identities or pairing state from unsolicited LAN traffic. Both endpoints
+  still compare the complete authenticated transcript fingerprint before either persists the peer.
+  Wi-Fi association, discovery, source address, and connection success provide no pairing trust.
+- [ ] Evaluate cold start, background lifetime, Android local-network permissions, interface
+  binding, LAN isolation, discovery privacy, response routing, and battery/denial-of-service behavior
+  before claiming a production Wi-Fi transport. Wi-Fi must deliver requests to the same native
+  authorization controller and must not require a weaker or cached approval path. Complete physical
+  tests for no listener, wrong phone, multiple phones, hostile first connection, app backgrounding,
+  network change, cancellation, timeout, replay, and successful Wi-Fi-to-ADB recovery on a fresh
+  user-initiated request.
+  Initial isolated Windows 11/Samsung debug validation passed explicit `wifi` pairing and unwrap,
+  Wi-Fi-first `auto` pairing with USB connected, signed discovery, fresh biometric authorization,
+  and byte-identical standard-age recovery. The broader adverse-condition matrix remains open.
 - [ ] Retain ADB as a development, diagnostics, and recovery transport after a production
   convenience transport is available; do not treat the technical-Alpha default as a
   general-availability commitment.

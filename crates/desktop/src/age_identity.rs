@@ -29,7 +29,7 @@ use crate::{
         resolve_transport,
     },
     unwrap::{DesktopUnwrapSession, UnwrapDisplay, now_unix},
-    wifi::WifiSession,
+    wifi::{DEFAULT_DISCOVERY_TIMEOUT, WifiError, WifiSession, discover_unwrap_endpoint},
 };
 
 const QR_CHUNK_BYTES: usize = 600;
@@ -87,28 +87,38 @@ impl IdentityPluginV1 for PhoneIdentityPlugin {
             Ok(root) => root,
             Err(error) => return Ok(all_supported_files_error(&files, error)),
         };
-        let Some(transport) = identity_transport() else {
+        let Ok(transport_override) = identity_transport_override() else {
             return Ok(all_supported_files_error(
                 &files,
                 internal("unsupported phone transport selection"),
             ));
         };
-        let route = match identity_route_options(transport) {
-            Ok(route) => route,
-            Err(error) => return Ok(all_supported_files_error(&files, error)),
-        };
         let messages_enabled = identity_messages_enabled();
-        unwrap_with_exchange(&self.identities, files, &root, |request, display| {
-            exchange_identity_transport(&route, request, display, messages_enabled, &mut callbacks)
-        })
+        unwrap_with_prepared_exchange(
+            &self.identities,
+            files,
+            &root,
+            |stub, locator| {
+                identity_route_options(transport_override.unwrap_or(locator.transport), stub)
+            },
+            |route, request, display| {
+                exchange_identity_transport(
+                    route,
+                    request,
+                    display,
+                    messages_enabled,
+                    &mut callbacks,
+                )
+            },
+        )
     }
 }
 
-fn identity_transport() -> Option<TransportChoice> {
+fn identity_transport_override() -> Result<Option<TransportChoice>, ()> {
     match std::env::var("AGE_PLUGIN_PHONE_TRANSPORT") {
-        Ok(value) => value.parse().ok(),
-        Err(std::env::VarError::NotPresent) => Some(TransportChoice::Auto),
-        Err(std::env::VarError::NotUnicode(_)) => None,
+        Ok(value) => value.parse().map(Some).map_err(|_| ()),
+        Err(std::env::VarError::NotPresent) => Ok(None),
+        Err(std::env::VarError::NotUnicode(_)) => Err(()),
     }
 }
 
@@ -125,16 +135,35 @@ fn parse_message_setting(value: &str) -> bool {
     )
 }
 
-fn identity_route_options(transport: TransportChoice) -> Result<TransportRoute, identity::Error> {
+fn identity_route_options(
+    transport: TransportChoice,
+    stub: &PublicIdentityStub,
+) -> Result<TransportRoute, identity::Error> {
     let adb_serial = optional_env("AGE_PLUGIN_PHONE_ADB_SERIAL")
         .map_err(|_| internal("ADB device selection is malformed"))?;
-    let wifi_address = optional_env("AGE_PLUGIN_PHONE_WIFI_ADDRESS")?
+    let mut wifi_address = optional_env("AGE_PLUGIN_PHONE_WIFI_ADDRESS")?
         .map(|value| {
             value
                 .parse::<SocketAddr>()
                 .map_err(|_| internal("Wi-Fi endpoint selection is malformed"))
         })
         .transpose()?;
+    if adb_serial.is_none()
+        && wifi_address.is_none()
+        && matches!(transport, TransportChoice::Auto | TransportChoice::Wifi)
+    {
+        match discover_unwrap_endpoint(
+            stub.desktop_id,
+            stub.identity_id,
+            &stub.phone_signing_public_key,
+            DEFAULT_DISCOVERY_TIMEOUT,
+            &mut OsRng,
+        ) {
+            Ok(discovered) => wifi_address = Some(discovered),
+            Err(WifiError::DiscoveryUnavailable) if transport == TransportChoice::Auto => {}
+            Err(_) => return Err(internal("phone Wi-Fi discovery failed or was ambiguous")),
+        }
+    }
     resolve_transport(
         transport,
         TransportOperation::Unwrap,
@@ -279,7 +308,7 @@ fn render_request_prompt(request: &[u8], display: &UnwrapDisplay) -> Result<Stri
     ))
 }
 
-#[allow(clippy::too_many_lines)]
+#[cfg(test)]
 fn unwrap_with_exchange<F>(
     identities: &[(usize, PublicIdentityStub)],
     files: Vec<Vec<Stanza>>,
@@ -288,6 +317,27 @@ fn unwrap_with_exchange<F>(
 ) -> io::Result<HashMap<usize, Result<FileKey, Vec<identity::Error>>>>
 where
     F: FnMut(&[u8], &UnwrapDisplay) -> io::Result<Result<Zeroizing<Vec<u8>>, ExchangeError>>,
+{
+    unwrap_with_prepared_exchange(
+        identities,
+        files,
+        root,
+        |_, _| Ok(()),
+        |(), request, display| exchange(request, display),
+    )
+}
+
+#[allow(clippy::too_many_lines)]
+fn unwrap_with_prepared_exchange<R, P, F>(
+    identities: &[(usize, PublicIdentityStub)],
+    files: Vec<Vec<Stanza>>,
+    root: &std::path::Path,
+    mut prepare: P,
+    mut exchange: F,
+) -> io::Result<HashMap<usize, Result<FileKey, Vec<identity::Error>>>>
+where
+    P: FnMut(&PublicIdentityStub, &PairingLocator) -> Result<R, identity::Error>,
+    F: FnMut(&R, &[u8], &UnwrapDisplay) -> io::Result<Result<Zeroizing<Vec<u8>>, ExchangeError>>,
 {
     let mut results = HashMap::new();
     for (file_index, stanzas) in files.into_iter().enumerate() {
@@ -341,6 +391,14 @@ where
             desktop_selection_public_key: stub.desktop_selection_public_key,
             phone_signing_public_key: stub.phone_signing_public_key,
         };
+        let prepared = match prepare(stub, &locator) {
+            Ok(prepared) => prepared,
+            Err(error) => {
+                errors.push(error);
+                results.insert(file_index, Err(errors));
+                continue;
+            }
+        };
         let Ok(mut replay) = FileReplayGuard::open(
             &locator.replay_state,
             ReplayScope::for_pairing(ReplayRole::DesktopResponses, &pairing),
@@ -372,7 +430,7 @@ where
             results.insert(file_index, Err(errors));
             continue;
         };
-        let response = match exchange(&session.signed_request(), &session.display())? {
+        let response = match exchange(&prepared, &session.signed_request(), &session.display())? {
             Ok(response) => response,
             Err(ExchangeError::Cancelled) => {
                 session.cancel();
