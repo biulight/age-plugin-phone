@@ -188,6 +188,9 @@ while a new foreground owner can rebind immediately after the previous one-shot 
 The common signed request/response protocol continues to treat the TCP peer and route as untrusted.
 After a completed Wi-Fi response, the next listener is scheduled immediately rather than imposing
 the failure-retry delay; failed, cancelled, or malformed sessions retain bounded retry behavior.
+Pairing confirmation success and failure also trigger that evaluation directly. The main screen
+therefore does not remain suspended until the next periodic foreground-operation check after the
+native fingerprint dialog closes.
 Desktop errors also distinguish failure to connect after authenticated discovery from a connected
 session that returned no valid response, without exposing request or response bytes.
 

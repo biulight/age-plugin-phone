@@ -565,7 +565,6 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             session = null
             activity.runOnUiThread {
                 showPairingResponse(prepared, invoke)
-                scheduleWifiAutoEvaluation(WIFI_SUSPENDED_RECHECK_MILLIS)
             }
         } catch (_: Exception) {
             cancelPendingPairing()
@@ -664,6 +663,10 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 pairingConfirmation,
                 onComplete = { committed ->
                     synchronized(stateLock) { activePairingResponse = null }
+                    // The confirmation dialog has reached a terminal state. Re-arm the passive
+                    // listener now instead of leaving the main screen suspended until the next
+                    // periodic foreground-operation check.
+                    scheduleWifiAutoEvaluation(0)
                     invoke.resolve(
                         phonePairingReport(
                             true,
@@ -675,6 +678,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 },
                 onFailure = { category ->
                     synchronized(stateLock) { activePairingResponse = null }
+                    scheduleWifiAutoEvaluation(0)
                     invoke.resolve(phonePairingReport(false, null, null, category))
                 },
             )
