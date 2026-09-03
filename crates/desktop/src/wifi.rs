@@ -142,7 +142,9 @@ fn discover_endpoint(
     socket
         .set_broadcast(true)
         .map_err(|_| WifiError::Discovery)?;
-    discover_with_socket(&socket, query, verifying_key, timeout, target)
+    let mut targets = discovery_targets();
+    targets.insert(target);
+    discover_with_socket(&socket, query, verifying_key, timeout, &targets)
 }
 
 fn discover_with_socket(
@@ -150,7 +152,7 @@ fn discover_with_socket(
     query: &DiscoveryQuery,
     verifying_key: Option<&VerifyingKey>,
     timeout: Duration,
-    target: SocketAddr,
+    targets: &BTreeSet<SocketAddr>,
 ) -> Result<SocketAddr, WifiError> {
     let encoded = encode_discovery(query, DISCOVERY_QUERY);
     let deadline = Instant::now()
@@ -165,9 +167,13 @@ fn discover_with_socket(
             break;
         }
         if now >= next_send {
-            socket
-                .send_to(&encoded, target)
-                .map_err(|_| WifiError::Discovery)?;
+            let mut sent = false;
+            for target in targets {
+                sent |= socket.send_to(&encoded, target).is_ok();
+            }
+            if !sent {
+                return Err(WifiError::Discovery);
+            }
             next_send = now + DISCOVERY_RETRY_INTERVAL;
         }
         let wait_until = deadline.min(next_send);
@@ -201,6 +207,44 @@ fn discover_with_socket(
         1 => Ok(*candidates.first().expect("one discovery candidate")),
         _ => Err(WifiError::DiscoveryAmbiguous),
     }
+}
+
+#[cfg(not(windows))]
+fn discovery_targets() -> BTreeSet<SocketAddr> {
+    BTreeSet::from([SocketAddr::from((Ipv4Addr::BROADCAST, WIFI_DISCOVERY_PORT))])
+}
+
+#[cfg(windows)]
+fn discovery_targets() -> BTreeSet<SocketAddr> {
+    let mut targets =
+        BTreeSet::from([SocketAddr::from((Ipv4Addr::BROADCAST, WIFI_DISCOVERY_PORT))]);
+    targets.extend(
+        windows_directed_broadcasts()
+            .into_iter()
+            .map(|address| SocketAddr::from((address, WIFI_DISCOVERY_PORT))),
+    );
+    targets
+}
+
+#[cfg(any(windows, test))]
+fn directed_broadcast(address: Ipv4Addr, mask: Ipv4Addr) -> Option<Ipv4Addr> {
+    if !private_route(address) {
+        return None;
+    }
+    let mask = u32::from(mask);
+    if mask == 0 || mask == u32::MAX || (!mask).checked_add(1)?.count_ones() != 1 {
+        return None;
+    }
+    let broadcast = Ipv4Addr::from(u32::from(address) | !mask);
+    (broadcast != address && broadcast != Ipv4Addr::BROADCAST).then_some(broadcast)
+}
+
+#[cfg(windows)]
+fn windows_directed_broadcasts() -> BTreeSet<Ipv4Addr> {
+    age_plugin_phone_windows_storage::ipv4_interface_subnets()
+        .into_iter()
+        .filter_map(|(address, mask)| directed_broadcast(address, mask))
+        .collect()
 }
 
 fn record_discovery_candidate(
@@ -543,16 +587,46 @@ mod tests {
         let unused = UdpSocket::bind((Ipv4Addr::LOCALHOST, 0)).unwrap();
         let target = unused.local_addr().unwrap();
         drop(unused);
+        let targets = BTreeSet::from([target]);
         assert_eq!(
             discover_with_socket(
                 &socket,
                 &discovery_query(DiscoveryPurpose::Pairing),
                 None,
                 Duration::from_millis(5),
-                target,
+                &targets,
             ),
             Err(WifiError::DiscoveryUnavailable)
         );
+    }
+
+    #[test]
+    fn derives_only_private_subnet_broadcasts() {
+        assert_eq!(
+            directed_broadcast(
+                Ipv4Addr::new(192, 168, 50, 53),
+                Ipv4Addr::new(255, 255, 255, 0),
+            ),
+            Some(Ipv4Addr::new(192, 168, 50, 255))
+        );
+        assert_eq!(
+            directed_broadcast(
+                Ipv4Addr::new(10, 43, 133, 69),
+                Ipv4Addr::new(255, 255, 255, 0),
+            ),
+            Some(Ipv4Addr::new(10, 43, 133, 255))
+        );
+        for (address, mask) in [
+            ([8, 8, 8, 8], [255, 255, 255, 0]),
+            ([192, 168, 50, 53], [255, 255, 255, 255]),
+            ([192, 168, 50, 53], [0, 0, 0, 0]),
+            ([192, 168, 50, 53], [255, 0, 255, 0]),
+        ] {
+            assert_eq!(
+                directed_broadcast(Ipv4Addr::from(address), Ipv4Addr::from(mask)),
+                None
+            );
+        }
     }
 
     #[test]

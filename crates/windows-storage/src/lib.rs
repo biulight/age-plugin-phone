@@ -8,8 +8,12 @@
 #![allow(clippy::missing_errors_doc)]
 
 #[cfg(windows)]
+mod network;
+#[cfg(windows)]
 mod windows;
 
+#[cfg(windows)]
+pub use network::ipv4_interface_subnets;
 #[cfg(windows)]
 pub use windows::{
     Error, PrivateLock, atomic_create, atomic_replace, ensure_private_directory, open_private_lock,

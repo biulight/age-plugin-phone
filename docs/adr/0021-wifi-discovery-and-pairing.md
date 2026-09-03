@@ -24,9 +24,12 @@ phone authorization, or input to any signed pairing or unwrap message.
 ### Fixed discovery exchange
 
 The desktop sends a bounded IPv4 UDP broadcast to port `47141` before it creates a pairing offer or
-unwrap request. It retransmits the same query every 200 milliseconds for a total 900-millisecond
-window and accepts only private or link-local IPv4 response sources. The discovered TCP endpoint
-always uses the existing fixed port `47140`.
+unwrap request. It always targets `255.255.255.255`; on Windows it also derives and targets the
+directed broadcast for every active private or link-local IPv4 interface with a valid subnet mask.
+This prevents a VPN or virtual default route from swallowing discovery on a multi-homed desktop.
+Failure to enumerate interfaces retains the limited-broadcast target. It retransmits the same query
+every 200 milliseconds for a total 900-millisecond window and accepts only private or link-local
+IPv4 response sources. The discovered TCP endpoint always uses the existing fixed port `47140`.
 
 A query is exactly 72 bytes:
 
@@ -56,6 +59,13 @@ corresponding non-exportable StrongBox phone-signing key. The desktop verifies t
 the phone-signing public key in the selected public identity stub. Invalid, wrong-pairing, replayed,
 or forged responses cannot select a route. Discovery signing does not require or cache user
 verification and never unwraps a file key.
+
+UDP retransmits repeat the exact same 72-byte query. The foreground responder strictly parses every
+copy but invokes StrongBox only for the first copy, retaining one in-memory public signed response
+for that exact query. A different nonce, purpose, desktop ID, identity ID, or any other byte replaces
+the cache and requires normal parsing and signing. Closing the responder clears the cached query and
+response. This bounds normal discovery to one StrongBox signature without caching authorization,
+agreement output, a file key, or decrypted plaintext.
 
 The query exposes random pairing identifiers to an observing LAN peer. Those identifiers are not
 keys or authorization secrets and already occur in authenticated application messages, but this is
@@ -147,6 +157,17 @@ their inputs byte for byte. The run also exposed a local fixed-port handoff race
 Wi-Fi** preempted an enabled auto-listener; a bounded pre-discovery bind handoff fixed it, and the
 repeated `auto` pairing passed. A confirmation-page label that incorrectly named every stream
 response Developer USB was also corrected to identify Wi-Fi.
+
+A follow-up on the same NUC found an intermittent `DiscoveryUnavailable` after USB removal despite
+an enabled foreground auto-listener. The NUC had both a ZeroTier default route and a physical
+`192.168.50.0/24` LAN. A directed `192.168.50.255` probe reached the phone at `192.168.50.111`;
+repeated probes then exposed both a 30-second Android accept timeout followed by a one-second listener
+re-arm gap and repeated StrongBox signing for copies of one UDP query. Windows discovery now covers
+every eligible local subnet, the passive foreground Android accept remains armed until lifecycle
+cancellation, and exact retransmits reuse one public signed response. After reinstalling the isolated
+`.wifipoc` build, 12 consecutive three-second signed discovery windows passed across the old timeout
+boundary. A real `shine env secret decrypt TEST_SECRET` returned `test123` with `adb` deliberately
+absent from `PATH`, proving that the saved `auto` pairing completed through Wi-Fi.
 
 The remaining physical matrix includes discovery on Windows and Android, no listener, wrong and
 multiple phones, hostile first connection, backgrounding, network change, pairing cancellation,

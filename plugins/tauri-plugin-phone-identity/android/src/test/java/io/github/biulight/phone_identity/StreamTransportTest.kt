@@ -200,7 +200,7 @@ class StreamTransportTest {
 
     @Test
     fun closingForegroundWifiListenerCancelsBlockedAcceptAndReleasesPort() {
-        val listener = PhoneWifiListener.start(0)
+        val listener = PhoneWifiListener.start(port = 0, acceptTimeoutMs = 0)
         val port = listener.localPort
         val entered = CountDownLatch(1)
         val completed = CountDownLatch(1)

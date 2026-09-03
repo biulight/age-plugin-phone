@@ -766,7 +766,9 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         var session: PhoneStreamSession? = null
         var request: ByteArray? = null
         try {
-            listener = PhoneWifiListener.start()
+            // The passive foreground listener is closed by lifecycle/cancellation. An infinite
+            // accept avoids a discovery outage every time a bounded one-shot accept would expire.
+            listener = PhoneWifiListener.start(acceptTimeoutMs = 0)
             discovery = WifiDiscoveryResponder.start(PhoneStreamSession.Purpose.UNWRAP) { query ->
                 wifiUnwrapDiscoveryResponse(query)
             }

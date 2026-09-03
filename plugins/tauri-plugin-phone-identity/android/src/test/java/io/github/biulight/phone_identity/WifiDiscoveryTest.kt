@@ -11,6 +11,24 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WifiDiscoveryTest {
+    @Test
+    fun duplicateQueryReusesOnePublicResponse() {
+        val cache = WifiDiscoveryResponseCache()
+        val first = ByteArray(WifiDiscoveryCodec.QUERY_BYTES) { it.toByte() }
+        val second = first.copyOf().also { it[8] = (it[8].toInt() xor 1).toByte() }
+        var calls = 0
+        fun response(query: ByteArray): ByteArray? = cache.responseFor(query) {
+            calls += 1
+            byteArrayOf(calls.toByte())
+        }
+
+        assertArrayEquals(byteArrayOf(1), response(first))
+        assertArrayEquals(byteArrayOf(1), response(first.copyOf()))
+        assertArrayEquals(byteArrayOf(2), response(second))
+        assertEquals(2, calls)
+        cache.close()
+    }
+
     private fun query(purpose: PhoneStreamSession.Purpose): ByteArray = ByteArray(72).also {
         byteArrayOf(0x41, 0x50, 0x57, 0x44).copyInto(it)
         it[5] = 1

@@ -269,7 +269,12 @@ release gate, not an open question about whether the ADB transport can carry the
   user-initiated request.
   Initial isolated Windows 11/Samsung debug validation passed explicit `wifi` pairing and unwrap,
   Wi-Fi-first `auto` pairing with USB connected, signed discovery, fresh biometric authorization,
-  and byte-identical standard-age recovery. The broader adverse-condition matrix remains open.
+  and byte-identical standard-age recovery. A later unplugged-USB test exposed multi-homed Windows
+  broadcast routing, a periodic Android listener re-arm gap, and duplicate StrongBox signing for UDP
+  retransmits. Discovery now covers each eligible Windows IPv4 subnet, the foreground listener no
+  longer cycles while idle, and one exact query is signed only once. Twelve consecutive discovery
+  windows and a real `shine` decrypt with `adb` absent from `PATH` passed. The broader adverse-condition
+  matrix remains open.
 - [ ] Retain ADB as a development, diagnostics, and recovery transport after a production
   convenience transport is available; do not treat the technical-Alpha default as a
   general-availability commitment.

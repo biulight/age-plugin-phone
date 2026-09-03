@@ -172,10 +172,15 @@ the ADB process, rejects an existing reverse rule, and removes only the exact ru
 The foreground Wi-Fi transport reverses the TCP role: after the user persistently opts in, Android keeps
 one listener available only while the application is foregrounded and the desktop connects to a
 discovered private IPv4 endpoint. The listener serializes requests and automatically re-arms with
-bounded retry delays; leaving the foreground or pausing the mode closes its exact resources. It
+bounded retry delays after a completed or failed session; an idle passive accept remains armed until
+the lifecycle owner closes it, so it does not introduce periodic discovery gaps. Leaving the
+foreground or pausing the mode closes its exact resources. It
 carries only unwrap over the same bounded stream frame. LAN reachability, peer address, listener
 availability, and connection success provide no authentication or approval. A fixed-width UDP
-query selects only the exact pairing whose StrongBox phone-signing key authenticates the response;
+query is sent to the limited broadcast address and, on multi-homed Windows hosts, each eligible
+private IPv4 subnet broadcast. It selects only the exact pairing whose StrongBox phone-signing key
+authenticates the response. Retransmits of one exact strict query reuse its in-memory public signed
+response so transport loss cannot amplify one discovery into repeated StrongBox operations;
 the discovered address remains an untrusted route hint. There is no background wake or in-flight
 fallback.
 

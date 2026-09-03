@@ -162,6 +162,7 @@ internal class PhoneWifiListener private constructor(
             port: Int = WIFI_UNWRAP_PORT,
             acceptTimeoutMs: Int = ACCEPT_TIMEOUT_MS,
         ): PhoneWifiListener {
+            require(acceptTimeoutMs >= 0)
             val server = ServerSocket()
             try {
                 server.reuseAddress = false

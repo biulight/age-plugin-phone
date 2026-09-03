@@ -110,12 +110,38 @@ internal object WifiDiscoveryCodec {
     )
 }
 
+/** Reuses one public signature for transport retransmits of the exact same strict query. */
+internal class WifiDiscoveryResponseCache : AutoCloseable {
+    private var query: ByteArray? = null
+    private var response: ByteArray? = null
+
+    @Synchronized
+    fun responseFor(encodedQuery: ByteArray, create: () -> ByteArray?): ByteArray? {
+        if (query?.contentEquals(encodedQuery) == true) return response?.copyOf()
+        val created = create() ?: return null
+        query?.fill(0)
+        response?.fill(0)
+        query = encodedQuery.copyOf()
+        response = created.copyOf()
+        return created
+    }
+
+    @Synchronized
+    override fun close() {
+        query?.fill(0)
+        response?.fill(0)
+        query = null
+        response = null
+    }
+}
+
 /** One responder owned by one foreground TCP listener. Closing it interrupts receive immediately. */
 internal class WifiDiscoveryResponder private constructor(
     private val socket: DatagramSocket,
     private val purpose: PhoneStreamSession.Purpose,
     private val responseFor: (WifiDiscoveryQuery) -> ByteArray?,
 ) : AutoCloseable {
+    private val responseCache = WifiDiscoveryResponseCache()
     @Volatile
     private var closed = false
     private val worker = Thread(::run, "phone-wifi-discovery").apply {
@@ -137,13 +163,13 @@ internal class WifiDiscoveryResponder private constructor(
                     encoded.fill(0)
                     continue
                 }
-                encoded.fill(0)
                 val response = try {
-                    responseFor(query)
+                    responseCache.responseFor(encoded) { responseFor(query) }
                 } catch (_: Exception) {
                     null
                 } finally {
                     query.clear()
+                    encoded.fill(0)
                 } ?: continue
                 try {
                     val target = InetSocketAddress(packet.address, packet.port)
@@ -162,6 +188,7 @@ internal class WifiDiscoveryResponder private constructor(
         closed = true
         socket.close()
         if (Thread.currentThread() !== worker) runCatching { worker.join(1_000) }
+        responseCache.close()
     }
 
     companion object {
