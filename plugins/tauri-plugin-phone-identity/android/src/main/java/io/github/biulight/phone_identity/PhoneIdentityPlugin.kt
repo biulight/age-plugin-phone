@@ -40,6 +40,9 @@ class SetWifiAutoListenArgs {
     var enabled: Boolean = false
 }
 
+internal fun pairingResponseMayReachUi(activeToken: UUID?, expectedToken: UUID): Boolean =
+    activeToken == expectedToken
+
 @TauriPlugin(
     permissions = [Permission(strings = [Manifest.permission.CAMERA], alias = "camera")],
 )
@@ -508,7 +511,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             session = null
             activity.runOnUiThread {
                 val stillActive = synchronized(stateLock) {
-                    (activeUsbToken == token).also { activeUsbToken = null }
+                    pairingResponseMayReachUi(activeUsbToken, token).also { activeUsbToken = null }
                 }
                 if (stillActive) {
                     showPairingResponse(prepared, invoke)
@@ -559,12 +562,19 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
             val prepared = preparePhonePairingStream(request, session, "Wi-Fi")
             synchronized(stateLock) {
                 if (activeWifiToken != token) throw StreamTransportException()
-                activeWifiToken = null
                 activeWifiSession = null
             }
             session = null
             activity.runOnUiThread {
-                showPairingResponse(prepared, invoke)
+                val stillActive = synchronized(stateLock) {
+                    pairingResponseMayReachUi(activeWifiToken, token).also { activeWifiToken = null }
+                }
+                if (stillActive) {
+                    showPairingResponse(prepared, invoke)
+                } else {
+                    cancelPendingPairing()
+                    invoke.resolve(phonePairingReport(false, null, null, WIFI_TRANSPORT_FAILURE))
+                }
             }
         } catch (_: Exception) {
             cancelPendingPairing()

@@ -6,12 +6,21 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import java.lang.reflect.Modifier
 import java.security.KeyPairGenerator
 import java.security.spec.ECGenParameterSpec
+import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class PhoneIdentityPluginTest {
+    @Test
+    fun lifecycleCancellationPreventsPairingResponseUiHandoff() {
+        val expected = UUID.randomUUID()
+        assertTrue(pairingResponseMayReachUi(expected, expected))
+        assertFalse(pairingResponseMayReachUi(null, expected))
+        assertFalse(pairingResponseMayReachUi(UUID.randomUUID(), expected))
+    }
+
     @Test
     fun revokePairingArgumentsRemainDeserializableInMinifiedBuilds() {
         val argumentClass = RevokePairingArgs::class.java
