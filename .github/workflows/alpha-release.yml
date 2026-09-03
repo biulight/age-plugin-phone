@@ -201,8 +201,17 @@ jobs:
         run: |
           target/release/age-plugin-phone.exe --help
           target/release/age-plugin-phone.exe setup --help
-          $verification = @(& $env:SIGNTOOL_PATH verify /pa /all /v target/release/age-plugin-phone.exe 2>&1)
-          $verifyExitCode = $LASTEXITCODE
+          # A private test root must make the system-trust verification return nonzero. Newer
+          # PowerShell runners can promote that expected native exit into a terminating error,
+          # which would bypass the explicit status and custom-root checks below.
+          $previousNativeCommandUseErrorActionPreference = $PSNativeCommandUseErrorActionPreference
+          $PSNativeCommandUseErrorActionPreference = $false
+          try {
+            $verification = @(& $env:SIGNTOOL_PATH verify /pa /all /v target/release/age-plugin-phone.exe 2>&1)
+            $verifyExitCode = $LASTEXITCODE
+          } finally {
+            $PSNativeCommandUseErrorActionPreference = $previousNativeCommandUseErrorActionPreference
+          }
           $verification | Set-Content -Encoding utf8NoBOM target/release/signature-verification.txt
           $signature = Get-AuthenticodeSignature target/release/age-plugin-phone.exe
           if ($null -eq $signature.SignerCertificate -or $null -eq $signature.TimeStamperCertificate) {
