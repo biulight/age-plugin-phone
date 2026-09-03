@@ -59,7 +59,7 @@ hash_for_name() {
   local values=()
   while IFS= read -r value; do
     values+=("$value")
-  done < <(awk -v name="$name" '$2 == name { print $1 }' "$sums")
+  done < <(awk -v name="$name" '{ sub(/\r$/, "", $2); if ($2 == name) print $1 }' "$sums")
   [[ ${#values[@]} -eq 1 ]] || fail "expected exactly one digest for $name"
   require_sha256 "${values[0]}"
   printf '%s\n' "${values[0]}"

@@ -19,7 +19,11 @@ windows_exe="$temp_root/windows-contents/age-plugin-phone.exe"
   sha256sum "$windows_exe" | sed 's# .*#  age-plugin-phone.exe#'
   sha256sum "$windows_zip" | sed "s# .*#  age-plugin-phone-$version-windows-x64-alpha-test-signed.zip#"
 } > "$windows_dir/SHA256SUMS.txt"
-mv "$windows_dir/SHA256SUMS.txt" "$windows_dir/age-plugin-phone-$version-windows-SHA256SUMS.txt"
+windows_sums="$windows_dir/age-plugin-phone-$version-windows-SHA256SUMS.txt"
+mv "$windows_dir/SHA256SUMS.txt" "$windows_sums"
+# Windows PowerShell writes the release checksum evidence with CRLF line endings.
+awk '{ printf "%s\r\n", $0 }' "$windows_sums" > "$temp_root/windows-sums.crlf"
+mv "$temp_root/windows-sums.crlf" "$windows_sums"
 cat > "$windows_dir/signature-verification.txt" <<EOF
 commit: $commit
 release_version: $version
