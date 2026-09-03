@@ -386,14 +386,11 @@ pub fn commit_confirmed(
         Err(_) => return Err(SetupError::Storage),
     }
 
-    match crate::pairing::create_identity_stub_file(&value.identity_stub, stub) {
-        Ok(()) => {}
-        Err(_) => {
-            let existing = crate::pairing::read_identity_stub_file(&value.identity_stub)
-                .map_err(|_| SetupError::Invalid)?;
-            if existing != *stub {
-                return Err(SetupError::Invalid);
-            }
+    if crate::pairing::create_identity_stub_file(&value.identity_stub, stub).is_err() {
+        let existing = crate::pairing::read_identity_stub_file(&value.identity_stub)
+            .map_err(|_| SetupError::Invalid)?;
+        if existing != *stub {
+            return Err(SetupError::Invalid);
         }
     }
     remove(root)

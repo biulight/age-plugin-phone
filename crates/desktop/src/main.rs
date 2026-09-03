@@ -536,6 +536,7 @@ enum PreparedSetupTransport {
 }
 
 #[cfg(windows)]
+#[allow(clippy::too_many_lines)]
 fn run_setup(
     label: Option<String>,
     resume: bool,
@@ -638,53 +639,39 @@ fn run_setup(
     }
     setup::create(&root, &journal).map_err(|error| io::Error::other(error.to_string()))?;
 
-    let state = match DesktopKeyState::create_new(&journal.desktop_state, desktop_id) {
-        Ok(state) => state,
-        Err(_) => {
-            return rollback_setup_error(
-                &root,
-                &journal,
-                "failed to create new TPM desktop state; no existing key was reused".to_owned(),
-                false,
-            );
-        }
+    let Ok(state) = DesktopKeyState::create_new(&journal.desktop_state, desktop_id) else {
+        return rollback_setup_error(
+            &root,
+            &journal,
+            "failed to create new TPM desktop state; no existing key was reused",
+            false,
+        );
     };
     journal.set_pairing();
     if let Err(error) = setup::replace(&root, &journal) {
         drop(state);
-        return rollback_setup_error(&root, &journal, error.to_string(), false);
+        return rollback_setup_error(&root, &journal, &error.to_string(), false);
     }
 
-    let selection_public = match state.selection_public_key() {
-        Ok(key) => key,
-        Err(_) => {
-            drop(state);
-            return rollback_setup_error(
-                &root,
-                &journal,
-                "desktop selection key is unavailable".to_owned(),
-                false,
-            );
-        }
+    let Ok(selection_public) = state.selection_public_key() else {
+        drop(state);
+        return rollback_setup_error(
+            &root,
+            &journal,
+            "desktop selection key is unavailable",
+            false,
+        );
     };
-    let mut session = match DesktopPairingSession::begin(
+    let Ok(mut session) = DesktopPairingSession::begin(
         state.desktop_id,
         label,
         state.signer(),
         selection_public,
         0,
         &mut OsRng,
-    ) {
-        Ok(session) => session,
-        Err(_) => {
-            drop(state);
-            return rollback_setup_error(
-                &root,
-                &journal,
-                "failed to create pairing offer".to_owned(),
-                false,
-            );
-        }
+    ) else {
+        drop(state);
+        return rollback_setup_error(&root, &journal, "failed to create pairing offer", false);
     };
     let started = Instant::now();
     let mut interaction: Box<dyn io::Write> = if json {
@@ -711,7 +698,7 @@ fn run_setup(
             session.cancel();
             drop(session);
             drop(state);
-            return rollback_setup_error(&root, &journal, error.to_string(), false);
+            return rollback_setup_error(&root, &journal, &error.to_string(), false);
         }
     };
     let stub = match complete_pairing_interaction(
@@ -731,18 +718,13 @@ fn run_setup(
         Err(error) => {
             drop(session);
             drop(state);
-            return rollback_setup_error(&root, &journal, error.to_string(), true);
+            return rollback_setup_error(&root, &journal, &error.to_string(), true);
         }
     };
     if journal.set_confirmed(&stub).is_err() || setup::replace(&root, &journal).is_err() {
         drop(session);
         drop(state);
-        return rollback_setup_error(
-            &root,
-            &journal,
-            "failed to journal confirmed setup".to_owned(),
-            true,
-        );
+        return rollback_setup_error(&root, &journal, "failed to journal confirmed setup", true);
     }
     drop(session);
     drop(state);
@@ -861,7 +843,7 @@ fn cleanup_setup() -> io::Result<()> {
 fn rollback_setup_error(
     root: &std::path::Path,
     journal: &SetupJournal,
-    message: String,
+    message: &str,
     phone_may_be_paired: bool,
 ) -> io::Result<()> {
     match setup::cleanup_owned(root, journal) {
