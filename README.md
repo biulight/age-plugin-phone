@@ -15,7 +15,7 @@ Shine environments, or define a Shine-specific ciphertext format.
 > external-user gates remain open. Do not use it to protect real secrets.
 
 The latest installable snapshot is
-[`v0.1.0-alpha.2`](docs/releases/v0.1.0-alpha.2.md), a test-signed developer prerelease for
+[`v0.1.0-alpha.3`](docs/releases/v0.1.0-alpha.3.md), a test-signed developer prerelease for
 synthetic or disposable data with a separately verified independent recovery recipient. Publishing
 that snapshot does not constitute a public-Alpha, stable-protocol, or production-secret claim.
 

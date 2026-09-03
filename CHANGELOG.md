@@ -6,6 +6,27 @@ recovery recipient.
 
 ## [Unreleased]
 
+## [0.1.0-alpha.3] - 2026-09-04
+
+Third test-signed developer prerelease.
+
+### Added
+
+- Added bounded Wi-Fi discovery for an existing paired phone and a one-shot foreground Wi-Fi
+  pairing route. Discovery selects only a response authenticated by the paired phone key; before
+  pairing it is an unauthenticated delivery hint.
+
+### Changed
+
+- `auto` now makes one deterministic Wi-Fi-first route decision before it creates a pairing or
+  unwrap session. Explicit transport hints remain pinned, ambiguity fails closed, and failures
+  never fall back in flight.
+
+### Fixed
+
+- Foreground Wi-Fi listeners reliably re-arm after pairing and after completed or failed unwrap
+  sessions while the phone remains in the foreground.
+
 ## [0.1.0-alpha.2] - 2026-09-03
 
 Second test-signed developer prerelease.
@@ -61,6 +82,7 @@ First test-signed developer prerelease.
 - This prerelease is for synthetic or disposable data with a separately verified independent
   recovery recipient. It is not a public-Alpha or production-secret claim.
 
-[Unreleased]: https://github.com/biulight/age-plugin-phone/compare/v0.1.0-alpha.2...HEAD
+[Unreleased]: https://github.com/biulight/age-plugin-phone/compare/v0.1.0-alpha.3...HEAD
+[0.1.0-alpha.3]: https://github.com/biulight/age-plugin-phone/compare/v0.1.0-alpha.2...v0.1.0-alpha.3
 [0.1.0-alpha.2]: https://github.com/biulight/age-plugin-phone/compare/v0.1.0-alpha.1...v0.1.0-alpha.2
 [0.1.0-alpha.1]: https://github.com/biulight/age-plugin-phone/releases/tag/v0.1.0-alpha.1
