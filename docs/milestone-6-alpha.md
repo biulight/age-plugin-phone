@@ -53,6 +53,8 @@ tested on the physical Alpha matrix and cannot be waived by a hosted runner.
 `.github/workflows/alpha-release.yml` is manually dispatched and fail closed. It requires:
 
 - a protected GitHub `alpha-release` environment with required reviewers;
+- a separate protected `alpha-release-publish` environment with the same reviewer protection but
+  no signing credentials; and
 - a Windows test-root public certificate, a test-root-issued code-signing PFX, its password, and
   separately registered leaf and root certificate SHA-256 fingerprints; and
 - `ANDROID_KEYSTORE_BASE64`, `ANDROID_STORE_PASSWORD`, `ANDROID_KEY_ALIAS`,
@@ -74,6 +76,13 @@ and are removed by unconditional cleanup steps. Evidence records artifact SHA-25
 commit, workflow run and attempt, certificate identity, trust scope, and verification result
 without exposing credentials. Provisioning, RC0 dispatch, and the later free SignPath Foundation
 migration are documented in [`release-signing.md`](release-signing.md).
+
+The workflow is dispatched with the full candidate SHA rather than by a final-tag trigger. The
+publish job remains paused at `alpha-release-publish` while reviewers download artifacts from that
+same run and complete the exact-package physical matrix. Approval causes the job to stage and
+revalidate six versioned assets, create the annotated tag and a draft prerelease, verify remote
+asset hashes, and finally expose the prerelease. Final tags, releases, assets, and cross-run
+evidence are never managed by hand.
 
 The private-root Windows result does not close a public-trust release gate. It is an explicit RC
 pipeline test until the project qualifies for and is accepted into a public code-signing program.

@@ -119,6 +119,17 @@ jobs:
           grep -q '^distributionSha256Sum=' apps/mobile/src-tauri/gen/android/gradle/wrapper/gradle-wrapper.properties
           scripts/check-release-version.sh
 
+  release-automation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Exercise Alpha release staging validation fixtures
+        run: |
+          scripts/test-prepare-alpha-release-publish.sh
+          scripts/test-validate-alpha-release-candidate.sh
+      - name: Statically lint GitHub Actions workflows
+        uses: docker://rhysd/actionlint:1.7.9
+
   released-client-interoperability:
     runs-on: ubuntu-latest
     env:

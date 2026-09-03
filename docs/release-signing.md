@@ -5,9 +5,11 @@ This runbook configures the credentials consumed by
 boundary: Windows release signing never substitutes for the desktop TPM keys, and Android APK
 signing never substitutes for the phone StrongBox identity and response-signing keys.
 
-The workflow uses the protected GitHub environment `alpha-release`. Configure required reviewers
-and restrict its deployment branches or tags before adding any signing configuration. Only dispatch
-the workflow from an immutable commit selected for the release candidate.
+The workflow uses two protected GitHub environments. `alpha-release` contains the signing
+configuration and is used only by the Windows and Android signing jobs. `alpha-release-publish`
+has the same required-reviewer protection but **no signing secrets or variables**; it is used only
+to promote a physically verified candidate. Configure both environments before dispatching a
+candidate. Only dispatch the workflow from an immutable commit selected for the release candidate.
 
 ## Windows test signing certificate chain
 
@@ -185,28 +187,33 @@ If the application is later distributed through Google Play App Signing, documen
 PKCS#12 key is the resettable upload key or the app signing key. Never assume that the upload APK
 certificate and the certificate on a Play-delivered APK are identical.
 
-## RC0 dispatch and evidence
+## Alpha candidate dispatch, physical gate, and publication
 
-1. Record the immutable candidate commit.
-2. Confirm that the `alpha-release` environment requires an authorized reviewer.
-3. Manually dispatch `Test-signed Alpha artifacts` for that commit.
-4. Approve the environment only after reviewing the workflow diff and candidate commit.
-5. Require both Windows and Android jobs to succeed, and label the Windows package test-signed.
-6. Download both artifact groups and independently verify their SHA-256 files and signatures.
-7. Compare the recorded certificate identities with the approved release credential records.
-8. Run every required physical scenario in `alpha-matrix.md` against these exact packages.
+This is the only Alpha publication path:
 
-For a developer prerelease, dispatch the workflow with the manifest version without a leading `v`
-(for example, `0.1.0-alpha.1`). The workflow rejects a requested version that differs from the
-Cargo workspace, mobile package, or Tauri application manifest and includes that version in both
-artifact names.
+1. Commit the Alpha candidate. Its full 40-character commit SHA, all three application manifests,
+   and `docs/releases/vVERSION.md` must agree on one `X.Y.Z-alpha.N` version.
+2. From that exact commit, manually dispatch `Publish test-signed Alpha prerelease`, supplying the
+   same full SHA in `expected_commit`. The preflight rejects a branch snapshot that is not that SHA,
+   inconsistent manifests, a missing release note, or an existing tag or GitHub release.
+3. Approve the `alpha-release` signing jobs only after reviewing the candidate and workflow.
+   Require both signing jobs to pass. Their versioned packages and four versioned evidence records
+   are retained for 30 days.
+4. While the `alpha-release-publish` job waits for its separate approval, download the Windows and
+   Android artifacts from **that same workflow run**. Independently check the hashes and recorded
+   certificate identities, label the Windows package test-signed, and complete every required
+   physical row in `alpha-matrix.md` against those exact packages.
+5. Only after the physical regression passes, approve `alpha-release-publish`. That job has only
+   `contents: write`; it cannot read signing credentials. It rechecks the candidate commit,
+   version, run/attempt agreement, APK/ZIP hashes, certificate fingerprints, ZIP contents, and the
+   Windows in-memory private-root-only trust record. It then creates the annotated `vVERSION` tag,
+   creates a draft prerelease, uploads the six verified assets, rechecks their remote SHA-256
+   digests, and only then makes the prerelease public.
 
-After the exact signed pair completes the release-specific physical regression, create an annotated
-`vVERSION` tag on the signed commit and publish a GitHub prerelease. Attach the two versioned
-packages, their SHA-256 files, and both signature-verification records. The release notes must state
-the immutable commit, workflow run and attempt, test-root Windows trust scope, Android certificate
-fingerprint, known limitations, and synthetic-data-only boundary. Do not publish or move the tag
-before the evidence has been checked, and never replace an asset under an existing tag.
+Do not manually create or move the final tag, create a release, upload release assets, or mix
+packages/evidence from different workflow runs or attempts. A failure before public release remains
+fail-closed. A run may only resume a matching, unpublished draft whose provenance marker binds it
+to the same candidate and workflow run; never replace an asset or modify a public release.
 
 Each job records the immutable commit, workflow run and attempt, signing certificate identity, exact
 artifact hashes, and verification output. Release evidence must not contain private keys, passwords,
