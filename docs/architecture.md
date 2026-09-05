@@ -33,6 +33,12 @@ Hardware-key creation and file-key unwrap are implemented by a dedicated Tauri m
 - Native code returns an already encrypted, request-bound response to Rust, never key bytes to
   JavaScript.
 
+The iOS 17+ implementation is defined by [`ADR 0022`](adr/0022-ios-secure-enclave-key-custody.md)
+and [`ADR 0023`](adr/0023-ios-pairing-replay-lifecycle.md). It keeps separate Secure Enclave P-256
+ECDH identity and ECDSA signing keys, creates a new non-reusable `LAContext` for every unwrap, and
+stores canonical pairing/replay state with complete protection outside backups. Raw QR, request,
+stanza, and file-key bytes do not cross into Rust commands or the WebView.
+
 Android QR capture is owned by the native Kotlin plugin so raw frame strings and signed protocol
 bytes never become Tauri command values. The generic biometric plugin alone is insufficient because
 a separate authentication success boolean is not
@@ -144,6 +150,12 @@ separately reviewed native proof of concept. [`ADR 0021`](adr/0021-wifi-discover
 adds a bounded pairing-scoped discovery exchange, Wi-Fi-first `auto`, a private per-pairing route
 preference, and an explicit one-shot foreground Wi-Fi pairing mode without changing signed pairing
 or unwrap messages.
+
+On iOS, Network framework carries those same bounded Wi-Fi frames only while foregrounded, while
+AVFoundation and Core Image own QR input and output. Lifecycle loss closes the exact socket,
+stream, native view, and authentication context without restoring a consumed request or switching
+transport. ADB and Developer USB remain Android-only; iOS hides the action and returns
+`unsupported_transport` from the retained cross-platform command.
 
 Identity replacement, paired-desktop revocation, deletion, application removal, and TPM/StrongBox
 invalidation are specified by [`ADR 0017`](adr/0017-lifecycle-and-recovery.md). Version 2

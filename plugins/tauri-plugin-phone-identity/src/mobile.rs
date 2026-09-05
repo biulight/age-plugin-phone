@@ -21,7 +21,11 @@ struct SetWifiAutoListenArgs {
     enabled: bool,
 }
 
+#[cfg(target_os = "android")]
 const PLUGIN_IDENTIFIER: &str = "io.github.biulight.phone_identity";
+
+#[cfg(target_os = "ios")]
+tauri::ios_plugin_binding!(init_plugin_phone_identity);
 
 pub struct PhoneIdentity<R: Runtime>(PluginHandle<R>);
 
@@ -35,7 +39,10 @@ pub fn init<R: Runtime, C: DeserializeOwned>(
     _app: &AppHandle<R>,
     api: PluginApi<R, C>,
 ) -> Result<PhoneIdentity<R>, Error> {
+    #[cfg(target_os = "android")]
     let handle = api.register_android_plugin(PLUGIN_IDENTIFIER, "PhoneIdentityPlugin")?;
+    #[cfg(target_os = "ios")]
+    let handle = api.register_ios_plugin(init_plugin_phone_identity)?;
     Ok(PhoneIdentity(handle))
 }
 

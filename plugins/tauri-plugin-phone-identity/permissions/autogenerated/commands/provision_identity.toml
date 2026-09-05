@@ -1,5 +1,7 @@
 # Automatically generated - DO NOT EDIT!
 
+"$schema" = "../../schemas/schema.json"
+
 [[permission]]
 identifier = "allow-provision-identity"
 description = "Enables the provision_identity command without any pre-configured scope."

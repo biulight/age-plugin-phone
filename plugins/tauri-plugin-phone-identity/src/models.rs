@@ -40,13 +40,12 @@ pub struct WifiAutoListenStatusReport {
 // The doctor intentionally reports each independently audited platform claim.
 #[allow(clippy::struct_excessive_bools)]
 pub struct CapabilityReport {
-    pub android_release: String,
-    pub api_level: u32,
-    pub sdk_extension_level: u32,
-    pub strongbox_feature: bool,
-    pub strong_biometric: String,
+    pub platform: String,
+    pub os_version: String,
+    pub hardware_key_available: bool,
+    pub strong_user_verification: String,
     pub secure_lock_screen: bool,
-    pub key_agreement_crypto_object: bool,
+    pub auth_bound_key_agreement: bool,
     pub leftover_probe_key: bool,
     pub error_category: Option<String>,
 }
@@ -56,12 +55,12 @@ pub struct CapabilityReport {
 #[allow(clippy::struct_excessive_bools)]
 pub struct IdentityCustodyReport {
     pub no_backup_storage: bool,
-    pub identity_strong_box: bool,
+    pub identity_hardware_backed: bool,
     pub identity_agree_only: bool,
     pub identity_auth_per_use: bool,
-    pub identity_biometric_strong: bool,
-    pub signing_strong_box: bool,
-    pub signing_purpose_sign_only: bool,
+    pub identity_strong_user_verification: bool,
+    pub signing_hardware_backed: bool,
+    pub signing_sign_only: bool,
     pub signing_no_user_auth: bool,
     pub private_keys_non_exportable: bool,
     pub keys_distinct: bool,

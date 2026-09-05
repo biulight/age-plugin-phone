@@ -18,6 +18,8 @@ compromised desktop.
 In Developer USB mode, assume the ADB-authorized desktop can create, replace, observe, delay,
 truncate, and replay loopback stream connections and can exercise unrelated broad ADB capabilities.
 ADB authorization, serial numbers, connection state, and the USB cable provide no protocol trust.
+Developer USB is unavailable on iOS: it is absent from the product UI and its native command fails
+closed with `unsupported_transport`.
 
 In the owner-only foreground Wi-Fi experiment, assume any LAN peer can discover or reach the fixed
 port, connect first, impersonate an address, observe, replace, delay, truncate, inject, and replay
@@ -63,6 +65,12 @@ keys. Phone replacement, paired-desktop revocation, application removal, identit
 hardware invalidation follow [`ADR 0017`](adr/0017-lifecycle-and-recovery.md). Without a recovery
 recipient that was included when the data was encrypted, loss of either required version 2 hardware
 key is unrecoverable by design.
+
+On iOS, also assume the WebView, camera input, LAN peers, lifecycle events, and caller labels are
+hostile. Secure Enclave references, raw QR contents, protocol payloads, stanzas, and file keys stay
+in Swift native memory. Every unwrap uses a fresh LocalAuthentication context. Biometric-set
+invalidation, protected-storage failure, replay-state uncertainty, and clock rollback make the
+operation unavailable instead of creating a fallback key or replay scope.
 
 ## Prohibited shortcuts
 

@@ -6,7 +6,7 @@ pub use models::{
     PhonePairingReport, PhoneUnwrapReport, ProbeKeyReport, WifiAutoListenStatusReport,
 };
 
-#[cfg(not(target_os = "android"))]
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 use std::marker::PhantomData;
 
 use tauri::{
@@ -15,15 +15,15 @@ use tauri::{
 };
 use thiserror::Error;
 
-#[cfg(target_os = "android")]
+#[cfg(any(target_os = "android", target_os = "ios"))]
 mod mobile;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     #[error("native phone identity bridge failed")]
     Mobile(#[from] tauri::plugin::mobile::PluginInvokeError),
-    #[error("phone identity is only available on Android")]
+    #[error("phone identity is only available on Android and iOS")]
     Unsupported,
 }
 
@@ -36,10 +36,10 @@ impl serde::Serialize for Error {
     }
 }
 
-#[cfg(target_os = "android")]
+#[cfg(any(target_os = "android", target_os = "ios"))]
 type PhoneIdentity<R> = mobile::PhoneIdentity<R>;
 
-#[cfg(not(target_os = "android"))]
+#[cfg(not(any(target_os = "android", target_os = "ios")))]
 struct PhoneIdentity<R: Runtime>(PhantomData<fn() -> R>);
 
 #[tauri::command]
@@ -51,18 +51,17 @@ fn doctor_capabilities<R: Runtime>(
     if !cfg!(debug_assertions) {
         return Err(Error::Unsupported);
     }
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     return _identity.doctor_capabilities();
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     Ok(CapabilityReport {
-        android_release: "not-android".into(),
-        api_level: 0,
-        sdk_extension_level: 0,
-        strongbox_feature: false,
-        strong_biometric: "unsupported".into(),
+        platform: "unsupported".into(),
+        os_version: "unsupported".into(),
+        hardware_key_available: false,
+        strong_user_verification: "unsupported".into(),
         secure_lock_screen: false,
-        key_agreement_crypto_object: false,
+        auth_bound_key_agreement: false,
         leftover_probe_key: false,
         error_category: Some("unsupported_api".into()),
     })
@@ -77,18 +76,18 @@ fn doctor_identity_custody<R: Runtime>(
     if !cfg!(debug_assertions) {
         return Err(Error::Unsupported);
     }
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     return _identity.doctor_identity_custody();
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     Ok(IdentityCustodyReport {
         no_backup_storage: false,
-        identity_strong_box: false,
+        identity_hardware_backed: false,
         identity_agree_only: false,
         identity_auth_per_use: false,
-        identity_biometric_strong: false,
-        signing_strong_box: false,
-        signing_purpose_sign_only: false,
+        identity_strong_user_verification: false,
+        signing_hardware_backed: false,
+        signing_sign_only: false,
         signing_no_user_auth: false,
         private_keys_non_exportable: false,
         keys_distinct: false,
@@ -110,10 +109,10 @@ fn doctor_create_probe<R: Runtime>(
     if !cfg!(debug_assertions) {
         return Err(Error::Unsupported);
     }
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     return _identity.doctor_create_probe();
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     Ok(ProbeKeyReport {
         generated: false,
         security_level: "unsupported".into(),
@@ -131,17 +130,17 @@ fn doctor_create_probe<R: Runtime>(
 
 #[tauri::command]
 #[allow(clippy::unnecessary_wraps)]
-fn doctor_run_agreement<R: Runtime>(
+async fn doctor_run_agreement<R: Runtime>(
     _app: AppHandle<R>,
     _identity: State<'_, PhoneIdentity<R>>,
 ) -> Result<AgreementReport, Error> {
     if !cfg!(debug_assertions) {
         return Err(Error::Unsupported);
     }
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     return _identity.doctor_run_agreement();
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     Ok(AgreementReport {
         recipient_protocol: "phone-p256-v2".into(),
         authenticated: false,
@@ -160,10 +159,10 @@ fn doctor_cleanup<R: Runtime>(
     if !cfg!(debug_assertions) {
         return Err(Error::Unsupported);
     }
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     return _identity.doctor_cleanup();
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     Ok(CleanupReport {
         probe_key_existed: false,
         probe_key_deleted: false,
@@ -174,17 +173,17 @@ fn doctor_cleanup<R: Runtime>(
 
 #[tauri::command]
 #[allow(clippy::unnecessary_wraps)]
-fn doctor_pairing_storage<R: Runtime>(
+async fn doctor_pairing_storage<R: Runtime>(
     _app: AppHandle<R>,
     _identity: State<'_, PhoneIdentity<R>>,
 ) -> Result<PairingStorageReport, Error> {
     if !cfg!(debug_assertions) {
         return Err(Error::Unsupported);
     }
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     return _identity.doctor_pairing_storage();
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     Ok(PairingStorageReport {
         no_backup_storage: false,
         qr_fragmented: false,
@@ -208,14 +207,14 @@ fn doctor_pairing_storage<R: Runtime>(
 
 #[tauri::command]
 #[allow(clippy::unnecessary_wraps)]
-fn scan_pairing_offer<R: Runtime>(
+async fn scan_pairing_offer<R: Runtime>(
     _app: AppHandle<R>,
     _identity: State<'_, PhoneIdentity<R>>,
 ) -> Result<PairingOfferScanReport, Error> {
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     return _identity.scan_pairing_offer();
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     Ok(PairingOfferScanReport {
         scanner_started: false,
         message_verified: false,
@@ -228,14 +227,14 @@ fn scan_pairing_offer<R: Runtime>(
 
 #[tauri::command]
 #[allow(clippy::unnecessary_wraps)]
-fn pair_phone<R: Runtime>(
+async fn pair_phone<R: Runtime>(
     _app: AppHandle<R>,
     _identity: State<'_, PhoneIdentity<R>>,
 ) -> Result<PhonePairingReport, Error> {
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     return _identity.pair_phone();
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     Ok(PhonePairingReport {
         paired: false,
         desktop_label: None,
@@ -246,14 +245,14 @@ fn pair_phone<R: Runtime>(
 
 #[tauri::command]
 #[allow(clippy::unnecessary_wraps)]
-fn unwrap_phone<R: Runtime>(
+async fn unwrap_phone<R: Runtime>(
     _app: AppHandle<R>,
     _identity: State<'_, PhoneIdentity<R>>,
 ) -> Result<PhoneUnwrapReport, Error> {
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     return _identity.unwrap_phone();
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     Ok(PhoneUnwrapReport {
         authenticated: false,
         response_displayed: false,
@@ -269,13 +268,13 @@ fn set_wifi_auto_listen<R: Runtime>(
     _identity: State<'_, PhoneIdentity<R>>,
     enabled: bool,
 ) -> Result<WifiAutoListenStatusReport, Error> {
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     return _identity.set_wifi_auto_listen(enabled);
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     let _ = enabled;
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     Ok(WifiAutoListenStatusReport {
         enabled: false,
         state: "disabled".into(),
@@ -289,10 +288,10 @@ fn wifi_auto_listen_status<R: Runtime>(
     _app: AppHandle<R>,
     _identity: State<'_, PhoneIdentity<R>>,
 ) -> Result<WifiAutoListenStatusReport, Error> {
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     return _identity.wifi_auto_listen_status();
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     Ok(WifiAutoListenStatusReport {
         enabled: false,
         state: "disabled".into(),
@@ -302,14 +301,14 @@ fn wifi_auto_listen_status<R: Runtime>(
 
 #[tauri::command]
 #[allow(clippy::unnecessary_wraps)]
-fn pair_phone_usb<R: Runtime>(
+async fn pair_phone_usb<R: Runtime>(
     _app: AppHandle<R>,
     _identity: State<'_, PhoneIdentity<R>>,
 ) -> Result<PhonePairingReport, Error> {
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     return _identity.pair_phone_usb();
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     Ok(PhonePairingReport {
         paired: false,
         desktop_label: None,
@@ -320,14 +319,14 @@ fn pair_phone_usb<R: Runtime>(
 
 #[tauri::command]
 #[allow(clippy::unnecessary_wraps)]
-fn pair_phone_wifi<R: Runtime>(
+async fn pair_phone_wifi<R: Runtime>(
     _app: AppHandle<R>,
     _identity: State<'_, PhoneIdentity<R>>,
 ) -> Result<PhonePairingReport, Error> {
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     return _identity.pair_phone_wifi();
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     Ok(PhonePairingReport {
         paired: false,
         desktop_label: None,
@@ -342,10 +341,10 @@ fn identity_status<R: Runtime>(
     _app: AppHandle<R>,
     _identity: State<'_, PhoneIdentity<R>>,
 ) -> Result<IdentityStatusReport, Error> {
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     return _identity.identity_status();
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     Ok(IdentityStatusReport {
         state: "unsupported".into(),
         public_recipient: None,
@@ -358,28 +357,28 @@ fn identity_status<R: Runtime>(
 #[tauri::command]
 #[allow(clippy::unnecessary_wraps)]
 #[allow(clippy::used_underscore_binding)]
-fn provision_identity<R: Runtime>(
+async fn provision_identity<R: Runtime>(
     _app: AppHandle<R>,
     _identity: State<'_, PhoneIdentity<R>>,
 ) -> Result<IdentityStatusReport, Error> {
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     return _identity.provision_identity();
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     identity_status(_app, _identity)
 }
 
 #[tauri::command]
 #[allow(clippy::unnecessary_wraps)]
-fn revoke_pairing<R: Runtime>(
+async fn revoke_pairing<R: Runtime>(
     _app: AppHandle<R>,
     _identity: State<'_, PhoneIdentity<R>>,
     _handle: String,
 ) -> Result<LifecycleReport, Error> {
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     return _identity.revoke_pairing(_handle);
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     Ok(LifecycleReport {
         completed: false,
         state: "unsupported".into(),
@@ -389,14 +388,14 @@ fn revoke_pairing<R: Runtime>(
 
 #[tauri::command]
 #[allow(clippy::unnecessary_wraps)]
-fn delete_identity<R: Runtime>(
+async fn delete_identity<R: Runtime>(
     _app: AppHandle<R>,
     _identity: State<'_, PhoneIdentity<R>>,
 ) -> Result<LifecycleReport, Error> {
-    #[cfg(target_os = "android")]
+    #[cfg(any(target_os = "android", target_os = "ios"))]
     return _identity.delete_identity();
 
-    #[cfg(not(target_os = "android"))]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     Ok(LifecycleReport {
         completed: false,
         state: "unsupported".into(),
@@ -427,9 +426,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             delete_identity
         ])
         .setup(|app, _api| {
-            #[cfg(target_os = "android")]
+            #[cfg(any(target_os = "android", target_os = "ios"))]
             let identity = mobile::init(app, _api)?;
-            #[cfg(not(target_os = "android"))]
+            #[cfg(not(any(target_os = "android", target_os = "ios")))]
             let identity = PhoneIdentity::<R>(PhantomData);
             app.manage(identity);
             Ok(())
