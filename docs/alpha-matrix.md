@@ -8,6 +8,13 @@ one-phone interoperability evidence, but those results do not transfer to the ac
 pair. QR/replay, remaining lifecycle/invalidation, multi-phone, public-signing, and technical-user
 release gates remain open.
 
+Additional scoped owner-only validation of the exact `v0.1.0-alpha.3` packages is recorded in
+[`windows-acceptance-2026-09-05.md`](windows-acceptance-2026-09-05.md). It covers managed setup,
+daily age/Shine use, interruption recovery, pairing/identity lifecycle, and an exact alpha.2-to-alpha.3
+upgrade. Wi-Fi required a scoped firewall allowance and retains a discovery reliability limitation.
+The historical baseline rows below are not automatically closed by that narrower run; consult its
+per-scenario observations and explicit limits before reusing the evidence.
+
 The active deployment posture is an owner-only technical preview. The repository owner may continue
 single-device synthetic-data evaluation without claiming that this matrix is complete. UVC-camera
 QR/replay, second-family StrongBox, multi-phone, public-signing, and external technical-user rows
