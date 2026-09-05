@@ -139,10 +139,27 @@ async function refreshWifiAutoListenStatus(): Promise<void> {
   }
 }
 
+function pairingTransport(command: string): string | null {
+  return command === "pair_phone_usb" ? "USB" : command === "pair_phone_wifi" ? "Wi-Fi" : null;
+}
+
+function renderPairingLoading(command: string | null): void {
+  productButtons.forEach((button) => {
+    if (!pairingTransport(button.dataset.productAction ?? "")) return;
+    const loading = button.dataset.productAction === command;
+    button.classList.toggle("is-pairing", loading);
+    button.setAttribute("aria-busy", String(loading));
+  });
+}
+
 async function runProduct(command: string): Promise<void> {
   if (isBusy()) return;
   setBusy(true);
-  if (operationResult) operationResult.textContent = "Waiting for the native phone flow…";
+  const transport = pairingTransport(command);
+  renderPairingLoading(transport ? command : null);
+  if (operationResult) operationResult.textContent = transport
+    ? `Pairing via ${transport}… Start pairing on your computer and keep this app in the foreground.`
+    : "Waiting for the native phone flow…";
   try {
     if (command.startsWith("pair")) {
       const report = await invoke<PhonePairingReport>(`plugin:phone-identity|${command}`);
@@ -156,7 +173,7 @@ async function runProduct(command: string): Promise<void> {
       }
     }
   } catch { if (operationResult) operationResult.textContent = "Native operation unavailable."; }
-  finally { setBusy(false); await Promise.all([refreshIdentity(), refreshWifiAutoListenStatus()]).catch(() => undefined); }
+  finally { renderPairingLoading(null); setBusy(false); await Promise.all([refreshIdentity(), refreshWifiAutoListenStatus()]).catch(() => undefined); }
 }
 
 async function revokeDesktop(handle: string): Promise<void> {
@@ -180,10 +197,20 @@ async function toggleWifiAutoListen(): Promise<void> {
   }
 }
 
-productButtons.forEach((button) => button.addEventListener("click", () => {
-  const action = button.dataset.productAction;
-  if (action) void runProduct(action);
-}));
+productButtons.forEach((button) => {
+  if (pairingTransport(button.dataset.productAction ?? "")) {
+    button.classList.add("pairing-action");
+    button.setAttribute("aria-busy", "false");
+    const spinner = document.createElement("span");
+    spinner.className = "pairing-spinner";
+    spinner.setAttribute("aria-hidden", "true");
+    button.append(spinner);
+  }
+  button.addEventListener("click", () => {
+    const action = button.dataset.productAction;
+    if (action) void runProduct(action);
+  });
+});
 wifiAutoListenButton?.addEventListener("click", () => { void toggleWifiAutoListen(); });
 createIdentity?.addEventListener("click", async () => { if (isBusy()) return; setBusy(true); try { renderIdentity(await invoke<IdentityStatusReport>("plugin:phone-identity|provision_identity")); } finally { setBusy(false); } });
 copyRecipient?.addEventListener("click", () => { if (currentStatus?.publicRecipient) void navigator.clipboard.writeText(currentStatus.publicRecipient); });
