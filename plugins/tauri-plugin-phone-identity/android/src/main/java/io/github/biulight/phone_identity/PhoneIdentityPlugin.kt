@@ -1192,7 +1192,10 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
         if (foreground) {
             scheduleWifiAutoEvaluation(0)
         } else {
-            stopWifiAutoOperation("authentication_failed", includePendingAuthorization = true)
+            // MainActivity delivers this event directly. Do not rely on Tauri's process
+            // lifecycle observer being registered: every foreground operation, including
+            // a USB or Wi-Fi transcript awaiting confirmation, must terminate here.
+            onStop()
         }
     }
 

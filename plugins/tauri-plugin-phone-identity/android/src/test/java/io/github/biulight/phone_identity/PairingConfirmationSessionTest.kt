@@ -78,6 +78,33 @@ class PairingConfirmationSessionTest {
     }
 
     @Test
+    fun activityStopCancelsPendingTranscriptAndForegroundRequiresFreshExchange() {
+        val root = temporary.newFolder("activity-stop")
+        val coordinator = PairingConfirmationCoordinator { _, _ -> session(root) }
+        val owner = Any()
+        WifiAutoListenForegroundCoordinator.resetForTest()
+        try {
+            WifiAutoListenForegroundCoordinator.onStart()
+            WifiAutoListenForegroundCoordinator.register(owner) { foreground ->
+                if (!foreground) coordinator.cancel()
+            }
+            val display = coordinator.begin(offer(), response())
+            WifiAutoListenForegroundCoordinator.onStop()
+            WifiAutoListenForegroundCoordinator.onStop()
+            WifiAutoListenForegroundCoordinator.onStart()
+            assertCategory(PairingConfirmationSession.Category.SESSION_CLOSED) {
+                coordinator.confirm(display.transcriptFingerprint, now())
+            }
+            assertFalse(requireNotNull(root.listFiles()).any { it.extension == "cbor" })
+            val fresh = coordinator.begin(offer(), response())
+            coordinator.confirm(fresh.transcriptFingerprint, now())
+        } finally {
+            WifiAutoListenForegroundCoordinator.unregister(owner)
+            WifiAutoListenForegroundCoordinator.resetForTest()
+        }
+    }
+
+    @Test
     fun rejectsMalformedOrMismatchedTranscriptsBeforeDisplay() {
         val offer = offer()
         val response = response()

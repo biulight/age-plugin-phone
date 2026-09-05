@@ -325,6 +325,11 @@ public stub when possible or identify the intended pairing by its full fingerpri
 
 ## Troubleshooting
 
+For a new Windows Wi-Fi environment, use the [Wi-Fi setup and diagnosis guide](windows-wifi.md)
+for inspectable, reversible discovery-reply rules, foreground/listener checks and stage-specific
+next steps. The source-candidate `wifi-doctor` command is newer than the published alpha.3 binary.
+Discovery timeout alone does not identify a firewall problem.
+
 - If PowerShell reports that `-o` is a command or that an age flag needs an argument, a pasted line
   continuation or empty variable is the likely cause. Re-run the documented single-line command and
   check `$phoneRecipient.Length`, `$recoveryRecipient.Length`, and `Test-Path $identityStub` without

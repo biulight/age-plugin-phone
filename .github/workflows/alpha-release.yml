@@ -255,7 +255,7 @@ jobs:
           $packageName = "age-plugin-phone-$releaseVersion-windows-x64-alpha-test-signed.zip"
           $package = "target/release/$packageName"
           $releaseNotes = "docs/releases/v$releaseVersion.md"
-          Compress-Archive -Path target/release/age-plugin-phone.exe,README.md,CHANGELOG.md,SECURITY.md,LICENSE,$releaseNotes,docs/windows-alpha-quickstart.md -DestinationPath $package
+          Compress-Archive -Path target/release/age-plugin-phone.exe,README.md,CHANGELOG.md,SECURITY.md,LICENSE,$releaseNotes,docs/windows-alpha-quickstart.md,docs/windows-wifi.md,scripts/windows-wifi-firewall.ps1 -DestinationPath $package
           $exeHash = (Get-FileHash target/release/age-plugin-phone.exe -Algorithm SHA256).Hash.ToLowerInvariant()
           $packageHash = (Get-FileHash $package -Algorithm SHA256).Hash.ToLowerInvariant()
           "$exeHash  age-plugin-phone.exe" | Set-Content -Encoding utf8NoBOM target/release/SHA256SUMS.txt

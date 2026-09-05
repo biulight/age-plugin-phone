@@ -72,6 +72,12 @@ enum Command {
     },
     /// Report implementation status and read-only Windows Alpha capabilities.
     Status,
+    /// Diagnose one bounded Wi-Fi discovery window without pairing or requesting an unwrap.
+    WifiDoctor {
+        /// Check authenticated discovery for this public stub; omit for explicit phone pairing mode.
+        #[arg(long)]
+        identity_stub: Option<PathBuf>,
+    },
     /// Create one phone-backed identity using managed Windows paths.
     Setup {
         /// Untrusted desktop label shown on both endpoints.
@@ -203,6 +209,7 @@ fn main() -> io::Result<()> {
 
     match options.command.unwrap_or(Command::Status) {
         Command::AdbCleanupGuard { serial } => run_cleanup_guard(&serial),
+        Command::WifiDoctor { identity_stub } => run_wifi_doctor(identity_stub.as_deref()),
         Command::Status => {
             println!("status: common-transport-adb-alpha");
             println!("protocol_version: {PROTOCOL_VERSION}");
@@ -1301,6 +1308,62 @@ fn discover_unwrap_wifi(
     }
 }
 
+fn run_wifi_doctor(identity_stub: Option<&std::path::Path>) -> io::Result<()> {
+    // No private locator, TPM key, replay store, signed session, or TCP connection is opened.
+    // In particular, a TCP reachability probe would consume the phone's one-shot listener.
+    let stub = identity_stub
+        .map(read_identity_stub_file)
+        .transpose()
+        .map_err(|_| {
+            io::Error::other(
+                "wifi_doctor: public_stub_unavailable; check the selected public identity stub",
+            )
+        })?;
+    let purpose = if stub.is_some() { "unwrap" } else { "pairing" };
+    println!("stage=discovery purpose={purpose} timeout_ms=3000");
+    let started = Instant::now();
+    let result = if let Some(stub) = stub {
+        discover_unwrap_endpoint(
+            stub.desktop_id,
+            stub.identity_id,
+            &stub.phone_signing_public_key,
+            DEFAULT_DISCOVERY_TIMEOUT,
+            &mut OsRng,
+        )
+    } else {
+        let mut desktop_id = [0; 16];
+        OsRng.fill_bytes(&mut desktop_id);
+        discover_pairing_endpoint(desktop_id, DEFAULT_DISCOVERY_TIMEOUT, &mut OsRng)
+    };
+    let elapsed = started.elapsed().as_millis();
+    match result {
+        Ok(_) => {
+            println!("stage=discovery elapsed_ms={elapsed} result=one_candidate");
+            println!("next=run_a_fresh_operation; discovery_does_not_authorize_pairing_or_unwrap");
+            Ok(())
+        }
+        Err(error) => {
+            let (reason, next) = match error {
+                WifiError::DiscoveryUnavailable => (
+                    "no_matching_response",
+                    "check_phone_foreground_mode_same_subnet_listener_then_firewall",
+                ),
+                WifiError::DiscoveryAmbiguous => (
+                    "multiple_candidates",
+                    "leave_only_the_intended_phone_listener_active",
+                ),
+                _ => (
+                    "local_socket_unavailable",
+                    "check_local_network_interfaces_and_endpoint_security_policy",
+                ),
+            };
+            println!("stage=discovery elapsed_ms={elapsed} result={reason}");
+            println!("next={next}; timeout_alone_does_not_identify_a_firewall_fault");
+            Err(io::Error::other("Wi-Fi discovery diagnostic failed"))
+        }
+    }
+}
+
 #[cfg(windows)]
 fn ensure_desktop_platform_supported() -> io::Result<()> {
     age_plugin_phone_windows_cng::ensure_supported_platform().map_err(|error| {
@@ -1559,6 +1622,44 @@ fn hex(bytes: &[u8]) -> String {
 #[cfg(all(test, not(windows)))]
 mod tests {
     use super::*;
+
+    #[test]
+    fn wifi_doctor_rejects_session_options_and_bad_stub_before_discovery() {
+        assert!(matches!(
+            Options::try_parse_from(["age-plugin-phone", "wifi-doctor"])
+                .unwrap()
+                .command,
+            Some(Command::WifiDoctor {
+                identity_stub: None
+            })
+        ));
+        for option in [
+            "--transport",
+            "--wifi-address",
+            "--desktop-state",
+            "--replay-state",
+        ] {
+            assert!(
+                Options::try_parse_from(["age-plugin-phone", "wifi-doctor", option, "value"])
+                    .is_err()
+            );
+        }
+        let root = std::env::temp_dir().join(format!(
+            "age-phone-wifi-doctor-{}-{}",
+            std::process::id(),
+            now_unix().unwrap()
+        ));
+        std::fs::create_dir(&root).unwrap();
+        let path = root.join("public-stub.txt");
+        assert!(run_wifi_doctor(Some(&path)).is_err());
+        assert!(!path.exists());
+        std::fs::write(&path, b"malformed public stub").unwrap();
+        assert!(run_wifi_doctor(Some(&path)).is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), b"malformed public stub");
+        assert_eq!(std::fs::read_dir(&root).unwrap().count(), 1);
+        std::fs::remove_file(path).unwrap();
+        std::fs::remove_dir(root).unwrap();
+    }
 
     #[test]
     fn auto_accepts_one_route_hint_without_an_explicit_transport_option() {

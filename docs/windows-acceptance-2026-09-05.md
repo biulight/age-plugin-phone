@@ -102,6 +102,9 @@ compatibility for future protocol or storage versions, nor validate downgrades.
   was verified. Forced-process-exit prompt dismissal was also not independently observed.
 - Wi-Fi needs an installation/diagnostic treatment for firewall discovery replies on this host.
   The one additional discovery failure after initial setup was not conclusively diagnosed.
+  A later [new-UI and Wi-Fi follow-up](windows-ui-wifi-acceptance-2026-09-05.md) adds
+  [reversible configuration and diagnosis](windows-wifi.md) and records bounded transition probes;
+  it does not retroactively turn this historical failure into a diagnosed firewall problem.
 
 ## Final cleanup
 
