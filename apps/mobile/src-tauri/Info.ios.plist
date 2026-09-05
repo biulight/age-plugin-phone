@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>NSCameraUsageDescription</key>
+  <string>Scan authenticated pairing and one-time age unwrap QR messages.</string>
+  <key>NSFaceIDUsageDescription</key>
+  <string>Authorize one cryptographically bound age file-key unwrap.</string>
+  <key>NSLocalNetworkUsageDescription</key>
+  <string>Discover a paired desktop and exchange authenticated pairing or unwrap messages while the app is in the foreground.</string>
+</dict>
+</plist>

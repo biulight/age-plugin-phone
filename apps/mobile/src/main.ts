@@ -1,7 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import "./styles.css";
 
-interface ProjectStatus { stage: string; protocolVersion: number; wifiTransport: string; bleTransport: string; doctorEnabled: boolean; }
+interface ProjectStatus { platform: "android" | "ios"; stage: string; protocolVersion: number; wifiTransport: string; bleTransport: string; keyBackend: string; doctorEnabled: boolean; }
 interface PairedDesktopSummary { handle: string; displayLabel: string; transcriptFingerprint: string; deletionPending: boolean; }
 interface IdentityStatusReport {
   state: "ready" | "not_configured" | "deletion_pending" | "unavailable" | "unsupported";
@@ -22,9 +22,9 @@ if (!root) throw new Error("missing application root");
 root.innerHTML = `
 <main class="shell">
   <header class="hero"><div><p class="eyebrow">AGE IDENTITY · ALPHA</p><h1>Phone identity</h1></div><span class="state state-loading" id="identity-state">Loading</span></header>
-  <p class="summary">Your long-term identity stays in StrongBox. Every file-key unwrap needs a fresh phone biometric.</p>
+  <p class="summary" id="security-summary">Your long-term identity stays in phone secure hardware. Every file-key unwrap needs fresh biometric verification.</p>
   <section class="card"><div class="card-heading"><div><p class="kicker">IDENTITY</p><h2>Public recipient</h2></div><button class="quiet compact" id="copy-recipient" hidden>Copy</button></div><p class="recipient empty" id="recipient">Checking this phone…</p><button class="primary full" id="create-identity" hidden>Create StrongBox identity</button></section>
-  <section class="card"><div class="card-heading"><div><p class="kicker">TRANSPORT & ACTIONS</p><h2>Pair or approve</h2></div></div><p class="card-copy">Developer USB unwrap opens this app automatically. Wi-Fi discovery and listeners are available only while this app is in the foreground; every unwrap still needs a fresh phone biometric.</p><div class="action-grid"><button class="primary" data-product-action="pair_phone_usb">Pair · USB</button><button data-product-action="pair_phone_wifi">Pair · Wi-Fi</button><button data-product-action="pair_phone">Pair · QR</button><button id="wifi-auto-listen">Enable · Wi-Fi auto-listen</button><button data-product-action="unwrap_phone">Approve · QR</button></div><p class="result" id="wifi-status" aria-live="polite">Wi-Fi auto-listen is disabled.</p><p class="result" id="operation-result" aria-live="polite">No operation is active.</p></section>
+  <section class="card"><div class="card-heading"><div><p class="kicker">TRANSPORT & ACTIONS</p><h2>Pair or approve</h2></div></div><p class="card-copy" id="transport-copy">Wi-Fi discovery and listeners are available only while this app is in the foreground; every unwrap still needs a fresh phone biometric.</p><div class="action-grid"><button class="primary" id="pair-usb" data-product-action="pair_phone_usb">Pair · USB</button><button data-product-action="pair_phone_wifi">Pair · Wi-Fi</button><button data-product-action="pair_phone">Pair · QR</button><button id="wifi-auto-listen">Enable · Wi-Fi auto-listen</button><button data-product-action="unwrap_phone">Approve · QR</button></div><p class="result" id="wifi-status" aria-live="polite">Wi-Fi auto-listen is disabled.</p><p class="result" id="operation-result" aria-live="polite">No operation is active.</p></section>
   <section class="card"><div class="card-heading"><div><p class="kicker">ACCESS</p><h2>Paired desktops</h2></div><span class="count" id="desktop-count">0</span></div><div class="desktop-list" id="desktop-list"><p class="empty">No paired desktops.</p></div></section>
   <section class="card recovery"><p class="kicker">RECOVERY</p><h2>Keep an independent recipient</h2><p class="card-copy">Important data must also be encrypted to a recovery recipient that does not depend on this phone or the paired desktop TPM. Replacing either device does not migrate old ciphertext.</p></section>
   <details class="card danger-zone"><summary>Identity deletion and recovery guidance</summary><p>Deleting the app or identity permanently removes access through this phone. Ciphertexts are not deleted. Verify recovery first.</p><button class="danger full" id="delete-identity">Delete phone identity…</button></details>
@@ -46,6 +46,9 @@ const deleteIdentity = byId<HTMLButtonElement>("delete-identity");
 const doctor = byId<HTMLElement>("doctor");
 const doctorReport = byId<HTMLElement>("doctor-report");
 const buildStatus = byId<HTMLElement>("build-status");
+const securitySummary = byId<HTMLElement>("security-summary");
+const transportCopy = byId<HTMLElement>("transport-copy");
+const pairUsb = byId<HTMLButtonElement>("pair-usb");
 const productButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-product-action]"));
 const doctorButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-doctor]"));
 let currentStatus: IdentityStatusReport | null = null;
@@ -201,6 +204,14 @@ document.addEventListener("visibilitychange", () => { if (document.visibilitySta
 window.addEventListener("focus", () => { void refreshWifiAutoListenStatus().catch(() => undefined); });
 
 Promise.all([invoke<ProjectStatus>("project_status"), refreshIdentity(), refreshWifiAutoListenStatus()]).then(([project]) => {
+  if (project.platform === "ios") {
+    if (securitySummary) securitySummary.textContent = "Your long-term identity stays in Secure Enclave. Every file-key unwrap needs fresh Face ID or Touch ID verification.";
+    if (transportCopy) transportCopy.textContent = "QR and Wi-Fi are available while this app is in the foreground. Developer USB is Android-only; every unwrap still needs fresh Face ID or Touch ID verification.";
+    if (createIdentity) createIdentity.textContent = "Create Secure Enclave identity";
+    if (pairUsb) pairUsb.hidden = true;
+  } else if (transportCopy) {
+    transportCopy.textContent = "Developer USB unwrap opens this app automatically. Wi-Fi discovery and listeners are available only while this app is in the foreground; every unwrap still needs a fresh phone biometric.";
+  }
   if (doctor) doctor.hidden = !project.doctorEnabled;
-  if (buildStatus) buildStatus.textContent = `Experimental protocol v${project.protocolVersion} · ${project.stage} · Wi-Fi ${project.wifiTransport} · BLE ${project.bleTransport}`;
+  if (buildStatus) buildStatus.textContent = `Experimental protocol v${project.protocolVersion} · ${project.keyBackend} · Wi-Fi ${project.wifiTransport} · BLE ${project.bleTransport}`;
 }).catch(() => renderIdentity({ state: "unavailable", publicRecipient: null, pairedDesktops: [], recoveryRequired: true, errorCategory: "bridge_unavailable" }));

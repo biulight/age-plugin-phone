@@ -12,11 +12,15 @@ const COMMANDS: &[&str] = &[
     "unwrap_phone",
     "set_wifi_auto_listen",
     "wifi_auto_listen_status",
+    "identity_status",
+    "provision_identity",
+    "revoke_pairing",
+    "delete_identity",
 ];
 
 fn main() {
     tauri_plugin::Builder::new(COMMANDS)
         .android_path("android")
-        .try_build()
-        .expect("failed to build phone identity plugin");
+        .ios_path("ios")
+        .build();
 }

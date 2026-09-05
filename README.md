@@ -89,6 +89,20 @@ bun run tauri android init
 bun run tauri ios init
 ```
 
+The experimental iOS target requires Xcode and iOS 17 or later. After `tauri ios init`, an unsigned
+simulator compile can be checked with:
+
+```console
+rustup target add aarch64-apple-ios aarch64-apple-ios-sim
+bun run tauri ios build --debug --target aarch64-sim --no-sign --ci
+```
+
+For a paired, unlocked physical iPhone, use `bun run tauri ios dev` and select the device in the
+Tauri prompt or generated Xcode project. Local development signing may be selected in Xcode, but
+Team IDs, certificates, provisioning profiles, archives, and TestFlight/App Store configuration
+must not be committed. The simulator cannot validate Secure Enclave custody or fresh Face ID/Touch
+ID authorization.
+
 On Windows, `status` performs a read-only Alpha capability probe. It reports the actual Windows
 version, client/server edition, x64 architecture, TPM 2.0 availability, and Microsoft Platform
 Crypto Provider availability without creating or opening persisted keys.
@@ -120,6 +134,13 @@ because its terminal callback carries the one-time request that the phone must s
 becomes durable before its pairing record is removed; identity deletion is journaled before
 pairings and StrongBox aliases are destroyed. Interrupted deletion remains unavailable and cannot
 recreate an empty replay scope.
+
+The iOS 17+ UI presents the same product commands with Secure Enclave and Face ID/Touch ID wording.
+It supports native QR and foreground Wi-Fi pairing/unwrap and hides Developer USB. Calling the USB
+command directly returns `unsupported_transport`. Every unwrap creates a new native authentication
+context; raw QR, request, stanza, and file-key bytes remain in Swift and never enter the WebView.
+This source implementation is experimental and is not a signed distribution or physical-device
+acceptance claim.
 
 The Android build's **Pair · QR** action scans the desktop offer, signs and
 renders the phone response entirely in native UI, and shows the full transcript fingerprint. The
@@ -238,6 +259,8 @@ Start with the [Android StrongBox PoC](docs/android-strongbox-poc.md), then read
 [split desktop-key protocol ADR](docs/adr/0014-split-desktop-key-protocol-v2.md),
 [Windows private storage ADR](docs/adr/0015-windows-private-storage.md),
 [common transport and ADB Alpha ADR](docs/adr/0016-common-transport-and-adb-alpha.md),
+[iOS Secure Enclave custody ADR](docs/adr/0022-ios-secure-enclave-key-custody.md),
+[iOS pairing and replay lifecycle ADR](docs/adr/0023-ios-pairing-replay-lifecycle.md),
 [identity lifecycle and recovery ADR](docs/adr/0017-lifecycle-and-recovery.md),
 [owner-only technical preview scope](docs/owner-only-preview.md),
 [Windows and Android Alpha matrix](docs/alpha-matrix.md),

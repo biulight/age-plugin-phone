@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.hardware.biometrics.BiometricManager
 import android.hardware.biometrics.BiometricPrompt
 import android.os.Build
-import android.os.ext.SdkExtensions
 import app.tauri.plugin.JSObject
 import java.security.MessageDigest
 import java.security.SecureRandom
@@ -38,11 +37,6 @@ internal class StrongBoxDoctor(private val activity: Activity, private val keys:
 
         val secureLockScreen =
             (activity.getSystemService(Context.KEYGUARD_SERVICE) as KeyguardManager).isDeviceSecure
-        val extensionLevel = if (apiLevel >= Build.VERSION_CODES.R) {
-            SdkExtensions.getExtensionVersion(Build.VERSION_CODES.R)
-        } else {
-            0
-        }
         val cryptoObjectAvailable = try {
             BiometricPrompt.CryptoObject::class.java.getConstructor(KeyAgreement::class.java)
             BiometricPrompt.CryptoObject::class.java.getMethod("getKeyAgreement")
@@ -52,16 +46,15 @@ internal class StrongBoxDoctor(private val activity: Activity, private val keys:
         }
 
         return JSObject().apply {
-            put("androidRelease", Build.VERSION.RELEASE ?: "unknown")
-            put("apiLevel", apiLevel)
-            put("sdkExtensionLevel", extensionLevel)
+            put("platform", "android")
+            put("osVersion", Build.VERSION.RELEASE ?: "unknown")
             put(
-                "strongboxFeature",
+                "hardwareKeyAvailable",
                 activity.packageManager.hasSystemFeature(PackageManager.FEATURE_STRONGBOX_KEYSTORE),
             )
-            put("strongBiometric", strongBiometric)
+            put("strongUserVerification", strongBiometric)
             put("secureLockScreen", secureLockScreen)
-            put("keyAgreementCryptoObject", cryptoObjectAvailable)
+            put("authBoundKeyAgreement", cryptoObjectAvailable)
             put("leftoverProbeKey", keys.hasTrackedProbe())
             put(
                 "errorCategory",
@@ -129,12 +122,12 @@ internal class StrongBoxDoctor(private val activity: Activity, private val keys:
 
         return JSObject().apply {
             put("noBackupStorage", noBackupStorage)
-            put("identityStrongBox", inspection?.identityStrongBox ?: false)
+            put("identityHardwareBacked", inspection?.identityStrongBox ?: false)
             put("identityAgreeOnly", inspection?.identityAgreeOnly ?: false)
             put("identityAuthPerUse", inspection?.identityAuthPerUse ?: false)
-            put("identityBiometricStrong", inspection?.identityBiometricStrong ?: false)
-            put("signingStrongBox", inspection?.signingStrongBox ?: false)
-            put("signingPurposeSignOnly", inspection?.signingPurposeSignOnly ?: false)
+            put("identityStrongUserVerification", inspection?.identityBiometricStrong ?: false)
+            put("signingHardwareBacked", inspection?.signingStrongBox ?: false)
+            put("signingSignOnly", inspection?.signingPurposeSignOnly ?: false)
             put("signingNoUserAuth", inspection?.signingNoUserAuth ?: false)
             put("privateKeysNonExportable", inspection?.privateKeysNonExportable ?: false)
             put("keysDistinct", keysDistinct)
@@ -150,12 +143,12 @@ internal class StrongBoxDoctor(private val activity: Activity, private val keys:
     companion object {
         internal fun emptyIdentityCustodyReport(error: String): JSObject = JSObject().apply {
             put("noBackupStorage", false)
-            put("identityStrongBox", false)
+            put("identityHardwareBacked", false)
             put("identityAgreeOnly", false)
             put("identityAuthPerUse", false)
-            put("identityBiometricStrong", false)
-            put("signingStrongBox", false)
-            put("signingPurposeSignOnly", false)
+            put("identityStrongUserVerification", false)
+            put("signingHardwareBacked", false)
+            put("signingSignOnly", false)
             put("signingNoUserAuth", false)
             put("privateKeysNonExportable", false)
             put("keysDistinct", false)

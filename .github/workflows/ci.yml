@@ -107,6 +107,35 @@ jobs:
         working-directory: apps/mobile/src-tauri/gen/android
         run: ./gradlew :tauri-plugin-phone-identity:testDebugUnitTest --no-daemon
 
+  ios:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: apps/mobile/package.json
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.88.0
+          targets: aarch64-apple-ios,aarch64-apple-ios-sim
+      - uses: Swatinem/rust-cache@v2
+      - name: Frontend dependencies
+        working-directory: apps/mobile
+        run: bun install --frozen-lockfile
+      - name: TypeScript production build
+        working-directory: apps/mobile
+        run: bun run build
+      - name: Swift protocol vectors and framing tests
+        run: swift test --package-path plugins/tauri-plugin-phone-identity/ios/Core
+      - name: Generate iOS project
+        working-directory: apps/mobile
+        run: bun run tauri ios init --ci --skip-targets-install
+      - name: Compile Rust and Swift plugin for iOS device
+        run: cargo build --locked --target aarch64-apple-ios --manifest-path apps/mobile/src-tauri/Cargo.toml
+      - name: Compile unsigned iOS simulator application
+        working-directory: apps/mobile
+        run: bun run tauri ios build --debug --target aarch64-sim --no-sign --ci
+
   reproducible-inputs:
     runs-on: ubuntu-latest
     steps:

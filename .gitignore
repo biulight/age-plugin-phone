@@ -1,4 +1,5 @@
 /target/
+/plugins/tauri-plugin-phone-identity/.tauri/
 *.swp
 *.tmp
 .DS_Store

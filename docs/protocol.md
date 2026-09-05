@@ -17,7 +17,7 @@ Pairing is a bidirectional QR exchange that authenticates the desktop and phone 
 Both screens show a short fingerprint derived from the complete transcript before either endpoint
 persists the peer.
 
-On Android, a one-shot native confirmation session strictly verifies both signed messages before it
+On Android and iOS, a one-shot native confirmation session strictly verifies both signed messages before it
 returns the untrusted desktop label and canonical full transcript fingerprint for display. The
 native controller may persist only when the compared fingerprint exactly matches that transcript.
 Cancellation, mismatch, duplicate confirmation, lifecycle loss, or a storage error terminates the
@@ -27,7 +27,7 @@ Desktop state contains only public keys, identity identifiers, recipients, and t
 Phone state contains the private identity, paired desktop public keys, counters, and revocation
 state.
 
-Android signs the response with the persistent StrongBox phone-authentication key associated with
+The phone signs the response with its persistent hardware-backed authentication key associated with
 the committed public identity metadata and keeps response QR frames in native memory. The desktop
 uses a persistent, role-separated authentication key, rejects responses bound to any other offer,
 and writes a fixed-field canonical public plugin identity stub only after exact full-fingerprint
@@ -84,6 +84,11 @@ verification uses the identifiers and desktop signing key loaded from that recor
 consumes the request before returning it to any authorization path. Pairing deletion makes the
 scope unavailable; it never recreates an empty replay set.
 
+On iOS, [`ADR 0023`](adr/0023-ios-pairing-replay-lifecycle.md) applies the same verify-before-consume
+rule to strict canonical-CBOR state with exclusive locking, full persistence, and atomic
+replacement. Consumption remains durable after cancellation, authentication failure,
+backgrounding, disconnect, or response loss.
+
 ## Encoding
 
 Protocol payloads use fixed-length canonical CBOR arrays and reject unknown or extra fields. Signed
@@ -103,6 +108,10 @@ reassembler. Unrelated codes are ignored. A different valid transfer cannot evic
 malformed candidate frames, timeout, cancellation, lifecycle loss, or protocol verification failure
 close the scan and clear partial or completed buffers. The capture prototype accepts only a complete
 canonical signed pairing offer and returns no protocol bytes to Rust or JavaScript.
+
+On iOS, AVFoundation feeds candidates to the same framing and canonical-message validation and
+Core Image renders responses. Candidates and decoded protocol messages remain native and never
+become Tauri command values.
 
 The response file key is encrypted to the request's one-time P-256 session key with a fresh phone
 session key, HKDF-SHA256, and ChaCha20-Poly1305. Its AEAD context and phone signature bind both

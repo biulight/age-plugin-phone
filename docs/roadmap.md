@@ -289,7 +289,26 @@ release gate, not an open question about whether the ADB transport can carry the
   materially block adoption, and stock Android plus Windows can support a maintainable USB
   accessory path without OEM customization. Any proof of concept must reuse the common one-shot
   framing and the existing authenticated pairing and unwrap protocol.
-- [ ] Evaluate Windows ARM64, Linux, iOS, and macOS product packages after the Windows x64 Alpha;
-  platform expansion must not add a weaker key-custody fallback.
+- [x] Add the experimental iOS 17+ source implementation: separate Secure Enclave identity and
+  signing keys, fresh per-unwrap Face ID/Touch ID context, native QR, foreground Wi-Fi,
+  non-backed-up canonical replay state, platform-aware UI, and unsigned simulator CI. This does
+  not close physical acceptance, signing, packaging, or broader Alpha gates.
+- [ ] Complete the iPhone 15 Pro physical matrix for QR/Wi-Fi pairing and reference-age unwrap,
+  restart/replay, cancellation/backgrounding, wrong-device/malformed traffic, biometric-enrollment
+  invalidation, recovery recipient, and sensitive-log inspection.
+  A physical pass on 2026-09-05 completed Secure Enclave identity creation and reopen; explicit
+  Wi-Fi and QR pairing with full-fingerprint confirmation; both pairing records surviving an
+  application restart; standard `age` decryptions through both transports with fresh Face ID;
+  cancellation and background interruption without an output file; foreground listener recovery
+  with a new successful request; durable request consumption; and independent-recovery decryption
+  of the same synthetic ciphertext. That pass also exposed and fixed a main-thread mobile-command
+  watchdog crash, a cold-start foreground-listener activation race, and synchronous lifecycle
+  commands that could block native confirmation. Revoking the QR pairing preserved Wi-Fi access
+  and recovery; deleting the Secure Enclave identity removed every pairing, survived restart,
+  rejected the old phone identity without output, and left recovery usable. Wrong-device and
+  malformed physical traffic, biometric-enrollment invalidation, and the complete sensitive-log
+  inspection remain open.
+- [ ] Evaluate Windows ARM64, Linux, macOS product packages and signed iOS distribution after the
+  Windows x64 Alpha; platform expansion must not add a weaker key-custody fallback.
 - [ ] Define signed update, vulnerability reporting, protocol migration, support lifetime, and
   deprecation policies before general availability.
