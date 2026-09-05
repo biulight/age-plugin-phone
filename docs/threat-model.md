@@ -4,10 +4,14 @@
 
 - Copying desktop files or the plugin identity stub does not enable decryption elsewhere.
 - A desktop process cannot obtain a long-term phone private key.
-- Every private-key operation requires a fresh phone user-verification gesture.
+- Every unwrap using the phone identity key requires a fresh phone user-verification gesture.
 - Cancellation, timeout, malformed input, transport loss, and unsupported capability fail closed.
 - Captured requests and responses cannot be replayed or moved between paired desktops.
 - Approval releases only the file key for one cryptographically bound age recipient stanza.
+
+The separate phone-signing key authenticates protocol and discovery messages without requiring or
+caching identity authorization. It cannot unwrap an age file key or replace the fresh verification
+required by the identity key.
 
 ## Adversary capabilities
 
@@ -67,21 +71,18 @@ recipient that was included when the data was encrypted, loss of either required
 key is unrecoverable by design.
 
 On iOS, also assume the WebView, camera input, LAN peers, lifecycle events, and caller labels are
-hostile. Secure Enclave references, raw QR contents, protocol payloads, stanzas, and file keys stay
-in Swift native memory. Every unwrap uses a fresh LocalAuthentication context. Biometric-set
-invalidation, protected-storage failure, replay-state uncertainty, and clock rollback make the
-operation unavailable instead of creating a fallback key or replay scope.
+hostile. Secure Enclave references, raw QR contents, protocol payloads, stanzas, and file keys remain
+inside the Swift native boundary. Every unwrap uses a fresh LocalAuthentication context.
+Biometric-set invalidation, protected-storage failure, replay-state uncertainty, and clock rollback
+make the operation unavailable instead of creating a fallback key or replay scope.
 
 ## Prohibited shortcuts
 
 - Returning the long-term identity to the desktop.
 - Authorization windows such as "remember for ten minutes."
 - DPAPI, Keychain, file-key, password, or TOTP fallback on transport failure.
-- Trusting application labels, BLE pairing, or device names as authorization.
 - Logging protocol payloads, recipient stanza bodies, file keys, or plaintext.
 - Treating missing, corrupt, mismatched, or full replay state as an empty store.
-- Treating ADB authorization, a selected serial, or a successful reverse connection as peer
-  authentication or phone user authorization.
-- Treating a LAN address, private subnet, Wi-Fi association, or successful TCP connection as peer
-  authentication or phone user authorization.
-- Treating an enabled or foreground Wi-Fi auto-listener as phone user authorization.
+- Trusting caller labels, device names, BLE pairing, ADB authorization, selected serials, reverse
+  connections, LAN addresses, private subnets, Wi-Fi association, TCP connections, or enabled
+  foreground listeners as peer authentication or phone user authorization.

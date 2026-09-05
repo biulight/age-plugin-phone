@@ -2,214 +2,163 @@
 
 ## Product boundary
 
-`age-plugin-phone` is an age plugin, not a Shine component. Applications integrate through an age
-client and the standard age plugin protocol. The phone does not parse application configuration,
-environment variables, or plaintext.
+Applications integrate with `age-plugin-phone` only through an age client and the standard age
+plugin protocol. No Shine-specific ciphertext, URI, environment variable, or RPC is allowed between
+Shine and this project. A user without Shine must be able to use it with a compatible age client.
+The phone does not parse application configuration, environment variables, full age ciphertext,
+or plaintext.
 
-## Components
+The protocol remains an experimental version 2 design. Source-level independent review is complete;
+the wire format remains unfrozen pending compatibility policy and the remaining Alpha evidence.
 
-1. The desktop plugin receives recipient stanzas from an age client.
-2. The transport builds an authenticated, request-bound QR, BLE, or USB exchange.
-3. The phone validates the paired desktop, expiry, nonce, and request digest.
-4. The phone displays the device and identity involved, then requires system user verification.
-5. The hardware-backed phone identity unwraps one matching age file key.
-6. The phone encrypts that file key to the desktop's one-time session public key.
-7. The desktop plugin returns the file key to the age client and zeroizes its transient state.
+## Unwrap flow
 
-The full age ciphertext and its plaintext remain on the desktop. The long-term identity remains on
-the phone.
+1. The desktop plugin receives recipient stanzas from an age client and selects a matching pairing.
+2. It chooses one transport before creating a signed, request-bound unwrap session.
+3. The phone verifies the paired desktop, expiry, nonce, and request digest, then durably consumes
+   the request before prompting.
+4. The phone displays the device and identity involved and requires fresh system user verification
+   bound to the hardware identity operation.
+5. The phone unwraps one matching age file key and signs a response encrypting it to the desktop's
+   one-time session public key.
+6. The desktop verifies the response and durably consumes it before returning the file key to the
+   age client and zeroizing transient secrets.
 
-## Mobile application boundary
+The full age ciphertext and plaintext remain on the desktop; the long-term age identity stays on
+the phone. Protocol authentication and key binding are independent of transport.
 
-The mobile application uses Tauri 2 for navigation, rendering, lifecycle, and a small Rust core.
-The WebView receives only non-sensitive presentation models such as paired-device labels, request
-fingerprints, expiry, and success or cancellation state.
+## Native mobile boundary
 
-Hardware-key creation and file-key unwrap are implemented by a dedicated Tauri mobile plugin:
+Tauri 2 provides navigation, rendering, lifecycle, and a small Rust core. Its WebView receives only
+presentation models: untrusted paired-device labels, request fingerprints, expiry, and coarse
+success, cancellation, or error state. Hardware-key operations, raw QR contents, protocol messages,
+stanzas, and file keys stay inside the Kotlin or Swift native boundary, never Tauri command values
+or JavaScript data. Native transports send already encrypted, request-bound responses directly.
 
-- Swift calls Secure Enclave and LocalAuthentication APIs on iOS.
-- Kotlin calls Android Keystore/StrongBox and `BiometricPrompt` on Android.
-- User verification is attached to the private-key operation by the native platform policy.
-- Native code returns an already encrypted, request-bound response to Rust, never key bytes to
-  JavaScript.
+Android uses Keystore/StrongBox and a fresh `BiometricPrompt.CryptoObject(KeyAgreement)` for each
+identity unwrap. A separate authentication-success boolean is insufficient: authorization must bind
+to that exact private-key operation. iOS 17+ uses Secure Enclave and a new `LAContext` for each
+unwrap, with no authentication reuse. Lifecycle loss closes the native view, transport resources,
+and authentication context without restoring consumed requests.
 
-The iOS 17+ implementation is defined by [`ADR 0022`](adr/0022-ios-secure-enclave-key-custody.md)
-and [`ADR 0023`](adr/0023-ios-pairing-replay-lifecycle.md). It keeps separate Secure Enclave P-256
-ECDH identity and ECDSA signing keys, creates a new non-reusable `LAContext` for every unwrap, and
-stores canonical pairing/replay state with complete protection outside backups. Raw QR, request,
-stanza, and file-key bytes do not cross into Rust commands or the WebView.
+## Key custody and recipient cryptography
 
-Android QR capture is owned by the native Kotlin plugin so raw frame strings and signed protocol
-bytes never become Tauri command values. The generic biometric plugin alone is insufficient because
-a separate authentication success boolean is not
-cryptographically bound to the later private-key operation. BLE requires a reviewed native plugin
-and is not part of the first milestone.
+- The phone has distinct non-exportable P-256 ECDH identity and ECDSA signing keys. Only the identity
+  key unwraps age file keys, with fresh user verification per use. The signing key authenticates
+  messages without requiring or caching identity authorization. Android requires StrongBox with
+  no TEE or software fallback ([ADR 0007](adr/0007-android-production-key-custody.md)); iOS requires
+  Secure Enclave with no exportable or software-key fallback
+  ([ADR 0022](adr/0022-ios-secure-enclave-key-custody.md)). Wrapped X25519 is an unimplemented
+  historical candidate requiring separate review, not an enabled fallback on either platform.
+- The desktop has distinct ECDSA request-signing and ECDH stanza-selection keys. Protocol version 2
+  binds both public keys in the offer, transcript fingerprint, and public identity stub; the paired
+  recipient uses the selection key. Version 1 protocol messages, stubs, desktop key files, locators,
+  replay files, and Android pairing state are rejected rather than migrated; users must pair again
+  ([ADR 0014](adr/0014-split-desktop-key-protocol-v2.md)).
+- Windows pairing and unwrap require Windows 11+ x64 and TPM 2.0, checked through TPM Base Services
+  and Microsoft Platform Crypto Provider. The support probe creates no persisted keys. CNG
+  provisions distinct non-exportable keys and fails closed on partial, copied, missing, or
+  exportable state; software scalars are excluded from this desktop state path
+  ([ADR 0013](adr/0013-windows-cng-key-boundaries.md)).
 
-## Identity strategy
+The experimental P-256 recipient construction and cross-language vector are defined in
+[ADR 0001](adr/0001-experimental-p256-recipient.md). Canonical signed messages and the encrypted
+one-time response envelope belong to the protocol crate
+([ADR 0002](adr/0002-experimental-offline-envelope.md)); neither pairing nor transports redefine
+recipient cryptography.
 
-The Android production candidate is a hardware-native P-256 key compatible with age tagged
-recipients. The StrongBox PoC passed on a Samsung `SM-F9660` running Android 16: the non-exportable
-P-256 ECDH key was reported at the `STRONGBOX` security level, and every operation was bound to a
-fresh `BiometricPrompt.CryptoObject(KeyAgreement)` authorization. This selects the P-256 tagged
-recipient path for the next protocol PoC; it does not freeze the wire format.
+## Pairing and replay state
 
-The experimental construction, strict parsing rules, and cross-language vector are recorded in
-[`ADR 0001`](adr/0001-experimental-p256-recipient.md). Its Rust reference implementation is kept
-transport-independent so QR and pairing cannot silently define the recipient cryptography.
+Native pairing verifies both signed messages before returning the untrusted desktop label and full
+transcript fingerprint for comparison. Both endpoints require exact full-fingerprint confirmation
+before persisting a peer. Cancellation, mismatch, duplicate confirmation, lifecycle loss, or failed
+persistence terminates the session; a retry requires a fresh exchange and complete verification.
+The desktop rejects responses bound to another offer and creates only a public identity stub
+([ADR 0008](adr/0008-bidirectional-pairing.md)). Existing state is never silently overwritten.
 
-Canonical signed messages and the one-time desktop session response envelope are separately
-recorded in [`ADR 0002`](adr/0002-experimental-offline-envelope.md). The protocol crate owns this
-logic; transports carry opaque canonical bytes and do not redefine authentication or key binding.
+Replay state is scoped to a pairing and endpoint, bounded, and durably replaced. Missing, corrupt,
+full, mismatched, or unavailable state fails closed instead of becoming an empty store; the
+in-memory guard is test-only ([ADR 0003](adr/0003-persistent-replay-state.md)). Android atomically
+stores the public pairing and request-replay scope under `Context.noBackupFilesDir`
+([ADR 0004](adr/0004-android-pairing-state.md)). Its synthetic-data Doctor exercises persistence,
+replay rejection, wrong scope, deletion, and cleanup without exposing paths or protocol material.
+iOS uses protected, non-backed-up canonical state with exclusive locking and atomic replacement
+([ADR 0023](adr/0023-ios-pairing-replay-lifecycle.md)).
 
-Durable replay consumption is specified in
-[`ADR 0003`](adr/0003-persistent-replay-state.md). The protocol crate provides scoped, bounded,
-atomically replaced Unix and Windows file backends; the in-memory guard is test-only. Windows
-locator, TPM metadata, ACL, locking, and replacement rules are specified by
-[`ADR 0015`](adr/0015-windows-private-storage.md).
+Untrusted request identifiers only locate candidate state. Verification uses the stored desktop
+signing key, and durable request consumption precedes each fresh biometric operation
+([ADR 0009](adr/0009-one-shot-qr-unwrap.md)). Cancellation, authentication failure, backgrounding,
+disconnect, or response loss never restores the consumed request. The desktop durably consumes an
+authenticated response before releasing its file key.
 
-Android binds each public pairing record and its request-replay scope into one canonical state file
-under `Context.noBackupFilesDir`, as specified in
-[`ADR 0004`](adr/0004-android-pairing-state.md). Creation is explicit, opening missing state fails
-closed, and native request verification returns only after the combined state replacement is
-durable. A separate synthetic-data Doctor exercises create, consume, reopen, replay rejection,
-wrong scope, deletion, and cleanup without exposing paths or protocol material to the WebView.
+Windows private locators, public TPM-key metadata, and response-replay state use protected
+current-user ACLs under `%LOCALAPPDATA%\age-plugin-phone`. Insecure files, concurrent replay
+owners, corrupt state, failed replacement, and unsupported capabilities fail closed
+([ADR 0015](adr/0015-windows-private-storage.md)).
 
-The native pairing-confirmation session accepts canonical signed offer/response bytes only from a
-native transport controller. It verifies the complete transcript before producing a presentation
-model containing just the untrusted desktop label and full transcript fingerprint. Confirmation is
-one-shot: cancellation, a different or non-canonical fingerprint, duplicate confirmation, process
-lifecycle loss, or failed persistence closes the session without retrying it. Raw QR and signed
-protocol bytes are not Tauri command arguments and never enter JavaScript.
+## Standard age integration
 
-A wrapped native X25519 identity remains a separately reviewed fallback candidate for platforms
-that cannot expose a suitable non-exportable operation. It is not enabled on the verified Android
-path. Canonical pairing/request encoding and complete Rust/Kotlin protocol vectors now exist;
-The native confirmation-to-persistence boundary now exists. Versioned canonical
-framing and bounded animated-frame assembly are specified by
-[`ADR 0005`](adr/0005-qr-framing.md) and implemented in Rust and Kotlin. Android native continuous
-capture and desktop terminal animation are specified by
-[`ADR 0006`](adr/0006-native-qr-capture.md). [`ADR 0008`](adr/0008-bidirectional-pairing.md)
-connects the production StrongBox keys to phone response signing and native QR rendering. The
-desktop verifies the response, compares the same full transcript fingerprint, and creates a
-canonical public identity stub only after confirmation. The source-level independent review is
-complete; the wire format remains experimental until compatibility policy and the remaining Alpha
-evidence are complete.
+Public recipients and identity stubs connect to the standard `recipient-v1` and `identity-v1` state
+machines. A separate private, transcript-bound locator resolves desktop key and replay state;
+private keys and filesystem paths never enter the public stub
+([ADR 0010](adr/0010-reference-age-state-machines.md)).
 
-[`ADR 0009`](adr/0009-one-shot-qr-unwrap.md) connects that pairing to one production-key Android
-unwrap. Untrusted request identifiers route to candidate state only; the stored desktop key then
-verifies the request and durable replay consumption precedes a new native biometric authorization.
-The response remains encrypted and signed below the WebView boundary. The desktop uses a bounded
-native camera worker to decode and reassemble response QR frames entirely in memory before passing
-complete bytes to the same strict response verifier.
-
-[`ADR 0010`](adr/0010-reference-age-state-machines.md) connects the public recipient and identity
-stub to standard age `recipient-v1` and `identity-v1` state machines. A separate private,
-transcript-bound locator resolves the desktop authentication and replay files; those paths are not
-embedded in the public identity. Reference age can now create tagged stanzas and request a one-shot
-phone unwrap without learning or storing a long-term age identity.
-
-[`ADR 0012`](adr/0012-private-stanza-selection.md) adds pairing-specific v2 recipients. Each stanza
-contains an authenticated identity selector encrypted to the paired desktop authentication key
-under a domain separate from the phone file-key wrap. The desktop can therefore map anonymous
-stanzas to the correct local pairing without a phone private operation or a public stable tag; the
-desktop key still cannot decrypt the age file key.
-
-[`ADR 0013`](adr/0013-windows-cng-key-boundaries.md) begins the Windows custody upgrade by
-separating portable P-256 signing and key-agreement operations from concrete software scalars. A
-dedicated CNG boundary provisions distinct non-exportable ECDSA and ECDH keys only through Microsoft
-Platform Crypto Provider and fails closed on partial or exportable state. Its read-only support
-probe requires a Windows 11-or-later x64 client, obtains the TPM version directly through Windows
-TPM Base Services, requires TPM 2.0, and verifies that the Platform Crypto Provider opens. Pairing,
-explicit unwrap, and the standard `identity-v1` state machine enforce this gate before protocol
-work; no persisted key is created by the probe.
-
-[`ADR 0014`](adr/0014-split-desktop-key-protocol-v2.md) upgrades the experimental protocol and all
-pairing state to version 2. The signed offer, transcript fingerprint, public identity stub, and v2
-paired recipient now bind distinct desktop signing and selection public keys. Version 1 messages,
-stubs, desktop key files, locators, replay files, and Android pairing state are rejected rather than
-migrated; users must pair again.
-
-On Windows, production pairing and unwrap open the distinct CNG keys through operation traits;
-software scalars are not compiled into that desktop state path. Private locator, public TPM-key
-metadata, and response replay state live under `%LOCALAPPDATA%\age-plugin-phone` with protected
-current-user ACLs. Missing or copied TPM keys, insecure files, concurrent replay owners, corrupt
-state, failed replacement, or an unsupported Windows capability all fail closed.
-
-The common one-request/one-response transport boundary and Developer USB ADB reverse Alpha are
-specified by [`ADR 0016`](adr/0016-common-transport-and-adb-alpha.md). Stream framing binds a random
-session ID, purpose, direction, and bounded body length but provides no authentication. Windows
-defaults to ADB while QR remains a pairing-independent fallback. Android loopback stream bytes stay
-inside the native Kotlin plugin and enter the same strict pairing and unwrap controllers as QR.
-[`ADR 0018`](adr/0018-owner-only-foreground-wifi-poc.md) reuses that stream boundary for an opt-in
-foreground-only Wi-Fi auto-listen experiment. Its private IPv4 route and foreground listener are
-untrusted delivery hints and add no pairing, discovery, fallback, or authorization behavior.
-[`ADR 0019`](adr/0019-unified-transport-policy.md) resolves `auto`, ADB, BLE, Wi-Fi, or QR into one
-desktop route before a protocol session is created. Route hints pin one transport; an attempt never
-races, switches, or silently retries after sending begins, and BLE remains unavailable until its
-separately reviewed native proof of concept. [`ADR 0021`](adr/0021-wifi-discovery-and-pairing.md)
-adds a bounded pairing-scoped discovery exchange, Wi-Fi-first `auto`, a private per-pairing route
-preference, and an explicit one-shot foreground Wi-Fi pairing mode without changing signed pairing
-or unwrap messages.
-
-On iOS, Network framework carries those same bounded Wi-Fi frames only while foregrounded, while
-AVFoundation and Core Image own QR input and output. Lifecycle loss closes the exact socket,
-stream, native view, and authentication context without restoring a consumed request or switching
-transport. ADB and Developer USB remain Android-only; iOS hides the action and returns
-`unsupported_transport` from the retained cross-platform command.
-
-Identity replacement, paired-desktop revocation, deletion, application removal, and TPM/StrongBox
-invalidation are specified by [`ADR 0017`](adr/0017-lifecycle-and-recovery.md). Version 2
-ciphertexts bind both a phone identity and a paired desktop selection key, so replacing either
-endpoint requires decrypting through a previously included independent recovery recipient and
-encrypting anew. Pairing state and hardware private keys are never migrated or reconstructed.
+Each v2 stanza carries an authenticated identity selector encrypted to the paired desktop selection
+key, in a domain separate from the phone file-key wrap. This selects the local pairing without a
+phone private operation or public stable tag. The desktop selection key cannot decrypt the age
+file key ([ADR 0012](adr/0012-private-stanza-selection.md), with key roles split by ADR 0014).
 
 ## Transport strategy
 
-QR is the first implementation target because it is observable, offline, and independent of radio
-pairing behavior. BLE may follow after the application-layer protocol is stable. BLE pairing is
-never the protocol's trust root; messages remain end-to-end authenticated and encrypted.
+Transports carry opaque canonical protocol messages. Framing bounds allocation and detects
+corruption or stream confusion; it does not authenticate peers or authorize unwrap.
 
-QR framing provides bounded corruption detection and assembly only. It never authenticates a peer.
-The Android native scanner path owns raw frame strings, clears partial assemblies on failure or
-cancellation, and passes only a complete digest-checked byte message to the native protocol parser.
-Its Tauri result contains only a verified untrusted desktop label, offer digest, frame count, and
-coarse error category. The desktop renderer writes QR modules and safe progress metadata, never the
-frame text. The desktop scanner likewise keeps camera pixels, decoded frame text, partial chunks,
-and complete responses in memory; only digest-checked complete bytes reach protocol verification.
+QR framing and bounded assembly are defined by [ADR 0005](adr/0005-qr-framing.md). Android native
+capture and desktop terminal animation follow [ADR 0006](adr/0006-native-qr-capture.md); iOS uses
+AVFoundation and Core Image. Scanners keep pixels, raw frame text, partial chunks, and completed
+responses in memory, clear assemblies on failure or cancellation, and pass only digest-checked
+complete messages to strict protocol verification. Desktop rendering emits QR modules and safe
+progress metadata, never raw frame text.
 
-ADB reverse is explicitly Developer USB mode. ADB device state and serials are untrusted endpoint
-selection data only. The desktop uses an ephemeral loopback listener, passes no protocol bytes to
-the ADB process, rejects an existing reverse rule, and removes only the exact rule it created.
+The one-request/one-response stream envelope binds a random session ID, purpose, direction, and
+bounded length ([ADR 0016](adr/0016-common-transport-and-adb-alpha.md)). Android Developer USB
+uses an ephemeral desktop loopback listener and ADB reverse. Device state and serials only select
+an untrusted endpoint; no protocol bytes enter the ADB process. The desktop rejects existing reverse
+rules and removes only the exact rule it created. iOS has no Developer USB UI and its native command
+fails closed with `unsupported_transport`.
 
-The foreground Wi-Fi transport reverses the TCP role: after the user persistently opts in, Android keeps
-one listener available only while the application is foregrounded and the desktop connects to a
-discovered private IPv4 endpoint. The listener serializes requests and automatically re-arms with
-bounded retry delays after a completed or failed session; an idle passive accept remains armed until
-the lifecycle owner closes it, so it does not introduce periodic discovery gaps. Leaving the
-foreground or pausing the mode closes its exact resources. It
-carries only unwrap over the same bounded stream frame. LAN reachability, peer address, listener
-availability, and connection success provide no authentication or approval. A fixed-width UDP
-query is sent to the limited broadcast address and, on multi-homed Windows hosts, each eligible
-private IPv4 subnet broadcast. It selects only the exact pairing whose StrongBox phone-signing key
-authenticates the response. Retransmits of one exact strict query reuse its in-memory public signed
-response so transport loss cannot amplify one discovery into repeated StrongBox operations;
-the discovered address remains an untrusted route hint. There is no background wake or in-flight
-fallback.
+The owner-only foreground Wi-Fi experiment uses the same stream envelope
+([ADR 0018](adr/0018-owner-only-foreground-wifi-poc.md)). After persistent user opt-in, Android
+keeps one unwrap-only listener while foregrounded, serializes sessions, and re-arms with bounded
+retry delays. Idle accept remains armed until its lifecycle owner closes it; leaving the foreground
+or pausing closes its exact resources. iOS uses Network framework for foreground Wi-Fi. Listener
+availability, private IPv4 routing, and TCP success provide no authentication or approval; there is
+no Wi-Fi background wake.
 
-Wi-Fi pairing is available only after the phone user explicitly opens a one-shot foreground pairing
-listener. Pre-pairing discovery is necessarily unauthenticated, but the existing signed offer,
-StrongBox-signed response, and complete two-ended transcript comparison remain the pairing trust
-boundary. The persistent unwrap auto-listener never accepts pairing.
+Discovery and explicit Wi-Fi pairing follow [ADR 0021](adr/0021-wifi-discovery-and-pairing.md).
+Bounded UDP queries target the limited broadcast address and, on multi-homed Windows hosts, each
+eligible private IPv4 subnet broadcast. Existing-pairing responses must authenticate under the
+paired phone-signing key and bind the exact query, including its nonce. Retransmits reuse only the
+in-memory public signed response to that exact query, never identity authorization. The discovered
+address remains an untrusted route hint. Pairing discovery is unauthenticated and requires the phone
+user to open a separate one-shot foreground pairing listener; the signed exchange and complete
+two-ended fingerprint comparison establish trust. The persistent unwrap listener never pairs.
 
-The unified desktop policy makes one deterministic choice before creating a pairing or unwrap
-session. An explicit route hint still pins one route. Without one, `auto` performs bounded Wi-Fi
-discovery first; exactly one authenticated matching unwrap response selects Wi-Fi, while no response
-preserves ADB on Windows and QR on other desktop platforms. Ambiguity fails closed. This is not
-availability racing or in-flight fallback. A failed attempt terminates, and a user retry creates a
-fresh signed protocol request.
+The desktop resolves one route before creating a signed offer or unwrap request
+([ADR 0019](adr/0019-unified-transport-policy.md), extended by ADR 0021). Explicit route hints pin
+one route; a private per-pairing preference supplies the normal unwrap choice. Without a route hint,
+`auto` tries bounded Wi-Fi discovery first: one matching source selects Wi-Fi; no response retains
+ADB on Windows and QR elsewhere. Unwrap discovery requires authentication under the paired phone
+key; pairing discovery requires one candidate in explicit phone pairing mode. Ambiguity or local
+discovery failure is terminal. An attempt never races, switches, reconnects, or silently retries
+once the signed session begins. Failure terminates it; user retries create fresh signed requests.
+BLE remains unavailable pending a separately reviewed native implementation; OS-level BLE pairing
+cannot become its trust root.
 
-## Integration invariant
+## Recovery and lifecycle
 
-No application-specific ciphertext, URI, environment variable, or RPC is allowed between Shine and
-this project. A user who does not install Shine must be able to use the plugin with a compatible age
-client.
+Identity replacement, paired-desktop revocation, deletion, application removal, and hardware
+invalidation follow [ADR 0017](adr/0017-lifecycle-and-recovery.md). Version 2 ciphertext binds the
+phone identity and paired desktop selection key. Replacing either endpoint requires decrypting
+through an independent recovery recipient included at encryption time, then encrypting anew.
+Pairing state and hardware private keys are never migrated or reconstructed.

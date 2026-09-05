@@ -13,25 +13,27 @@ transport compatibility commitments.
 
 ## Pairing
 
-Pairing is a bidirectional QR exchange that authenticates the desktop and phone static public keys.
-Both screens show a short fingerprint derived from the complete transcript before either endpoint
-persists the peer.
+Pairing exchanges two signed messages over an available transport to authenticate the desktop and
+phone static public keys. The user compares the complete transcript fingerprint on both screens
+before either endpoint persists the peer.
 
-On Android and iOS, a one-shot native confirmation session strictly verifies both signed messages before it
-returns the untrusted desktop label and canonical full transcript fingerprint for display. The
+On Android and iOS, a one-shot native confirmation session strictly verifies both signed messages
+before returning the untrusted desktop label and canonical full transcript fingerprint. The
 native controller may persist only when the compared fingerprint exactly matches that transcript.
 Cancellation, mismatch, duplicate confirmation, lifecycle loss, or a storage error terminates the
-session. A retry requires rescanning and re-verifying the complete transcript.
+session. A retry requires a fresh exchange and re-verification of the complete transcript.
 
-Desktop state contains only public keys, identity identifiers, recipients, and transport metadata.
-Phone state contains the private identity, paired desktop public keys, counters, and revocation
-state.
+The public desktop identity stub contains only public identity and pairing metadata, with no private
+keys or filesystem paths. Separate desktop state provides access to distinct signing and selection
+keys, private locators, and response-replay state; Windows keys remain non-exportable in the TPM.
+Phone identity and signing keys remain in secure hardware, while paired desktop public keys,
+request-replay state, and revocation state use protected native storage.
 
-The phone signs the response with its persistent hardware-backed authentication key associated with
-the committed public identity metadata and keeps response QR frames in native memory. The desktop
-uses a persistent, role-separated authentication key, rejects responses bound to any other offer,
-and writes a fixed-field canonical public plugin identity stub only after exact full-fingerprint
-confirmation. The stub contains no private key, and existing state is never silently overwritten.
+The phone signs the response with its persistent hardware-backed signing key bound to committed
+public identity metadata and keeps response QR frames in native memory. The desktop uses its own
+persistent signing key, rejects responses bound to any other offer, and writes the canonical public
+identity stub only after exact full-fingerprint confirmation. Existing state is never silently
+overwritten.
 
 ## Unwrap request
 
@@ -121,9 +123,11 @@ paired identifiers, request ID and digest, response nonce, and both session part
 
 [`ADR 0010`](adr/0010-reference-age-state-machines.md) maps `age1phone` recipients to the standard
 `recipient-v1` plugin state machine and maps public phone identity stubs to `identity-v1`. Unknown
-stanza types are ignored. A supported stanza is returned to the age client only after a fresh phone
-authorization and durable response consumption. Protocol payloads and stanza bodies never appear in
-age callback messages; the request callback displays only the rendered QR and its public digest.
+stanza tags are ignored at the `identity-v1` input boundary; malformed supported stanzas are rejected.
+`recipient-v1` wraps file keys using public keys only. `identity-v1` returns a file key only after
+fresh phone authorization and durable response consumption. Protocol payloads and stanza bodies
+never appear as raw content in age callback messages; the QR request callback displays only the
+rendered QR and its public digest.
 
 New pairing-specific recipients use the v2 private selector specified by
 [`ADR 0012`](adr/0012-private-stanza-selection.md). The recipient payload binds the phone identity,
@@ -135,9 +139,10 @@ when exactly one phone identity and one v1 stanza are present.
 
 ## BLE
 
-BLE transports the same application messages after mutually authenticated ephemeral key agreement.
-Advertisements, OS-level BLE pairing, device names, and MAC addresses are discovery hints only and
-are never authentication inputs.
+BLE remains unavailable pending a separately reviewed native implementation. The intended transport
+carries the same application messages after mutually authenticated ephemeral key agreement.
+Advertisements, OS-level BLE pairing, device names, and MAC addresses remain discovery hints, never
+authentication inputs.
 
 ## Common stream transport
 
@@ -165,5 +170,6 @@ requires an independent recipient to recover and re-encrypt retained data; it ne
 private key or replay scope.
 
 Version 2 remains an unfrozen design draft. Version 1 messages and state are rejected rather than
-migrated as defined by ADR 0014. Stable upgrade, downgrade-rejection, and compatibility rules will
-be specified only after independent review findings are resolved.
+migrated as defined by [`ADR 0014`](adr/0014-split-desktop-key-protocol-v2.md). Stable upgrade,
+downgrade-rejection, and compatibility rules will be specified only after independent review
+findings are resolved.
