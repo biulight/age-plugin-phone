@@ -135,8 +135,10 @@ function Invoke-MinimalAcceptance {
         if ((Test-Path -LiteralPath $shadowAdb) -and
             [IO.Path]::GetFullPath($shadowAdb) -ne [IO.Path]::GetFullPath($AdbExe)) { throw 'shadowed_adb' }
         if ((Get-Command adb.exe -CommandType Application).Source -ne $AdbExe) { throw 'shadowed_adb' }
-        $env:AGE_PLUGIN_PHONE_CONFIG_DIR = $ConfigRoot
-        $env:AGE_PLUGIN_PHONE_ADB_SERIAL = $AdbSerial
+        if ($ConfigRoot) { $env:AGE_PLUGIN_PHONE_CONFIG_DIR = $ConfigRoot }
+        else { Remove-Item Env:AGE_PLUGIN_PHONE_CONFIG_DIR -ErrorAction SilentlyContinue }
+        if ($AdbSerial) { $env:AGE_PLUGIN_PHONE_ADB_SERIAL = $AdbSerial }
+        else { Remove-Item Env:AGE_PLUGIN_PHONE_ADB_SERIAL -ErrorAction SilentlyContinue }
         $env:AGE_PLUGIN_PHONE_WIFI_ADDRESS = $null
         $env:AGE_PLUGIN_PHONE_MESSAGES = $null
         $env:AGE_PLUGIN_PHONE_TRANSPORT = 'adb'
@@ -220,7 +222,15 @@ function Invoke-MinimalAcceptance {
         # Original exceptions/command arguments may contain private paths; never put them in evidence.
         throw "Minimal acceptance stopped at $stage ($category). Preserve this failed report; follow the checklist for diagnosis and a fresh run."
     } finally {
-        foreach ($name in $environmentNames) { [Environment]::SetEnvironmentVariable($name, $savedEnvironment[$name], 'Process') }
+        foreach ($name in $environmentNames) {
+            # PowerShell's .NET string binding can turn $null into an empty string; newer
+            # Windows runtimes preserve empty variables. Restore absence explicitly.
+            if ($null -eq $savedEnvironment[$name]) {
+                Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue
+            } else {
+                [Environment]::SetEnvironmentVariable($name, $savedEnvironment[$name], 'Process')
+            }
+        }
         try {
             if ($fixture) { Remove-Item -LiteralPath $fixture -Recurse -Force }
             $report.synthetic_files_removed = $true

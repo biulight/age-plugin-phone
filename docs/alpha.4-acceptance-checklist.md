@@ -44,6 +44,11 @@ evidence redaction. The simulated host/tool responses are harness tests, not Win
 acceptance. Windows harness CI and the unchanged Android/iOS jobs still need the final candidate
 SHA run. No alpha.4 package has been signed or physically tested by this preparation.
 
+Candidate CI `34022371647` at `5695709` exposed a Windows harness environment-restoration
+failure: an originally absent variable became an empty variable through .NET string binding.
+The follow-up explicitly removes originally absent variables and preserves existing values;
+the replacement candidate must pass a new complete CI run before signing.
+
 ## Exact-package preparation and upgrade
 
 - [ ] Use synthetic data and an independent recovery recipient. Record the normal APK's identity
