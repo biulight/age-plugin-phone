@@ -191,6 +191,12 @@ certificate and the certificate on a Play-delivered APK are identical.
 
 This is the only Alpha publication path:
 
+For the owner-only alpha.4 developer prerelease, use the
+[exact-package candidate checklist](alpha.4-acceptance-checklist.md), including the minimum script
+and manual UI, upgrade and cleanup rows. The full `alpha-matrix.md` remains the gate for broader
+use; deferred public-Alpha rows are not required for this owner-only publication and are never
+reported as passed by the minimum regression.
+
 1. Commit the Alpha candidate. Its full 40-character commit SHA, all three application manifests,
    and `docs/releases/vVERSION.md` must agree on one `X.Y.Z-alpha.N` version.
 2. From that exact commit, manually dispatch `Publish test-signed Alpha prerelease`, supplying the
@@ -201,8 +207,9 @@ This is the only Alpha publication path:
    are retained for 30 days.
 4. While the `alpha-release-publish` job waits for its separate approval, download the Windows and
    Android artifacts from **that same workflow run**. Independently check the hashes and recorded
-   certificate identities, label the Windows package test-signed, and complete every required
-   physical row in `alpha-matrix.md` against those exact packages.
+   certificate identities, label the Windows package test-signed, and complete the physical rows
+   required by the declared release scope against those exact packages: the alpha.4 checklist for
+   this owner-only developer prerelease, or the complete `alpha-matrix.md` for broader Alpha use.
 5. Only after the physical regression passes, approve `alpha-release-publish`. That job has only
    `contents: write`; it cannot read signing credentials. It rechecks the candidate commit,
    version, run/attempt agreement, APK/ZIP hashes, certificate fingerprints, ZIP contents, and the

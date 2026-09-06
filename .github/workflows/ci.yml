@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, 'codex/alpha.*']
 
 permissions:
   contents: read
@@ -54,6 +54,10 @@ jobs:
           cargo build --release --locked -p age-plugin-phone
           target/release/age-plugin-phone.exe --help
           target/release/age-plugin-phone.exe setup --help
+      - name: Minimum acceptance harness fixtures
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./scripts/test-windows-minimal-acceptance.ps1
 
   mobile:
     runs-on: ubuntu-latest

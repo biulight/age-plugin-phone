@@ -6,6 +6,31 @@ recovery recipient.
 
 ## [Unreleased]
 
+## [0.1.0-alpha.4] - Unreleased candidate
+
+Fourth test-signed developer prerelease candidate. Exact signed-package acceptance is pending.
+
+### Added
+
+- Experimental iOS 17+ Secure Enclave source implementation with native QR, foreground Wi-Fi,
+  fresh Face ID/Touch ID authorization, and Swift protocol tests. No signed iOS artifact or
+  physical-device acceptance is included in this Windows/Android candidate.
+- Payload-free Windows `wifi-doctor` discovery diagnostics and an inspectable, scoped Windows
+  firewall helper, included with the Wi-Fi guide in the Windows ZIP.
+- An owner-assisted minimal Windows acceptance script and an alpha.4 exact-package checklist.
+
+### Fixed
+
+- USB and Wi-Fi pairing show loading state and disable duplicate submissions until completion.
+- Android Activity-stop cleanup dismisses pending native pairing confirmation and closes USB,
+  Wi-Fi, and authentication resources; returning to the foreground permits a fresh operation.
+- Wi-Fi pairing UI handoff is guarded against stale completion.
+
+### Validation
+
+- Earlier alpha.3 signed-package and subsequent isolated debug UI/Wi-Fi evidence remain historical.
+  They do not certify the alpha.4 package pair; signing and physical acceptance are still pending.
+
 ## [0.1.0-alpha.3] - 2026-09-04
 
 Third test-signed developer prerelease.
@@ -82,7 +107,8 @@ First test-signed developer prerelease.
 - This prerelease is for synthetic or disposable data with a separately verified independent
   recovery recipient. It is not a public-Alpha or production-secret claim.
 
-[Unreleased]: https://github.com/biulight/age-plugin-phone/compare/v0.1.0-alpha.3...HEAD
+[Unreleased]: https://github.com/biulight/age-plugin-phone/compare/v0.1.0-alpha.4...HEAD
+[0.1.0-alpha.4]: https://github.com/biulight/age-plugin-phone/compare/v0.1.0-alpha.3...v0.1.0-alpha.4
 [0.1.0-alpha.3]: https://github.com/biulight/age-plugin-phone/compare/v0.1.0-alpha.2...v0.1.0-alpha.3
 [0.1.0-alpha.2]: https://github.com/biulight/age-plugin-phone/compare/v0.1.0-alpha.1...v0.1.0-alpha.2
 [0.1.0-alpha.1]: https://github.com/biulight/age-plugin-phone/releases/tag/v0.1.0-alpha.1

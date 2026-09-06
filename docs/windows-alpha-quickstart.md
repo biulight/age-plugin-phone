@@ -15,6 +15,11 @@ public-signing, or external-user gates.
 Use one exact RC artifact set throughout the guide. Do not mix a desktop executable, Android APK,
 or evidence file from another commit or workflow attempt.
 
+For alpha.4 preparation, follow the [candidate checklist](alpha.4-acceptance-checklist.md). Its
+[minimum Windows script](../scripts/windows-minimal-acceptance.ps1) automates synthetic unwrap and
+recovery checks after fresh setup, with explicit owner observations. The UI, upgrade, provenance
+and cleanup rows remain separate requirements; the script does not close the full matrix.
+
 ## 1. Verify and install the artifacts
 
 Download both artifact groups and their `SHA256SUMS.txt` and `signature-verification.txt` evidence.

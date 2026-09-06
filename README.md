@@ -19,6 +19,10 @@ The latest installable snapshot is
 synthetic or disposable data with a separately verified independent recovery recipient. Publishing
 that snapshot does not constitute a public-Alpha, stable-protocol, or production-secret claim.
 
+The next candidate is [`v0.1.0-alpha.4`](docs/releases/v0.1.0-alpha.4.md); signing and exact-package
+acceptance are pending. Use the [candidate checklist](docs/alpha.4-acceptance-checklist.md) and
+[minimum Windows regression script](scripts/windows-minimal-acceptance.ps1) to record new evidence.
+
 The current deployment posture is an
 [owner-only technical preview](docs/owner-only-preview.md): one repository owner, one known
 Windows/TPM desktop, one capability-qualified StrongBox phone, and Developer USB as the normal

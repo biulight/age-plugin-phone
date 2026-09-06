@@ -4,7 +4,8 @@
 
 No version is supported for production secrets. `0.1.0-alpha.3` is an experimental,
 test-signed developer prerelease for synthetic or disposable data with an independent recovery
-recipient.
+recipient. `0.1.0-alpha.4` is being prepared under the same boundary; candidate preparation
+does not establish signed-package or physical acceptance.
 
 ## Reporting a vulnerability
 
