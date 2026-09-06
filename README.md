@@ -186,10 +186,13 @@ The unified `auto` transport policy performs a bounded Wi-Fi discovery before pa
 Exactly one matching foreground listener selects Wi-Fi; with no listener, it defaults to the
 Developer USB ADB Alpha on Windows and QR on other desktop platforms. It resolves one route before
 creating the protocol session and never races, switches, or silently retries after sending begins.
-Pairing over ADB still requires **Pair via Developer USB** on the phone. Wi-Fi pairing requires the
-explicit one-shot **Pair · Wi-Fi** action. For ADB unwrap, the desktop creates the exact reverse rule
-and launches one fixed, payload-free Android action; cold start and an existing `singleTask`
-instance both enter the native USB controller without a manual pre-step.
+ADB pairing is desktop-first: start `setup --transport adb`, then, while that command is waiting,
+choose **Pair via Developer USB** on the phone. The phone makes one immediate connection attempt, so
+choosing the action before the desktop has armed its exact reverse rule fails with
+`usb_transport_failed`. Wi-Fi pairing uses the opposite order: first choose the explicit one-shot
+**Pair · Wi-Fi** action, then start `setup --transport wifi`. For ADB unwrap, the desktop creates the
+exact reverse rule and launches one fixed, payload-free Android action; cold start and an existing
+`singleTask` instance both enter the native USB controller without a manual pre-step.
 Use `--adb-serial SERIAL` when multiple devices are listed by ADB. `--transport qr` selects the
 camera fallback without changing the pairing. For standard age invocations, set
 `AGE_PLUGIN_PHONE_TRANSPORT=qr` for that fallback or `AGE_PLUGIN_PHONE_ADB_SERIAL=SERIAL` for

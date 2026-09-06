@@ -62,9 +62,12 @@ the replacement candidate must pass a new complete CI run before signing.
 - [ ] Read-only `status` supports Windows 11 x64, TPM 2.0 and Platform Crypto Provider; the installed
   normal APK reports StrongBox availability. One explicit ADB device, zero initial reverse rules.
 - [ ] Create a fresh alpha.4 managed USB pairing with `setup --json` in a dedicated configuration
-  root. Owner compares the complete fingerprint on both screens and supplies the desktop input.
-  Capture stdout into a local variable only; schema 1, existing public stub, no pending setup journal.
-  This fresh pairing is the input to the script below. Never pipe a generated confirmation to setup.
+  root. Start the desktop command first; while it is waiting, choose **Pair · USB** on the phone.
+  Choosing the phone action before the desktop has armed its ADB reverse rule immediately fails with
+  `usb_transport_failed`. Owner compares the complete fingerprint on both screens and supplies the
+  desktop input. Capture stdout into a local variable only; schema 1, existing public stub, no
+  pending setup journal. This fresh pairing is the input to the script below. Never pipe a generated
+  confirmation to setup.
 
 ## Run the minimum unwrap regression
 
@@ -77,7 +80,8 @@ independently verified signing evidence, not values invented by the script.
 $pluginExe = '<absolute verified alpha.4 age-plugin-phone.exe>'
 $pluginConfig = '<absolute dedicated configuration root>'
 $env:AGE_PLUGIN_PHONE_CONFIG_DIR = $pluginConfig
-# Phone: Pair via Developer USB; compare and enter the FULL fingerprint yourself.
+# Start this command first. While it waits, tap Pair via Developer USB on the phone,
+# then compare and enter the FULL fingerprint yourself.
 $setupText = & $pluginExe setup --label 'Alpha minimum' --transport adb --json
 if ($LASTEXITCODE -ne 0) { throw 'setup failed; follow official resume/cleanup instructions' }
 $setup = ($setupText -join "`n") | ConvertFrom-Json
@@ -135,11 +139,11 @@ when backgrounding; an immediate HOME/return sequence is insufficient evidence o
 
 | Row | Acceptance |
 | --- | --- |
-| USB pairing success/loading | Spinner and disabled control while pending, full-fingerprint success, controls enabled |
+| USB pairing success/loading | Start desktop setup first, then tap Pair USB; spinner and disabled control while pending, full-fingerprint success, controls enabled |
 | USB native Cancel | Pending native comparison dismissed; controls enabled; unconfirmed desktop state rolled back |
 | USB comparison background | HOME while native comparison is open; returning shows enabled controls and cancelled operation, no stale confirmation |
 | USB fresh operation | New pairing succeeds after interruption without app restart |
-| Wi-Fi pairing success/loading | One-shot Pair Wi-Fi, full comparison, success and usable UI |
+| Wi-Fi pairing success/loading | Tap one-shot Pair Wi-Fi first, then start desktop setup; full comparison, success and usable UI |
 | Wi-Fi listener timeout | Observed timeout clears loading; a new click opens a fresh listener without restart |
 | Wi-Fi native Cancel/background | Exercise both separately while native comparison is open; dismiss confirmation, enable controls, rollback unconfirmed state |
 | Wi-Fi fresh operation | New pairing succeeds after interruptions; auto-listen becomes ready |

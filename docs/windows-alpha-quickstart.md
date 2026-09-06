@@ -88,12 +88,18 @@ successful setup, Shine validates the plugin's versioned public result and appen
 identity-stub path to the current user's global `age_identities` list. It does not change
 `secret_backend` or add an encryption recipient.
 
-For Wi-Fi pairing, keep the phone application in the foreground and choose **Pair · Wi-Fi** before
-running the command. With `auto`, the desktop first performs one bounded pairing discovery. Exactly
-one responding foreground listener selects Wi-Fi. If no listener responds, Windows selects
-Developer USB/ADB before creating the pairing offer; choose **Pair · USB** on the phone. Ambiguous
-discovery or a local discovery error fails closed, and an attempt never switches transport after
-protocol work begins.
+Pairing order depends on the transport:
+
+- For Wi-Fi, keep the phone application in the foreground and choose **Pair · Wi-Fi** before running
+  the command. This starts the one-shot listener that the desktop discovers.
+- For Developer USB, start the desktop command first. After it has selected ADB and is waiting for
+  the phone connection, choose **Pair · USB**. The phone makes one immediate connection attempt and
+  reports `usb_transport_failed` if the desktop has not armed its reverse rule yet.
+
+With `auto`, the desktop first performs one bounded pairing discovery. Exactly one responding
+foreground listener selects Wi-Fi. If no listener responds, Windows selects Developer USB/ADB and
+arms that route before waiting for **Pair · USB**. Ambiguous discovery or a local discovery error
+fails closed, and an attempt never switches transport after protocol work begins.
 
 Compare the complete fingerprint on both endpoints, then type the full fingerprint into the desktop
 prompt. Do not approve a partial or visually similar fingerprint. Success prints the public
