@@ -18,7 +18,8 @@ or evidence file from another commit or workflow attempt.
 For alpha.4 preparation, follow the [candidate checklist](alpha.4-acceptance-checklist.md). Its
 [minimum Windows script](../scripts/windows-minimal-acceptance.ps1) automates synthetic unwrap and
 recovery checks after fresh setup, with explicit owner observations. The UI, upgrade, provenance
-and cleanup rows remain separate requirements; the script does not close the full matrix.
+and cleanup rows remain separate requirements; the script does not close the full matrix. Its
+READY and OBSERVED checkpoints use native fail-closed Yes/No dialogs instead of terminal input.
 
 ## 1. Verify and install the artifacts
 

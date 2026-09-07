@@ -49,6 +49,16 @@ failure: an originally absent variable became an empty variable through .NET str
 The follow-up explicitly removes originally absent variables and preserves existing values;
 the replacement candidate must pass a new complete CI run before signing.
 
+Signed candidate `dd5ad4350fe333822a66714374dc9aac9f2cbcf9`, workflow run `34022913877`
+attempt 1, passed exact-SHA CI and signing but failed physical harness acceptance on Windows 11:
+PowerShell `Read-Host` returned end-of-input at the first owner checkpoint. Two scoped preflight
+reports retain the failure as `harness_error`; no unwrap request ran and disposable files were
+removed. External console adapters are diagnostic history and do not qualify the signed script.
+This candidate is superseded and must never be published. Its successful alpha.3-to-alpha.4
+in-place upgrade and fresh managed pairing remain physical evidence bound only to that candidate.
+The replacement candidate must include native owner dialogs, pass new exact-SHA CI and signing,
+and repeat the minimum unwrap and remaining manual gates with its same-run artifacts.
+
 ## Exact-package preparation and upgrade
 
 - [ ] Use synthetic data and an independent recovery recipient. Record the normal APK's identity
@@ -125,6 +135,9 @@ verify the running phone APK automatically: installation and identity observatio
 | Final audit | Listener paused, controls enabled, zero reverse rules, disposable files removed |
 
 Each unwrap row checks output and zero ADB reverse rules and requires an explicit owner observation.
+The Windows script uses fail-closed native Yes/No dialogs for READY and OBSERVED checkpoints; it
+does not depend on terminal stdin or `Read-Host`. Select **Yes** only after reading the complete
+instruction and personally satisfying that checkpoint.
 The script waits at most 120 seconds per native process. A harness timeout is a failure, never a
 successful product timeout test. There is no automatic retry. A failed/unattended observation
 stops the run; keep the report, diagnose with [the Wi-Fi guide](windows-wifi.md), then use a new

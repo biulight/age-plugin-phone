@@ -73,9 +73,28 @@ function Assert-AcceptanceOutput {
     }
 }
 
+function Request-AcceptanceConfirmation {
+    param([string]$Instruction, [ValidateSet('READY', 'OBSERVED')][string]$Confirmation)
+    if (-not $IsWindows) { throw 'owner_dialog_unavailable' }
+    try {
+        Add-Type -AssemblyName PresentationFramework -ErrorAction Stop
+        $message = "$Instruction`n`nSelect Yes only to confirm $Confirmation."
+        $result = [System.Windows.MessageBox]::Show(
+            $message,
+            "age-plugin-phone alpha acceptance — $Confirmation",
+            [System.Windows.MessageBoxButton]::YesNo,
+            [System.Windows.MessageBoxImage]::Warning,
+            [System.Windows.MessageBoxResult]::No
+        )
+        return $result -eq [System.Windows.MessageBoxResult]::Yes
+    } catch {
+        throw 'owner_dialog_unavailable'
+    }
+}
+
 function Confirm-AcceptanceObservation {
     param([string]$Instruction)
-    if ((Read-Host "$Instruction Type OBSERVED only if personally observed") -cne 'OBSERVED') {
+    if (-not (Request-AcceptanceConfirmation $Instruction 'OBSERVED')) {
         throw 'observation_not_confirmed'
     }
 }
@@ -193,7 +212,7 @@ function Invoke-MinimalAcceptance {
         foreach ($case in $cases) {
             $stage = $case[0]
             Write-Host "$stage`: $($case[3])"
-            if ((Read-Host 'Type READY to start this single attempt') -cne 'READY') { throw 'operator_stopped' }
+            if (-not (Request-AcceptanceConfirmation 'Start this single attempt now.' 'READY')) { throw 'operator_stopped' }
             $env:AGE_PLUGIN_PHONE_TRANSPORT = $case[1]
             $output = Join-Path $fixture "$stage.bin"
             $timer = [Diagnostics.Stopwatch]::StartNew()
@@ -215,7 +234,8 @@ function Invoke-MinimalAcceptance {
         $allowed = @('process_start_failed', 'harness_timeout', 'decrypt_failed', 'digest_mismatch',
             'negative_case_released_output', 'observation_not_confirmed', 'shadowed_plugin', 'shadowed_adb',
             'wrong_plugin_version', 'capability_probe_failed', 'adb_selection_failed', 'adb_reverse_residue',
-            'recovery_generation_failed', 'recovery_recipient_failed', 'encryption_failed', 'operator_stopped')
+            'recovery_generation_failed', 'recovery_recipient_failed', 'encryption_failed', 'operator_stopped',
+            'owner_dialog_unavailable')
         if ($_.Exception.Message -cin $allowed) { $category = $_.Exception.Message }
         $report.rows.Add(@{ case = $stage; result = 'failed-or-unobserved'; category = $category })
         $report.status = 'failed'

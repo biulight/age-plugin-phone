@@ -15,6 +15,13 @@ function Expect-Failure {
 $testRoot = Join-Path ([IO.Path]::GetTempPath()) ('age-phone-minimal-fixtures-' + [Guid]::NewGuid().ToString('N'))
 $null = New-Item -ItemType Directory -Path $testRoot
 try {
+    if ($IsWindows) {
+        Add-Type -AssemblyName PresentationFramework -ErrorAction Stop
+        foreach ($typeName in @('System.Windows.MessageBox', 'System.Windows.MessageBoxButton',
+            'System.Windows.MessageBoxImage', 'System.Windows.MessageBoxResult')) {
+            if ($null -eq ($typeName -as [type])) { throw "Native owner dialog type is unavailable: $typeName" }
+        }
+    }
     $original = Join-Path $testRoot 'original.bin'
     $output = Join-Path $testRoot 'output.bin'
     [IO.File]::WriteAllBytes($original, [byte[]](0, 1, 2, 255))
@@ -46,9 +53,9 @@ try {
     if ($result.ExitCode -ne 0) { throw 'Child stdin was not closed.' }
     Expect-Failure { Invoke-AcceptanceProcess $pwsh @('-NoProfile', '-Command', 'Start-Sleep -Seconds 10') 1 } 'harness_timeout'
 
-    function Read-Host { return 'not-observed' }
+    function Request-AcceptanceConfirmation { return $false }
     Expect-Failure { Confirm-AcceptanceObservation 'fixture' } 'observation_not_confirmed'
-    function Read-Host { return 'OBSERVED' }
+    function Request-AcceptanceConfirmation { return $true }
     Confirm-AcceptanceObservation 'fixture'
 
     function Test-Orchestration {
@@ -82,11 +89,7 @@ try {
             if ($Name -eq 'adb.exe') { return [pscustomobject]@{ Source = $AdbExe } }
             return [pscustomobject]@{ Source = $Name }
         }
-        function Read-Host {
-            param([string]$Prompt)
-            if ($Prompt -like '*READY*') { return 'READY' }
-            return 'OBSERVED'
-        }
+        function Request-AcceptanceConfirmation { return $true }
         function Invoke-AcceptanceProcess {
             param([string]$File, [string[]]$Arguments, [int]$TimeoutSeconds = 120)
             $response = [pscustomobject]@{ ExitCode = 0; Output = '' }
