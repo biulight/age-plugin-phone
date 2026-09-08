@@ -63,9 +63,23 @@ and authentication context without restoring consumed requests.
 
 The experimental P-256 recipient construction and cross-language vector are defined in
 [ADR 0001](adr/0001-experimental-p256-recipient.md). Canonical signed messages and the encrypted
-one-time response envelope belong to the protocol crate
+one-time response envelope belong to `age-plugin-phone-core::protocol`
 ([ADR 0002](adr/0002-experimental-offline-envelope.md)); neither pairing nor transports redefine
 recipient cryptography.
+
+## Rust package boundaries
+
+The four PC packages and their dependency directions are defined by
+[ADR 0024](adr/0024-four-desktop-crates.md). Desktop owns transport orchestration;
+core exposes separate recipient and protocol modules. Platform keys depend on
+core operation interfaces, and core depends only on platform storage for native
+file operations. Mobile Rust depends on core without desktop hardware keys.
+Windows and Unix storage APIs preserve their individual semantics; record encoding,
+path layout, replay policy and guard invalidation stay in their business layers.
+`platform-storage::windows::network` is a separately named IPv4 enumeration helper.
+The public vectors are packaged solely in `crates/core/test-vectors`. Desktop and
+core forbid unsafe code; platform FFI remains subject to `unsafe_op_in_unsafe_fn`.
+No macOS hardware-key backend is implemented by this refactor.
 
 ## Pairing and replay state
 

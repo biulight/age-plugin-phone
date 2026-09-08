@@ -5,7 +5,7 @@
 
 use std::path::{Path, PathBuf};
 
-use age_plugin_phone_protocol::Id;
+use age_plugin_phone_core::protocol::Id;
 use minicbor::{Decoder, Encoder, data::Type};
 use thiserror::Error;
 
@@ -297,10 +297,10 @@ pub fn ensure_no_cleanup_pending(_root: &Path) -> Result<(), SetupError> {
 #[cfg(windows)]
 pub fn acquire_lifecycle_lock(
     root: &Path,
-) -> Result<age_plugin_phone_windows_storage::PrivateLock, SetupError> {
-    age_plugin_phone_windows_storage::open_private_lock(&crate::cleanup_journal::journal_lock_path(
-        root,
-    ))
+) -> Result<age_plugin_phone_platform_storage::windows::PrivateLock, SetupError> {
+    age_plugin_phone_platform_storage::windows::open_private_lock(
+        &crate::cleanup_journal::journal_lock_path(root),
+    )
     .map_err(|_| SetupError::Busy)
 }
 
@@ -311,12 +311,14 @@ pub fn acquire_lifecycle_lock(_root: &Path) -> Result<(), SetupError> {
 
 #[cfg(windows)]
 pub fn read(root: &Path) -> Result<SetupJournal, SetupError> {
-    let bytes =
-        age_plugin_phone_windows_storage::read_private_file(&journal_path(root), MAX_JOURNAL_BYTES)
-            .map_err(|error| match error {
-                age_plugin_phone_windows_storage::Error::Missing => SetupError::Missing,
-                _ => SetupError::Invalid,
-            })?;
+    let bytes = age_plugin_phone_platform_storage::windows::read_private_file(
+        &journal_path(root),
+        MAX_JOURNAL_BYTES,
+    )
+    .map_err(|error| match error {
+        age_plugin_phone_platform_storage::windows::Error::Missing => SetupError::Missing,
+        _ => SetupError::Invalid,
+    })?;
     let value = SetupJournal::decode(&bytes)?;
     value.validate_root(root)?;
     Ok(value)
@@ -344,12 +346,11 @@ pub fn read_optional(_root: &Path) -> Result<Option<SetupJournal>, SetupError> {
 #[cfg(windows)]
 pub fn create(root: &Path, value: &SetupJournal) -> Result<(), SetupError> {
     value.validate_root(root)?;
-    age_plugin_phone_windows_storage::atomic_create(&journal_path(root), &value.encode()?).map_err(
-        |error| match error {
-            age_plugin_phone_windows_storage::Error::AlreadyExists => SetupError::Pending,
+    age_plugin_phone_platform_storage::windows::atomic_create(&journal_path(root), &value.encode()?)
+        .map_err(|error| match error {
+            age_plugin_phone_platform_storage::windows::Error::AlreadyExists => SetupError::Pending,
             _ => SetupError::Storage,
-        },
-    )
+        })
 }
 
 #[cfg(not(windows))]
@@ -360,8 +361,11 @@ pub fn create(_root: &Path, _value: &SetupJournal) -> Result<(), SetupError> {
 #[cfg(windows)]
 pub fn replace(root: &Path, value: &SetupJournal) -> Result<(), SetupError> {
     value.validate_root(root)?;
-    age_plugin_phone_windows_storage::atomic_replace(&journal_path(root), &value.encode()?)
-        .map_err(|_| SetupError::Storage)
+    age_plugin_phone_platform_storage::windows::atomic_replace(
+        &journal_path(root),
+        &value.encode()?,
+    )
+    .map_err(|_| SetupError::Storage)
 }
 
 #[cfg(not(windows))]
@@ -371,8 +375,8 @@ pub fn replace(_root: &Path, _value: &SetupJournal) -> Result<(), SetupError> {
 
 #[cfg(windows)]
 pub fn remove(root: &Path) -> Result<(), SetupError> {
-    match age_plugin_phone_windows_storage::remove_private_file(&journal_path(root)) {
-        Ok(()) | Err(age_plugin_phone_windows_storage::Error::Missing) => Ok(()),
+    match age_plugin_phone_platform_storage::windows::remove_private_file(&journal_path(root)) {
+        Ok(()) | Err(age_plugin_phone_platform_storage::windows::Error::Missing) => Ok(()),
         Err(_) => Err(SetupError::Storage),
     }
 }
@@ -388,7 +392,7 @@ pub fn commit_confirmed(
     value: &SetupJournal,
     now_unix: u64,
 ) -> Result<(), SetupError> {
-    use age_plugin_phone_protocol::{
+    use age_plugin_phone_core::protocol::{
         DEFAULT_REPLAY_CAPACITY, FileReplayGuard, PairingRecord, ReplayRole, ReplayScope,
     };
 
@@ -475,14 +479,14 @@ pub fn commit_confirmed(
 #[cfg(windows)]
 pub fn cleanup_owned(root: &Path, value: &SetupJournal) -> Result<(), SetupError> {
     fn remove_private(path: &Path) -> Result<(), SetupError> {
-        match age_plugin_phone_windows_storage::remove_private_file(path) {
-            Ok(()) | Err(age_plugin_phone_windows_storage::Error::Missing) => Ok(()),
+        match age_plugin_phone_platform_storage::windows::remove_private_file(path) {
+            Ok(()) | Err(age_plugin_phone_platform_storage::windows::Error::Missing) => Ok(()),
             Err(_) => Err(SetupError::Storage),
         }
     }
     fn remove_public(path: &Path) -> Result<(), SetupError> {
-        match age_plugin_phone_windows_storage::remove_regular_file(path) {
-            Ok(()) | Err(age_plugin_phone_windows_storage::Error::Missing) => Ok(()),
+        match age_plugin_phone_platform_storage::windows::remove_regular_file(path) {
+            Ok(()) | Err(age_plugin_phone_platform_storage::windows::Error::Missing) => Ok(()),
             Err(_) => Err(SetupError::Storage),
         }
     }
@@ -500,7 +504,7 @@ pub fn cleanup_owned(root: &Path, value: &SetupJournal) -> Result<(), SetupError
         remove_private(&crate::locator::pairing_locator_path(root, stub))?;
     }
     remove_private(&value.desktop_state)?;
-    age_plugin_phone_windows_cng::remove_key_set(value.desktop_id)
+    age_plugin_phone_platform_keys::windows::remove_key_set(value.desktop_id)
         .map_err(|_| SetupError::Storage)?;
     remove_public(&value.identity_stub)?;
     remove(root)
@@ -544,7 +548,7 @@ fn hex(bytes: &[u8]) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use age_plugin_phone_recipient_p256::Recipient;
+    use age_plugin_phone_core::recipient::Recipient;
     use p256::{SecretKey, ecdsa::SigningKey, elliptic_curve::sec1::ToEncodedPoint as _};
     use rand_core::OsRng;
 

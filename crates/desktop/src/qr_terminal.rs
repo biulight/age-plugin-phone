@@ -1,6 +1,6 @@
 use std::fmt;
 
-use age_plugin_phone_protocol::EncodedQrFrame;
+use age_plugin_phone_core::protocol::EncodedQrFrame;
 use qrcode::{
     QrCode,
     render::{svg, unicode::Dense1x2},
@@ -154,7 +154,7 @@ impl fmt::Debug for FrameScheduler<'_> {
 
 #[cfg(test)]
 mod tests {
-    use age_plugin_phone_protocol::fragment_qr_message;
+    use age_plugin_phone_core::protocol::fragment_qr_message;
     use rand_core::OsRng;
 
     use super::*;

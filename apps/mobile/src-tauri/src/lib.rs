@@ -1,4 +1,4 @@
-use age_plugin_phone_protocol::PROTOCOL_VERSION;
+use age_plugin_phone_core::protocol::PROTOCOL_VERSION;
 use serde::Serialize;
 
 #[derive(Serialize)]

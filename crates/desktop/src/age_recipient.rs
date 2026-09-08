@@ -10,7 +10,7 @@ use age_plugin::{
     Callbacks,
     recipient::{self, RecipientPluginV1},
 };
-use age_plugin_phone_recipient_p256::{
+use age_plugin_phone_core::recipient::{
     PLUGIN_NAME, PairedRecipient, Recipient, TaggedStanza, wrap_file_key, wrap_file_key_v2,
 };
 use rand_core::OsRng;
@@ -43,7 +43,7 @@ impl RecipientPluginV1 for PhoneRecipientPlugin {
         let recipient = match bytes.first() {
             Some(1) => Recipient::from_plugin_bytes(bytes).map(WrappingRecipient::Legacy),
             Some(2) => PairedRecipient::from_plugin_bytes(bytes).map(WrappingRecipient::Paired),
-            _ => Err(age_plugin_phone_recipient_p256::Error::UnsupportedRecipientVersion),
+            _ => Err(age_plugin_phone_core::recipient::Error::UnsupportedRecipientVersion),
         }
         .map_err(|_| recipient::Error::Recipient {
             index,
@@ -126,7 +126,7 @@ fn to_age_stanza(stanza: TaggedStanza) -> Stanza {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use age_plugin_phone_recipient_p256::unwrap_file_key;
+    use age_plugin_phone_core::recipient::unwrap_file_key;
     use p256::{SecretKey, elliptic_curve::sec1::ToEncodedPoint as _};
 
     struct NoCallbacks;

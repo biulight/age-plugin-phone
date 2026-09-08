@@ -29,6 +29,7 @@ use age_plugin_phone::qr_terminal::{
 use age_plugin_phone::setup;
 #[cfg(windows)]
 use age_plugin_phone::setup::{SetupJournal, SetupStage};
+use age_plugin_phone::transport::{DesktopTransport, SessionPurpose, TransportLimits};
 use age_plugin_phone::transport_policy::{
     TransportChoice, TransportHints, TransportKind, TransportOperation, TransportRoute,
     resolve_transport,
@@ -38,12 +39,11 @@ use age_plugin_phone::wifi::{
     DEFAULT_DISCOVERY_TIMEOUT, WIFI_UNWRAP_PORT, WifiError, WifiSession, discover_pairing_endpoint,
     discover_unwrap_endpoint,
 };
-use age_plugin_phone_protocol::{
+use age_plugin_phone_core::protocol::{
     DEFAULT_REPLAY_CAPACITY, FileReplayGuard, PROTOCOL_VERSION, PairingOffer, ReplayRole,
     ReplayScope, SignedPairingOffer, fragment_qr_message,
 };
-use age_plugin_phone_recipient_p256::{STANZA_TAG, TaggedStanza};
-use age_plugin_phone_transport::{DesktopTransport, SessionPurpose, TransportLimits};
+use age_plugin_phone_core::recipient::{STANZA_TAG, TaggedStanza};
 use base64::{Engine as _, engine::general_purpose::STANDARD_NO_PAD};
 use clap::{Parser, Subcommand};
 use p256::ecdsa::SigningKey;
@@ -1052,7 +1052,7 @@ fn commit_pairing_state(
     desktop_state_created: bool,
     transport: TransportChoice,
 ) -> io::Result<()> {
-    let pairing = age_plugin_phone_protocol::PairingRecord {
+    let pairing = age_plugin_phone_core::protocol::PairingRecord {
         desktop_id: stub.desktop_id,
         identity_id: stub.identity_id,
         desktop_signing_public_key: stub.desktop_signing_public_key,
@@ -1145,7 +1145,7 @@ fn rollback_failed_pairing(
     if desktop_state_created {
         #[cfg(windows)]
         {
-            if age_plugin_phone_windows_cng::remove_key_set(desktop_id).is_ok() {
+            if age_plugin_phone_platform_keys::windows::remove_key_set(desktop_id).is_ok() {
                 complete &= remove_private_pairing_file(desktop_state);
             } else {
                 complete = false;
@@ -1169,8 +1169,8 @@ fn replay_lock_path(path: &std::path::Path) -> Option<PathBuf> {
 #[cfg(windows)]
 fn remove_private_pairing_file(path: &std::path::Path) -> bool {
     matches!(
-        age_plugin_phone_windows_storage::remove_private_file(path),
-        Ok(()) | Err(age_plugin_phone_windows_storage::Error::Missing)
+        age_plugin_phone_platform_storage::windows::remove_private_file(path),
+        Ok(()) | Err(age_plugin_phone_platform_storage::windows::Error::Missing)
     )
 }
 
@@ -1255,7 +1255,7 @@ fn run_unwrap(
             return Err(error);
         }
     };
-    let pairing = age_plugin_phone_protocol::PairingRecord {
+    let pairing = age_plugin_phone_core::protocol::PairingRecord {
         desktop_id: stub.desktop_id,
         identity_id: stub.identity_id,
         desktop_signing_public_key: stub.desktop_signing_public_key,
@@ -1366,7 +1366,7 @@ fn run_wifi_doctor(identity_stub: Option<&std::path::Path>) -> io::Result<()> {
 
 #[cfg(windows)]
 fn ensure_desktop_platform_supported() -> io::Result<()> {
-    age_plugin_phone_windows_cng::ensure_supported_platform().map_err(|error| {
+    age_plugin_phone_platform_keys::windows::ensure_supported_platform().map_err(|error| {
         io::Error::new(
             io::ErrorKind::Unsupported,
             format!("unsupported Windows Alpha platform: {error}"),
@@ -1383,7 +1383,7 @@ fn ensure_desktop_platform_supported() -> io::Result<()> {
 
 #[cfg(windows)]
 fn print_windows_platform_status() {
-    let report = age_plugin_phone_windows_cng::probe_windows_platform();
+    let report = age_plugin_phone_platform_keys::windows::probe_windows_platform();
     println!(
         "windows_alpha_support: {}",
         if report.is_supported() {

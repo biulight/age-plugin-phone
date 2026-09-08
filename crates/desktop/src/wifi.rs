@@ -13,7 +13,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use age_plugin_phone_transport::{
+use crate::transport::{
     DesktopStreamSession, DesktopTransport, SessionPurpose, TransportError, TransportLimits,
 };
 use p256::ecdsa::{Signature, VerifyingKey, signature::Verifier as _};
@@ -244,7 +244,7 @@ fn directed_broadcast(address: Ipv4Addr, mask: Ipv4Addr) -> Option<Ipv4Addr> {
 
 #[cfg(windows)]
 fn windows_directed_broadcasts() -> BTreeSet<Ipv4Addr> {
-    age_plugin_phone_windows_storage::ipv4_interface_subnets()
+    age_plugin_phone_platform_storage::windows::network::ipv4_interface_subnets()
         .into_iter()
         .filter_map(|(address, mask)| directed_broadcast(address, mask))
         .collect()

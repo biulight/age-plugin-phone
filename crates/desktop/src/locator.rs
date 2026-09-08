@@ -2,11 +2,7 @@
 
 #![allow(clippy::missing_errors_doc)]
 
-#[cfg(not(windows))]
-use std::fs::File;
 use std::path::{Path, PathBuf};
-#[cfg(unix)]
-use std::{fs::OpenOptions, io::Write as _};
 
 use minicbor::{Decoder, Encoder};
 use thiserror::Error;
@@ -14,7 +10,7 @@ use thiserror::Error;
 use crate::cleanup_journal::{self, JournalError};
 use crate::pairing::PublicIdentityStub;
 use crate::transport_policy::TransportChoice;
-use age_plugin_phone_protocol::{Id, ProtocolDigest};
+use age_plugin_phone_core::protocol::{Id, ProtocolDigest};
 
 const LOCATOR_VERSION: u16 = 3;
 const LEGACY_LOCATOR_VERSION: u16 = 2;
@@ -208,37 +204,21 @@ pub(crate) fn open_pairing_locator_for_setup(
 
 #[cfg(unix)]
 fn read_locator_file(path: &Path) -> Result<Vec<u8>, LocatorError> {
-    use std::io::Read as _;
-    reject_symlink(path)?;
-    let file = File::open(path).map_err(|error| {
-        if error.kind() == std::io::ErrorKind::NotFound {
-            LocatorError::Missing
-        } else {
-            LocatorError::Invalid
-        }
-    })?;
-    validate_private_file(&file)?;
-    if file.metadata().map_err(|_| LocatorError::Invalid)?.len() > MAX_LOCATOR_BYTES {
-        return Err(LocatorError::Invalid);
-    }
-    let mut bytes = Vec::new();
-    file.take(MAX_LOCATOR_BYTES + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|_| LocatorError::Invalid)?;
-    if bytes.is_empty() || u64::try_from(bytes.len()).unwrap_or(u64::MAX) > MAX_LOCATOR_BYTES {
-        return Err(LocatorError::Invalid);
-    }
-    Ok(bytes)
+    age_plugin_phone_platform_storage::unix::private_file::read_private_file(
+        path,
+        MAX_LOCATOR_BYTES,
+    )
+    .map_err(LocatorError::from)
 }
 
 #[cfg(windows)]
 fn read_locator_file(path: &Path) -> Result<Vec<u8>, LocatorError> {
-    age_plugin_phone_windows_storage::read_private_file(path, MAX_LOCATOR_BYTES).map_err(|error| {
-        match error {
-            age_plugin_phone_windows_storage::Error::Missing => LocatorError::Missing,
+    age_plugin_phone_platform_storage::windows::read_private_file(path, MAX_LOCATOR_BYTES).map_err(
+        |error| match error {
+            age_plugin_phone_platform_storage::windows::Error::Missing => LocatorError::Missing,
             _ => LocatorError::Invalid,
-        }
-    })
+        },
+    )
 }
 
 #[cfg(not(any(unix, windows)))]
@@ -420,14 +400,8 @@ fn absolute_existing(path: &Path) -> Result<PathBuf, LocatorError> {
 
 #[cfg(unix)]
 fn prepare_directory(root: &Path) -> Result<PathBuf, LocatorError> {
-    use std::os::unix::fs::PermissionsExt as _;
-    if !root.is_absolute() {
-        return Err(LocatorError::Config);
-    }
-    std::fs::create_dir_all(root).map_err(|_| LocatorError::Config)?;
-    std::fs::set_permissions(root, std::fs::Permissions::from_mode(0o700))
-        .map_err(|_| LocatorError::Config)?;
-    checked_directory(root)
+    age_plugin_phone_platform_storage::unix::private_file::prepare_directory(root)
+        .map_err(LocatorError::from)
 }
 
 #[cfg(not(unix))]
@@ -438,20 +412,15 @@ fn prepare_directory(_root: &Path) -> Result<PathBuf, LocatorError> {
 
 #[cfg(windows)]
 fn prepare_directory(root: &Path) -> Result<PathBuf, LocatorError> {
-    age_plugin_phone_windows_storage::ensure_private_directory(root)
+    age_plugin_phone_platform_storage::windows::ensure_private_directory(root)
         .map_err(|_| LocatorError::Config)?;
     checked_directory(root)
 }
 
 #[cfg(unix)]
 fn checked_directory(root: &Path) -> Result<PathBuf, LocatorError> {
-    use std::os::unix::fs::PermissionsExt as _;
-    reject_symlink(root)?;
-    let metadata = std::fs::metadata(root).map_err(|_| LocatorError::Config)?;
-    if !metadata.is_dir() || metadata.permissions().mode() & 0o077 != 0 {
-        return Err(LocatorError::Config);
-    }
-    Ok(root.to_path_buf())
+    age_plugin_phone_platform_storage::unix::private_file::checked_directory(root)
+        .map_err(LocatorError::from)
 }
 
 #[cfg(not(unix))]
@@ -462,32 +431,15 @@ fn checked_directory(_root: &Path) -> Result<PathBuf, LocatorError> {
 
 #[cfg(windows)]
 fn checked_directory(root: &Path) -> Result<PathBuf, LocatorError> {
-    age_plugin_phone_windows_storage::validate_private_directory(root)
+    age_plugin_phone_platform_storage::windows::validate_private_directory(root)
         .map_err(|_| LocatorError::Config)?;
     Ok(root.to_path_buf())
 }
 
 #[cfg(unix)]
 fn create_private_file(path: &Path, bytes: &[u8]) -> Result<(), LocatorError> {
-    use std::os::unix::fs::OpenOptionsExt as _;
-    let mut file = OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .mode(0o600)
-        .open(path)
-        .map_err(|error| {
-            if error.kind() == std::io::ErrorKind::AlreadyExists {
-                LocatorError::AlreadyExists
-            } else {
-                LocatorError::Storage
-            }
-        })?;
-    if file.write_all(bytes).is_err() || file.sync_all().is_err() {
-        drop(file);
-        let _ = std::fs::remove_file(path);
-        return Err(LocatorError::Storage);
-    }
-    validate_private_file(&file)
+    age_plugin_phone_platform_storage::unix::private_file::create_private_file(path, bytes)
+        .map_err(LocatorError::from)
 }
 
 #[cfg(not(unix))]
@@ -498,37 +450,20 @@ fn create_private_file(_path: &Path, _bytes: &[u8]) -> Result<(), LocatorError> 
 
 #[cfg(windows)]
 fn create_private_file(path: &Path, bytes: &[u8]) -> Result<(), LocatorError> {
-    age_plugin_phone_windows_storage::atomic_create(path, bytes).map_err(|error| match error {
-        age_plugin_phone_windows_storage::Error::AlreadyExists => LocatorError::AlreadyExists,
-        _ => LocatorError::Storage,
+    age_plugin_phone_platform_storage::windows::atomic_create(path, bytes).map_err(|error| {
+        match error {
+            age_plugin_phone_platform_storage::windows::Error::AlreadyExists => {
+                LocatorError::AlreadyExists
+            }
+            _ => LocatorError::Storage,
+        }
     })
 }
 
 #[cfg(unix)]
-fn validate_private_file(file: &File) -> Result<(), LocatorError> {
-    use std::os::unix::fs::{MetadataExt as _, PermissionsExt as _};
-    let metadata = file.metadata().map_err(|_| LocatorError::Invalid)?;
-    if !metadata.is_file() || metadata.permissions().mode() & 0o077 != 0 || metadata.nlink() != 1 {
-        return Err(LocatorError::Invalid);
-    }
-    Ok(())
-}
-
-#[cfg(unix)]
-fn reject_symlink(path: &Path) -> Result<(), LocatorError> {
-    match std::fs::symlink_metadata(path) {
-        Ok(metadata) if metadata.file_type().is_symlink() => Err(LocatorError::Invalid),
-        Ok(_) => Ok(()),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(_) => Err(LocatorError::Invalid),
-    }
-}
-
-#[cfg(not(windows))]
 fn sync_directory(path: &Path) -> Result<(), LocatorError> {
-    File::open(path)
-        .and_then(|directory| directory.sync_all())
-        .map_err(|_| LocatorError::Storage)
+    age_plugin_phone_platform_storage::unix::private_file::sync_directory(path)
+        .map_err(LocatorError::from)
 }
 
 fn hex(bytes: &[u8]) -> String {
@@ -545,12 +480,62 @@ fn hex(bytes: &[u8]) -> String {
 mod tests {
     use super::*;
     use crate::pairing::DesktopKeyState;
-    use age_plugin_phone_protocol::{
+    use age_plugin_phone_core::protocol::{
         DEFAULT_REPLAY_CAPACITY, FileReplayGuard, PairingRecord, ReplayRole, ReplayScope,
     };
-    use age_plugin_phone_recipient_p256::Recipient;
+    use age_plugin_phone_core::recipient::Recipient;
     use p256::{SecretKey, ecdsa::SigningKey, elliptic_curve::sec1::ToEncodedPoint as _};
     use rand_core::OsRng;
+
+    mod old_locator {
+        include!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/tests/fixtures/locator_v3.rs"
+        ));
+    }
+
+    #[test]
+    fn pre_refactor_locator_generator_and_binding_remain_compatible() {
+        use std::os::unix::fs::PermissionsExt as _;
+        assert_eq!(
+            old_locator::encode(
+                &[1; 16],
+                &[2; 16],
+                &[3; 32],
+                "/baseline/desktop.key",
+                "/baseline/replay.cbor",
+                "auto"
+            ),
+            include_bytes!("../tests/fixtures/locator-v3.cbor").as_slice(),
+        );
+        let root = std::env::temp_dir().join(format!("phone-old-locator-{}", std::process::id()));
+        std::fs::create_dir(&root).unwrap();
+        let root = root.canonicalize().unwrap();
+        let (stub, desktop, replay) = fixture(&root);
+        let config = prepare_directory(&root.join("config")).unwrap();
+        let bytes = old_locator::encode(
+            &stub.desktop_id,
+            &stub.identity_id,
+            &stub.transcript_fingerprint,
+            desktop.to_str().unwrap(),
+            replay.to_str().unwrap(),
+            "auto",
+        );
+        let path = pairing_locator_path(&config, &stub);
+        std::fs::write(&path, bytes).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let opened = open_pairing_locator(&config, &stub).unwrap();
+        assert_eq!(opened.desktop_state, desktop.canonicalize().unwrap());
+        assert_eq!(opened.replay_state, replay.canonicalize().unwrap());
+        assert_eq!(opened.transport, TransportChoice::Auto);
+        let mut wrong = stub.clone();
+        wrong.transcript_fingerprint[0] ^= 1;
+        assert_eq!(
+            decode(&wrong, &std::fs::read(&path).unwrap()),
+            Err(LocatorError::Invalid)
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
 
     fn fixture(root: &Path) -> (PublicIdentityStub, PathBuf, PathBuf) {
         let desktop_path = root.join("desktop.key");
@@ -758,5 +743,19 @@ mod tests {
         std::fs::remove_file(modern_hardlink).unwrap();
         assert!(open_pairing_locator_for_cleanup(&state, &legacy_path).is_ok());
         std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[cfg(unix)]
+impl From<age_plugin_phone_platform_storage::unix::private_file::Error> for LocatorError {
+    fn from(error: age_plugin_phone_platform_storage::unix::private_file::Error) -> Self {
+        use age_plugin_phone_platform_storage::unix::private_file::Error;
+        match error {
+            Error::Config => Self::Config,
+            Error::AlreadyExists => Self::AlreadyExists,
+            Error::Missing => Self::Missing,
+            Error::Invalid => Self::Invalid,
+            Error::Storage => Self::Storage,
+        }
     }
 }

@@ -83,7 +83,7 @@ or any malformed value fails closed without fallback.
 
 ## Test vectors
 
-`docs/test-vectors/p256-recipient-v1.json` contains explicitly non-secret fixed scalar inputs and
+`crates/core/test-vectors/p256-recipient-v1.json` contains explicitly non-secret fixed scalar inputs and
 public expected outputs for deterministic cross-language verification. In keeping with repository
 logging rules, it does not record the derived shared secret or wrapping key. The fixed scalars are
 test data and must never be imported into Android Keystore or used for real encryption.

@@ -1,4 +1,5 @@
 [package]
+publish = false
 name = "tauri-plugin-phone-identity"
 description = "Android StrongBox capability probe for age-plugin-phone"
 edition.workspace = true

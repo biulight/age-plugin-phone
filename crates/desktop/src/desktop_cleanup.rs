@@ -64,7 +64,7 @@ pub fn remove_desktop_state(
 
     let root = cleanup_root()?;
     let supplied_path = absolute_path(identity_stub)?;
-    let _cleanup_lock = age_plugin_phone_windows_storage::open_private_lock(
+    let _cleanup_lock = age_plugin_phone_platform_storage::windows::open_private_lock(
         &crate::cleanup_journal::journal_lock_path(&root),
     )
     .map_err(|_| CleanupError::Busy)?;
@@ -150,7 +150,7 @@ fn remove_orphaned_desktop_state_in(
     verify_confirmation(&expected, entered_fingerprint)?;
 
     let supplied_path = absolute_path(locator_path)?;
-    let _cleanup_lock = age_plugin_phone_windows_storage::open_private_lock(
+    let _cleanup_lock = age_plugin_phone_platform_storage::windows::open_private_lock(
         &crate::cleanup_journal::journal_lock_path(root),
     )
     .map_err(|_| CleanupError::Busy)?;
@@ -233,7 +233,7 @@ fn verify_confirmation(expected: &str, entered: &str) -> Result<(), CleanupError
 #[cfg(windows)]
 fn cleanup_root() -> Result<PathBuf, CleanupError> {
     let root = crate::locator::default_config_root().map_err(|_| CleanupError::InvalidTarget)?;
-    age_plugin_phone_windows_storage::validate_private_directory(&root)
+    age_plugin_phone_platform_storage::windows::validate_private_directory(&root)
         .map_err(|_| CleanupError::InvalidTarget)?;
     Ok(root)
 }
@@ -244,7 +244,7 @@ fn start_cleanup(
     stub_path: &Path,
     expected_fingerprint: &str,
 ) -> Result<CleanupJournal, CleanupError> {
-    use age_plugin_phone_protocol::{
+    use age_plugin_phone_core::protocol::{
         DEFAULT_REPLAY_CAPACITY, FileReplayGuard, PairingRecord, ReplayRole, ReplayScope,
     };
 
@@ -303,7 +303,7 @@ fn start_orphan_cleanup(
     locator_path: &Path,
     expected_fingerprint: &str,
 ) -> Result<CleanupJournal, CleanupError> {
-    use age_plugin_phone_protocol::{
+    use age_plugin_phone_core::protocol::{
         DEFAULT_REPLAY_CAPACITY, FileReplayGuard, ReplayRole, ReplayScope,
     };
 
@@ -346,9 +346,11 @@ fn start_orphan_cleanup(
 #[cfg(windows)]
 fn read_stub(path: &Path) -> Result<(crate::pairing::PublicIdentityStub, PathBuf), CleanupError> {
     let absolute = absolute_path(path)?;
-    let bytes =
-        age_plugin_phone_windows_storage::read_regular_file(&absolute, MAX_IDENTITY_STUB_BYTES)
-            .map_err(|_| CleanupError::InvalidTarget)?;
+    let bytes = age_plugin_phone_platform_storage::windows::read_regular_file(
+        &absolute,
+        MAX_IDENTITY_STUB_BYTES,
+    )
+    .map_err(|_| CleanupError::InvalidTarget)?;
     let text = std::str::from_utf8(&bytes).map_err(|_| CleanupError::InvalidTarget)?;
     let stub =
         crate::pairing::decode_identity_stub_text(text).map_err(|_| CleanupError::InvalidTarget)?;
@@ -382,7 +384,10 @@ fn validate_existing_stub_if_present(
     journal: &CleanupJournal,
 ) -> Result<(), CleanupError> {
     let (expected_stub, _) = journal.paired().ok_or(CleanupError::InvalidTarget)?;
-    match age_plugin_phone_windows_storage::read_regular_file(path, MAX_IDENTITY_STUB_BYTES) {
+    match age_plugin_phone_platform_storage::windows::read_regular_file(
+        path,
+        MAX_IDENTITY_STUB_BYTES,
+    ) {
         Ok(bytes) => {
             let text = std::str::from_utf8(&bytes).map_err(|_| CleanupError::InvalidTarget)?;
             let stub = crate::pairing::decode_identity_stub_text(text)
@@ -391,7 +396,7 @@ fn validate_existing_stub_if_present(
                 .then_some(())
                 .ok_or(CleanupError::InvalidTarget)
         }
-        Err(age_plugin_phone_windows_storage::Error::Missing) => Ok(()),
+        Err(age_plugin_phone_platform_storage::windows::Error::Missing) => Ok(()),
         Err(_) => Err(CleanupError::InvalidTarget),
     }
 }
@@ -433,21 +438,22 @@ struct WindowsCleanupOperations;
 #[cfg(windows)]
 impl CleanupOperations for WindowsCleanupOperations {
     fn remove_private(&mut self, path: &Path) -> Result<(), CleanupError> {
-        match age_plugin_phone_windows_storage::remove_private_file(path) {
-            Ok(()) | Err(age_plugin_phone_windows_storage::Error::Missing) => Ok(()),
+        match age_plugin_phone_platform_storage::windows::remove_private_file(path) {
+            Ok(()) | Err(age_plugin_phone_platform_storage::windows::Error::Missing) => Ok(()),
             Err(_) => Err(CleanupError::Storage),
         }
     }
 
     fn remove_public(&mut self, path: &Path) -> Result<(), CleanupError> {
-        match age_plugin_phone_windows_storage::remove_regular_file(path) {
-            Ok(()) | Err(age_plugin_phone_windows_storage::Error::Missing) => Ok(()),
+        match age_plugin_phone_platform_storage::windows::remove_regular_file(path) {
+            Ok(()) | Err(age_plugin_phone_platform_storage::windows::Error::Missing) => Ok(()),
             Err(_) => Err(CleanupError::Storage),
         }
     }
 
     fn remove_keys(&mut self, desktop_id: [u8; 16]) -> Result<(), CleanupError> {
-        age_plugin_phone_windows_cng::remove_key_set(desktop_id).map_err(|_| CleanupError::Storage)
+        age_plugin_phone_platform_keys::windows::remove_key_set(desktop_id)
+            .map_err(|_| CleanupError::Storage)
     }
 }
 
@@ -466,7 +472,7 @@ mod tests {
     use std::collections::HashSet;
 
     use super::*;
-    use age_plugin_phone_recipient_p256::Recipient;
+    use age_plugin_phone_core::recipient::Recipient;
     use p256::{SecretKey, ecdsa::SigningKey, elliptic_curve::sec1::ToEncodedPoint as _};
     use rand_core::OsRng;
 
@@ -598,9 +604,9 @@ mod tests {
         PathBuf,
         crate::pairing::PublicIdentityStub,
         PathBuf,
-        age_plugin_phone_protocol::FileReplayGuard,
+        age_plugin_phone_core::protocol::FileReplayGuard,
     ) {
-        use age_plugin_phone_protocol::{
+        use age_plugin_phone_core::protocol::{
             DEFAULT_REPLAY_CAPACITY, FileReplayGuard, PairingRecord, ReplayRole, ReplayScope,
         };
 
@@ -609,7 +615,7 @@ mod tests {
             std::process::id(),
             rand_core::RngCore::next_u64(&mut OsRng),
         ));
-        age_plugin_phone_windows_storage::ensure_private_directory(&root).unwrap();
+        age_plugin_phone_platform_storage::windows::ensure_private_directory(&root).unwrap();
         let desktop_path = root.join("desktop.state");
         let desktop =
             crate::pairing::DesktopKeyState::open_or_create(&desktop_path, &mut OsRng).unwrap();
@@ -670,17 +676,17 @@ mod tests {
         PathBuf,
         crate::pairing::PublicIdentityStub,
         PathBuf,
-        age_plugin_phone_protocol::FileReplayGuard,
+        age_plugin_phone_core::protocol::FileReplayGuard,
     ) {
         let (root, stub, stub_path, replay) = windows_unstarted_fixture();
         let locator_path = crate::locator::existing_pairing_locator_path(&root, &stub).unwrap();
-        age_plugin_phone_windows_storage::remove_regular_file(&stub_path).unwrap();
+        age_plugin_phone_platform_storage::windows::remove_regular_file(&stub_path).unwrap();
         (root, stub, locator_path, replay)
     }
 
     #[cfg(windows)]
     fn remove_cleanup_lock(root: &Path) {
-        age_plugin_phone_windows_storage::remove_private_file(
+        age_plugin_phone_platform_storage::windows::remove_private_file(
             &crate::cleanup_journal::journal_lock_path(root),
         )
         .unwrap();
@@ -751,7 +757,8 @@ mod tests {
             assert!(!path.exists());
         }
         assert!(
-            age_plugin_phone_windows_cng::WindowsCngKeySet::open(journal.desktop_id()).is_err()
+            age_plugin_phone_platform_keys::windows::WindowsCngKeySet::open(journal.desktop_id())
+                .is_err()
         );
         std::fs::remove_dir(&root).unwrap();
     }
@@ -797,7 +804,10 @@ mod tests {
         ] {
             assert!(!path.exists());
         }
-        assert!(age_plugin_phone_windows_cng::WindowsCngKeySet::open(stub.desktop_id).is_err());
+        assert!(
+            age_plugin_phone_platform_keys::windows::WindowsCngKeySet::open(stub.desktop_id)
+                .is_err()
+        );
         remove_cleanup_lock(&root);
         std::fs::remove_dir(&root).unwrap();
     }
@@ -824,7 +834,7 @@ mod tests {
         let (root, stub, stub_path, replay) = windows_unstarted_fixture();
         drop(replay);
         let original_locator = crate::locator::existing_pairing_locator_path(&root, &stub).unwrap();
-        age_plugin_phone_windows_storage::remove_private_file(&original_locator).unwrap();
+        age_plugin_phone_platform_storage::windows::remove_private_file(&original_locator).unwrap();
         let wrong_desktop_path = root.join("wrong-desktop.state");
         let wrong_desktop =
             crate::pairing::DesktopKeyState::open_or_create(&wrong_desktop_path, &mut OsRng)
@@ -836,7 +846,7 @@ mod tests {
             &root.join("replay.state"),
         )
         .unwrap();
-        age_plugin_phone_windows_storage::remove_regular_file(&stub_path).unwrap();
+        age_plugin_phone_platform_storage::windows::remove_regular_file(&stub_path).unwrap();
 
         let expected = hex(&stub.transcript_fingerprint);
         assert_eq!(
@@ -845,16 +855,23 @@ mod tests {
         );
         assert!(!crate::cleanup_journal::journal_path(&root).exists());
 
-        age_plugin_phone_windows_storage::remove_private_file(&locator_path).unwrap();
-        age_plugin_phone_windows_storage::remove_private_file(&root.join("desktop.state")).unwrap();
-        age_plugin_phone_windows_storage::remove_private_file(&wrong_desktop_path).unwrap();
-        age_plugin_phone_windows_storage::remove_private_file(&root.join("replay.state")).unwrap();
-        age_plugin_phone_windows_storage::remove_private_file(&root.join("replay.state.lock"))
+        age_plugin_phone_platform_storage::windows::remove_private_file(&locator_path).unwrap();
+        age_plugin_phone_platform_storage::windows::remove_private_file(
+            &root.join("desktop.state"),
+        )
+        .unwrap();
+        age_plugin_phone_platform_storage::windows::remove_private_file(&wrong_desktop_path)
             .unwrap();
+        age_plugin_phone_platform_storage::windows::remove_private_file(&root.join("replay.state"))
+            .unwrap();
+        age_plugin_phone_platform_storage::windows::remove_private_file(
+            &root.join("replay.state.lock"),
+        )
+        .unwrap();
         let wrong_desktop_id = wrong_desktop.desktop_id;
         drop(wrong_desktop);
-        age_plugin_phone_windows_cng::remove_key_set(stub.desktop_id).unwrap();
-        age_plugin_phone_windows_cng::remove_key_set(wrong_desktop_id).unwrap();
+        age_plugin_phone_platform_keys::windows::remove_key_set(stub.desktop_id).unwrap();
+        age_plugin_phone_platform_keys::windows::remove_key_set(wrong_desktop_id).unwrap();
         remove_cleanup_lock(&root);
         std::fs::remove_dir(&root).unwrap();
     }
