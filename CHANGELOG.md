@@ -6,9 +6,9 @@ recovery recipient.
 
 ## [Unreleased]
 
-## [0.1.0-alpha.4] - Unreleased candidate
+## [0.1.0-alpha.4] - 2026-09-07
 
-Fourth test-signed developer prerelease candidate. Exact signed-package acceptance is pending.
+Fourth test-signed developer prerelease. Exact signed-package owner-only acceptance passed.
 
 ### Added
 
@@ -29,7 +29,11 @@ Fourth test-signed developer prerelease candidate. Exact signed-package acceptan
 ### Validation
 
 - Earlier alpha.3 signed-package and subsequent isolated debug UI/Wi-Fi evidence remain historical.
-  They do not certify the alpha.4 package pair; signing and physical acceptance are still pending.
+  They do not certify the alpha.4 package pair.
+- The exact alpha.4 Windows/Android pair passed minimum unwrap, manual pairing/discovery,
+  alpha.3 in-place upgrade, independent recovery and final cleanup. See the
+  [acceptance record](docs/windows-acceptance-2026-09-07.md). The complete public-Alpha matrix
+  remains deferred; firewall evidence is limited to current-host Inspect and `-WhatIf`.
 
 ## [0.1.0-alpha.3] - 2026-09-04
 

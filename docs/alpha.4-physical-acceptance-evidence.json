@@ -1,0 +1,363 @@
+{
+  "schema_version": 1,
+  "scope": "owner-only-alpha4-developer-prerelease",
+  "status": "passed-physical-acceptance-publication-pending",
+  "generated_utc": "2026-09-07T14:35:09.409Z",
+  "candidate": {
+    "version": "0.1.0-alpha.4",
+    "commit": "5da4b0bc8f3ca6f16f9be1b7430e923baad402b9",
+    "branch": "codex/alpha.4-rc",
+    "working_tree": "clean"
+  },
+  "ci": {
+    "run": 34110138123,
+    "url": "https://github.com/biulight/age-plugin-phone/actions/runs/34110138123",
+    "exact_commit": true,
+    "status": "completed",
+    "conclusion": "success",
+    "jobs": [
+      "release-automation",
+      "reproducible-inputs",
+      "rust-ubuntu",
+      "rust-windows-and-harness-fixtures",
+      "android",
+      "released-client-interoperability",
+      "ios"
+    ]
+  },
+  "signing": {
+    "run": 34110640981,
+    "attempt": 1,
+    "url": "https://github.com/biulight/age-plugin-phone/actions/runs/34110640981",
+    "exact_commit": true,
+    "metadata": "success",
+    "windows": "success",
+    "android": "success",
+    "publish": "pending-approval",
+    "artifacts": {
+      "windows_exe_sha256": "b742eb1e5552d2d22f021f378217e4c8103d3f69bd5bf488f49b49e8b58d87e3",
+      "windows_zip_sha256": "20c64b9791174125190902b43bea9725a005126d9ccb22c491703e430694a710",
+      "android_apk_sha256": "6e77ada9917673f0a5a392bb9a4327dd2275f9ff403d15015a6280da190d4f62",
+      "windows_leaf_certificate_sha256": "d64e82d01bb5835b292a0abbf38759a2c36aaa7003af46809e6a5d730e239215",
+      "windows_test_root_certificate_sha256": "7506695a68ad99f3bcad5e7faee2f4e42fcc0062d91b5f6d68ab850bf1f32c96",
+      "android_certificate_sha256": "9a3e5a00a0a363ca58bbe0abfa1bbc0e36cbdce58e314c0c0dbfa94baff1d58b"
+    },
+    "windows_signature": {
+      "authenticode_content_and_signature": "valid",
+      "public_trust_status": "UnknownError",
+      "public_trust_failure_reason": "private-test-root-not-installed",
+      "custom_root_chain_validation": "Valid",
+      "trust_scope": "private-test-root-validated-in-memory"
+    },
+    "zip_root_entries": [
+      "age-plugin-phone.exe",
+      "README.md",
+      "CHANGELOG.md",
+      "SECURITY.md",
+      "LICENSE",
+      "v0.1.0-alpha.4.md",
+      "windows-alpha-quickstart.md",
+      "windows-wifi.md",
+      "windows-wifi-firewall.ps1",
+      "windows-minimal-acceptance.ps1",
+      "alpha.4-acceptance-checklist.md"
+    ]
+  },
+  "physical_environment": {
+    "source_report_sha256": "d80af76b020460d1e8632230ae9df85c0dc115052ff6d0d29137ffdf1da8164d",
+    "collected_utc": "2026-09-07T14:20:44.9552909Z",
+    "windows": {
+      "version": "10.0.22631",
+      "build": "22631",
+      "client_edition": "supported",
+      "x64": "supported",
+      "tpm_2_0": "supported",
+      "platform_crypto_provider": "supported",
+      "tpm_present": true,
+      "tpm_ready": true,
+      "tpm_enabled": true,
+      "tpm_activated": true
+    },
+    "android": {
+      "model": "SM-F9660",
+      "release": "16",
+      "sdk": "36",
+      "security_patch": "2026-07-05",
+      "package": "io.github.biulight.age_plugin_phone",
+      "version": "0.1.0-alpha.4",
+      "strongbox_dual_key_validated": true
+    },
+    "tools": {
+      "age": "v1.3.1",
+      "adb": "1.0.41"
+    },
+    "adb_device_count": 1,
+    "adb_reverse_count": 0
+  },
+  "acceptance": {
+    "minimum_unwrap": {
+      "status": "passed",
+      "source_status": "passed-minimal-unwrap-only",
+      "report_sha256": "3de385afc419bbed1f14553823dee8f99c71093d9fbf42bd5d9e2c392c2eeb1f",
+      "started_utc": "2026-09-07T10:46:22.9020376Z",
+      "finished_utc": "2026-09-07T10:50:25.0555582Z",
+      "rows": [
+        {
+          "case": "preflight",
+          "result": "passed"
+        },
+        {
+          "case": "independent-recovery",
+          "result": "passed"
+        },
+        {
+          "case": "usb-approve-1",
+          "result": "passed"
+        },
+        {
+          "case": "usb-approve-2",
+          "result": "passed"
+        },
+        {
+          "case": "usb-cancel",
+          "result": "passed"
+        },
+        {
+          "case": "usb-after-cancel",
+          "result": "passed"
+        },
+        {
+          "case": "wifi-approve",
+          "result": "passed"
+        },
+        {
+          "case": "wifi-background",
+          "result": "passed"
+        },
+        {
+          "case": "wifi-after-background",
+          "result": "passed"
+        },
+        {
+          "case": "wifi-paused",
+          "result": "passed"
+        },
+        {
+          "case": "final-audit",
+          "result": "passed"
+        }
+      ],
+      "synthetic_files_removed": true
+    },
+    "manual_pairing_discovery": {
+      "status": "passed-cumulatively",
+      "report_chain": [
+        {
+          "id": "manual-pairing-attempt-003/report.json",
+          "sha256": "eeaf471b30675ae6fdf4bf40f3cdfeeeab94e2cf1c44e9fc51879f25704e4a5c",
+          "status": "failed-preserved",
+          "classification": "harness-omitted-explicit-wifi-auto-listen-enable"
+        },
+        {
+          "id": "manual-pairing-attempt-003/continuation-report.json",
+          "sha256": "b0b32b60eea4bf9a540707cd36906f9ae137ae4a4676d4d26e4b7adc1bc4f3c7",
+          "status": "interrupted-preserved",
+          "classification": "owner-interruption-after-five-passed-rows"
+        },
+        {
+          "id": "manual-pairing-attempt-003/interrupted-continuation-cleanup-report.json",
+          "sha256": "d2eb0cd4a7a2353d906824a8273ecce01ed3cebc5387dd1412ceb373dbcf4cd0",
+          "status": "passed",
+          "classification": "official-unconfirmed-setup-cleanup"
+        },
+        {
+          "id": "manual-pairing-attempt-003/continuation-report-002.json",
+          "sha256": "460bc7678ce8c0f9789253fa61492cc021e72f2d38632a41add585878f73cc5c",
+          "status": "passed",
+          "classification": "completed-remaining-required-rows"
+        }
+      ],
+      "rows": [
+        {
+          "case": "usb-pairing-success-loading",
+          "result": "passed"
+        },
+        {
+          "case": "usb-native-cancel",
+          "result": "passed"
+        },
+        {
+          "case": "usb-comparison-background",
+          "result": "passed"
+        },
+        {
+          "case": "usb-fresh-operation",
+          "result": "passed"
+        },
+        {
+          "case": "wifi-pairing-success-loading",
+          "result": "passed"
+        },
+        {
+          "case": "wifi-auto-listen-enable-correction",
+          "result": "passed"
+        },
+        {
+          "case": "discovery-after-pairing",
+          "result": "passed"
+        },
+        {
+          "case": "wifi-listener-timeout",
+          "result": "passed"
+        },
+        {
+          "case": "wifi-native-cancel",
+          "result": "passed"
+        },
+        {
+          "case": "wifi-comparison-background",
+          "result": "passed"
+        },
+        {
+          "case": "wifi-fresh-operation",
+          "result": "passed"
+        },
+        {
+          "case": "discovery-independent-recovery",
+          "result": "passed"
+        },
+        {
+          "case": "wifi-decrypt-for-discovery",
+          "result": "passed"
+        },
+        {
+          "case": "discovery-after-decrypt",
+          "result": "passed"
+        },
+        {
+          "case": "discovery-after-foreground",
+          "result": "passed"
+        },
+        {
+          "case": "firewall-helper-inspect-and-whatif",
+          "result": "passed"
+        },
+        {
+          "case": "final-ui-audit",
+          "result": "passed"
+        }
+      ],
+      "discovery": {
+        "after_decrypt": {
+          "result": "one_candidate",
+          "elapsed_ms": 3028,
+          "delay_ms": 0
+        },
+        "after_foreground": {
+          "result": "one_candidate",
+          "elapsed_ms": 3024,
+          "delay_ms": 54409
+        }
+      },
+      "firewall": {
+        "helper": "inspect-and-enable-whatif-passed",
+        "rule_present": false,
+        "mutation_performed": false,
+        "claim": "current-host-only-no-clean-vm-claim"
+      },
+      "synthetic_files_removed": true
+    },
+    "exact_upgrade": {
+      "status": "passed",
+      "source_status": "passed-fresh-alpha3-to-exact-alpha4-upgrade",
+      "report_sha256": "f9263e16c88299e5d827d3ad653e5c71b97c90d27f259935ced1900283bf1a51",
+      "started_utc": "2026-09-07T13:50:08.5349033Z",
+      "finished_utc": "2026-09-07T13:55:41.9704154Z",
+      "rows": [
+        {
+          "case": "fresh-alpha3-pairing",
+          "result": "passed"
+        },
+        {
+          "case": "alpha3-baseline-decrypt",
+          "result": "passed"
+        },
+        {
+          "case": "exact-alpha4-upgrade",
+          "result": "passed"
+        }
+      ],
+      "retained_pairing_and_identity": true,
+      "independent_recovery": true,
+      "distinct_fresh_biometric_operations": true,
+      "synthetic_files_removed": true
+    },
+    "cleanup": {
+      "status": "passed",
+      "source_status": "passed-all-known-test-pairings-cleaned",
+      "report_sha256": "d85e41c544e5a83d7590a05db70aaef068ef6dd06496a9ed579309ab688120cf",
+      "started_utc": "2026-09-07T14:11:45.711263Z",
+      "finished_utc": "2026-09-07T14:17:33.514688Z",
+      "target_count": 8,
+      "passed_target_count": 8,
+      "remaining_test_stub_count": 0,
+      "remaining_non_lock_test_state_count": 0,
+      "candidate_process_count": 0,
+      "adb_reverse_count": 0,
+      "wifi_auto_listen": "paused",
+      "phone_controls": "enabled",
+      "phone_identity": "retained",
+      "unrelated_pairings": "preserved"
+    }
+  },
+  "preserved_failures": [
+    {
+      "id": "minimum-acceptance-attempt-001/report.json",
+      "sha256": "e180b1e1515572a2f4e6dc2ae3c1030ece9eededdc4bc5e50cdb96b3982f5599",
+      "status": "failed",
+      "resolution": "replacement-run-passed"
+    },
+    {
+      "id": "manual-pairing-attempt-001/report.json",
+      "sha256": "9677432613639b5750a713a232ac753e436da85846db136597c5de12f9ca6cd7",
+      "status": "incomplete",
+      "resolution": "official-cleanup-passed"
+    },
+    {
+      "id": "manual-pairing-attempt-001/unexpected-setup-cleanup-report.json",
+      "sha256": "fe9d9b62379cff0df5e2a8356723e75796c02e86b3a8e28675750bac444d4d4f",
+      "status": "passed"
+    },
+    {
+      "id": "manual-pairing-attempt-002/report.json",
+      "sha256": "f24d8f052aeea9a077a1eadd1c20bfda65d2d9ece50af397be164afc61ae4c6e",
+      "status": "failed",
+      "resolution": "replacement-attempt-and-continuations-passed"
+    },
+    {
+      "id": "exact-upgrade-attempt-001/report.json",
+      "sha256": "f6352c1cff47c68ba3c46da8c4b991313c17ecd45564a5475ccb94d3d47060be",
+      "status": "failed",
+      "classification": "precondition-stale-desktop-stub-phone-pairing-already-revoked"
+    },
+    {
+      "id": "exact-upgrade-attempt-002/report.json",
+      "sha256": "d2625adac2a3a9060228dd31f7ba0788850e5a0c37bb3136f9af94db1355722c",
+      "status": "failed",
+      "classification": "precondition-stale-desktop-stub-phone-pairing-already-revoked"
+    }
+  ],
+  "release_scope": {
+    "accepted": "owner-only developer prerelease with synthetic or disposable data and independent recovery",
+    "deferred": "complete public-Alpha matrix",
+    "firewall_limit": "current host Inspect and Enable -WhatIf only; no clean-VM firewall claim"
+  },
+  "publication_gate": {
+    "physical_gate": "passed",
+    "unresolved_required_rows": 0,
+    "tag_exists": false,
+    "github_release_exists": false,
+    "publish_job": "pending",
+    "next_action": "review this evidence, then explicitly approve alpha-release-publish for workflow run 34110640981 attempt 1"
+  }
+}

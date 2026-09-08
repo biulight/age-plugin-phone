@@ -15,13 +15,14 @@ Shine environments, or define a Shine-specific ciphertext format.
 > external-user gates remain open. Do not use it to protect real secrets.
 
 The latest installable snapshot is
-[`v0.1.0-alpha.3`](docs/releases/v0.1.0-alpha.3.md), a test-signed developer prerelease for
+[`v0.1.0-alpha.4`](docs/releases/v0.1.0-alpha.4.md), a test-signed developer prerelease for
 synthetic or disposable data with a separately verified independent recovery recipient. Publishing
 that snapshot does not constitute a public-Alpha, stable-protocol, or production-secret claim.
 
-The next candidate is [`v0.1.0-alpha.4`](docs/releases/v0.1.0-alpha.4.md); signing and exact-package
-acceptance are pending. Use the [candidate checklist](docs/alpha.4-acceptance-checklist.md) and
-[minimum Windows regression script](scripts/windows-minimal-acceptance.ps1) to record new evidence.
+The alpha.4 exact signed Windows/Android package pair passed owner-only physical acceptance and
+was published on 2026-09-07. See the [acceptance and publication record](docs/windows-acceptance-2026-09-07.md)
+and [completed checklist](docs/alpha.4-acceptance-checklist.md). The complete public-Alpha matrix
+remains deferred.
 
 The current deployment posture is an
 [owner-only technical preview](docs/owner-only-preview.md): one repository owner, one known

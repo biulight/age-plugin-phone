@@ -1,44 +1,48 @@
 # alpha.4 release candidate and acceptance checklist
 
-Status: **prepared, not signed or physically accepted**. Version: `0.1.0-alpha.4`.
-Baseline: `82a2749` (UI/background cleanup and Windows Wi-Fi diagnostics); the final immutable
-candidate SHA must include the version, script, checklist and release notes in this change.
-Do not substitute the baseline SHA for the final candidate.
+Status: **owner-only physical acceptance passed; published 2026-09-07**. Version: `0.1.0-alpha.4`.
+Accepted commit: `5da4b0bc8f3ca6f16f9be1b7430e923baad402b9`.
+See the [acceptance and publication record](windows-acceptance-2026-09-07.md) for exact hashes,
+original evidence, preserved failures and scope limitations. This checklist was synchronized after
+publication; the signed ZIP retains its original pre-acceptance checklist. Published assets are unchanged.
 
 This is the minimum owner-only developer-prerelease gate, not the complete public-Alpha matrix.
 The [owner-preview scope](owner-only-preview.md) defines deferred gates. Preserve failed and
 unobserved attempts; a later pass gets a new record and never erases the earlier result.
 
-## Candidate provenance — all pending
+## Accepted candidate provenance
 
 | Field | Required value |
 | --- | --- |
-| Candidate commit | Full 40-character SHA after candidate commit |
-| CI | Successful run for that exact SHA; record run URL |
-| Signing | One workflow run ID and attempt for both platforms |
-| Windows ZIP / EXE | Exact SHA-256 for each |
-| Android normal APK | Exact SHA-256; same run/attempt as Windows |
-| Signers | Registered Windows leaf/root and Android certificate SHA-256 |
-| Physical environment | Windows build, public TPM capability, Android model/OS/patch, age/ADB versions |
-| Physical result | Dated report, script JSON, manual row results, unresolved failures |
+| Candidate commit | `5da4b0bc8f3ca6f16f9be1b7430e923baad402b9` |
+| CI | [34110138123](https://github.com/biulight/age-plugin-phone/actions/runs/34110138123), exact SHA, passed |
+| Signing | [34110640981](https://github.com/biulight/age-plugin-phone/actions/runs/34110640981), attempt 1, both platforms passed |
+| Windows ZIP / EXE, Android normal APK | Exact SHA-256 values in the [acceptance record](windows-acceptance-2026-09-07.md) |
+| Signers | Registered certificate SHA-256 values in the original evidence linked from that record |
+| Physical environment | Windows 11 build 22631 x64 / TPM 2.0; Android 16 / StrongBox; age 1.3.1, ADB 1.0.41 |
+| Physical result | Passed 2026-09-07; zero unresolved required rows; full public-Alpha matrix deferred |
 
 - [x] Version manifests and Cargo.lock agree on alpha.4; release notes and changelog reviewed.
 - [x] `cargo fmt --all --check`, strict locked workspace Clippy, and locked workspace tests pass locally.
-- [ ] Frozen Bun install and frontend build, Android native negative tests, Swift vectors and iOS
+- [x] Frozen Bun install and frontend build, Android native negative tests, Swift vectors and iOS
   compile jobs pass in CI. iOS compilation does not establish hardware acceptance.
 - [x] Release validator/staging fixtures, minimum-script fixtures, workflow lint and
   `git diff --check` pass locally.
-- [ ] Candidate working tree is clean and exact-SHA CI is green before signing dispatch.
+- [x] Candidate working tree is clean and exact-SHA CI is green before signing dispatch.
   Push the candidate on `codex/alpha.4-rc`; CI runs directly on `codex/alpha.*` pushes so its
   tested SHA is the candidate itself, not a temporary pull-request merge commit.
-- [ ] Dispatch the existing Alpha workflow with the full `expected_commit`; both signing jobs
+- [x] Dispatch the existing Alpha workflow with the full `expected_commit`; both signing jobs
   succeed. Keep `alpha-release-publish` waiting until the physical gate below is complete.
-- [ ] Independently verify the six same-run assets and certificate identities using the
+- [x] Independently verify the six same-run assets and certificate identities using the
   [signing runbook](release-signing.md). Confirm ZIP root includes the EXE, quickstart, Wi-Fi guide,
   firewall helper, `windows-minimal-acceptance.ps1`, and this checklist. Never install the test root.
 
-Local preparation on 2026-09-06: the checks marked above and frozen Bun install/TypeScript/Vite
-build passed. PowerShell 7.4.6 on macOS exercised subprocess/output/timeout helpers and simulated
+## Historical preparation and superseded attempts
+
+The following records describe earlier states, not the final release status above.
+
+Local preparation on 2026-09-06: local Rust, release-validator, script-fixture, workflow-lint
+and diff checks plus frozen Bun install/TypeScript/Vite build passed. PowerShell 7.4.6 on macOS exercised subprocess/output/timeout helpers and simulated
 full-run success, failure reporting, no retry, report preservation, environment restoration and
 evidence redaction. The simulated host/tool responses are harness tests, not Windows/phone
 acceptance. Windows harness CI and the unchanged Android/iOS jobs still need the final candidate
@@ -61,17 +65,17 @@ and repeat the minimum unwrap and remaining manual gates with its same-run artif
 
 ## Exact-package preparation and upgrade
 
-- [ ] Use synthetic data and an independent recovery recipient. Record the normal APK's identity
+- [x] Use synthetic data and an independent recovery recipient. Record the normal APK's identity
   and pairing state locally before upgrading; keep the separate `.wifipoc` app out of this evidence.
-- [ ] Verify the installed normal alpha.3 APK and the downloaded alpha.4 APK signers agree. Install
+- [x] Verify the installed normal alpha.3 APK and the downloaded alpha.4 APK signers agree. Install
   alpha.4 in place without uninstalling, clearing data, deleting identity or resetting replay state.
   Check version and retained public identity/pairings; perform a fresh biometric decrypt of an
   existing synthetic ciphertext using the alpha.4 EXE and independent recovery of that ciphertext.
   If no alpha.3 installation/pairing exists, mark this row unexecuted and arrange a scoped upgrade
   run; a fresh installation does not count as an upgrade pass.
-- [ ] Read-only `status` supports Windows 11 x64, TPM 2.0 and Platform Crypto Provider; the installed
+- [x] Read-only `status` supports Windows 11 x64, TPM 2.0 and Platform Crypto Provider; the installed
   normal APK reports StrongBox availability. One explicit ADB device, zero initial reverse rules.
-- [ ] Create a fresh alpha.4 managed USB pairing with `setup --json` in a dedicated configuration
+- [x] Create a fresh alpha.4 managed USB pairing with `setup --json` in a dedicated configuration
   root. Start the desktop command first; while it is waiting, choose **Pair · USB** on the phone.
   Choosing the phone action before the desktop has armed its ADB reverse rule immediately fails with
   `usb_transport_failed`. Owner compares the complete fingerprint on both screens and supplies the
@@ -145,7 +149,7 @@ report filename for a fresh run. The script removes only its disposable fixture 
 restores environment variables. It retains all pairing/replay state and never removes ADB rules.
 After failure, independently audit processes, reverse rules and phone state before continuing.
 
-## Manual alpha.4 regression — all required, still pending
+## Manual alpha.4 regression — required owner-only rows passed
 
 Use fresh temporary pairings for interruption rows. Observe the launcher for at least two seconds
 when backgrounding; an immediate HOME/return sequence is insufficient evidence of Activity stop.
@@ -172,20 +176,20 @@ record any new failure and resolve its release impact before promotion.
 
 ## Cleanup and promotion
 
-- [ ] Verify recovery for all retained synthetic ciphertexts before retiring test pairings.
-- [ ] Owner revokes only test pairings/orphans through native confirmation, identified by full
+- [x] Verify recovery for all retained synthetic ciphertexts before retiring test pairings.
+- [x] Owner revokes only test pairings/orphans through native confirmation, identified by full
   transcript fingerprint. Use official `remove-desktop-state --identity-stub` and enter the full
   fingerprint for each local pairing. Pending setup follows documented `setup --resume`/`--cleanup`
   semantics; do not manually delete replay files, private locators or CNG keys.
-- [ ] Final audit: no test stubs or non-lock test state, no candidate processes or reverse rules,
+- [x] Final audit: no test stubs or non-lock test state, no candidate processes or reverse rules,
   no temporary firewall rules, Wi-Fi paused, enabled phone controls. Preserve unrelated pairings
   and the phone identity; identity deletion/uninstall is not minimum-regression cleanup.
-- [ ] Attach sanitized manual results and script report to the candidate evidence. Record only
+- [x] Attach sanitized manual results and script report to the candidate evidence. Record only
   versions, hashes, dates, coarse states/errors/timings and counts; omit plaintext, keys, QR or
   protocol contents, labels, serials, recipients, private paths and aliases.
-- [ ] Resolve all required failed/unexecuted rows. A `passed-minimal-unwrap-only` script report
+- [x] Resolve all required failed/unexecuted rows. A `passed-minimal-unwrap-only` script report
   does not pass manual UI/upgrade/cleanup gates or the full public-Alpha matrix.
-- [ ] Reviewer approves `alpha-release-publish` only for the same verified SHA/run/attempt after
+- [x] Reviewer approves `alpha-release-publish` only for the same verified SHA/run/attempt after
   physical acceptance. The existing workflow owns the tag, six assets and public prerelease.
   Never create/move a final tag or upload replacement assets manually.
 
