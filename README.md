@@ -292,3 +292,12 @@ cross into JavaScript. The generic Tauri biometric plugin is not a substitute fo
 authentication to the actual Secure Enclave or Android Keystore private-key operation.
 
 [age]: https://age-encryption.org/
+
+### crates.io release maintenance
+
+The independent [crates.io release pipeline](docs/crates-io-release.md) supports
+manual-dispatch preflight (default) and protected OIDC publishing of the four
+crates in dependency order. First crate creation needs a separately authorized
+manual bootstrap. See that guide for exact-SHA CI gates, Environment configuration
+and partial-release recovery. Alpha binary releases keep their existing workflow;
+registry installation checks do not expand platform or real-device support.
