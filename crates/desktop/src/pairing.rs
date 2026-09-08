@@ -2,11 +2,11 @@
 
 #![allow(clippy::missing_errors_doc, clippy::missing_panics_doc)]
 
-use age_plugin_phone_protocol::{
+use age_plugin_phone_core::protocol::{
     ALGORITHM_SUITE, EncodedPublicKey, Id, P256Signer, PairingOffer, ProtocolDigest, ProtocolNonce,
     SignedPairingOffer, SignedPairingResponse, pairing_fingerprint,
 };
-use age_plugin_phone_recipient_p256::{P256KeyAgreement, PLUGIN_NAME, PairedRecipient, Recipient};
+use age_plugin_phone_core::recipient::{P256KeyAgreement, PLUGIN_NAME, PairedRecipient, Recipient};
 use bech32::{FromBase32 as _, ToBase32 as _, Variant};
 use minicbor::{Decoder, Encoder};
 #[cfg(not(windows))]
@@ -291,7 +291,7 @@ impl DesktopKeyState {
 #[cfg(windows)]
 pub struct DesktopKeyState {
     pub desktop_id: Id,
-    keys: age_plugin_phone_windows_cng::WindowsCngKeySet,
+    keys: age_plugin_phone_platform_keys::windows::WindowsCngKeySet,
 }
 
 #[cfg(windows)]
@@ -300,14 +300,15 @@ impl DesktopKeyState {
         if path.exists() {
             return Err(PairingError::State);
         }
-        let keys = age_plugin_phone_windows_cng::WindowsCngKeySet::create_new(desktop_id)
-            .map_err(|_| PairingError::State)?;
+        let keys =
+            age_plugin_phone_platform_keys::windows::WindowsCngKeySet::create_new(desktop_id)
+                .map_err(|_| PairingError::State)?;
         let mut encoded = [0_u8; 21];
         encoded[..5].copy_from_slice(DESKTOP_TPM_STATE_MAGIC);
         encoded[5..].copy_from_slice(&desktop_id);
-        if age_plugin_phone_windows_storage::atomic_create(path, &encoded).is_err() {
+        if age_plugin_phone_platform_storage::windows::atomic_create(path, &encoded).is_err() {
             drop(keys);
-            let _ = age_plugin_phone_windows_cng::remove_key_set(desktop_id);
+            let _ = age_plugin_phone_platform_keys::windows::remove_key_set(desktop_id);
             return Err(PairingError::State);
         }
         Ok(Self { desktop_id, keys })
@@ -325,11 +326,13 @@ impl DesktopKeyState {
                 let mut encoded = [0_u8; 21];
                 encoded[..5].copy_from_slice(DESKTOP_TPM_STATE_MAGIC);
                 encoded[5..].copy_from_slice(&desktop_id);
-                age_plugin_phone_windows_storage::atomic_create(path, &encoded)
+                age_plugin_phone_platform_storage::windows::atomic_create(path, &encoded)
                     .map_err(|_| PairingError::State)?;
                 let keys =
-                    age_plugin_phone_windows_cng::WindowsCngKeySet::open_or_create(desktop_id)
-                        .map_err(|_| PairingError::State)?;
+                    age_plugin_phone_platform_keys::windows::WindowsCngKeySet::open_or_create(
+                        desktop_id,
+                    )
+                    .map_err(|_| PairingError::State)?;
                 Ok(Self { desktop_id, keys })
             }
             Err(error) => Err(error),
@@ -337,18 +340,18 @@ impl DesktopKeyState {
     }
 
     pub fn open(path: &Path) -> Result<Self, PairingError> {
-        let encoded =
-            age_plugin_phone_windows_storage::read_private_file(path, 21).map_err(|error| {
-                match error {
-                    age_plugin_phone_windows_storage::Error::Missing => PairingError::StateMissing,
-                    _ => PairingError::State,
+        let encoded = age_plugin_phone_platform_storage::windows::read_private_file(path, 21)
+            .map_err(|error| match error {
+                age_plugin_phone_platform_storage::windows::Error::Missing => {
+                    PairingError::StateMissing
                 }
+                _ => PairingError::State,
             })?;
         if encoded.len() != 21 || &encoded[..5] != DESKTOP_TPM_STATE_MAGIC {
             return Err(PairingError::State);
         }
         let desktop_id = encoded[5..].try_into().map_err(|_| PairingError::State)?;
-        let keys = age_plugin_phone_windows_cng::WindowsCngKeySet::open(desktop_id)
+        let keys = age_plugin_phone_platform_keys::windows::WindowsCngKeySet::open(desktop_id)
             .map_err(|_| PairingError::State)?;
         Ok(Self { desktop_id, keys })
     }
@@ -645,7 +648,7 @@ fn validate_private_file(_file: &File) -> Result<(), PairingError> {
 #[cfg(all(test, not(windows)))]
 mod tests {
     use super::*;
-    use age_plugin_phone_protocol::{PairingResponse, SignedPairingResponse};
+    use age_plugin_phone_core::protocol::{PairingResponse, SignedPairingResponse};
     use p256::{SecretKey, elliptic_curve::sec1::ToEncodedPoint as _};
     use rand_core::OsRng;
 

@@ -10,7 +10,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use age_plugin_phone_protocol::{QrAssemblyStatus, QrError, QrReassembler};
+use age_plugin_phone_core::protocol::{QrAssemblyStatus, QrError, QrReassembler};
 #[cfg(target_os = "macos")]
 use nokhwa::utils::{CameraFormat, FrameFormat};
 use nokhwa::{
@@ -334,7 +334,7 @@ fn decode_qr_texts(width: usize, height: usize, greyscale: &[u8]) -> Vec<Zeroizi
 #[cfg(test)]
 mod tests {
     use super::*;
-    use age_plugin_phone_protocol::{MAX_QR_ASSEMBLY_AGE_MS, fragment_qr_message};
+    use age_plugin_phone_core::protocol::{MAX_QR_ASSEMBLY_AGE_MS, fragment_qr_message};
     use qrcode::{QrCode, types::Color};
     use rand_core::OsRng;
 

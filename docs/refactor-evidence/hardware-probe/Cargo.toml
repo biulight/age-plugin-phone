@@ -1,0 +1,18 @@
+[package]
+name = "phone-refactor-hardware-probe"
+version = "0.0.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+age-plugin-phone = { path = "../../../crates/desktop", version = "=0.1.0-alpha.4" }
+age-plugin-phone-core = { path = "../../../crates/core", version = "=0.1.0-alpha.4" }
+age-plugin-phone-platform-storage = { path = "../../../crates/platform-storage", version = "=0.1.0-alpha.4" }
+minicbor = { version = "0.25.1", features = ["alloc"] }
+rand_core = { version = "0.6.4", features = ["getrandom"] }
+zeroize = "1.9.0"
+
+[lints.rust]
+unsafe_code = "forbid"

@@ -13,7 +13,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-use age_plugin_phone_transport::{
+use crate::transport::{
     DesktopStreamSession, DesktopTransport, SessionPurpose, TransportError, TransportLimits,
 };
 use rand_core::{CryptoRng, RngCore};

@@ -78,7 +78,7 @@ unchanged.
 
 ## Validation
 
-`docs/test-vectors/p256-recipient-v2.json` contains fixed public test scalars, identity ID, recipient,
+`crates/core/test-vectors/p256-recipient-v2.json` contains fixed public test scalars, identity ID, recipient,
 selector, and file-key ciphertext. Rust and Kotlin independently reproduce the vector and unwrap the
 file-key body. Negative tests cover wrong desktop key, wrong identity ID, modified selector,
 modified file-key body, missing or padded selector arguments, v1 ambiguity, no matching pairing,

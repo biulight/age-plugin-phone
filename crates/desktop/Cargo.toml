@@ -1,4 +1,7 @@
 [package]
+publish = ["crates-io"]
+readme = "README.md"
+include = ["src/**", "tests/**", "examples/**", "test-vectors/**", "Cargo.toml", "Cargo.lock", "README.md", "LICENSE"]
 name = "age-plugin-phone"
 description = "Offline phone-backed identity plugin for age"
 edition.workspace = true
@@ -8,11 +11,10 @@ rust-version.workspace = true
 version.workspace = true
 
 [dependencies]
+age-plugin-phone-platform-storage.workspace = true
 age-core.workspace = true
 age-plugin.workspace = true
-age-plugin-phone-protocol = { path = "../protocol" }
-age-plugin-phone-recipient-p256 = { path = "../recipient-p256" }
-age-plugin-phone-transport = { path = "../transport" }
+age-plugin-phone-core.workspace = true
 base64.workspace = true
 bech32.workspace = true
 clap.workspace = true
@@ -34,8 +36,7 @@ nokhwa = { workspace = true, features = ["input-avfoundation"] }
 nokhwa = { workspace = true, features = ["input-v4l"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
-age-plugin-phone-windows-cng = { path = "../windows-cng" }
-age-plugin-phone-windows-storage = { path = "../windows-storage" }
+age-plugin-phone-platform-keys.workspace = true
 nokhwa = { workspace = true, features = ["input-msmf"] }
 windows-sys = { workspace = true, features = ["Win32_System_Threading"] }
 

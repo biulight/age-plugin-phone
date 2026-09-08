@@ -22,7 +22,7 @@ android {
     }
 
     sourceSets {
-        getByName("test").resources.srcDir(file("../../../docs/test-vectors"))
+        getByName("test").resources.srcDir(file("../../../crates/core/test-vectors"))
     }
 }
 

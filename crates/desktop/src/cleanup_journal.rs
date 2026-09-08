@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 use minicbor::{Decoder, Encoder};
 use thiserror::Error;
 
-use age_plugin_phone_protocol::{Id, ProtocolDigest};
+use age_plugin_phone_core::protocol::{Id, ProtocolDigest};
 
 use crate::pairing::PublicIdentityStub;
 
@@ -257,12 +257,12 @@ pub(crate) fn journal_lock_path(root: &Path) -> PathBuf {
 
 #[cfg(windows)]
 pub(crate) fn read(root: &Path) -> Result<Option<CleanupJournal>, JournalError> {
-    match age_plugin_phone_windows_storage::read_private_file(
+    match age_plugin_phone_platform_storage::windows::read_private_file(
         &journal_path(root),
         MAX_JOURNAL_BYTES,
     ) {
         Ok(bytes) => CleanupJournal::decode(&bytes).map(Some),
-        Err(age_plugin_phone_windows_storage::Error::Missing) => Ok(None),
+        Err(age_plugin_phone_platform_storage::windows::Error::Missing) => Ok(None),
         Err(_) => Err(JournalError::Invalid),
     }
 }
@@ -270,7 +270,7 @@ pub(crate) fn read(root: &Path) -> Result<Option<CleanupJournal>, JournalError> 
 #[cfg(windows)]
 pub(crate) fn create(root: &Path, journal: &CleanupJournal) -> Result<(), JournalError> {
     let encoded = journal.encode()?;
-    age_plugin_phone_windows_storage::atomic_create(&journal_path(root), &encoded)
+    age_plugin_phone_platform_storage::windows::atomic_create(&journal_path(root), &encoded)
         .map_err(|_| JournalError::Storage)
 }
 
@@ -307,7 +307,7 @@ fn fixed<const N: usize>(bytes: &[u8]) -> Result<[u8; N], JournalError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use age_plugin_phone_recipient_p256::Recipient;
+    use age_plugin_phone_core::recipient::Recipient;
     use p256::{SecretKey, ecdsa::SigningKey, elliptic_curve::sec1::ToEncodedPoint as _};
     use rand_core::OsRng;
 
@@ -447,7 +447,7 @@ mod tests {
             std::process::id(),
             rand_core::RngCore::next_u64(&mut OsRng),
         ));
-        age_plugin_phone_windows_storage::ensure_private_directory(&root).unwrap();
+        age_plugin_phone_platform_storage::windows::ensure_private_directory(&root).unwrap();
         let value = CleanupJournal {
             target: CleanupTarget::Paired {
                 stub: stub(),
@@ -466,7 +466,8 @@ mod tests {
         let mut other = value_stub;
         other.desktop_id[0] ^= 1;
         assert_eq!(ensure_pairing_available(&root, &other), Ok(()));
-        age_plugin_phone_windows_storage::remove_private_file(&journal_path(&root)).unwrap();
+        age_plugin_phone_platform_storage::windows::remove_private_file(&journal_path(&root))
+            .unwrap();
         std::fs::remove_dir(&root).unwrap();
     }
 }

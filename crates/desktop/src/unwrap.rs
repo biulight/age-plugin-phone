@@ -4,11 +4,11 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use age_plugin_phone_protocol::{
+use age_plugin_phone_core::protocol::{
     FileReplayGuard, MAX_REQUEST_LIFETIME_SECS, PairingRecord, ProtocolNonce, SignedUnwrapResponse,
     UnwrapRequest, VerifiedRequest, create_request, open_response,
 };
-use age_plugin_phone_recipient_p256::TaggedStanza;
+use age_plugin_phone_core::recipient::TaggedStanza;
 use p256::{SecretKey, elliptic_curve::sec1::ToEncodedPoint as _};
 use rand_core::{CryptoRng, RngCore};
 use thiserror::Error;
@@ -166,10 +166,10 @@ fn hex(bytes: &[u8]) -> String {
 #[cfg(all(test, not(windows)))]
 mod tests {
     use super::*;
-    use age_plugin_phone_protocol::{
+    use age_plugin_phone_core::protocol::{
         ReplayGuard, ReplayRole, ReplayScope, SignedUnwrapRequest, seal_response,
     };
-    use age_plugin_phone_recipient_p256::{Recipient, unwrap_file_key, wrap_file_key};
+    use age_plugin_phone_core::recipient::{Recipient, unwrap_file_key, wrap_file_key};
     use p256::ecdsa::SigningKey;
     use rand_core::OsRng;
 

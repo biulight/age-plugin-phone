@@ -1,0 +1,237 @@
+name: Publish crates.io packages
+run-name: crates.io ${{ inputs.expected_version }} (${{ inputs.mode }})
+
+on:
+  workflow_dispatch:
+    inputs:
+      expected_commit:
+        description: Full candidate SHA; must be the dispatched main commit
+        type: string
+        required: true
+      expected_version:
+        description: Exact existing workspace version (never changed here)
+        type: string
+        required: true
+      mode:
+        description: Preflight rehearsal or authorized production upload
+        type: choice
+        options: [preflight, publish]
+        default: preflight
+        required: true
+      recovery_run_id:
+        description: Prior completed crates-release run with the same SHA (optional)
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+# One lock for ALL versions and modes, covering the entire four-package chain.
+concurrency:
+  group: crates-io-release
+  cancel-in-progress: false
+
+env:
+  PYTHONDONTWRITEBYTECODE: '1'
+
+jobs:
+  preflight:
+    if: github.repository == 'biulight/age-plugin-phone' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Set evidence directory outside checkout
+        run: echo "RELEASE_OUTPUT=$RUNNER_TEMP/crates-evidence" >> "$GITHUB_ENV"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, verified 2026-09-08
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable, verified 2026-09-08
+        with:
+          toolchain: 1.88.0
+      - name: Install desktop build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes build-essential clang libclang-dev libv4l-dev pkg-config
+      - name: Check candidate and complete exact-SHA CI
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+          EXPECTED_VERSION: ${{ inputs.expected_version }}
+          RELEASE_MODE: ${{ inputs.mode }}
+          RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
+        run: >-
+          python3 scripts/release/crates_release.py init --output "$RELEASE_OUTPUT"
+          --expected-commit "$EXPECTED_COMMIT" --expected-version "$EXPECTED_VERSION"
+          --mode "$RELEASE_MODE" --recovery-run-id "$RECOVERY_RUN_ID"
+      - name: Local fixture tests
+        run: python3 -m unittest discover -s scripts/release -p 'test_*.py' -v
+      - name: Alternate registry rehearsal (never production upload)
+        run: |
+          python3 scripts/registry-preflight.py --minimal --output "$RUNNER_TEMP/crates-minimal"
+          python3 scripts/registry-preflight.py --output "$RUNNER_TEMP/crates-alternate"
+      - name: Production dry-runs where dependencies exist
+        if: inputs.mode == 'preflight'
+        run: python3 scripts/release/crates_release.py preflight --output "$RELEASE_OUTPUT"
+      - name: Write release summary
+        if: always()
+        env:
+          RELEASE_JOB_STATUS: ${{ job.status }}
+        run: |
+          if test -f "$RELEASE_OUTPUT/result.json"; then
+            python3 scripts/release/crates_release.py summary --output "$RELEASE_OUTPUT"
+          else
+            echo 'Release stopped before candidate evidence could be initialized.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, verified 2026-09-08
+        if: always()
+        with:
+          name: crates-evidence-preflight-${{ github.run_attempt }}
+          path: ${{ env.RELEASE_OUTPUT }}/
+          if-no-files-found: warn
+          retention-days: 90
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, verified 2026-09-08
+        if: always()
+        with:
+          name: crates-alternate-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/crates-alternate/archive-evidence.json
+            ${{ runner.temp }}/crates-alternate/manifest-differences.json
+          retention-days: 90
+
+  publish:
+    needs: preflight
+    if: inputs.mode == 'publish' && github.repository == 'biulight/age-plugin-phone' && github.ref == 'refs/heads/main' && github.ref_protected
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    environment: crates-io-publish
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - name: Set evidence directory outside checkout
+        run: echo "RELEASE_OUTPUT=$RUNNER_TEMP/crates-evidence" >> "$GITHUB_ENV"
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, verified 2026-09-08
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable, verified 2026-09-08
+        with:
+          toolchain: 1.88.0
+      - name: Install desktop build prerequisites
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes build-essential clang libclang-dev libv4l-dev pkg-config
+      - name: Check candidate and complete exact-SHA CI
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+          EXPECTED_VERSION: ${{ inputs.expected_version }}
+          RELEASE_MODE: ${{ inputs.mode }}
+          RECOVERY_RUN_ID: ${{ inputs.recovery_run_id }}
+        run: >-
+          python3 scripts/release/crates_release.py init --output "$RELEASE_OUTPUT"
+          --expected-commit "$EXPECTED_COMMIT" --expected-version "$EXPECTED_VERSION"
+          --mode "$RELEASE_MODE" --recovery-run-id "$RECOVERY_RUN_ID"
+      - name: Production dry-run and resume verification (storage)
+        id: storage
+        run: python3 scripts/release/crates_release.py prepare --package age-plugin-phone-platform-storage --output "$RELEASE_OUTPUT"
+      # Persist intent BEFORE obtaining credentials or invoking Cargo publish.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, verified 2026-09-08
+        with:
+          name: crates-evidence-intent-storage-${{ github.run_attempt }}
+          path: ${{ env.RELEASE_OUTPUT }}/
+          if-no-files-found: error
+          retention-days: 90
+      - uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1, verified 2026-09-08
+        id: auth_storage
+        if: steps.storage.outputs.upload == 'true'
+      - name: Upload once and verify crates.io visibility (storage)
+        if: steps.storage.outputs.upload == 'true'
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth_storage.outputs.token }}
+        run: python3 scripts/release/crates_release.py upload --package age-plugin-phone-platform-storage --output "$RELEASE_OUTPUT"
+      - name: Production dry-run and resume verification (core)
+        id: core
+        run: python3 scripts/release/crates_release.py prepare --package age-plugin-phone-core --output "$RELEASE_OUTPUT"
+      # Persist intent BEFORE obtaining credentials or invoking Cargo publish.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, verified 2026-09-08
+        with:
+          name: crates-evidence-intent-core-${{ github.run_attempt }}
+          path: ${{ env.RELEASE_OUTPUT }}/
+          if-no-files-found: error
+          retention-days: 90
+      - uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1, verified 2026-09-08
+        id: auth_core
+        if: steps.core.outputs.upload == 'true'
+      - name: Upload once and verify crates.io visibility (core)
+        if: steps.core.outputs.upload == 'true'
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth_core.outputs.token }}
+        run: python3 scripts/release/crates_release.py upload --package age-plugin-phone-core --output "$RELEASE_OUTPUT"
+      - name: Production dry-run and resume verification (keys)
+        id: keys
+        run: python3 scripts/release/crates_release.py prepare --package age-plugin-phone-platform-keys --output "$RELEASE_OUTPUT"
+      # Persist intent BEFORE obtaining credentials or invoking Cargo publish.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, verified 2026-09-08
+        with:
+          name: crates-evidence-intent-keys-${{ github.run_attempt }}
+          path: ${{ env.RELEASE_OUTPUT }}/
+          if-no-files-found: error
+          retention-days: 90
+      - uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1, verified 2026-09-08
+        id: auth_keys
+        if: steps.keys.outputs.upload == 'true'
+      - name: Upload once and verify crates.io visibility (keys)
+        if: steps.keys.outputs.upload == 'true'
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth_keys.outputs.token }}
+        run: python3 scripts/release/crates_release.py upload --package age-plugin-phone-platform-keys --output "$RELEASE_OUTPUT"
+      - name: Production dry-run and resume verification (cli)
+        id: cli
+        run: python3 scripts/release/crates_release.py prepare --package age-plugin-phone --output "$RELEASE_OUTPUT"
+      # Persist intent BEFORE obtaining credentials or invoking Cargo publish.
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, verified 2026-09-08
+        with:
+          name: crates-evidence-intent-cli-${{ github.run_attempt }}
+          path: ${{ env.RELEASE_OUTPUT }}/
+          if-no-files-found: error
+          retention-days: 90
+      - uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1, verified 2026-09-08
+        id: auth_cli
+        if: steps.cli.outputs.upload == 'true'
+      - name: Upload once and verify crates.io visibility (cli)
+        if: steps.cli.outputs.upload == 'true'
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth_cli.outputs.token }}
+        run: python3 scripts/release/crates_release.py upload --package age-plugin-phone --output "$RELEASE_OUTPUT"
+      - name: Install exact production CLI and verify age/rage independent recovery
+        run: python3 scripts/release/crates_release.py smoke --output "$RELEASE_OUTPUT"
+      - name: Write release summary
+        if: always()
+        env:
+          RELEASE_JOB_STATUS: ${{ job.status }}
+          RELEASE_EXTERNAL_FAILURE: >-
+            ${{ steps.auth_storage.conclusion == 'failure' && 'auth-storage' ||
+                steps.auth_core.conclusion == 'failure' && 'auth-core' ||
+                steps.auth_keys.conclusion == 'failure' && 'auth-keys' ||
+                steps.auth_cli.conclusion == 'failure' && 'auth-cli' || '' }}
+        run: |
+          if test -f "$RELEASE_OUTPUT/result.json"; then
+            python3 scripts/release/crates_release.py summary --output "$RELEASE_OUTPUT"
+          else
+            echo 'Release stopped before candidate evidence could be initialized.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, verified 2026-09-08
+        if: always()
+        with:
+          name: crates-evidence-publish-${{ github.run_attempt }}
+          path: ${{ env.RELEASE_OUTPUT }}/
+          if-no-files-found: warn
+          retention-days: 90

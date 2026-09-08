@@ -56,12 +56,20 @@ user. It must never export the long-term private key to the desktop.
 
 ## Repository layout
 
-- `crates/desktop`: the `age-plugin-phone` desktop binary and age plugin entry point.
-- `crates/protocol`: transport-independent pairing and unwrap message types.
-- `crates/recipient-p256`: experimental, transport-independent P-256 tagged-recipient reference.
-- `crates/transport`: bounded, one-shot opaque request/response session boundary.
+- `crates/desktop`: the CLI, age entry point and bounded one-shot transport module.
+- `crates/core`: separate public `recipient` and `protocol` modules and public test vectors.
+- `crates/platform-keys`: Windows TPM key custody; future macOS backends belong here.
+- `crates/platform-storage`: explicit Windows and Unix filesystem boundaries.
 - `apps/mobile`: Tauri 2 mobile application with a deliberately non-sensitive TypeScript UI.
 - `docs`: architecture, protocol, threat model, and roadmap.
+
+The [desktop four-crate PRD](docs/desktop-crates-refactor-prd.md) defines acceptance criteria.
+See [ADR 0024](docs/adr/0024-four-desktop-crates.md) for the package boundaries and
+[candidate evidence](docs/desktop-refactor-evidence.md) for completed validation.
+The refactor does not add macOS hardware-key support or upload packages.
+After a version is published, install it with
+`cargo install age-plugin-phone --version <published-version> --locked`;
+[build requirements and the manual release procedure](docs/crates-io-release.md) apply.
 
 ## Current commands
 
@@ -284,3 +292,12 @@ cross into JavaScript. The generic Tauri biometric plugin is not a substitute fo
 authentication to the actual Secure Enclave or Android Keystore private-key operation.
 
 [age]: https://age-encryption.org/
+
+### crates.io release maintenance
+
+The independent [crates.io release pipeline](docs/crates-io-release.md) supports
+manual-dispatch preflight (default) and protected OIDC publishing of the four
+crates in dependency order. First crate creation needs a separately authorized
+manual bootstrap. See that guide for exact-SHA CI gates, Environment configuration
+and partial-release recovery. Alpha binary releases keep their existing workflow;
+registry installation checks do not expand platform or real-device support.

@@ -2,19 +2,19 @@
 
 use std::{collections::HashMap, io, net::SocketAddr, path::PathBuf};
 
+use crate::transport::{DesktopTransport, SessionPurpose, TransportLimits};
 use age_core::format::{FileKey, Stanza};
 use age_plugin::{
     Callbacks,
     identity::{self, IdentityPluginV1},
 };
-use age_plugin_phone_protocol::{
+use age_plugin_phone_core::protocol::{
     DEFAULT_REPLAY_CAPACITY, FileReplayGuard, PairingRecord, ReplayRole, ReplayScope,
     fragment_qr_message,
 };
-use age_plugin_phone_recipient_p256::{
+use age_plugin_phone_core::recipient::{
     PairedRecipient, STANZA_TAG, STANZA_TAG_V2, TaggedStanza, matches_stanza_v2, validate_stanza,
 };
-use age_plugin_phone_transport::{DesktopTransport, SessionPurpose, TransportLimits};
 use rand_core::OsRng;
 use zeroize::Zeroizing;
 
@@ -64,7 +64,7 @@ impl IdentityPluginV1 for PhoneIdentityPlugin {
         plugin_name: &str,
         bytes: &[u8],
     ) -> Result<(), identity::Error> {
-        if plugin_name != age_plugin_phone_recipient_p256::PLUGIN_NAME {
+        if plugin_name != age_plugin_phone_core::recipient::PLUGIN_NAME {
             return Err(identity::Error::Identity {
                 index,
                 message: "identity was routed to the wrong plugin".into(),
@@ -674,8 +674,8 @@ mod tests {
         locator::create_pairing_locator,
         pairing::{DesktopKeyState, PublicIdentityStub},
     };
-    use age_plugin_phone_protocol::{ReplayGuard, SignedUnwrapRequest, seal_response};
-    use age_plugin_phone_recipient_p256::{
+    use age_plugin_phone_core::protocol::{ReplayGuard, SignedUnwrapRequest, seal_response};
+    use age_plugin_phone_core::recipient::{
         PairedRecipient, Recipient, unwrap_file_key, wrap_file_key, wrap_file_key_v2,
     };
     use p256::{SecretKey, ecdsa::SigningKey, elliptic_curve::sec1::ToEncodedPoint as _};

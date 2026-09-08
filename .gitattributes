@@ -1,3 +1,6 @@
 # Generated Tauri schemas and permission metadata must remain byte-stable across hosts.
 apps/mobile/src-tauri/gen/schemas/** text eol=lf
 plugins/tauri-plugin-phone-identity/permissions/** text eol=lf
+
+# Protocol vectors have pinned byte hashes in scripts/check-package-layout.py.
+crates/core/test-vectors/*.json text eol=lf

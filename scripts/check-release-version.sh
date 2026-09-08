@@ -26,4 +26,11 @@ if [[ ! "$workspace_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; t
   exit 1
 fi
 
+for package in core platform-keys platform-storage; do
+  if ! grep -Fqx "age-plugin-phone-$package = { path = \"crates/$package\", version = \"=$workspace_version\" }" Cargo.toml; then
+    echo "internal dependency version or path differs: $package" >&2
+    exit 1
+  fi
+done
+
 printf '%s\n' "$workspace_version"
