@@ -568,18 +568,52 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
     use windows_sys::Win32::Security::Authorization::SetNamedSecurityInfoW;
 
+    static ROOT_COUNTER: AtomicU64 = AtomicU64::new(0);
+
     fn root() -> PathBuf {
-        let base = PathBuf::from(std::env::var_os("LOCALAPPDATA").unwrap());
-        let root = base.join(format!(
-            "age-plugin-phone-storage-test-{}-{}",
-            std::process::id(),
+        root_at(
             SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .unwrap()
                 .as_nanos(),
+        )
+    }
+
+    fn root_at(timestamp: u128) -> PathBuf {
+        let base = PathBuf::from(std::env::var_os("LOCALAPPDATA").unwrap());
+        // Wall-clock resolution does not guarantee distinct values across test threads.
+        let root = base.join(format!(
+            "age-plugin-phone-storage-test-{}-{timestamp}-{}",
+            std::process::id(),
+            ROOT_COUNTER.fetch_add(1, Ordering::Relaxed),
         ));
         ensure_private_directory(&root).unwrap();
         root
+    }
+
+    #[test]
+    fn concurrent_roots_with_same_timestamp_are_isolated() {
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let workers: Vec<_> = (0..8)
+            .map(|_| std::thread::spawn(move || root_at(timestamp)))
+            .collect();
+        let roots: Vec<_> = workers
+            .into_iter()
+            .map(|worker| worker.join().unwrap())
+            .collect();
+        assert_eq!(
+            roots.iter().collect::<std::collections::HashSet<_>>().len(),
+            8
+        );
+        for root in roots {
+            let state = root.join("state.cbor");
+            atomic_create(&state, b"state").unwrap();
+            remove_private_file(&state).unwrap();
+            std::fs::remove_dir(root).unwrap();
+        }
     }
 
     #[test]

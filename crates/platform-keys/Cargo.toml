@@ -26,6 +26,18 @@ windows-sys = { workspace = true, features = [
 [lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
 
+# M0 isolated executable only; no macOS product backend is enabled.
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+core-foundation = "0.10.1"
+security-framework = { version = "3.7.0", default-features = false, features = ["OSX_10_15", "sync-keychain"] }
+security-framework-sys = "2.17.0"
+p256.workspace = true
+sha2.workspace = true
+zeroize.workspace = true
+base64.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+
 [lints.clippy]
 all = "warn"
 pedantic = "warn"
