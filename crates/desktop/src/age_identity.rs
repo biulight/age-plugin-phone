@@ -161,7 +161,7 @@ fn identity_route_options(
         ) {
             Ok(discovered) => wifi_address = Some(discovered),
             Err(WifiError::DiscoveryUnavailable) if transport == TransportChoice::Auto => {}
-            Err(_) => return Err(internal("phone Wi-Fi discovery failed or was ambiguous")),
+            Err(error) => return Err(internal(&format!("phone Wi-Fi discovery failed: {error}"))),
         }
     }
     resolve_transport(

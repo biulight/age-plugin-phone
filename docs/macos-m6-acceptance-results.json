@@ -343,6 +343,26 @@
       "failure": "rage_second_request_failed_during_discovery_before_stream_exchange",
       "root_cause": "undetermined_user_could_not_recall_foreground_listener_or_network_state",
       "overall_acceptance": "incomplete"
+    },
+    "macos_wifi_rage_retry1": {
+      "caller": "rage 0.12.1",
+      "transport": "wifi",
+      "synthetic_data_only": true,
+      "human_native_observation": "user_reported_one_fingerprint_prompt_first_request_only",
+      "phases": [
+        {
+          "phase": "first_approval",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": "second_fresh_approval",
+          "exit_code": 1,
+          "passed": false
+        }
+      ],
+      "failure": "second_request_discovery_failure_before_unwrap",
+      "root_cause": "unresolved"
     }
   },
   "physical_phone_verification": "android_adb_and_iphone_wifi_each_three_fresh_native_approvals_user_confirmed",
@@ -470,5 +490,19 @@
       "harness_sha256": "7e517f95fd90dad9a4926058ee313d5b84556130bed756fc35709130d718774a",
       "raw_result_sha256": "7ebab1c54d22540a560c3ca0000822f0ab9f07cd9b4af9e87197b787411aa2ac"
     }
+  },
+  "wifi_discovery_followup": {
+    "scope": "three_authenticated_discovery_queries_per_phone_no_stream_or_unwrap",
+    "android_wifi": [
+      "one_authenticated_listener",
+      "one_authenticated_listener",
+      "one_authenticated_listener"
+    ],
+    "iphone_wifi": [
+      "one_authenticated_listener",
+      "one_authenticated_listener",
+      "one_authenticated_listener"
+    ],
+    "inference": "later_availability_does_not_explain_prior_failure"
   }
 }

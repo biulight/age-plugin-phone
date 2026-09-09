@@ -214,3 +214,20 @@ The user could not recall foreground/listener/network state or confirm native
 observations for this run. This is an open failure, not a passed Android Wi-Fi
 acceptance row. A later retry must retain this observation and cannot by itself
 establish the cause of this failure.
+
+## Reproduced Android Wi-Fi failure and discovery diagnostics
+
+A separate rage retry reproduced first approval success followed by second-request
+discovery failure. The user observed only the first fingerprint prompt; the second
+operation stopped before an unwrap request could be sent. This does not establish
+cached authorization. Later, three independent authenticated discovery queries
+per phone each found one listener. These later observations do not explain the
+failure or close the Android Wi-Fi gate.
+
+The identity adapter now preserves the coarse `WifiError` classification instead
+of conflating no listener, multiple listeners and local network failure. Routing,
+deadlines and fail-closed behavior are unchanged. The `wifi-discovery-probe` example
+runs three fresh authenticated queries using only a public identity reference;
+it opens no stream, performs no identity operation, and outputs no addresses,
+identifiers or protocol payloads. Mac fmt, all-target workspace Clippy and locked
+workspace tests passed for the diagnostic change.
