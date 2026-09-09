@@ -59,7 +59,7 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Gate | Status |
 | --- | --- |
 | M2 same-Mac valid-state rollback | Open; retain original requirement until solution/reviewed decision |
-| Exact final archive and installed digest | Passed for `cc7e120`; digest below |
+| Exact final archive and installed digest | Passed for `cc7e120`; new Mac network candidate requires archive/install revalidation |
 | Terminal → age/rage → installed plugin | Public synthetic matrix passes; Ghostty → age 1.3.2 / rage 0.12.1 → Android ADB and iPhone Wi-Fi pass, including fresh native approvals and cancellation |
 | GUI application → age → installed plugin | Pending; Terminal permissions do not establish GUI permissions |
 | Android ADB pairing and two separate successful unwraps | User-operated setup and two independent decryptions pass; user confirms fresh native verification for every approval |
@@ -584,3 +584,18 @@ Android Wi-Fi pairing passed without requesting native verification. This establ
 post-update discovery with the original pairing, not unwrap stability. A separate human
 age/rage harness is prepared; the earlier failure record is retained. Fresh fingerprint,
 native cancellation and recovery acceptance on this exact mobile artifact remain pending.
+
+### Android Wi-Fi native roundtrip matrix passed after update
+
+The user completed the reception-update harness in Ghostty using the recorded Mac debug
+candidate and same-signed Android APK from run `34384436759`. Both age 1.3.2 and rage 0.12.1
+passed first approval, second fresh approval, native cancellation without plaintext, and
+approval after cancellation. All six approvals were immediately confirmed with `y` for new
+native fingerprint verification; both cancellations were confirmed as intentional. All eight
+cases and exact artifact/harness digests are recorded in the JSON evidence. No harness
+temporary plaintext directory remains. ZeroTier and Surge stayed enabled.
+
+This closes this artifact pair's foreground Wi-Fi unwrap matrix. Earlier failures remain
+recorded; the result does not establish the cause of every historical loss or cover interface
+changes, GUI permissions, background operation, other devices, or the new Cargo-installed
+release artifact. The M2 rollback gate remains open.
