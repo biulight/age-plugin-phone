@@ -86,3 +86,14 @@ make the operation unavailable instead of creating a fallback key or replay scop
 - Trusting caller labels, device names, BLE pairing, ADB authorization, selected serials, reverse
   connections, LAN addresses, private subnets, Wi-Fi association, TCP connections, or enabled
   foreground listeners as peer authentication or phone user authorization.
+
+## macOS M2 acceptance gap
+
+The new macOS storage boundary checks native handles, permissions, ACLs and links,
+and retains uncertain replay writes through a pending marker. This reduces path
+redirection and crash uncertainty; it does not provide a trusted monotonic anchor
+against a same-user adversary replacing canonical state or restoring old snapshots.
+Time Machine exclusion and Secure Enclave key binding do not establish that anchor.
+The existing adversary model is not weakened by this implementation. This remains
+an open macOS support gate in [the M2 record](macos-m2-evidence.md), requiring a
+solution or an explicitly reviewed scope decision before full support is declared.

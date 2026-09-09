@@ -88,3 +88,19 @@ An in-memory guard remains available only for deterministic tests. It does not s
   trust boundary.
 - The native Android storage and request-verification path adopt this state machine. The QR flow
   must use that lifecycle before the bidirectional prototype may handle real secrets.
+
+## macOS PR 3 implementation follow-up (2026-09-09)
+
+macOS now uses a separate descriptor-relative storage module. The replay guard
+holds its directory and lock handles, verifies the lock inode before committing,
+and durably creates a per-state `.pending` marker before replacement. An existing
+marker (including empty/corrupt content) blocks create/open. Only a successful
+state replacement and full sync permits removal; uncertainty never triggers an
+automatic marker cleanup or empty-state reset. Errors poison the live guard.
+File and directory commits additionally require `F_FULLFSYNC` on macOS.
+
+The marker covers interrupted/uncertain writes, not deliberate same-user marker
+removal or restoration of an earlier snapshot. The M2 anti-rollback requirement
+has not been waived or declared satisfied. See [the M2 record](../macos-m2-evidence.md)
+for tests and remaining acceptance gates. Other Unix and Windows implementations
+retain their previous semantics.

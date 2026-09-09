@@ -15,7 +15,7 @@ use crate::transport_policy::TransportChoice;
 const SETUP_VERSION: u16 = 2;
 const LEGACY_SETUP_VERSION: u16 = 1;
 const JOURNAL_NAME: &str = "desktop-setup.cbor";
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 const MAX_JOURNAL_BYTES: u64 = 32_768;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -324,7 +324,22 @@ pub fn read(root: &Path) -> Result<SetupJournal, SetupError> {
     Ok(value)
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+pub fn read(root: &Path) -> Result<SetupJournal, SetupError> {
+    let bytes = age_plugin_phone_platform_storage::macos::read_private_file(
+        &journal_path(root),
+        MAX_JOURNAL_BYTES,
+    )
+    .map_err(|error| match error {
+        age_plugin_phone_platform_storage::macos::Error::Missing => SetupError::Missing,
+        _ => SetupError::Invalid,
+    })?;
+    let value = SetupJournal::decode(&bytes)?;
+    value.validate_root(root)?;
+    Ok(value)
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn read(_root: &Path) -> Result<SetupJournal, SetupError> {
     Err(SetupError::Unsupported)
 }
@@ -338,7 +353,16 @@ pub fn read_optional(root: &Path) -> Result<Option<SetupJournal>, SetupError> {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+pub fn read_optional(root: &Path) -> Result<Option<SetupJournal>, SetupError> {
+    match read(root) {
+        Ok(value) => Ok(Some(value)),
+        Err(SetupError::Missing) => Ok(None),
+        Err(error) => Err(error),
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn read_optional(_root: &Path) -> Result<Option<SetupJournal>, SetupError> {
     Ok(None)
 }
@@ -353,7 +377,17 @@ pub fn create(root: &Path, value: &SetupJournal) -> Result<(), SetupError> {
         })
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+pub fn create(root: &Path, value: &SetupJournal) -> Result<(), SetupError> {
+    value.validate_root(root)?;
+    age_plugin_phone_platform_storage::macos::atomic_create(&journal_path(root), &value.encode()?)
+        .map_err(|error| match error {
+            age_plugin_phone_platform_storage::macos::Error::AlreadyExists => SetupError::Pending,
+            _ => SetupError::Storage,
+        })
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn create(_root: &Path, _value: &SetupJournal) -> Result<(), SetupError> {
     Err(SetupError::Unsupported)
 }
@@ -368,7 +402,14 @@ pub fn replace(root: &Path, value: &SetupJournal) -> Result<(), SetupError> {
     .map_err(|_| SetupError::Storage)
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+pub fn replace(root: &Path, value: &SetupJournal) -> Result<(), SetupError> {
+    value.validate_root(root)?;
+    age_plugin_phone_platform_storage::macos::atomic_replace(&journal_path(root), &value.encode()?)
+        .map_err(|_| SetupError::Storage)
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn replace(_root: &Path, _value: &SetupJournal) -> Result<(), SetupError> {
     Err(SetupError::Unsupported)
 }
@@ -381,7 +422,15 @@ pub fn remove(root: &Path) -> Result<(), SetupError> {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+pub fn remove(root: &Path) -> Result<(), SetupError> {
+    match age_plugin_phone_platform_storage::macos::remove_private_file(&journal_path(root)) {
+        Ok(()) | Err(age_plugin_phone_platform_storage::macos::Error::Missing) => Ok(()),
+        Err(_) => Err(SetupError::Storage),
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn remove(_root: &Path) -> Result<(), SetupError> {
     Err(SetupError::Unsupported)
 }

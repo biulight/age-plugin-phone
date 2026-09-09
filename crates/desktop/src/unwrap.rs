@@ -182,7 +182,7 @@ mod tests {
         TaggedStanza,
         [u8; 16],
     ) {
-        let root = std::env::temp_dir().join(format!(
+        let root = std::env::temp_dir().canonicalize().unwrap().join(format!(
             "age-phone-unwrap-test-{}-{}",
             std::process::id(),
             SystemTime::now()
@@ -191,6 +191,12 @@ mod tests {
                 .as_nanos(),
         ));
         std::fs::create_dir(&root).unwrap();
+        #[cfg(unix)]
+        std::fs::set_permissions(
+            &root,
+            <std::fs::Permissions as std::os::unix::fs::PermissionsExt>::from_mode(0o700),
+        )
+        .unwrap();
         let desktop =
             DesktopKeyState::open_or_create(&root.join("desktop.key"), &mut OsRng).unwrap();
         let identity = SecretKey::random(&mut OsRng);

@@ -17,7 +17,7 @@ const PAIRED_TARGET: u16 = 1;
 const ORPHAN_TARGET: u16 = 2;
 const JOURNAL_NAME: &str = "desktop-cleanup.cbor";
 const JOURNAL_LOCK_NAME: &str = "desktop-cleanup.lock";
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 const MAX_JOURNAL_BYTES: u64 = 16_384;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -285,7 +285,37 @@ pub(crate) fn ensure_pairing_available(
     Ok(())
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+pub(crate) fn read(root: &Path) -> Result<Option<CleanupJournal>, JournalError> {
+    match age_plugin_phone_platform_storage::macos::read_private_file(
+        &journal_path(root),
+        MAX_JOURNAL_BYTES,
+    ) {
+        Ok(bytes) => CleanupJournal::decode(&bytes).map(Some),
+        Err(age_plugin_phone_platform_storage::macos::Error::Missing) => Ok(None),
+        Err(_) => Err(JournalError::Invalid),
+    }
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn create(root: &Path, journal: &CleanupJournal) -> Result<(), JournalError> {
+    let encoded = journal.encode()?;
+    age_plugin_phone_platform_storage::macos::atomic_create(&journal_path(root), &encoded)
+        .map_err(|_| JournalError::Storage)
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn ensure_pairing_available(
+    root: &Path,
+    stub: &PublicIdentityStub,
+) -> Result<(), JournalError> {
+    if read(root)?.is_some_and(|journal| journal.targets(stub)) {
+        return Err(JournalError::Pending);
+    }
+    Ok(())
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 #[allow(clippy::unnecessary_wraps)]
 pub(crate) fn ensure_pairing_available(
     _root: &Path,

@@ -433,7 +433,7 @@ fn validate_expiry(expires_at_unix: u64, now_unix: u64) -> Result<(), Error> {
     }
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "macos")))]
 mod file {
     use std::{
         ffi::OsString,
@@ -602,8 +602,14 @@ mod file {
     }
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "macos")))]
 pub use file::FileReplayGuard;
+
+#[cfg(target_os = "macos")]
+#[path = "replay_macos.rs"]
+mod macos_file;
+#[cfg(target_os = "macos")]
+pub use macos_file::FileReplayGuard;
 
 #[cfg(windows)]
 mod windows_file {
@@ -945,7 +951,7 @@ mod tests {
 
         impl TestDirectory {
             fn new(label: &str) -> Self {
-                let path = std::env::temp_dir().join(format!(
+                let path = std::env::temp_dir().canonicalize().unwrap().join(format!(
                     "age-plugin-phone-replay-{label}-{}-{}",
                     std::process::id(),
                     DIRECTORY_COUNTER.fetch_add(1, Ordering::Relaxed)

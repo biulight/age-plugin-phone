@@ -6,7 +6,9 @@ use age_plugin_phone_platform_keys::macos::{MacosKeyAgreement, MacosSigner};
 use p256::ecdsa::{Signature, VerifyingKey, signature::hazmat::PrehashVerifier as _};
 use rand_core::{CryptoRng, RngCore};
 use sha2::{Digest as _, Sha256};
-use std::{fs::OpenOptions, io::Write as _, os::unix::fs::OpenOptionsExt as _, path::Path};
+use std::path::Path;
+#[cfg(test)]
+use std::{fs::OpenOptions, io::Write as _, os::unix::fs::OpenOptionsExt as _};
 use zeroize::Zeroizing;
 
 // APSE2 | suite:u16be | desktop ID | signing public | selection public |
@@ -40,11 +42,13 @@ impl DesktopKeyState {
     pub fn create_new(path: &Path, desktop_id: Id) -> Result<Self, PairingError> {
         // Reserve before native generation. Failure leaves unavailable state, never an implicit
         // permission to generate replacement roles. Concurrent creators cannot both commit.
-        let mut file = OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .mode(0o600)
-            .open(path)
+        let directory = age_plugin_phone_platform_storage::macos::Directory::open(
+            path.parent().ok_or(PairingError::State)?,
+        )
+        .map_err(|_| PairingError::State)?;
+        let child = Path::new(path.file_name().ok_or(PairingError::State)?);
+        directory
+            .create(child, b"pending")
             .map_err(|_| PairingError::State)?;
         let signing = MacosSigner::create().map_err(|_| PairingError::State)?;
         let selection = MacosKeyAgreement::create().map_err(|_| PairingError::State)?;
@@ -58,17 +62,13 @@ impl DesktopKeyState {
             .agree(&value.signing_public_key()?)
             .map_err(|_| PairingError::State)?;
         let encoded = value.encode()?;
-        file.write_all(&encoded)
-            .and_then(|()| file.sync_all())
+        directory
+            .replace(child, &encoded)
             .map_err(|_| PairingError::State)?;
-        age_plugin_phone_platform_storage::unix::private_file::sync_directory(
-            path.parent().ok_or(PairingError::State)?,
-        )
-        .map_err(|_| PairingError::State)?;
         Ok(value)
     }
     pub fn open(path: &Path) -> Result<Self, PairingError> {
-        use age_plugin_phone_platform_storage::unix::private_file::{self, Error};
+        use age_plugin_phone_platform_storage::macos::{self as private_file, Error};
         let bytes = Zeroizing::new(
             private_file::read_private_file(path, MAX_STATE as u64).map_err(|e| match e {
                 Error::Missing => PairingError::StateMissing,
@@ -244,8 +244,17 @@ mod tests {
     }
     #[test]
     fn missing_partial_and_legacy_state_never_repaired() {
-        let root = std::env::temp_dir().join(format!("phone-m1-negative-{}", std::process::id()));
+        let root = std::env::temp_dir()
+            .canonicalize()
+            .unwrap()
+            .join(format!("phone-m1-negative-{}", std::process::id()));
         std::fs::create_dir(&root).unwrap();
+        #[cfg(unix)]
+        std::fs::set_permissions(
+            &root,
+            <std::fs::Permissions as std::os::unix::fs::PermissionsExt>::from_mode(0o700),
+        )
+        .unwrap();
         let path = root.join("keys");
         assert!(matches!(
             DesktopKeyState::open(&path),
@@ -276,8 +285,17 @@ mod tests {
             assert_eq!(key.desktop_id, [19; 16]);
             return;
         }
-        let root = std::env::temp_dir().join(format!("phone-m1-native-{}", std::process::id()));
+        let root = std::env::temp_dir()
+            .canonicalize()
+            .unwrap()
+            .join(format!("phone-m1-native-{}", std::process::id()));
         std::fs::create_dir(&root).unwrap();
+        #[cfg(unix)]
+        std::fs::set_permissions(
+            &root,
+            <std::fs::Permissions as std::os::unix::fs::PermissionsExt>::from_mode(0o700),
+        )
+        .unwrap();
         let path = root.join("keys");
         let key = DesktopKeyState::create_new(&path, [19; 16]).unwrap();
         let original = Zeroizing::new(std::fs::read(&path).unwrap());

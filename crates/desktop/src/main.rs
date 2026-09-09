@@ -1125,6 +1125,20 @@ fn pairing_commit_error(message: &'static str, rolled_back: bool) -> io::Error {
     }
 }
 
+// Until macOS lifecycle journaling lands, retain partial state on failure. An automatic
+// rollback must not erase uncertain writes or let a subsequent pairing reset the replay scope.
+#[cfg(target_os = "macos")]
+fn rollback_failed_pairing(
+    _desktop_state: &std::path::Path,
+    _replay_state: &std::path::Path,
+    _locator_path: Option<&std::path::Path>,
+    _desktop_state_created: bool,
+    _desktop_id: [u8; 16],
+) -> bool {
+    false
+}
+
+#[cfg(not(target_os = "macos"))]
 fn rollback_failed_pairing(
     desktop_state: &std::path::Path,
     replay_state: &std::path::Path,
@@ -1160,6 +1174,7 @@ fn rollback_failed_pairing(
     complete
 }
 
+#[cfg(any(not(target_os = "macos"), test))]
 fn replay_lock_path(path: &std::path::Path) -> Option<PathBuf> {
     let mut name = path.file_name()?.to_os_string();
     name.push(".lock");
@@ -1174,7 +1189,7 @@ fn remove_private_pairing_file(path: &std::path::Path) -> bool {
     )
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 fn remove_private_pairing_file(path: &std::path::Path) -> bool {
     match std::fs::remove_file(path) {
         Ok(()) => true,
@@ -1807,6 +1822,32 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "macos")]
+    fn failed_pairing_retains_uncertain_state_for_journaled_cleanup() {
+        let root = std::env::temp_dir().join(format!("phone-m2-rollback-{}", std::process::id()));
+        std::fs::create_dir(&root).unwrap();
+        let desktop = root.join("desktop");
+        let replay = root.join("replay");
+        let locator = root.join("locator");
+        let lock = replay_lock_path(&replay).unwrap();
+        for path in [&desktop, &replay, &locator, &lock] {
+            std::fs::write(path, b"uncertain").unwrap();
+        }
+        assert!(!rollback_failed_pairing(
+            &desktop,
+            &replay,
+            Some(&locator),
+            true,
+            [1; 16]
+        ));
+        for path in [&desktop, &replay, &locator, &lock] {
+            assert_eq!(std::fs::read(path).unwrap(), b"uncertain");
+        }
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    #[cfg(not(target_os = "macos"))]
     fn failed_pairing_rollback_removes_only_new_local_state() {
         let root = std::env::temp_dir().join(format!(
             "age-phone-pairing-rollback-{}-{}",

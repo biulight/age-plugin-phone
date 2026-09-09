@@ -7,7 +7,10 @@ use std::{fs, os::unix::fs::PermissionsExt as _};
 
 #[test]
 fn pre_refactor_states_preserve_consumption_clock_and_later_commits() {
-    let directory = std::env::temp_dir().join(format!("phone-old-replay-{}", std::process::id()));
+    let directory = std::env::temp_dir()
+        .canonicalize()
+        .unwrap()
+        .join(format!("phone-old-replay-{}", std::process::id()));
     fs::create_dir(&directory).unwrap();
     fs::set_permissions(&directory, fs::Permissions::from_mode(0o700)).unwrap();
     for (name, role, bytes) in [

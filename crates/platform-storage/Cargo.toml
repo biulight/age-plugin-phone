@@ -3,7 +3,7 @@ publish = ["crates-io"]
 readme = "README.md"
 include = ["src/**", "tests/**", "examples/**", "test-vectors/**", "Cargo.toml", "Cargo.lock", "README.md", "LICENSE"]
 name = "age-plugin-phone-platform-storage"
-description = "Private Windows filesystem boundary for age-plugin-phone"
+description = "Private platform filesystem boundaries for age-plugin-phone"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -31,3 +31,6 @@ pedantic = "warn"
 [target.'cfg(unix)'.dependencies]
 rustix.workspace = true
 thiserror.workspace = true
+
+[target.'cfg(target_os = "macos")'.dependencies]
+libc = "0.2"

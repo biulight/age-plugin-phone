@@ -1,0 +1,38 @@
+{
+  "base_commit": "0504533",
+  "bounded_APFS_ENOSPC": {
+    "ENOSPC_observed": true,
+    "after_free_space": "replay_rejected",
+    "binary_sha256": "4f6e6fda3e883fcb3e062f9c20452f7793a705151638976ea895710b300acb0e",
+    "commit_at_full": "commit_unavailable",
+    "filesystem": "apfs",
+    "filler_bytes": 129249280,
+    "image_size_mib": 128,
+    "other_pairing": "replay_rejected"
+  },
+  "date": "2026-09-09",
+  "local_process_and_rollback": {
+    "binary_sha256": "4f6e6fda3e883fcb3e062f9c20452f7793a705151638976ea895710b300acb0e",
+    "sigkill_after_commit": "passed",
+    "sigkill_with_pending": "passed",
+    "snapshot_rollback_protection": "failed_observed"
+  },
+  "reboot": {
+    "binary_sha256": "4f6e6fda3e883fcb3e062f9c20452f7793a705151638976ea895710b300acb0e",
+    "binary_unchanged": true,
+    "boot_id_changed": true,
+    "consumed_response": "replay_rejected",
+    "fixture": "target/macos-m2-reboot-20260909-v2",
+    "state_sha256": "e651af0830b6c738fce580990df11249d6ad10afaa8f353d3159c8e45e84b334",
+    "state_unchanged": true,
+    "status": "passed",
+    "verified_at": "2026-09-09T19:03:53+08:00"
+  },
+  "source_sha256": {
+    "crates/core/examples/macos-replay-acceptance.rs": "8c3f8ca0e716a0ef5cd66405bf9597809e006959a8e8cc7ee69c86601113bee4",
+    "crates/core/src/protocol/replay_macos.rs": "7bd12f8606a9e4e6baaaacd88aaa657a112d4ab3b30487f3189d390c64088047",
+    "crates/platform-storage/src/macos.rs": "df7813ed621527422de23ba78e021b361273722c987e508a7bd585143322ce0f",
+    "scripts/macos-m2-acceptance.py": "e0c86c6787c488f9fae5783ce6b89a96ffe8fb841f3419620522edd0bed23bd4"
+  },
+  "status": "acceptance_incomplete"
+}

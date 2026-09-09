@@ -84,9 +84,11 @@ separate operation wrappers, a statically compiled Swift bridge, and signed `APS
 metadata owned by desktop. Reopening verifies both references, public keys, desktop ID
 binding and private operations; `APDK2` software state is rejected on macOS. Unit fixtures
 use test-only software keys. No ordinary feature or environment variable enables a
-macOS software fallback. Storage hardening and setup/lifecycle integration remain
-subsequent stages; this is not a complete macOS support declaration.
-See [the M1 implementation record](macos-m1-evidence.md).
+macOS software fallback. The subsequent M2 implementation adds descriptor-relative private storage and
+persistent replay pending markers; setup/lifecycle integration and M2 acceptance
+gates remain open; this is not a complete macOS support declaration.
+See [the M1 implementation record](macos-m1-evidence.md) and
+[the M2 implementation/remaining-gates record](macos-m2-evidence.md).
 
 ## Pairing and replay state
 
