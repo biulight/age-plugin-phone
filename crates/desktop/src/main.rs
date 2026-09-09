@@ -361,6 +361,7 @@ fn run_remove_orphaned_desktop_state(locator: &std::path::Path) -> io::Result<()
     Ok(())
 }
 
+#[allow(clippy::too_many_lines)]
 fn run_pair(
     label: String,
     desktop_state: &std::path::Path,
@@ -369,9 +370,62 @@ fn run_pair(
     transport: TransportChoice,
     adb_serial: Option<&str>,
 ) -> io::Result<()> {
+    validate_setup_label(&label)?;
     ensure_desktop_platform_supported()?;
     ensure_pairing_outputs_available(identity_output, replay_state)?;
+    // Reopening existing state is read-only. A new identity is selected for discovery before
+    // any configuration directory, journal, replay file or hardware role is created.
     let desktop_state_existed = desktop_state.exists();
+    #[cfg(target_os = "macos")]
+    if desktop_state_existed {
+        return Err(io::Error::new(
+            io::ErrorKind::AlreadyExists,
+            "macOS explicit pair requires unused desktop state; existing or partial state must not be reused for another pairing",
+        ));
+    }
+    if desktop_state == replay_state
+        || desktop_state == identity_output
+        || replay_state == identity_output
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "pairing output paths must be distinct",
+        ));
+    }
+    #[cfg(any(windows, target_os = "macos"))]
+    let existing = if desktop_state_existed {
+        Some(
+            DesktopKeyState::open(desktop_state)
+                .map_err(|_| io::Error::other("desktop authentication state is unavailable"))?,
+        )
+    } else {
+        None
+    };
+    #[cfg(not(any(windows, target_os = "macos")))]
+    let existing = Some(
+        DesktopKeyState::open_or_create(desktop_state, &mut OsRng)
+            .map_err(|_| io::Error::other("desktop authentication state is unavailable"))?,
+    );
+    let desktop_id = existing.as_ref().map_or_else(
+        || {
+            let mut id = [0_u8; 16];
+            OsRng.fill_bytes(&mut id);
+            id
+        },
+        |state| state.desktop_id,
+    );
+    let wifi_address = discover_pairing_wifi(desktop_id, transport, adb_serial)?;
+    let route = resolve_transport(
+        transport,
+        TransportOperation::Pairing,
+        TransportHints {
+            adb_serial: adb_serial.map(str::to_owned),
+            wifi_address,
+        },
+    )
+    .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error))?;
+    #[cfg(any(windows, target_os = "macos"))]
+    let prepared_transport = prepare_pairing_transport(&route)?;
     let config_root = prepare_pairing_config_root()?;
     #[cfg(target_os = "macos")]
     let _lifecycle_lock = acquire_explicit_pair_lock(&config_root)?;
@@ -380,43 +434,16 @@ fn run_pair(
         ensure_managed_private_state_path(&config_root, desktop_state)?;
         ensure_managed_private_state_path(&config_root, replay_state)?;
     }
-    let state = DesktopKeyState::open_or_create(desktop_state, &mut OsRng)
-        .map_err(|_| io::Error::other("desktop authentication state is unavailable"))?;
-    let desktop_id = state.desktop_id;
-    let wifi_address = match discover_pairing_wifi(desktop_id, transport, adb_serial) {
-        Ok(address) => address,
-        Err(error) => {
-            drop(state);
-            let _ = rollback_failed_pairing(
-                desktop_state,
-                replay_state,
-                None,
-                !desktop_state_existed,
-                desktop_id,
-            );
-            return Err(error);
-        }
-    };
-    let route = match resolve_transport(
-        transport,
-        TransportOperation::Pairing,
-        TransportHints {
-            adb_serial: adb_serial.map(str::to_owned),
-            wifi_address,
-        },
-    ) {
-        Ok(route) => route,
-        Err(error) => {
-            drop(state);
-            let _ = rollback_failed_pairing(
-                desktop_state,
-                replay_state,
-                None,
-                !desktop_state_existed,
-                desktop_id,
-            );
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, error));
-        }
+    let state = match existing {
+        Some(state) => state,
+        #[cfg(any(windows, target_os = "macos"))]
+        None => DesktopKeyState::create_new(desktop_state, desktop_id).map_err(|_| {
+            io::Error::other(
+                "desktop authentication state is unavailable; partial state must be retained",
+            )
+        })?,
+        #[cfg(not(any(windows, target_os = "macos")))]
+        None => unreachable!("experimental software state is already open"),
     };
     let selection_public = state
         .selection_public_key()
@@ -432,6 +459,9 @@ fn run_pair(
     .map_err(|_| io::Error::other("failed to create pairing offer"))?;
     let started = Instant::now();
     let mut stdout = io::stdout().lock();
+    #[cfg(any(windows, target_os = "macos"))]
+    let response = prepared_transport.exchange(&session.signed_offer(), started, &mut stdout);
+    #[cfg(not(any(windows, target_os = "macos")))]
     let response = exchange_pairing_route(&route, &session.signed_offer(), started, &mut stdout);
     let response = match response {
         Ok(response) => response,
@@ -505,6 +535,7 @@ fn discover_pairing_wifi(
     }
 }
 
+#[cfg(not(any(windows, target_os = "macos")))]
 fn exchange_pairing_route(
     route: &TransportRoute,
     offer: &[u8],
@@ -629,6 +660,65 @@ enum PreparedSetupTransport {
 }
 
 #[cfg(any(windows, target_os = "macos"))]
+fn prepare_pairing_transport(route: &TransportRoute) -> io::Result<PreparedSetupTransport> {
+    Ok(match route.kind() {
+        TransportKind::Adb => {
+            let mut adb = SystemAdb::default();
+            let serial = preflight_device(&mut adb, route.adb_serial()).map_err(|error| {
+                let message = if matches!(
+                    error,
+                    age_plugin_phone::adb::AdbError::DeviceSelectionRequired
+                ) {
+                    "multiple Android devices require --adb-serial SERIAL; no pairing state was created"
+                        .to_owned()
+                } else {
+                    format!("Developer USB preflight failed: {error}; no pairing state was created")
+                };
+                io::Error::other(message)
+            })?;
+            PreparedSetupTransport::Adb(serial)
+        }
+        TransportKind::Qr => PreparedSetupTransport::Qr(
+            ScannerHandle::start_default_camera_checked(DEFAULT_SCAN_TIMEOUT).map_err(|error| {
+                io::Error::other(format!(
+                    "QR camera preflight failed: {error}; no pairing state was created"
+                ))
+            })?,
+        ),
+        TransportKind::Wifi => PreparedSetupTransport::Wifi(
+            route
+                .wifi_address()
+                .expect("validated Wi-Fi pairing endpoint"),
+        ),
+        TransportKind::Ble => {
+            unreachable!("unsupported setup transports are rejected by policy")
+        }
+    })
+}
+
+#[cfg(any(windows, target_os = "macos"))]
+impl PreparedSetupTransport {
+    fn exchange(
+        self,
+        offer: &[u8],
+        started: Instant,
+        output: &mut impl io::Write,
+    ) -> io::Result<Zeroizing<Vec<u8>>> {
+        match self {
+            PreparedSetupTransport::Adb(serial) => {
+                exchange_adb(SessionPurpose::Pairing, offer, Some(&serial))
+            }
+            PreparedSetupTransport::Wifi(endpoint) => {
+                exchange_wifi(SessionPurpose::Pairing, offer, endpoint)
+            }
+            PreparedSetupTransport::Qr(scanner) => {
+                exchange_pairing_qr_with_scanner(offer, started, output, &scanner)
+            }
+        }
+    }
+}
+
+#[cfg(any(windows, target_os = "macos"))]
 #[allow(clippy::too_many_lines)]
 fn run_setup(
     label: Option<String>,
@@ -681,39 +771,7 @@ fn run_setup(
     )
     .map_err(|error| io::Error::new(io::ErrorKind::InvalidInput, error.to_string()))?;
     ensure_desktop_platform_supported()?;
-    let prepared_transport = match route.kind() {
-        TransportKind::Adb => {
-            let mut adb = SystemAdb::default();
-            let serial = preflight_device(&mut adb, route.adb_serial()).map_err(|error| {
-                let message = if matches!(
-                    error,
-                    age_plugin_phone::adb::AdbError::DeviceSelectionRequired
-                ) {
-                    "multiple Android devices require --adb-serial SERIAL; no setup state was created"
-                        .to_owned()
-                } else {
-                    format!("Developer USB preflight failed: {error}; no setup state was created")
-                };
-                io::Error::other(message)
-            })?;
-            PreparedSetupTransport::Adb(serial)
-        }
-        TransportKind::Qr => PreparedSetupTransport::Qr(
-            ScannerHandle::start_default_camera_checked(DEFAULT_SCAN_TIMEOUT).map_err(|error| {
-                io::Error::other(format!(
-                    "QR camera preflight failed: {error}; no setup state was created"
-                ))
-            })?,
-        ),
-        TransportKind::Wifi => PreparedSetupTransport::Wifi(
-            route
-                .wifi_address()
-                .expect("validated Wi-Fi pairing endpoint"),
-        ),
-        TransportKind::Ble => {
-            unreachable!("unsupported setup transports are rejected by policy")
-        }
-    };
+    let prepared_transport = prepare_pairing_transport(&route)?;
 
     let root = default_config_root()
         .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
@@ -790,22 +848,7 @@ fn run_setup(
     } else {
         Box::new(io::stdout())
     };
-    let response = match prepared_transport {
-        PreparedSetupTransport::Adb(serial) => exchange_adb(
-            SessionPurpose::Pairing,
-            &session.signed_offer(),
-            Some(&serial),
-        ),
-        PreparedSetupTransport::Wifi(endpoint) => {
-            exchange_wifi(SessionPurpose::Pairing, &session.signed_offer(), endpoint)
-        }
-        PreparedSetupTransport::Qr(scanner) => exchange_pairing_qr_with_scanner(
-            &session.signed_offer(),
-            started,
-            &mut interaction,
-            &scanner,
-        ),
-    };
+    let response = prepared_transport.exchange(&session.signed_offer(), started, &mut interaction);
     let response = match response {
         Ok(response) => response,
         Err(error) => {
@@ -940,7 +983,8 @@ fn cleanup_setup() -> io::Result<()> {
             "setup cleanup confirmation did not match",
         ));
     }
-    let phone_may_be_paired = journal.candidate.is_some();
+    let phone_may_be_paired =
+        journal.candidate.is_some() || journal.stage != SetupStage::Provisioning;
     setup::cleanup_owned(&root, &journal)
         .map_err(|_| io::Error::other("incomplete setup cleanup remains pending"))?;
     if phone_may_be_paired {
@@ -1547,6 +1591,7 @@ fn exchange_wifi(
         .map_err(|_| io::Error::other("Wi-Fi transport session failed closed"))
 }
 
+#[cfg(not(any(windows, target_os = "macos")))]
 fn exchange_pairing_qr(
     request: &[u8],
     started: Instant,
@@ -1863,7 +1908,7 @@ mod tests {
         );
     }
 
-    #[cfg(not(target_os = "macos"))]
+    #[cfg(not(any(windows, target_os = "macos")))]
     #[test]
     fn simplified_setup_is_explicitly_unsupported_off_windows() {
         let error = run_setup(
@@ -1889,6 +1934,32 @@ mod tests {
             validate_setup_label(&"桌".repeat(22)).unwrap_err().kind(),
             io::ErrorKind::InvalidInput
         );
+    }
+
+    #[cfg(any(windows, target_os = "macos"))]
+    #[test]
+    fn rejected_explicit_pair_preflight_creates_no_state() {
+        let root = std::env::temp_dir().join(format!(
+            "phone-pair-preflight-{}-{}",
+            std::process::id(),
+            OsRng.next_u64()
+        ));
+        for label in ["x".repeat(65), "synthetic preflight".to_owned()] {
+            // BLE is deliberately unsupported. On machines without hardware, the earlier
+            // capability gate also fails; neither rejection may create the requested state.
+            assert!(
+                run_pair(
+                    label,
+                    &root.join("desktop.state"),
+                    &root.join("identity.txt"),
+                    &root.join("replay.state"),
+                    TransportChoice::Ble,
+                    None,
+                )
+                .is_err()
+            );
+            assert!(!root.exists());
+        }
     }
 
     #[test]

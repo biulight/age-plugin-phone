@@ -121,3 +121,30 @@ See [macOS state removal and recovery](macos-recovery.md). Reference deletion st
 does not destroy copied same-Mac references, and old unscoped M2 temporary files
 remain unattributable. These facts and the M2 rollback counterexample are retained
 in the support boundary rather than presented as successful security acceptance.
+
+## Explicit-pair preflight follow-up
+
+Native Windows/macOS explicit pairing now validates the label, selects a discovery
+identity, resolves the route, and preflights ADB/camera before creating new hardware
+state or the configuration root. The chosen ADB serial and prepared scanner are
+retained for the exchange, using the same preparation helper as managed setup.
+Existing macOS desktop state is refused for new explicit pairing, preventing shared
+key-state reuse and retrying an uncertain partial creation as a new pairing.
+Overlapping output paths are rejected before creation. Cancellation/timeout and
+transport failure still retain uncertain macOS state.
+
+An incomplete setup that reached the Pairing stage now warns about phone revocation
+even if the phone response was never durably journaled. Losing the response cannot
+prove that the phone did not already commit its pairing.
+
+The rejected-preflight negative test creates no requested state. Rust formatting,
+all-target Clippy and the locked workspace suite pass. A Windows cross-check was
+attempted from this Mac but stopped in mozjpeg-sys's native C build: the host compiler
+rejects MSVC-target `-fPIC`. This is not a Windows runtime or full compile pass.
+
+**Still open:** advanced explicit `pair` does not yet have managed setup's durable
+ownership journal for arbitrary caller-selected paths. A failure before locator
+creation can leave retained state that normal/orphan cleanup cannot attribute.
+Use managed `setup` for the real-phone acceptance while this implementation gate
+remains open; neither retained files nor an unconfirmed exchange may be resumed as
+an authorized pairing. The preflight fix does not close this journal gap.
