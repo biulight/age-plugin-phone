@@ -14,6 +14,11 @@ private struct Prehash: Digest {
     var description: String { "SHA256 prehash (redacted)" }
 }
 private enum Failure: Error { case invalid }
+
+// Read-only capability hint. Does not create/reconstruct a key or request user verification.
+@_cdecl("age_phone_macos_enclave_available")
+public func enclaveAvailable() -> Int32 { SecureEnclave.isAvailable ? 1 : 0 }
+
 private func control() throws -> SecAccessControl {
     var error: Unmanaged<CFError>?
     guard let value = SecAccessControlCreateWithFlags(nil,

@@ -12,6 +12,7 @@ const MAX_REFERENCE: usize = 4096;
 pub struct Error;
 
 unsafe extern "C" {
+    fn age_phone_macos_enclave_available() -> i32;
     fn age_phone_macos_key(
         op: i32,
         role: i32,
@@ -23,6 +24,13 @@ unsafe extern "C" {
         capacity: usize,
         length: *mut usize,
     ) -> i32;
+}
+
+/// Read-only hardware capability hint; successful key creation/reopening remains authoritative.
+#[must_use]
+pub fn secure_enclave_available() -> bool {
+    // SAFETY: the synchronous Swift function has no arguments, pointers, or retained state.
+    unsafe { age_phone_macos_enclave_available() == 1 }
 }
 
 fn operation(

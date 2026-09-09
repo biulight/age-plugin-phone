@@ -7,7 +7,7 @@ use std::{
 };
 
 use age_plugin::{PluginHandler, run_state_machine};
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 use age_plugin_phone::adb::preflight_device;
 use age_plugin_phone::adb::{
     AdbReverseSession, DEFAULT_CONNECT_TIMEOUT, DEFAULT_MESSAGE_TIMEOUT, SystemAdb,
@@ -27,7 +27,7 @@ use age_plugin_phone::qr_terminal::{
     DEFAULT_FRAME_INTERVAL_MS, FrameScheduler, render_offline_html, render_terminal_frame,
 };
 use age_plugin_phone::setup;
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 use age_plugin_phone::setup::{SetupJournal, SetupStage};
 use age_plugin_phone::transport::{DesktopTransport, SessionPurpose, TransportLimits};
 use age_plugin_phone::transport_policy::{
@@ -48,7 +48,7 @@ use base64::{Engine as _, engine::general_purpose::STANDARD_NO_PAD};
 use clap::{Parser, Subcommand};
 use p256::ecdsa::SigningKey;
 use rand_core::{OsRng, RngCore as _};
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 use serde::Serialize;
 use zeroize::Zeroizing;
 
@@ -78,7 +78,7 @@ enum Command {
         #[arg(long)]
         identity_stub: Option<PathBuf>,
     },
-    /// Create one phone-backed identity using managed Windows paths.
+    /// Create one phone-backed identity using managed hardware desktop paths.
     Setup {
         /// Untrusted desktop label shown on both endpoints.
         #[arg(
@@ -373,10 +373,12 @@ fn run_pair(
     ensure_pairing_outputs_available(identity_output, replay_state)?;
     let desktop_state_existed = desktop_state.exists();
     let config_root = prepare_pairing_config_root()?;
-    #[cfg(windows)]
+    #[cfg(target_os = "macos")]
+    let _lifecycle_lock = acquire_explicit_pair_lock(&config_root)?;
+    #[cfg(any(windows, target_os = "macos"))]
     {
-        ensure_windows_private_state_path(&config_root, desktop_state)?;
-        ensure_windows_private_state_path(&config_root, replay_state)?;
+        ensure_managed_private_state_path(&config_root, desktop_state)?;
+        ensure_managed_private_state_path(&config_root, replay_state)?;
     }
     let state = DesktopKeyState::open_or_create(desktop_state, &mut OsRng)
         .map_err(|_| io::Error::other("desktop authentication state is unavailable"))?;
@@ -468,6 +470,17 @@ fn run_pair(
     print_pairing_outputs(identity_output, &stub)
 }
 
+#[cfg(target_os = "macos")]
+fn acquire_explicit_pair_lock(
+    root: &std::path::Path,
+) -> io::Result<age_plugin_phone_platform_storage::macos::PrivateLock> {
+    let lock =
+        setup::acquire_lifecycle_lock(root).map_err(|error| io::Error::other(error.to_string()))?;
+    setup::ensure_no_cleanup_pending(root).map_err(|error| io::Error::other(error.to_string()))?;
+    ensure_no_setup_pending_for_pair(root)?;
+    Ok(lock)
+}
+
 fn prepare_pairing_config_root() -> io::Result<PathBuf> {
     let config_root = default_config_root()
         .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
@@ -514,8 +527,8 @@ fn exchange_pairing_route(
     }
 }
 
-#[cfg(windows)]
-fn ensure_windows_private_state_path(
+#[cfg(any(windows, target_os = "macos"))]
+fn ensure_managed_private_state_path(
     root: &std::path::Path,
     path: &std::path::Path,
 ) -> io::Result<()> {
@@ -531,7 +544,7 @@ fn ensure_windows_private_state_path(
     if !path.is_absolute() || parent != root || path.file_name().is_none() {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            "Windows private state must be directly under the selected private configuration root",
+            "Hardware desktop private state must be directly under the selected private configuration root",
         ));
     }
     Ok(())
@@ -549,7 +562,7 @@ fn ensure_no_setup_pending_for_pair(config_root: &std::path::Path) -> io::Result
     Ok(())
 }
 
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 fn validate_setup_label(label: &str) -> io::Result<()> {
     if label.len() > 64 {
         return Err(io::Error::new(
@@ -608,14 +621,14 @@ fn print_pairing_outputs(
     Ok(())
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 enum PreparedSetupTransport {
     Adb(String),
     Wifi(SocketAddr),
     Qr(ScannerHandle),
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 #[allow(clippy::too_many_lines)]
 fn run_setup(
     label: Option<String>,
@@ -643,6 +656,7 @@ fn run_setup(
     let label = label
         .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "new setup requires --label"))?;
     validate_setup_label(&label)?;
+    ensure_desktop_platform_supported()?;
     let mut desktop_id = [0_u8; 16];
     OsRng.fill_bytes(&mut desktop_id);
     let mut wifi_address = None;
@@ -740,7 +754,7 @@ fn run_setup(
         return rollback_setup_error(
             &root,
             &journal,
-            "failed to create new TPM desktop state; no existing key was reused",
+            "failed to create new hardware desktop state; no existing key was reused",
             false,
         );
     };
@@ -841,7 +855,7 @@ fn run_setup(
     print_setup_outputs(&journal.identity_stub, &stub, json, &mut interaction)
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 fn run_setup(
     _label: Option<String>,
     _resume: bool,
@@ -852,11 +866,11 @@ fn run_setup(
 ) -> io::Result<()> {
     Err(io::Error::new(
         io::ErrorKind::Unsupported,
-        "simplified setup is supported only on the Windows Alpha platform; use explicit pair for diagnostics",
+        "simplified setup requires a supported Windows or macOS hardware desktop; use explicit pair for diagnostics",
     ))
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 fn resume_setup(json: bool) -> io::Result<()> {
     let root = default_config_root()
         .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
@@ -906,7 +920,7 @@ fn resume_setup(json: bool) -> io::Result<()> {
     )
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 fn cleanup_setup() -> io::Result<()> {
     let root = default_config_root()
         .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
@@ -961,7 +975,24 @@ fn rollback_setup_error(
     }
 }
 
-#[cfg(any(windows, test))]
+#[cfg(target_os = "macos")]
+fn rollback_setup_error(
+    _root: &std::path::Path,
+    _journal: &SetupJournal,
+    message: &str,
+    phone_may_be_paired: bool,
+) -> io::Result<()> {
+    let revocation = if phone_may_be_paired {
+        "; revoke the matching full fingerprint on the phone if it was committed there"
+    } else {
+        ""
+    };
+    Err(io::Error::other(format!(
+        "{message}; setup state was retained; use setup --cleanup{revocation}"
+    )))
+}
+
+#[cfg(any(windows, target_os = "macos", test))]
 #[derive(Serialize)]
 struct SetupResult<'a> {
     schema_version: u16,
@@ -969,7 +1000,7 @@ struct SetupResult<'a> {
     recipient: &'a str,
 }
 
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 fn write_setup_result_json(
     mut output: impl io::Write,
     identity_path: &std::path::Path,
@@ -987,7 +1018,7 @@ fn write_setup_result_json(
     writeln!(output)
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 fn print_setup_outputs(
     identity_output: &std::path::Path,
     stub: &age_plugin_phone::pairing::PublicIdentityStub,
@@ -1203,6 +1234,27 @@ fn remove_private_pairing_file(path: &std::path::Path) -> bool {
     }
 }
 
+#[cfg(target_os = "macos")]
+fn ensure_macos_unwrap_locator(
+    stub: &age_plugin_phone::pairing::PublicIdentityStub,
+    desktop_state: &std::path::Path,
+    replay_state: &std::path::Path,
+) -> io::Result<()> {
+    let root = default_config_root()
+        .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
+    let locator = age_plugin_phone::locator::open_pairing_locator(&root, stub)
+        .map_err(|_| io::Error::other("paired state is unavailable or pending setup/cleanup"))?;
+    if std::path::absolute(desktop_state)? != locator.desktop_state
+        || std::path::absolute(replay_state)? != locator.replay_state
+    {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "explicit state does not match the paired locator",
+        ));
+    }
+    Ok(())
+}
+
 #[allow(clippy::too_many_arguments)]
 fn run_unwrap(
     identity_stub: &std::path::Path,
@@ -1218,6 +1270,8 @@ fn run_unwrap(
     ensure_desktop_platform_supported()?;
     let stub = read_identity_stub_file(identity_stub)
         .map_err(|_| io::Error::new(io::ErrorKind::InvalidData, "invalid public identity stub"))?;
+    #[cfg(target_os = "macos")]
+    ensure_macos_unwrap_locator(&stub, desktop_state, replay_state)?;
     let wifi_address = discover_unwrap_wifi(&stub, transport, adb_serial, wifi_address)?;
     let route = resolve_transport(
         transport,
@@ -1394,7 +1448,19 @@ fn ensure_desktop_platform_supported() -> io::Result<()> {
     })
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+fn ensure_desktop_platform_supported() -> io::Result<()> {
+    if age_plugin_phone_platform_keys::macos::secure_enclave_available() {
+        Ok(())
+    } else {
+        Err(io::Error::new(
+            io::ErrorKind::Unsupported,
+            "macOS Secure Enclave is unavailable; desktop private operations require hardware keys",
+        ))
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 // Keep command paths identical to Windows while the actual capability gate is platform-specific.
 #[allow(clippy::unnecessary_wraps)]
 fn ensure_desktop_platform_supported() -> io::Result<()> {
@@ -1415,7 +1481,7 @@ fn print_macos_platform_status() {
     println!("local_network_permission: unverified_for_current_caller");
     println!("wifi_discovery_interfaces: active_ipv4_broadcast_snapshot_per_attempt");
     println!("developer_usb: explicit_android_adb_only_device_authorization_unverified");
-    println!("macos_setup: not_yet_integrated");
+    println!("macos_setup: implemented_acceptance_incomplete");
     println!("macos_snapshot_rollback_protection: unresolved");
 }
 
@@ -1797,6 +1863,7 @@ mod tests {
         );
     }
 
+    #[cfg(not(target_os = "macos"))]
     #[test]
     fn simplified_setup_is_explicitly_unsupported_off_windows() {
         let error = run_setup(

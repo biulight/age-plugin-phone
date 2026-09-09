@@ -294,8 +294,9 @@ impl Directory {
         let child = name(child)?;
         let previous = open_at(&self.file, &child, libc::O_RDONLY)?;
         check(&previous, true, false)?;
+        let prefix = temporary_prefix(child.as_bytes());
         let temp = CString::new(format!(
-            ".state-{}-{}.tmp",
+            "{prefix}{}-{}.tmp",
             std::process::id(),
             COUNTER.fetch_add(1, Ordering::Relaxed)
         ))
@@ -328,6 +329,23 @@ impl Directory {
         self.sync()?;
         same(&file, &open_at(&self.file, &child, libc::O_RDONLY)?)
     }
+    /// Removes only replacement temporaries belonging to this exact direct-child name.
+    /// Callers must hold their lifecycle/replay lock and a durable teardown journal.
+    /// Legacy unscoped `.state-*` temporaries are never attributed or deleted here.
+    pub fn remove_replacement_temporaries(&self, child: &Path) -> Result<(), Error> {
+        let prefix = temporary_prefix(name(child)?.as_bytes());
+        self.validate()?;
+        let entries = std::fs::read_dir(&self.path).map_err(|_| Error::Storage)?;
+        for entry in entries {
+            let entry = entry.map_err(|_| Error::Storage)?;
+            let filename = entry.file_name();
+            let bytes = filename.as_bytes();
+            if bytes.starts_with(prefix.as_bytes()) && bytes.ends_with(b".tmp") {
+                self.remove(Path::new(&filename))?;
+            }
+        }
+        self.sync()
+    }
     pub fn remove(&self, child: &Path) -> Result<(), Error> {
         self.validate()?;
         let child = name(child)?;
@@ -355,6 +373,15 @@ impl Directory {
         value.validate(self)?;
         Ok(value)
     }
+}
+fn temporary_prefix(child: &[u8]) -> String {
+    use std::fmt::Write as _;
+    let mut value = String::from(".replace-");
+    for byte in child {
+        write!(value, "{byte:02x}").expect("writing to String cannot fail");
+    }
+    value.push('-');
+    value
 }
 fn open_ancestor(path: &Path) -> Result<File, Error> {
     if !path.is_absolute() {
@@ -436,6 +463,45 @@ mod tests {
         assert!(matches!(dir.read(item, 10), Err(Error::Missing)));
         std::fs::remove_dir_all(root).unwrap();
     }
+    #[test]
+    fn teardown_removes_only_exact_target_replacement_temporaries() {
+        let root = root();
+        let dir = Directory::prepare(&root).unwrap();
+        for child in ["state", "state-other"] {
+            dir.create(Path::new(child), b"old").unwrap();
+            FAILURE.with(|failure| failure.set(Some("rename")));
+            assert!(dir.replace(Path::new(child), b"new").is_err());
+        }
+        dir.create(Path::new(".state-legacy-1.tmp"), b"unattributed")
+            .unwrap();
+        dir.remove_replacement_temporaries(Path::new("state"))
+            .unwrap();
+        let filenames: Vec<_> = std::fs::read_dir(&root)
+            .unwrap()
+            .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+            .collect();
+        assert!(
+            !filenames
+                .iter()
+                .any(|name| name.starts_with(&temporary_prefix(b"state")))
+        );
+        assert!(
+            filenames
+                .iter()
+                .any(|name| name.starts_with(&temporary_prefix(b"state-other")))
+        );
+        assert!(root.join(".state-legacy-1.tmp").exists());
+        assert_eq!(dir.read(Path::new("state"), 10).unwrap(), b"old");
+        let alias_name = format!("{}hostile.tmp", temporary_prefix(b"state"));
+        std::os::unix::fs::symlink(root.join("state-other"), root.join(alias_name)).unwrap();
+        assert!(
+            dir.remove_replacement_temporaries(Path::new("state"))
+                .is_err()
+        );
+        assert_eq!(dir.read(Path::new("state-other"), 10).unwrap(), b"old");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
     #[test]
     fn links_permissions_and_replaced_paths_fail_closed() {
         let root = root();

@@ -187,7 +187,7 @@ fn open_pairing_locator_record(
     Err(LocatorError::Missing)
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 pub(crate) fn open_pairing_locator_for_setup(
     root: &Path,
     stub: &PublicIdentityStub,
@@ -199,7 +199,11 @@ pub(crate) fn open_pairing_locator_for_setup(
         legacy_pairing_locator_path(&directory, stub),
     ] {
         match read_locator_file(&path) {
-            Ok(bytes) => return decode(stub, &bytes),
+            Ok(bytes) => {
+                let locator = decode(stub, &bytes)?;
+                validate_layout(&directory, &locator)?;
+                return Ok(locator);
+            }
             Err(LocatorError::Missing) => {}
             Err(error) => return Err(error),
         }
