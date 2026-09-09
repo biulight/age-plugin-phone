@@ -64,7 +64,8 @@ pairing revoked, phone verification automated or real plaintext processed.
 | GUI application → age → installed plugin | Pending; Terminal permissions do not establish GUI permissions |
 | Android ADB pairing and two separate successful unwraps | User-operated setup and two independent decryptions pass; user confirms fresh native verification for every approval |
 | Cancellation and subsequent success | Android ADB cancellation returns failure without plaintext; subsequent fresh approval succeeds |
-| Timeout, unplug, daemon/process interruption | New Mac/Android physical evidence pending |
+| Android USB unplug/reconnect | Pending approval interrupted, no plaintext; rules empty on reconnect; fresh approval succeeds |
+| Timeout and daemon/process interruption | Physical evidence pending |
 | Wi-Fi multihoming, interface changes, ambiguity and permission errors | Logic tests pass; applicable physical combinations pending |
 | Built-in/UVC cameras; first allow, deny, revoke and occupied camera | Pending caller-specific physical tests |
 | Independent recovery drill | Six age/rage cases pass with the phone plugin and desktop state unavailable |
@@ -327,3 +328,15 @@ regular files in the private state directory were unchanged. This establishes
 normal removal and file-level isolation for this exact target, not interrupted
 or orphan cleanup. The temporary recovery key, ciphertext fixtures and their
 manifest were then removed; coarse acceptance results were retained.
+
+## Android USB interruption and reconnect
+
+While the original installed candidate awaited fresh phone verification, the user
+unplugged the Android USB cable without approving. ADB sampling observed the device
+disconnect; age exited 1 and produced no plaintext. The user immediately confirmed
+unplugging at the pending prompt and its subsequent automatic closure. After the
+user reconnected, the reverse-rule list was empty. The retained pairing then
+successfully decrypted with a new fingerprint verification confirmed by the user;
+its reverse-rule list was again empty. No temporary plaintext directory remained.
+This establishes unplug/reconnect behavior; daemon restart, process termination and
+natural authentication timeout are separate cases.

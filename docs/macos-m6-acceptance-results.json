@@ -522,6 +522,63 @@
       "raw_result_sha256": "bd5fa1821f0151568bdb233930861369b71b0c053f0aac4043dff7a47ec4ee48",
       "confirmation": "user_entered_exact_full_fingerprint_in_cli",
       "temporary_recovery_fixture_removed": true
+    },
+    "macos_adb_unplug_acceptance": {
+      "transport": "adb",
+      "caller": "age 1.3.2",
+      "fixture": "disposable_data_only",
+      "cases": [
+        {
+          "case": "unplug_while_verification_pending",
+          "exit_code": 1,
+          "no_plaintext": true,
+          "disconnect_observed": true,
+          "connection_samples": [
+            {
+              "elapsed_seconds": 0.026,
+              "connected": true
+            },
+            {
+              "elapsed_seconds": 0.567,
+              "connected": true
+            },
+            {
+              "elapsed_seconds": 1.107,
+              "connected": true
+            },
+            {
+              "elapsed_seconds": 1.634,
+              "connected": true
+            },
+            {
+              "elapsed_seconds": 2.174,
+              "connected": true
+            },
+            {
+              "elapsed_seconds": 2.706,
+              "connected": true
+            },
+            {
+              "elapsed_seconds": 3.242,
+              "connected": false
+            }
+          ],
+          "human_observation": "y"
+        },
+        {
+          "case": "reverse_rules_after_reconnect",
+          "empty": true
+        },
+        {
+          "case": "fresh_approval_after_reconnect",
+          "exit_code": 0,
+          "passed": true,
+          "human_fresh_verification": "y",
+          "reverse_rules_empty": true
+        }
+      ],
+      "raw_result_sha256": "fefe8e6e9d6f171eeb88c1aa15567b165c23ca37f68ac704e70bb79e4e2baec1",
+      "temporary_plaintext_directories_after_test": 0
     }
   },
   "physical_phone_verification": "android_adb_and_iphone_wifi_each_three_fresh_native_approvals_user_confirmed",
