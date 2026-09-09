@@ -241,3 +241,12 @@ native fingerprint verification for each. This build changes only discovery erro
 reporting and adds the independent probe; no listener fix was implemented.
 Its success therefore does not close the intermittent failure on the original
 installed `cc7e120` release artifact. The original candidate remains unchanged.
+
+The original installed candidate comparison again passed the first rage unwrap and
+failed the second during discovery. Immediate follow-up probes found no matching
+listener twice, then one authenticated listener on the third query window. This
+establishes a transient discovery outage after the failure, without identifying
+whether listener re-arming, phone lifecycle, signing or network delivery caused it.
+Later read-only Android inspection found both fixed listening ports and the app
+foregrounded. The socket inspection also reports a permission warning, so missing
+port visibility alone must not be treated as definitive proof of a closed socket.

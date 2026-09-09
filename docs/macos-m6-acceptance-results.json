@@ -388,6 +388,30 @@
       },
       "original_candidate_failure": "not_resolved_by_this_success",
       "raw_result_sha256": "8643ce61ddfa63acd6b228fb8144eef2b1a0413f6aaa705d6576276b522d8cdb"
+    },
+    "macos_wifi_rage_original_comparison": {
+      "caller": "rage 0.12.1",
+      "transport": "wifi",
+      "synthetic_data_only": true,
+      "human_native_observation": "requires_user_report",
+      "phases": [
+        {
+          "phase": "first_approval",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": "second_fresh_approval",
+          "exit_code": 1,
+          "passed": false
+        }
+      ],
+      "followup_discovery": [
+        "no_matching_listener",
+        "no_matching_listener",
+        "one_authenticated_listener"
+      ],
+      "root_cause": "undetermined_transient_discovery_outage_observed"
     }
   },
   "physical_phone_verification": "android_adb_and_iphone_wifi_each_three_fresh_native_approvals_user_confirmed",
