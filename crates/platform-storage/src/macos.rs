@@ -450,6 +450,26 @@ pub fn remove_private_file(path: &Path) -> Result<(), Error> {
         .remove(Path::new(path.file_name().ok_or(Error::Invalid)?))
 }
 
+/// Create-only public output. Uncertain partial writes are retained for journaled teardown.
+pub fn create_regular_file(path: &Path, bytes: &[u8]) -> Result<(), Error> {
+    bounded(bytes)?;
+    let parent = path.parent().ok_or(Error::Invalid)?;
+    let directory = open_ancestor(parent)?;
+    let child = name(Path::new(path.file_name().ok_or(Error::Invalid)?))?;
+    let mut file = open_at(
+        &directory,
+        &child,
+        libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL,
+    )?;
+    check(&file, true, false)?;
+    file.write_all(bytes).map_err(|_| Error::Storage)?;
+    full_sync(&file)?;
+    check(&file, true, false)?;
+    same(&directory, &open_ancestor(parent)?)?;
+    same(&file, &open_at(&directory, &child, libc::O_RDONLY)?)?;
+    full_sync(&directory)
+}
+
 /// Bounded no-follow read for public files, without requiring a private parent directory.
 pub fn read_regular_file(path: &Path, max: u64) -> Result<Vec<u8>, Error> {
     if max > MAX_BYTES {
@@ -566,12 +586,14 @@ mod tests {
         std::fs::create_dir(&root).unwrap();
         std::fs::set_permissions(&root, std::fs::Permissions::from_mode(0o755)).unwrap();
         let path = root.join("public");
-        std::fs::write(&path, b"public").unwrap();
+        create_regular_file(&path, b"public").unwrap();
+        assert!(create_regular_file(&path, b"replacement").is_err());
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
         assert_eq!(read_regular_file(&path, 6).unwrap(), b"public");
         assert!(read_regular_file(&path, 5).is_err());
         let alias = root.join("alias");
         symlink(&path, &alias).unwrap();
+        assert!(create_regular_file(&alias, b"replacement").is_err());
         assert!(read_regular_file(&alias, 6).is_err());
         assert!(remove_regular_file(&alias).is_err());
         std::fs::remove_file(&alias).unwrap();
@@ -581,6 +603,24 @@ mod tests {
         std::fs::remove_file(alias).unwrap();
         remove_regular_file(&path).unwrap();
         assert!(matches!(read_regular_file(&path, 6), Err(Error::Missing)));
+        std::fs::remove_dir(root).unwrap();
+    }
+
+    #[test]
+    fn uncertain_public_create_retains_owned_file_and_never_overwrites() {
+        let root = root();
+        std::fs::create_dir(&root).unwrap();
+        let path = root.join("public");
+        FAILURE.with(|failure| failure.set(Some("sync")));
+        assert!(matches!(
+            create_regular_file(&path, b"synthetic public output"),
+            Err(Error::Storage)
+        ));
+        assert!(path.exists());
+        let original = std::fs::read(&path).unwrap();
+        assert!(create_regular_file(&path, b"replacement").is_err());
+        assert_eq!(std::fs::read(&path).unwrap(), original);
+        remove_regular_file(&path).unwrap();
         std::fs::remove_dir(root).unwrap();
     }
 

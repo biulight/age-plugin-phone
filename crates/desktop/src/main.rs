@@ -15,12 +15,13 @@ use age_plugin_phone::adb::{
 };
 use age_plugin_phone::age_identity::PhoneIdentityPlugin;
 use age_plugin_phone::age_recipient::PhoneRecipientPlugin;
-use age_plugin_phone::locator::{
-    create_pairing_locator_with_transport, default_config_root, prepare_config_root,
-};
+#[cfg(not(target_os = "macos"))]
+use age_plugin_phone::locator::create_pairing_locator_with_transport;
+use age_plugin_phone::locator::{default_config_root, prepare_config_root};
+#[cfg(not(target_os = "macos"))]
+use age_plugin_phone::pairing::create_identity_stub_file;
 use age_plugin_phone::pairing::{
-    DesktopKeyState, DesktopPairingSession, MAX_PAIRING_SESSION_AGE_MS, create_identity_stub_file,
-    read_identity_stub_file,
+    DesktopKeyState, DesktopPairingSession, MAX_PAIRING_SESSION_AGE_MS, read_identity_stub_file,
 };
 use age_plugin_phone::qr_scanner::{DEFAULT_SCAN_TIMEOUT, ScannerHandle};
 use age_plugin_phone::qr_terminal::{
@@ -361,6 +362,27 @@ fn run_remove_orphaned_desktop_state(locator: &std::path::Path) -> io::Result<()
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
+fn run_pair(
+    label: String,
+    desktop_state: &std::path::Path,
+    identity_output: &std::path::Path,
+    replay_state: &std::path::Path,
+    transport: TransportChoice,
+    adb_serial: Option<&str>,
+) -> io::Result<()> {
+    run_setup_impl(
+        Some(label),
+        false,
+        false,
+        transport,
+        adb_serial,
+        false,
+        Some([desktop_state, replay_state, identity_output]),
+    )
+}
+
+#[cfg(not(target_os = "macos"))]
 #[allow(clippy::too_many_lines)]
 fn run_pair(
     label: String,
@@ -500,17 +522,7 @@ fn run_pair(
     print_pairing_outputs(identity_output, &stub)
 }
 
-#[cfg(target_os = "macos")]
-fn acquire_explicit_pair_lock(
-    root: &std::path::Path,
-) -> io::Result<age_plugin_phone_platform_storage::macos::PrivateLock> {
-    let lock =
-        setup::acquire_lifecycle_lock(root).map_err(|error| io::Error::other(error.to_string()))?;
-    setup::ensure_no_cleanup_pending(root).map_err(|error| io::Error::other(error.to_string()))?;
-    ensure_no_setup_pending_for_pair(root)?;
-    Ok(lock)
-}
-
+#[cfg(not(target_os = "macos"))]
 fn prepare_pairing_config_root() -> io::Result<PathBuf> {
     let config_root = default_config_root()
         .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
@@ -520,6 +532,7 @@ fn prepare_pairing_config_root() -> io::Result<PathBuf> {
     Ok(config_root)
 }
 
+#[cfg(not(target_os = "macos"))]
 fn discover_pairing_wifi(
     desktop_id: [u8; 16],
     transport: TransportChoice,
@@ -558,7 +571,7 @@ fn exchange_pairing_route(
     }
 }
 
-#[cfg(any(windows, target_os = "macos"))]
+#[cfg(windows)]
 fn ensure_managed_private_state_path(
     root: &std::path::Path,
     path: &std::path::Path,
@@ -581,6 +594,7 @@ fn ensure_managed_private_state_path(
     Ok(())
 }
 
+#[cfg(not(target_os = "macos"))]
 fn ensure_no_setup_pending_for_pair(config_root: &std::path::Path) -> io::Result<()> {
     if setup::read_optional(config_root)
         .map_err(|_| io::Error::other("desktop setup recovery state is unavailable"))?
@@ -636,6 +650,7 @@ fn complete_pairing_interaction(
         .map_err(|_| io::Error::new(io::ErrorKind::PermissionDenied, "pairing not confirmed"))
 }
 
+#[cfg(not(target_os = "macos"))]
 fn print_pairing_outputs(
     identity_output: &std::path::Path,
     stub: &age_plugin_phone::pairing::PublicIdentityStub,
@@ -719,7 +734,6 @@ impl PreparedSetupTransport {
 }
 
 #[cfg(any(windows, target_os = "macos"))]
-#[allow(clippy::too_many_lines)]
 fn run_setup(
     label: Option<String>,
     resume: bool,
@@ -727,6 +741,20 @@ fn run_setup(
     transport: TransportChoice,
     adb_serial: Option<&str>,
     json: bool,
+) -> io::Result<()> {
+    run_setup_impl(label, resume, cleanup, transport, adb_serial, json, None)
+}
+
+#[cfg(any(windows, target_os = "macos"))]
+#[allow(clippy::too_many_lines)]
+fn run_setup_impl(
+    label: Option<String>,
+    resume: bool,
+    cleanup: bool,
+    transport: TransportChoice,
+    adb_serial: Option<&str>,
+    json: bool,
+    explicit_paths: Option<[&std::path::Path; 3]>,
 ) -> io::Result<()> {
     if resume || cleanup {
         if label.is_some() || transport != TransportChoice::Auto || adb_serial.is_some() {
@@ -792,7 +820,18 @@ fn run_setup(
 
     let mut setup_code = [0_u8; 16];
     OsRng.fill_bytes(&mut setup_code);
-    let mut journal = SetupJournal::new_with_transport(&root, setup_code, desktop_id, transport);
+    let mut journal = if let Some(paths) = explicit_paths {
+        SetupJournal::new_explicit(&root, setup_code, desktop_id, paths, transport).map_err(
+            |_| {
+                io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "explicit pairing paths are invalid or overlap reserved state",
+                )
+            },
+        )?
+    } else {
+        SetupJournal::new_with_transport(&root, setup_code, desktop_id, transport)
+    };
     if [
         &journal.desktop_state,
         &journal.replay_state,
@@ -803,7 +842,7 @@ fn run_setup(
     {
         return Err(io::Error::new(
             io::ErrorKind::AlreadyExists,
-            "random setup path collision; no state was modified",
+            "pairing output already exists; no existing state was modified",
         ));
     }
     setup::create(&root, &journal).map_err(|error| io::Error::other(error.to_string()))?;
@@ -1104,6 +1143,7 @@ fn print_setup_outputs(
     Ok(())
 }
 
+#[cfg(not(target_os = "macos"))]
 fn ensure_pairing_outputs_available(
     identity_output: &std::path::Path,
     replay_state: &std::path::Path,
@@ -1123,6 +1163,7 @@ fn ensure_pairing_outputs_available(
     Ok(())
 }
 
+#[cfg(not(target_os = "macos"))]
 fn commit_pairing_state(
     config_root: &std::path::Path,
     stub: &age_plugin_phone::pairing::PublicIdentityStub,
@@ -1193,6 +1234,7 @@ fn commit_pairing_state(
     Ok(())
 }
 
+#[cfg(not(target_os = "macos"))]
 fn pairing_commit_error(message: &'static str, rolled_back: bool) -> io::Error {
     if rolled_back {
         io::Error::other(format!(
@@ -1203,19 +1245,6 @@ fn pairing_commit_error(message: &'static str, rolled_back: bool) -> io::Error {
             "{message}; local rollback is incomplete and the phone pairing must be revoked"
         ))
     }
-}
-
-// Until macOS lifecycle journaling lands, retain partial state on failure. An automatic
-// rollback must not erase uncertain writes or let a subsequent pairing reset the replay scope.
-#[cfg(target_os = "macos")]
-fn rollback_failed_pairing(
-    _desktop_state: &std::path::Path,
-    _replay_state: &std::path::Path,
-    _locator_path: Option<&std::path::Path>,
-    _desktop_state_created: bool,
-    _desktop_id: [u8; 16],
-) -> bool {
-    false
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -1254,7 +1283,7 @@ fn rollback_failed_pairing(
     complete
 }
 
-#[cfg(any(not(target_os = "macos"), test))]
+#[cfg(not(target_os = "macos"))]
 fn replay_lock_path(path: &std::path::Path) -> Option<PathBuf> {
     let mut name = path.file_name()?.to_os_string();
     name.push(".lock");
@@ -1980,31 +2009,6 @@ mod tests {
                 "recipient": "age1phone1example",
             })
         );
-    }
-
-    #[test]
-    #[cfg(target_os = "macos")]
-    fn failed_pairing_retains_uncertain_state_for_journaled_cleanup() {
-        let root = std::env::temp_dir().join(format!("phone-m2-rollback-{}", std::process::id()));
-        std::fs::create_dir(&root).unwrap();
-        let desktop = root.join("desktop");
-        let replay = root.join("replay");
-        let locator = root.join("locator");
-        let lock = replay_lock_path(&replay).unwrap();
-        for path in [&desktop, &replay, &locator, &lock] {
-            std::fs::write(path, b"uncertain").unwrap();
-        }
-        assert!(!rollback_failed_pairing(
-            &desktop,
-            &replay,
-            Some(&locator),
-            true,
-            [1; 16]
-        ));
-        for path in [&desktop, &replay, &locator, &lock] {
-            assert_eq!(std::fs::read(path).unwrap(), b"uncertain");
-        }
-        std::fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

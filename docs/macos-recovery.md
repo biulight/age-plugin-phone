@@ -6,6 +6,13 @@ data for acceptance. The commands below do not expand that support declaration.
 
 ## Incomplete setup
 
+On macOS, explicit `pair` uses the same ownership journal and recovery commands as
+managed `setup`. Each explicit pairing requires unused paths; private desktop and
+replay files must be direct children of the protected root. The public stub may be
+outside it. Explicit filenames must be distinct and use lowercase ASCII letters,
+digits, `.`, `_` or `-`; `.cbor`, `.lock`, `.pending` and internal temporary prefixes
+are reserved. Existing or uncertain state cannot be reused for another pairing.
+
 `setup --resume` completes only the exact setup whose full fingerprint was already
 confirmed and durably recorded. It does not continue an unconfirmed phone exchange.
 If confirmation was not recorded, use `setup --cleanup`, compare the displayed

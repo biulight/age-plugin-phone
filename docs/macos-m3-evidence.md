@@ -142,9 +142,34 @@ all-target Clippy and the locked workspace suite pass. A Windows cross-check was
 attempted from this Mac but stopped in mozjpeg-sys's native C build: the host compiler
 rejects MSVC-target `-fPIC`. This is not a Windows runtime or full compile pass.
 
-**Still open:** advanced explicit `pair` does not yet have managed setup's durable
-ownership journal for arbitrary caller-selected paths. A failure before locator
-creation can leave retained state that normal/orphan cleanup cannot attribute.
-Use managed `setup` for the real-phone acceptance while this implementation gate
-remains open; neither retained files nor an unconfirmed exchange may be resumed as
-an authorized pairing. The preflight fix does not close this journal gap.
+## Explicit-pair ownership journal completion
+
+macOS explicit `pair` now delegates to the same managed setup state machine with
+caller-selected paths. It requires fresh output paths, journals ownership before
+hardware creation, persists verified and confirmed stages separately, and uses
+`setup --resume` / `setup --cleanup` for interrupted attempts. It cannot reuse an
+existing key state, broken symlink, replay file, pending marker or lock, nor claim
+paths referenced by another locator. Cleanup rechecks locator exclusivity.
+
+Explicit journals use version 3 with a required true explicit-path discriminator;
+managed journals continue emitting version 2 and reading versions 1/2. Windows
+rejects the macOS-only explicit layout. Private state remains directly under the
+protected root; the public stub may reside under a checked external parent. All
+three explicit filenames must be distinct lowercase ASCII letters/digits plus
+`.`, `_` or `-`; journal/locator extensions, replay sidecars and replacement-temp
+names are reserved. This avoids case-folding and Unicode filename aliases on APFS.
+
+Public stub creation is now bounded, create-only, descriptor-relative and no-follow,
+with owner/ACL/link checks and full synchronization. Uncertain writes retain the
+owned output for explicit journal cleanup. Cleanup checks the same parent and file
+boundary for external stubs. A hard-linked external output blocks deletion, retains
+the journal and resumes after the link problem is resolved.
+
+Both layouts pass all confirmed-commit fault boundaries, canonical/unknown format
+rejection, existing and uncertain output refusal, partial cleanup and external
+public-link failure/resume tests. The explicit native hardware test now covers both
+managed and caller-selected layouts, including key continuity and the synthetic CLI
+confirmation/cleanup check. This closes the implementation gap identified above;
+real phone verification, recovery, M2 rollback and the remaining platform matrix are
+still required. The earlier M5 install hashes predate this change and must be refreshed
+for final exact-artifact acceptance.
