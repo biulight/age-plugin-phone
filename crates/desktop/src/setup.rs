@@ -315,6 +315,8 @@ impl SetupJournal {
         Ok(())
     }
     #[cfg(not(target_os = "macos"))]
+    // Match the macOS validator's method interface while rejecting this layout.
+    #[allow(clippy::unused_self)]
     fn validate_explicit_root(&self, _root: &Path) -> Result<(), SetupError> {
         Err(SetupError::Unsupported)
     }

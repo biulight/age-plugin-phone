@@ -47,7 +47,7 @@ This local review does not replace the project's independent external security r
 | Installed Android package | `io.github.biulight.age_plugin_phone`, version `0.1.0-alpha.4`, versionCode 1000 |
 | Installed APK SHA-256 | `6e77ada9917673f0a5a392bb9a4327dd2275f9ff403d15015a6280da190d4f62` — matches the recorded alpha.4 signed artifact |
 | New Mac/Android pairing | **Not performed**; APK/version inspection is read-only |
-| Windows regression | Three Windows libraries pass cross-check; full desktop cross-check stops in mozjpeg-sys (`-fPIC` unsupported). Windows host/toolchain are reachable, but source transfer awaits explicit authorization after auto-review rejection |
+| Windows regression | Native Windows 11 / Rust 1.96 four-crate fmt, all-target Clippy and 96 tests pass after two platform lint annotations; TPM creation/reopen and read-only status pass |
 
 The APK digest was calculated on the installed public APK, without reading app
 private data. It identifies the mobile artifact; historical Windows/Android
@@ -68,7 +68,8 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Built-in/UVC cameras; first allow, deny, revoke and occupied camera | Pending caller-specific physical tests |
 | Revocation, interrupted cleanup and independent recovery drill | Synthetic cleanup passes; human/native endpoint-loss drill pending |
 | Published-version upgrade/downgrade | Not tested by same-source rebuild or commit-to-commit continuity |
-| Wrong Mac, other OS, Intel/T2, iPhone | Deferred/unverified; not part of the current host/Android acceptance claim |
+| iPhone | User offers iPhone 15 Pro / iOS 26.6.1; app reinstall and separate Wi-Fi/QR acceptance pending |
+| Wrong Mac, other OS, Intel/T2 | Deferred/unverified; not part of the current host/Android acceptance claim |
 
 The [source quick start](macos-quickstart.md) provides the human-operated path.
 Record each tested transport/caller and exact artifact separately. Do not turn an
@@ -108,9 +109,25 @@ retained installed executable is:
 /private/tmp/age-phone-macos-final-registry-20260909/install/bin/age-plugin-phone
 ```
 
-Windows native verification was prepared for `nuc.win.local`, which returned host
-name `biulight`, Windows 11 build 22631 and Rust/Cargo 1.96. The automatic approval
-review rejected sending the source archive because the payload/destination lacked
-explicit authorization. A local 4,300,800-byte archive and manifest are prepared;
-no archive was sent and no remote checkout was changed. This permission dependency
-is separate from product test success or failure.
+## Native Windows regression
+
+With explicit user authorization, the exact 4,300,800-byte `cc7e120` source archive
+was copied to a fresh Windows temporary directory and its SHA-256 verified before
+extraction. The existing Windows checkout was not used. Windows 11 build 22631,
+Rust/Cargo 1.96 and an isolated Cargo target directory ran the four desktop crates.
+
+Native Clippy found two platform-only warnings: `validate_layout` is infallible
+outside macOS, and the unsupported explicit-root validator does not use `self`.
+Narrow lint annotations retain the shared platform interface without changing
+runtime behavior. The user separately authorized transferring those two updated
+files. Their hashes are recorded in the machine-readable evidence.
+
+After the annotations, fmt, all-target locked Clippy with warnings denied, and all
+96 tests passed (60 desktop, 25 core, 2 public vectors, 4 platform keys, 5 platform
+storage; no ignored tests). The key tests exercised actual TPM creation and reopen.
+The read-only CLI status reported TPM 2.0 and Microsoft Platform Crypto Provider
+support. The executable SHA-256 was
+`67e19d13f46f3b09f0c19a993c2b0da84c0c60506b0aadd958f83f562f6fe63c`.
+No Windows/phone integration was performed. Mac workspace fmt, Clippy and tests
+also passed after these annotation changes; the previously installed Mac candidate
+and its historical archive evidence remain identified separately above.

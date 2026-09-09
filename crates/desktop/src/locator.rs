@@ -888,6 +888,8 @@ fn absolute_existing(path: &Path) -> Result<PathBuf, LocatorError> {
         .map_err(LocatorError::from)?;
     Ok(path)
 }
+// Keep the fallible platform interface: macOS rejects layouts outside its private root.
+#[cfg_attr(not(target_os = "macos"), allow(clippy::unnecessary_wraps))]
 fn validate_layout(root: &Path, locator: &PairingLocator) -> Result<(), LocatorError> {
     #[cfg(target_os = "macos")]
     if locator.desktop_state.parent() != Some(root)

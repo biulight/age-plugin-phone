@@ -23,7 +23,7 @@
     "macos_x86_64_all_targets_check": "passed_compile_only",
     "windows_x86_64_three_libraries_check": "passed_compile_only",
     "windows_desktop_cross_compile": "blocked_mozjpeg_host_c_compiler",
-    "windows_native_regression": "pending_explicit_source_transfer_authorization",
+    "windows_native_regression": "passed_four_desktop_crates_after_platform_lint_annotations",
     "snapshot_restore_store_freshness": "failed_counterexample_unresolved",
     "old_response_against_fresh_session_after_restore": "synthetic_negative_passed"
   },
@@ -220,5 +220,45 @@
   "physical_phone_verification": "not_performed",
   "gui_network_camera_permissions": "not_tested",
   "published_version_upgrade": "not_tested",
-  "support_claim": "experimental_incomplete"
+  "support_claim": "experimental_incomplete",
+  "windows_native_regression": {
+    "source_base_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+    "archive_sha256": "1f75c8a352e31c88e6ff7188a3ac00ad32ded56404193c5fe9f43c3328a74308",
+    "source_changes": "two_platform_specific_lint_annotations_and_comments_no_runtime_behavior_change",
+    "modified_files_sha256": {
+      "crates/desktop/src/locator.rs": "fd27ca7ba14bcfafce662de80d33a77a72b8808b3c60340dbd80d2fc59159f35",
+      "crates/desktop/src/setup.rs": "3ad4c6bbbab9db1ddb93f96b2b99f44cc4e8c7d55bc219c593dab48defde1c6f"
+    },
+    "os": "Windows 11 build 22631",
+    "rust": "1.96.0",
+    "cargo": "1.96.0",
+    "fmt": "passed",
+    "clippy_four_desktop_crates_all_targets_locked_deny_warnings": "passed",
+    "tests": {
+      "passed": 96,
+      "failed": 0,
+      "ignored": 0,
+      "desktop": 60,
+      "core": 25,
+      "public_vectors": 2,
+      "platform_keys": 4,
+      "platform_storage": 5
+    },
+    "native_tpm_key_creation_and_reopen": "passed",
+    "read_only_status": "supported_tpm_2_0_and_microsoft_platform_crypto_provider",
+    "binary_sha256": "67e19d13f46f3b09f0c19a993c2b0da84c0c60506b0aadd958f83f562f6fe63c",
+    "log_sha256": {
+      "fmt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "clippy": "324a1e9a46062f11720ece5e3844bb8595fbd5ca1a8835fca004901c66073c88",
+      "test": "68466ddf8c9ba1e1f2e41384a92e1b4a791169a5b46596697cbe1974afc94597"
+    },
+    "phone_integration": "not_tested"
+  },
+  "iphone": {
+    "model": "iPhone 15 Pro",
+    "os": "26.6.1",
+    "source": "user_report",
+    "application": "reinstallation_pending",
+    "physical_acceptance": "not_performed"
+  }
 }
