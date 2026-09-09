@@ -158,7 +158,9 @@ The owner-only foreground Wi-Fi experiment uses the same stream envelope
 ([ADR 0018](adr/0018-owner-only-foreground-wifi-poc.md)). After persistent user opt-in, Android
 keeps one unwrap-only listener while foregrounded, serializes sessions, and re-arms with bounded
 retry delays. Idle accept remains armed until its lifecycle owner closes it; leaving the foreground
-or pausing closes its exact resources. iOS uses Network framework for foreground Wi-Fi. Listener
+or pausing closes its exact resources. Each Android discovery responder owns a non-reference-counted
+Wi-Fi multicast reception lock, released on listener close or failed startup; the normal
+`CHANGE_WIFI_MULTICAST_STATE` permission permits reception only. iOS uses Network framework for foreground Wi-Fi. Listener
 availability, private IPv4 routing, and TCP success provide no authentication or approval; there is
 no Wi-Fi background wake.
 

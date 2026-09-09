@@ -543,3 +543,28 @@ Documentation review for this correction compared the working tree with `9506563
 and updated only this product repository's architecture, discovery ADR, quick start,
 M4/M6 evidence and plan. The nearby documentation registry has no entry for this
 product and no migrated bilingual manual mapping; no other repository was changed.
+
+## Residual Android discovery failure and reception candidate
+
+With Mac commit `c9c2a3f` and ZeroTier/Surge unchanged, the user completed two age unwraps,
+confirming a new native fingerprint immediately after each. The next intended cancellation
+failed in discovery before any native prompt; the user answered `n`. It is a failed acceptance
+case, not successful native cancellation. Recovery and rage cases were not reached.
+
+Afterwards, the Android app was foregrounded with TCP/UDP sockets visible (socket inspection
+also emitted a permission warning), and three authenticated probes succeeded. Three additional
+probes succeeded while recorded APF broadcast/multicast counters stayed unchanged. These
+system counters include unrelated traffic and do not prove the failed request was filtered.
+
+The Android candidate now scopes multicast reception ownership to each foreground discovery
+responder, including release on startup failure and concurrent close. JDK 17 Gradle
+`:tauri-plugin-phone-identity:testDebugUnitTest` and `:tauri-plugin-phone-identity:assembleRelease`
+passed: 73 JVM tests, zero failures/errors/skips. The release AAR build is not a signed APK
+or physical acceptance. Existing cancellation, replay, wrong-device, timeout and malformed
+message tests remain passing. Gradle deprecation notices remain.
+
+The installed APK is not debug-signed; signing configuration names were found in GitHub's
+`alpha-release` environment without retrieving secret values. A same-certificate APK update
+is required to preserve the installed StrongBox identity and pairings. No uninstall, debug
+overwrite or phone identity reset has been performed. Full age/rage physical acceptance
+and final Mac archive-install verification remain open.

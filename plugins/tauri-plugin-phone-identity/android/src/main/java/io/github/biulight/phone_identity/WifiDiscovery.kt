@@ -1,5 +1,6 @@
 package io.github.biulight.phone_identity
 
+import android.content.Context
 import java.math.BigInteger
 import java.net.DatagramPacket
 import java.net.DatagramSocket
@@ -140,6 +141,7 @@ internal class WifiDiscoveryResponder private constructor(
     private val socket: DatagramSocket,
     private val purpose: PhoneStreamSession.Purpose,
     private val responseFor: (WifiDiscoveryQuery) -> ByteArray?,
+    private val reception: AutoCloseable,
 ) : AutoCloseable {
     private val responseCache = WifiDiscoveryResponseCache()
     @Volatile
@@ -187,23 +189,35 @@ internal class WifiDiscoveryResponder private constructor(
         if (closed) return
         closed = true
         socket.close()
+        // Release reception when this foreground listener closes, before waiting on its worker.
+        runCatching { reception.close() }
         if (Thread.currentThread() !== worker) runCatching { worker.join(1_000) }
         responseCache.close()
     }
 
     companion object {
         fun start(
+            context: Context,
             purpose: PhoneStreamSession.Purpose,
             responseFor: (WifiDiscoveryQuery) -> ByteArray?,
+        ): WifiDiscoveryResponder = start(purpose, { WifiDiscoveryReception.acquire(context) }, responseFor)
+
+        internal fun start(
+            purpose: PhoneStreamSession.Purpose,
+            acquireReception: () -> AutoCloseable,
+            responseFor: (WifiDiscoveryQuery) -> ByteArray?,
         ): WifiDiscoveryResponder {
-            val socket = DatagramSocket(null)
+            val reception = acquireReception()
+            var socket: DatagramSocket? = null
             try {
+                socket = DatagramSocket(null)
                 socket.reuseAddress = false
                 socket.broadcast = true
                 socket.bind(InetSocketAddress(InetAddress.getByName("0.0.0.0"), WifiDiscoveryCodec.DISCOVERY_PORT))
-                return WifiDiscoveryResponder(socket, purpose, responseFor)
+                return WifiDiscoveryResponder(socket, purpose, responseFor, reception)
             } catch (error: Exception) {
-                socket.close()
+                socket?.close()
+                runCatching { reception.close() }
                 throw StreamTransportException(error)
             }
         }

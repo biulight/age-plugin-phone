@@ -1436,5 +1436,102 @@
     },
     "real_phone_unwrap": "pending_user_operation",
     "build_profile": "debug_local_candidate_distinct_from_original_installed_artifact"
+  },
+  "android_wifi_reception_candidate": {
+    "status": "automated_passed_same_signed_update_and_physical_acceptance_pending",
+    "mac_candidate_commit": "c9c2a3f",
+    "observations": {
+      "android-wifi-scoped-final-unwrap-results.json": {
+        "sha256": "da484b0eb76ca4e455b06841ad60583701c675b5acfe600578ec24beef214cd0",
+        "result": {
+          "scope": "final_scoped_wifi_candidate_real_phone",
+          "binary_sha256": "07dfa42fe05852f7f847e888684c8d247bdd899bc68a9c9849fabf265386c79a",
+          "network_settings": "Surge_and_ZeroTier_retained",
+          "synthetic_data_only": true,
+          "cases": [
+            {
+              "client": "age",
+              "phase": "first_approval",
+              "exit_code": 0,
+              "data_check": true,
+              "human_native_observation": "y",
+              "passed": true
+            },
+            {
+              "client": "age",
+              "phase": "second_fresh_approval",
+              "exit_code": 0,
+              "data_check": true,
+              "human_native_observation": "y",
+              "passed": true
+            },
+            {
+              "client": "age",
+              "phase": "native_cancellation",
+              "exit_code": 1,
+              "data_check": true,
+              "human_native_observation": "n",
+              "passed": false
+            }
+          ]
+        }
+      },
+      "android-wifi-scoped-after-unwrap-failure-20260910.json": {
+        "sha256": "5540db26a3a180e02a87a6f94ff604b254ef7ffa366eb2a8b9b444068fa2479f",
+        "result": {
+          "app_foreground": true,
+          "tcp_visible": true,
+          "udp_visible": true,
+          "socket_permission_warning": true,
+          "probe_exit": 0,
+          "discovery": [
+            "attempt 1: one authenticated listener",
+            "attempt 2: one authenticated listener",
+            "attempt 3: one authenticated listener"
+          ]
+        }
+      },
+      "android-wifi-apf-discovery-delta-20260910.json": {
+        "sha256": "ac5d579f8a32790b97685c598163a0c9017032ba3e5f434ccc63da3d49b31261",
+        "result": {
+          "scope": "apf_counters_around_discovery_only",
+          "before": {
+            "DROPPED_IPV4_BROADCAST_ADDR": 1820,
+            "DROPPED_IPV4_BROADCAST_NET": 7431,
+            "DROPPED_IPV4_MULTICAST": 3587,
+            "DROPPED_IPV6_MULTICAST_NA": 5
+          },
+          "after": {
+            "DROPPED_IPV4_BROADCAST_ADDR": 1820,
+            "DROPPED_IPV4_BROADCAST_NET": 7431,
+            "DROPPED_IPV4_MULTICAST": 3587,
+            "DROPPED_IPV6_MULTICAST_NA": 5
+          },
+          "delta": {
+            "DROPPED_IPV4_BROADCAST_ADDR": 0,
+            "DROPPED_IPV4_BROADCAST_NET": 0,
+            "DROPPED_IPV4_MULTICAST": 0,
+            "DROPPED_IPV6_MULTICAST_NA": 0
+          },
+          "probe_exit": 0,
+          "discovery": [
+            "attempt 1: one authenticated listener",
+            "attempt 2: one authenticated listener",
+            "attempt 3: one authenticated listener"
+          ],
+          "limit": "system_counters_include_unrelated_network_traffic"
+        }
+      }
+    },
+    "cancellation_interpretation": "discovery_failed_before_native_prompt_not_a_cancellation_pass",
+    "android_jvm_tests": {
+      "tests": 73,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "release_aar_build": "passed_JDK_17",
+    "root_cause_limit": "APF_counter_delta_zero_during_later_successful_queries_does_not_explain_failed_request",
+    "identity_preservation": "same_certificate_update_required_no_uninstall_or_reset_performed"
   }
 }

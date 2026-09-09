@@ -203,3 +203,18 @@ session that returned no valid response, without exposing request or response by
 The remaining physical matrix includes discovery on Windows and Android, no listener, wrong and
 multiple phones, hostile first connection, backgrounding, network change, pairing cancellation,
 unwrap cancellation, timeout, replay, and a fresh user-initiated recovery attempt through ADB.
+
+### Android foreground discovery reception ownership
+
+Each Android pairing or unwrap discovery responder acquires a Wi-Fi multicast reception lock
+before opening UDP and releases it when its foreground owner closes the responder, including
+failed startup. Acquisition failure fails closed. Release is idempotent under concurrent closure;
+no lock spans completed sessions or keeps a background listener alive. The normal
+`CHANGE_WIFI_MULTICAST_STATE` permission changes packet reception, never identity authorization.
+Every unwrap still requires fresh native verification and the existing replay checks.
+
+Android documents the reception mechanism in
+[WifiManager.MulticastLock](https://developer.android.com/reference/android/net/wifi/WifiManager.MulticastLock).
+This addresses missing reception ownership, but does not establish the cause of every observed
+Wi-Fi discovery failure. The current candidate requires same-signed device update and physical
+acceptance; the observed APF counters did not increase during the later successful probes.
