@@ -1438,7 +1438,7 @@
     "build_profile": "debug_local_candidate_distinct_from_original_installed_artifact"
   },
   "android_wifi_reception_candidate": {
-    "status": "automated_passed_same_signed_update_and_physical_acceptance_pending",
+    "status": "same_signed_update_and_discovery_passed_human_unwrap_pending",
     "mac_candidate_commit": "c9c2a3f",
     "observations": {
       "android-wifi-scoped-final-unwrap-results.json": {
@@ -1532,6 +1532,31 @@
     },
     "release_aar_build": "passed_JDK_17",
     "root_cause_limit": "APF_counter_delta_zero_during_later_successful_queries_does_not_explain_failed_request",
-    "identity_preservation": "same_certificate_update_required_no_uninstall_or_reset_performed"
+    "identity_preservation": "same_certificate_update_required_no_uninstall_or_reset_performed",
+    "signed_update": {
+      "run_id": 34384436759,
+      "candidate_commit": "6a0cf142258a25a73bbf10fa106a2aa7cac93cda",
+      "apk_sha256": "bab6b9cb3ca4b4faa513935ec1904cd01613bbb4990933bd92f5cfc774f72873",
+      "previous_apk_sha256": "6e77ada9917673f0a5a392bb9a4327dd2275f9ff403d15015a6280da190d4f62",
+      "signer_certificate_sha256": "9a3e5a00a0a363ca58bbe0abfa1bbc0e36cbdce58e314c0c0dbfa94baff1d58b",
+      "signature_verification": "both_passed_same_signer",
+      "checksum": "passed",
+      "package_matches": true,
+      "multicast_permission_present": true,
+      "installation": "adb_install_r_success",
+      "installed_apk_digest_matches": true
+    },
+    "post_update_discovery": {
+      "probe_sha256": "bc6cf9e2ec6dc11cf71f9e3658d0463fba308e01247910876531105865267756",
+      "apk_sha256": "bab6b9cb3ca4b4faa513935ec1904cd01613bbb4990933bd92f5cfc774f72873",
+      "exit_code": 0,
+      "discovery": [
+        "attempt 1: one authenticated listener",
+        "attempt 2: one authenticated listener",
+        "attempt 3: one authenticated listener"
+      ],
+      "existing_pairing_used": true,
+      "native_verification_requested": false
+    }
   }
 }

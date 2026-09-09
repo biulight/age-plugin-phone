@@ -568,3 +568,19 @@ The installed APK is not debug-signed; signing configuration names were found in
 is required to preserve the installed StrongBox identity and pairings. No uninstall, debug
 overwrite or phone identity reset has been performed. Full age/rage physical acceptance
 and final Mac archive-install verification remain open.
+
+### Signed reception candidate installed
+
+The user approved the existing signing environment. Actions run
+[34384436759](https://github.com/biulight/age-plugin-phone/actions/runs/34384436759)
+built commit `6a0cf142258a25a73bbf10fa106a2aa7cac93cda`; metadata and Android passed,
+Windows and publication were skipped. Both old and new APK signatures verified and their
+signer certificate SHA-256 matched. The downloaded checksum and package identity matched,
+and the new normal multicast permission was present. `adb install -r` succeeded; a readback
+of the installed APK matched the CI artifact digest recorded in the JSON evidence.
+
+After opening the updated app, three authenticated discovery queries using the existing
+Android Wi-Fi pairing passed without requesting native verification. This establishes
+post-update discovery with the original pairing, not unwrap stability. A separate human
+age/rage harness is prepared; the earlier failure record is retained. Fresh fingerprint,
+native cancellation and recovery acceptance on this exact mobile artifact remain pending.
