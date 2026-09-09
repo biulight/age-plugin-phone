@@ -689,6 +689,74 @@
       "restart_order": "kill_server_then_wait_for_old_client_then_start_server",
       "raw_result_sha256": "2ec3eee778b9dbd85898b929f3acf564a721aebe8f8350333306fc8e188e8eed",
       "temporary_plaintext_directories_after_test": 0
+    },
+    "macos_qr_cancellation_acceptance": {
+      "desktop_source_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+      "desktop_binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+      "runs": {
+        "age_cancellation": {
+          "transport": "qr",
+          "caller": "age 1.3.2",
+          "fixture": "disposable_data_only",
+          "pairing_origin": "retained_android_usb_pairing_explicit_qr_transport",
+          "cases": [
+            {
+              "case": "native_cancel_then_desktop_scan_end",
+              "exit_code": 1,
+              "elapsed_seconds": 300.091,
+              "human_native_cancellation": "y",
+              "no_plaintext": true,
+              "harness_forced_termination": false,
+              "passed": true
+            }
+          ],
+          "raw_result_sha256": "e6c667b22d6dff8d0bad416697f8db78821d7ca2fd02110a5b7abf556fbf2f1c"
+        },
+        "age_recovery_separate_run": {
+          "transport": "qr",
+          "synthetic_data_only": true,
+          "human_native_observation": "recorded_immediately_per_operation",
+          "scope": "fresh_request_recovery_after_interrupted_test_new_disposable_ciphertext",
+          "pairing_origin": "retained_android_usb_pairing_explicit_qr_transport",
+          "cases": [
+            {
+              "client": "age",
+              "exit_code": 0,
+              "passed": true,
+              "native_observation": "user_confirmed_fresh_fingerprint"
+            }
+          ],
+          "raw_result_sha256": "1c90f777a7f41d6a3e2bb5ccfc3b6825231dfced4092f493e6c738c61987fe53"
+        },
+        "rage": {
+          "transport": "qr",
+          "caller": "rage 0.12.1",
+          "fixture": "disposable_data_only",
+          "pairing_origin": "retained_android_usb_pairing_explicit_qr_transport",
+          "cases": [
+            {
+              "case": "native_cancel_then_desktop_scan_end",
+              "exit_code": 1,
+              "elapsed_seconds": 300.096,
+              "human_native_cancellation": "y",
+              "no_plaintext": true,
+              "harness_forced_termination": false,
+              "passed": true
+            },
+            {
+              "case": "fresh_approval_after_qr_cancellation",
+              "exit_code": 0,
+              "data_matches": true,
+              "fresh_verification": "y",
+              "passed": true
+            }
+          ],
+          "raw_result_sha256": "0bc624cda23659d79cb59f93bea1fc1d71617657545ea07cf8a7c6743798e2d3"
+        }
+      },
+      "temporary_plaintext_directories_after_test": 0,
+      "age_recovery_scope": "separate_run_with_new_ciphertext_after_user_interrupted_harness",
+      "pairing_origin": "retained_android_usb_pairing_explicit_qr_transport"
     }
   },
   "physical_phone_verification": "android_adb_and_iphone_wifi_each_three_fresh_native_approvals_user_confirmed",

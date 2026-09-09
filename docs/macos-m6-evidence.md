@@ -68,6 +68,7 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Android USB natural timeout | 60.383-second automatic failure, no plaintext, clean rules and new verification afterward pass |
 | Caller/plugin process-tree termination | SIGKILL while approval pending passes no-plaintext, prompt-close, cleanup and fresh retry checks |
 | ADB service restart | Ordered restart passes no-plaintext, prompt-close, cleanup and fresh retry; initial immediate-start error retained below |
+| Android QR native cancellation and recovery | age/rage cancellation and natural timeout without plaintext pass; fresh fingerprint recovery passes, age recovery used a separate run/new ciphertext |
 | iPhone QR native cancellation and recovery | age/rage: user cancellation, natural scan timeout without plaintext, fresh Face ID recovery pass |
 | Wi-Fi multihoming, interface changes, ambiguity and permission errors | Logic tests pass; applicable physical combinations pending |
 | Built-in/UVC cameras; first allow, deny, revoke and occupied camera | Pending caller-specific physical tests |
@@ -409,3 +410,20 @@ next request recovered the exact temporary input with new Face ID confirmed by
 the user. Temporary plaintext was removed. Both reference callers now have this
 negative QR case on the original installed candidate; permission and other
 lifecycle cases remain open.
+
+## Android QR native cancellation and recovery
+
+On 2026-09-10, the original installed candidate used the retained Android USB
+pairing with QR explicitly selected. The revoked/deleted Android QR pairing was
+not reused. With age 1.3.2, the user confirmed native fingerprint cancellation
+without a response QR; the client exited 1 after 300.091 seconds without plaintext
+or harness termination. The user then interrupted the harness. A separate recovery
+run generated new disposable ciphertext and decrypted it successfully with a fresh
+fingerprint confirmed immediately. This establishes a later new request succeeds,
+not same-ciphertext recovery in the interrupted age run.
+
+With rage 0.12.1, native cancellation likewise produced no plaintext and a natural
+client failure after 300.096 seconds. The subsequent request in that same run
+recovered the exact input with fresh fingerprint verification confirmed by the
+user. No temporary plaintext directories remained. These are QR cancellation and
+scan-deadline results; permission and other lifecycle gates remain open.
