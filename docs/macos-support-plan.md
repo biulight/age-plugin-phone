@@ -5,7 +5,7 @@
 本轮真机验收使用用户确认可用的 StrongBox Android，以及 iPhone 15 Pro（iOS 26.6.1）。
 Android ADB 与 iPhone 前台 Wi-Fi 已分别通过 age / rage 的配对、独立原生验证、取消无明文和取消后重试；
 两类手机的 age/rage QR 成功解密与逐次原生验证也已通过；Android QR 已确认使用 Mac 内建摄像头。
-iPhone QR 已通过 age 原生取消、桌面自然扫描超时无明文及新的 Face ID 恢复验证。
+iPhone QR 已通过 age/rage 原生取消、桌面自然扫描超时无明文及新的 Face ID 恢复验证。
 Android Wi-Fi 间歇发现失败尚未定位；其余 QR 负面/权限、GUI 调用及其余生命周期矩阵仍待完成。
 Android USB 拔线、自然超时、调用进程树终止，以及等待旧请求退出后的 ADB 服务重启均已通过无明文、清理和新验证恢复检查；立即启动 ADB 的首次失败记录仍保留。
 独立恢复的六项 age/rage 测试已通过，见 M6 记录。
