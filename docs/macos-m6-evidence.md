@@ -599,3 +599,19 @@ This closes this artifact pair's foreground Wi-Fi unwrap matrix. Earlier failure
 recorded; the result does not establish the cause of every historical loss or cover interface
 changes, GUI permissions, background operation, other devices, or the new Cargo-installed
 release artifact. The M2 rollback gate remains open.
+
+### Cargo installation revalidated after network correction
+
+The four detached crate archives passed their locked tests and isolated sparse-registry
+`cargo +1.88.0 install --locked` completed. Archive source bytes and locked dependency versions
+were checked by the rehearsal. Source provenance binds the current `a78a8cd` inputs; desktop
+crate implementation is unchanged since `c9c2a3f`. The installed binary SHA-256 is
+`078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd`.
+
+It reopened both original M5 and previous-final synthetic hardware fixtures, rejected their
+consumed replay digest, and preserved all fixture file hashes/modes. The public age/rage
+interoperability harness passed 12 independent recoveries and two expected recipient
+rejections. This is commit-to-commit continuity, not a published-version upgrade or a repeat
+of the full uninstall/reinstall lifecycle. Native-only ignored tests are not counted as passes.
+The exact installed artifact still needs user-operated phone acceptance; the debug candidate's
+eight successful Wi-Fi cases are recorded separately.
