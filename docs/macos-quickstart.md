@@ -55,12 +55,13 @@ unavailable. A successful Terminal flow does not establish GUI camera/network ac
 
 ## Exercise standard age and recovery
 
-Use the public identity file returned by setup as the recipient input for encryption
-and the identity input for decryption. Include an independently verified recovery
-recipient when encrypting the disposable acceptance file:
+Use the `recipient` returned by setup with `-r` for encryption, and its
+`identity_path` with `-i` for decryption. The identity file is not a recipient list
+for `-R`. Include an independently verified recovery recipient when encrypting the
+disposable acceptance file:
 
 ```console
-age -R /absolute/path/to/identity.txt -r RECOVERY_RECIPIENT -o example.age example.txt
+age -r PHONE_RECIPIENT -r RECOVERY_RECIPIENT -o example.age example.txt
 age -d -i /absolute/path/to/identity.txt -o recovered.txt example.age
 ```
 
