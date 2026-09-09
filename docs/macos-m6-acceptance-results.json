@@ -254,7 +254,7 @@
       "raw_result_sha256": "ca28a9ee8e835460050673811c215205e3eaca3f7418e60c0a9b1b7bde09eb19"
     }
   },
-  "physical_phone_verification": "android_adb_three_fresh_biometric_approvals_user_confirmed",
+  "physical_phone_verification": "android_adb_and_iphone_wifi_each_three_fresh_native_approvals_user_confirmed",
   "gui_network_camera_permissions": "not_tested",
   "published_version_upgrade": "not_tested",
   "support_claim": "experimental_incomplete",
@@ -307,6 +307,42 @@
     "codesign_deep_strict": "passed_with_host_trust_service",
     "installation": "passed_in_place_no_uninstall",
     "launch": "passed",
-    "physical_pairing_and_unwrap_acceptance": "not_performed"
+    "physical_pairing_and_unwrap_acceptance": "wifi_four_checks_and_user_confirmed_fresh_face_id_passed",
+    "macos_wifi_acceptance": {
+      "caller": "age 1.3.2",
+      "transport": "wifi",
+      "synthetic_data_only": true,
+      "human_native_observation": "user_confirmed_three_new_face_id_verifications_and_deliberate_cancellation",
+      "phases": [
+        {
+          "phase": "first_approval",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": "second_fresh_approval",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": "native_cancellation",
+          "exit_code": 1,
+          "passed": true
+        },
+        {
+          "phase": "approval_after_cancellation",
+          "exit_code": 0,
+          "passed": true
+        }
+      ],
+      "terminal": "Ghostty_user_operated",
+      "desktop_source_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+      "desktop_binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+      "pairing": "user_reported_success_and_setup_exit_zero_identity_reference_created",
+      "cancellation": "nonzero_client_exit_and_no_plaintext_output",
+      "temporary_plaintext_directories_after_test": 0,
+      "harness_sha256": "bb9c57db84bffd1dbe38ddf28f71ca4084c79503c6d37d2de63617618a4c007a",
+      "raw_result_sha256": "79f0a21c6c4c4291d06643ae7d367c33f42c63d8c702a88bb74a7397714f82b2"
+    }
   }
 }

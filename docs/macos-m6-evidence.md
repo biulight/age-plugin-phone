@@ -60,7 +60,7 @@ pairing revoked, phone verification automated or real plaintext processed.
 | --- | --- |
 | M2 same-Mac valid-state rollback | Open; retain original requirement until solution/reviewed decision |
 | Exact final archive and installed digest | Passed for `cc7e120`; digest below |
-| Terminal → age/rage → installed plugin | Public synthetic matrix passes; Ghostty → age 1.3.2 → Android ADB passes; real rage flow pending |
+| Terminal → age/rage → installed plugin | Public synthetic matrix passes; Ghostty → age 1.3.2 → Android ADB and iPhone Wi-Fi data checks pass; real rage flow pending |
 | GUI application → age → installed plugin | Pending; Terminal permissions do not establish GUI permissions |
 | Android ADB pairing and two separate successful unwraps | User-operated setup and two independent decryptions pass; user confirms fresh native verification for every approval |
 | Cancellation and subsequent success | Android ADB cancellation returns failure without plaintext; subsequent fresh approval succeeds |
@@ -69,7 +69,7 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Built-in/UVC cameras; first allow, deny, revoke and occupied camera | Pending caller-specific physical tests |
 | Revocation, interrupted cleanup and independent recovery drill | Synthetic cleanup passes; human/native endpoint-loss drill pending |
 | Published-version upgrade/downgrade | Not tested by same-source rebuild or commit-to-commit continuity |
-| iPhone | iPhone 15 Pro / iOS 26.6.1; debug build 0.1.0.4 installed and launched; separate Wi-Fi/QR acceptance pending |
+| iPhone | iPhone 15 Pro / iOS 26.6.1; debug build 0.1.0.4 Wi-Fi pairing and four data checks pass; three fresh Face ID approvals and deliberate cancellation confirmed by user; QR untested |
 | Wrong Mac, other OS, Intel/T2 | Deferred/unverified; not part of the current host/Android acceptance claim |
 
 The [source quick start](macos-quickstart.md) provides the human-operated path.
@@ -175,3 +175,19 @@ the identity file to `-R`. Those failed before pairing state creation and before
 unwrap respectively; neither is counted as a successful protocol test.
 This row does not establish Wi-Fi, QR, GUI caller, timeout, unplug or replay-rollback
 acceptance. Those gates remain separate.
+
+## iPhone Wi-Fi pairing and unwrap acceptance
+
+The user completed Wi-Fi pairing from Ghostty with the installed `cc7e120`
+Mac candidate and iPhone development build `0.1.0.4`. Setup exited zero and
+created the identity reference. With foreground Wi-Fi auto-listen, age 1.3.2
+passed two independent decryptions, rejected a cancelled request with exit 1
+and no plaintext output, then successfully decrypted on a new request.
+All successful outputs matched the random disposable input. No temporary
+plaintext directory remained. Script and result hashes are recorded separately
+from the Android ADB run.
+
+The user explicitly confirmed three new Face ID verifications and deliberate
+cancellation of the third test. The four client/data checks and this human/native
+observation pass. QR, background operation, camera/network permission cases and
+other callers are not established by this foreground Wi-Fi run.
