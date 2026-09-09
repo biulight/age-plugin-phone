@@ -1173,5 +1173,101 @@
     },
     "root_cause": "unresolved",
     "diagnostic_limit": "Python_comparison_is_separate_from_production_routing_and_continues_counting_send_errors; does_not_change_product_behavior"
+  },
+  "wifi_route_attribution_20260910": {
+    "routes": [
+      {
+        "target": "subnet_feth4032",
+        "route_exit": 0,
+        "interface": "feth4032"
+      },
+      {
+        "target": "subnet_en13",
+        "route_exit": 0,
+        "interface": "en0"
+      },
+      {
+        "target": "phone_unicast",
+        "route_exit": 0,
+        "interface": "en0"
+      },
+      {
+        "target": "subnet_en0",
+        "route_exit": 0,
+        "interface": "en0"
+      },
+      {
+        "target": "limited_broadcast",
+        "route_exit": 0,
+        "interface": "en0"
+      }
+    ],
+    "user_reported_mac_proxy": "Surge_system_proxy",
+    "scope": "diagnostic_only_no_stream_or_unwrap_no_route_policy_change",
+    "interface_filter": "UP_RUNNING_BROADCAST_without_LOOPBACK_POINTOPOINT",
+    "deadline_seconds": 3,
+    "retry_interval_seconds": 0.2,
+    "runs": [
+      {
+        "mode": "broadcast",
+        "target_count": 4,
+        "first_authenticated_response_seconds": null,
+        "valid_responses": 0,
+        "invalid_responses": 0,
+        "send_errors": 0,
+        "send_error_codes": {},
+        "target_errors": {}
+      },
+      {
+        "mode": "unicast",
+        "target_count": 1,
+        "first_authenticated_response_seconds": 0.32,
+        "valid_responses": 15,
+        "invalid_responses": 0,
+        "send_errors": 0,
+        "send_error_codes": {},
+        "target_errors": {}
+      },
+      {
+        "mode": "broadcast",
+        "target_count": 4,
+        "first_authenticated_response_seconds": 0.276,
+        "valid_responses": 29,
+        "invalid_responses": 0,
+        "send_errors": 4,
+        "send_error_codes": {
+          "65": 1,
+          "64": 3
+        },
+        "target_errors": {
+          "subnet_en13": {
+            "65": 1,
+            "64": 3
+          }
+        }
+      },
+      {
+        "mode": "unicast",
+        "target_count": 1,
+        "first_authenticated_response_seconds": 0.271,
+        "valid_responses": 15,
+        "invalid_responses": 0,
+        "send_errors": 0,
+        "send_error_codes": {},
+        "target_errors": {}
+      }
+    ],
+    "raw_result_sha256": "9ab86c7a12bda4babad431559cf38ea51131462515731cd6a9bf35e93de25618",
+    "user_reported_network_software": [
+      "Surge_system_proxy",
+      "ZeroTier_virtual_network"
+    ],
+    "observed_system_proxy_flags": {
+      "HTTPEnable": 1,
+      "HTTPSEnable": 1,
+      "SOCKSEnable": 1
+    },
+    "zerotier_interface_attribution": "not_confirmed_cli_listnetworks_exit_2",
+    "network_settings_changed": false
   }
 }

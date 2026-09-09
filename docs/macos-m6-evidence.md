@@ -458,3 +458,24 @@ not evidence of a phone signature failure; the affected route is not yet
 identified. Synthetic checks of the temporary diagnostic verifier accepted a
 valid response and rejected truncation, a different query, high-S and a wrong
 signing key. No product code or timeout was changed.
+
+## Virtual-network route attribution
+
+The user reported Surge with system proxy enabled and ZeroTier virtual networking
+on the Mac. Read-only inspection confirmed HTTP, HTTPS and SOCKS proxy flags; it
+does not establish TUN interception. Network settings were not changed.
+A route-attributed discovery-only diagnostic observed the broadcast target derived
+from en13 routing through en0 (Wi-Fi), while the phone unicast, Wi-Fi subnet
+broadcast and limited broadcast also used en0. Another subnet target routed through
+feth4032. The run recorded one broadcast query with no authenticated response and
+no send errors, followed by successful phone unicast at 0.320 seconds. A later
+broadcast received a valid response at 0.276 seconds but counted EHOSTUNREACH once
+and EHOSTDOWN three times, all for the en13-derived target; the next unicast
+succeeded at 0.271 seconds. These are distinct observations: route errors do not
+by themselves explain the no-response run.
+
+The ZeroTier CLI was available but its read-only network query exited 2; en13
+ownership is therefore not confirmed. A controlled comparison with ZeroTier
+paused and Surge unchanged remains pending. No addresses, network identifiers,
+credentials or discovery payloads were retained in the evidence. The diagnostic
+continues counting send errors and is not a product routing or fallback change.
