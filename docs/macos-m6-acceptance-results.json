@@ -363,6 +363,31 @@
       ],
       "failure": "second_request_discovery_failure_before_unwrap",
       "root_cause": "unresolved"
+    },
+    "macos_wifi_rage_diagnostic_run": {
+      "caller": "rage 0.12.1",
+      "transport": "wifi",
+      "synthetic_data_only": true,
+      "human_native_observation": "user_confirmed_two_new_native_fingerprint_verifications",
+      "phases": [
+        {
+          "phase": "first_approval",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": "second_fresh_approval",
+          "exit_code": 0,
+          "passed": true
+        }
+      ],
+      "build": {
+        "source_commit": "1b8041c",
+        "binary_sha256": "b24b3b224eee1082ffcce6bfd6bb4dfc1d8af75395b31dbd490670ec969163eb",
+        "scope": "diagnostic_build_not_original_installed_candidate"
+      },
+      "original_candidate_failure": "not_resolved_by_this_success",
+      "raw_result_sha256": "8643ce61ddfa63acd6b228fb8144eef2b1a0413f6aaa705d6576276b522d8cdb"
     }
   },
   "physical_phone_verification": "android_adb_and_iphone_wifi_each_three_fresh_native_approvals_user_confirmed",

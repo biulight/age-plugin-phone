@@ -231,3 +231,13 @@ runs three fresh authenticated queries using only a public identity reference;
 it opens no stream, performs no identity operation, and outputs no addresses,
 identifiers or protocol payloads. Mac fmt, all-target workspace Clippy and locked
 workspace tests passed for the diagnostic change.
+
+## Diagnostic-build comparison
+
+A separate debug build at `1b8041c` (SHA-256
+`b24b3b224eee1082ffcce6bfd6bb4dfc1d8af75395b31dbd490670ec969163eb`)
+passed two consecutive rage/Android Wi-Fi decryptions. The user confirmed a new
+native fingerprint verification for each. This build changes only discovery error
+reporting and adds the independent probe; no listener fix was implemented.
+Its success therefore does not close the intermittent failure on the original
+installed `cc7e120` release artifact. The original candidate remains unchanged.
