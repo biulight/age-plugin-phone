@@ -67,7 +67,8 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Timeout, unplug, daemon/process interruption | New Mac/Android physical evidence pending |
 | Wi-Fi multihoming, interface changes, ambiguity and permission errors | Logic tests pass; applicable physical combinations pending |
 | Built-in/UVC cameras; first allow, deny, revoke and occupied camera | Pending caller-specific physical tests |
-| Revocation, interrupted cleanup and independent recovery drill | Synthetic cleanup passes; human/native endpoint-loss drill pending |
+| Independent recovery drill | Six age/rage cases pass with the phone plugin and desktop state unavailable |
+| Revocation and interrupted cleanup | Synthetic cleanup passes; human/native lifecycle drill pending |
 | Published-version upgrade/downgrade | Not tested by same-source rebuild or commit-to-commit continuity |
 | iPhone | iPhone 15 Pro / iOS 26.6.1; debug build 0.1.0.4 Wi-Fi pairing and four data checks pass; three fresh Face ID approvals and deliberate cancellation confirmed by user; QR untested |
 | Wrong Mac, other OS, Intel/T2 | Deferred/unverified; not part of the current host/Android acceptance claim |
@@ -250,3 +251,24 @@ whether listener re-arming, phone lifecycle, signing or network delivery caused 
 Later read-only Android inspection found both fixed listening ports and the app
 foregrounded. The socket inspection also reports a permission warning, so missing
 port visibility alone must not be treated as definitive proof of a closed socket.
+
+## Successful sampled run and independent recovery
+
+The original candidate passed two rage/Android Wi-Fi requests during coarse ADB
+status sampling. All 14 samples reported the app foregrounded. Listening ports
+were visible at 6.966 seconds, about 0.160 seconds after the first client exit;
+the next request began 2.253 seconds after that exit. Port presence sampling is
+not continuous and has a permission warning. This successful, instrumented run
+does not diagnose prior failures; sampling itself may affect timing. Native prompt
+observation for this particular run has not been separately confirmed.
+
+Six independent recovery cases passed: age 1.3.2 and rage 0.12.1 each encrypted
+0, 128 and 65,537 disposable bytes to both existing phone recipients plus a newly
+generated independent test recovery recipient. Recovery used only that test
+identity, with unavailable desktop state and a guard executable that would fail
+and record any phone-plugin invocation. No guard was invoked; every recovered
+output matched exactly. Temporary recovery keys, plaintext and ciphertext were
+removed. This simulates unavailable primary endpoints without deleting user keys;
+it does not establish revocation, native destructive cleanup or re-encryption
+through a replacement pairing. Empty output was captured to a file by the harness
+because rage may not create an `-o` file for an empty plaintext.

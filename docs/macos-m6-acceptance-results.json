@@ -412,6 +412,33 @@
         "one_authenticated_listener"
       ],
       "root_cause": "undetermined_transient_discovery_outage_observed"
+    },
+    "macos_wifi_rage_timeline_run": {
+      "caller": "rage 0.12.1",
+      "transport": "wifi",
+      "synthetic_data_only": true,
+      "human_native_observation": "requires_user_report",
+      "phases": [
+        {
+          "phase": "first_approval",
+          "exit_code": 0,
+          "passed": true,
+          "request_started_seconds": 1.33,
+          "request_finished_seconds": 6.806
+        },
+        {
+          "phase": "second_fresh_approval",
+          "exit_code": 0,
+          "passed": true,
+          "request_started_seconds": 9.059,
+          "request_finished_seconds": 15.781
+        }
+      ],
+      "foreground_samples": "all_14_samples_foreground",
+      "listener_reappearance_seconds_after_first_client_exit": 0.16,
+      "second_request_gap_seconds": 2.253,
+      "sampling_limit": "one_second_sampling_with_socket_permission_warning; not_a_failure_capture",
+      "timeline_sha256": "8e244f6fa76e910427c2e3b724eff951ecf6a54a810d4bab4cbd1b2e14c8be5d"
     }
   },
   "physical_phone_verification": "android_adb_and_iphone_wifi_each_three_fresh_native_approvals_user_confirmed",
@@ -553,5 +580,56 @@
       "one_authenticated_listener"
     ],
     "inference": "later_availability_does_not_explain_prior_failure"
+  },
+  "independent_recovery_drill": {
+    "scope": "disposable_independent_recovery_identity_only_no_phone_or_desktop_key_operation",
+    "phone_recipients": "existing_android_wifi_and_iphone_wifi_pairings",
+    "primary_plugin_unavailable": "guard_would_fail_and_mark_any_invocation",
+    "cases": [
+      {
+        "client": "age",
+        "input_bytes": 0,
+        "recipients": 3,
+        "recovery_passed": true,
+        "phone_plugin_invoked_for_recovery": false
+      },
+      {
+        "client": "age",
+        "input_bytes": 128,
+        "recipients": 3,
+        "recovery_passed": true,
+        "phone_plugin_invoked_for_recovery": false
+      },
+      {
+        "client": "age",
+        "input_bytes": 65537,
+        "recipients": 3,
+        "recovery_passed": true,
+        "phone_plugin_invoked_for_recovery": false
+      },
+      {
+        "client": "rage",
+        "input_bytes": 0,
+        "recipients": 3,
+        "recovery_passed": true,
+        "phone_plugin_invoked_for_recovery": false
+      },
+      {
+        "client": "rage",
+        "input_bytes": 128,
+        "recipients": 3,
+        "recovery_passed": true,
+        "phone_plugin_invoked_for_recovery": false
+      },
+      {
+        "client": "rage",
+        "input_bytes": 65537,
+        "recipients": 3,
+        "recovery_passed": true,
+        "phone_plugin_invoked_for_recovery": false
+      }
+    ],
+    "temporary_keys_plaintext_ciphertext_removed": true,
+    "output_capture": "stdout_to_temporary_file_including_empty_input"
   }
 }
