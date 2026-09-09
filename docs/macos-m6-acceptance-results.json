@@ -630,6 +630,32 @@
       ],
       "raw_result_sha256": "0e5e11e12cc7493ad5b6c297ac1d1136678f5d8ce0bdf0e38a2b80991c2f66ed",
       "temporary_plaintext_directories_after_test": 0
+    },
+    "macos_adb_daemon_restart_initial_attempt": {
+      "transport": "adb",
+      "caller": "age 1.3.2",
+      "fixture": "disposable_data_only",
+      "interruption_scope": "local_adb_server_restart",
+      "cases": [
+        {
+          "case": "adb_service_restart",
+          "restart_exit_codes": [
+            0,
+            255
+          ],
+          "exit_code": 1,
+          "pending_prompt_confirmed": "y",
+          "running_before_kill": true,
+          "no_plaintext": true,
+          "reverse_rules_empty": true,
+          "prompt_closed": "y",
+          "passed": false
+        }
+      ],
+      "raw_result_sha256": "35b338d4a89089a6e66375ae22ac2fc97e217eabd00084ba5b7f94d6dbcfc2d3",
+      "overall_acceptance": "incomplete_start_server_exit_255_fresh_retry_not_reached",
+      "cause": "undetermined",
+      "followup_device_state": "device"
     }
   },
   "physical_phone_verification": "android_adb_and_iphone_wifi_each_three_fresh_native_approvals_user_confirmed",

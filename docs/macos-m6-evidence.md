@@ -67,7 +67,7 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Android USB unplug/reconnect | Pending approval interrupted, no plaintext; rules empty on reconnect; fresh approval succeeds |
 | Android USB natural timeout | 60.383-second automatic failure, no plaintext, clean rules and new verification afterward pass |
 | Caller/plugin process-tree termination | SIGKILL while approval pending passes no-plaintext, prompt-close, cleanup and fresh retry checks |
-| ADB service restart | Physical evidence pending |
+| ADB service restart | Initial attempt: safe request failure and cleanup; start-server exited 255, fresh retry not reached |
 | Wi-Fi multihoming, interface changes, ambiguity and permission errors | Logic tests pass; applicable physical combinations pending |
 | Built-in/UVC cameras; first allow, deny, revoke and occupied camera | Pending caller-specific physical tests |
 | Independent recovery drill | Six age/rage cases pass with the phone plugin and desktop state unavailable |
@@ -363,3 +363,14 @@ empty. A new request then decrypted successfully with a fresh fingerprint
 verification confirmed by the user; its rules were also cleaned. The independent
 cleanup guardian was outside the killed group. This tests caller/plugin tree
 termination, not ADB service restart. Temporary plaintext was removed.
+
+## Android ADB service restart: incomplete initial attempt
+
+The user confirmed a pending, unapproved fingerprint prompt before the harness
+stopped and immediately restarted the local ADB server. `kill-server` exited 0,
+but `start-server` exited 255. The old age request exited 1 with no plaintext;
+the user confirmed automatic prompt closure and the reverse-rule list was empty.
+The harness correctly stopped before its fresh-approval recovery case. A later
+connection check reported the selected device online. The startup error was not
+retained by the initial harness, so its cause is undetermined; concurrent cleanup
+is only a hypothesis. This attempt does not pass the service-restart gate.
