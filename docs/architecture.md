@@ -79,7 +79,14 @@ path layout, replay policy and guard invalidation stay in their business layers.
 `platform-storage::windows::network` is a separately named IPv4 enumeration helper.
 The public vectors are packaged solely in `crates/core/test-vectors`. Desktop and
 core forbid unsafe code; platform FFI remains subject to `unsafe_op_in_unsafe_fn`.
-No macOS hardware-key backend is implemented by this refactor.
+The subsequent macOS PR 2 adds a CryptoKit Secure Enclave backend in platform keys:
+separate operation wrappers, a statically compiled Swift bridge, and signed `APSE2`
+metadata owned by desktop. Reopening verifies both references, public keys, desktop ID
+binding and private operations; `APDK2` software state is rejected on macOS. Unit fixtures
+use test-only software keys. No ordinary feature or environment variable enables a
+macOS software fallback. Storage hardening and setup/lifecycle integration remain
+subsequent stages; this is not a complete macOS support declaration.
+See [the M1 implementation record](macos-m1-evidence.md).
 
 ## Pairing and replay state
 

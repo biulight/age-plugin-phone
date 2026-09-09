@@ -4,6 +4,13 @@ Date: 2026-09-09. Status: **current-host M0 feasibility verified; product backen
 Scope: PR 1 of the [macOS support plan](../macos-support-plan.md). This does not
 enable macOS product pairing or change protocol v2, Windows, or phone authorization.
 
+## PR 2 implementation follow-up
+
+The product operation bridge and signed `APSE2` metadata are now implemented; see
+[the M1 record](../macos-m1-evidence.md). The M0 decisions/evidence below remain the
+historical feasibility input. PR 2 does not close PR 3 storage/rollback or PR 4/5
+lifecycle gates and does not expand the validated hardware/OS matrix.
+
 ## Decisions and proposed contract
 
 - Current M0 validation is scoped by the user to `MacBookPro18,3`, arm64, macOS
