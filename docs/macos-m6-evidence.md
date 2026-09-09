@@ -68,7 +68,7 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Built-in/UVC cameras; first allow, deny, revoke and occupied camera | Pending caller-specific physical tests |
 | Revocation, interrupted cleanup and independent recovery drill | Synthetic cleanup passes; human/native endpoint-loss drill pending |
 | Published-version upgrade/downgrade | Not tested by same-source rebuild or commit-to-commit continuity |
-| iPhone | User offers iPhone 15 Pro / iOS 26.6.1; app reinstall and separate Wi-Fi/QR acceptance pending |
+| iPhone | iPhone 15 Pro / iOS 26.6.1; debug build 0.1.0.4 installed and launched; separate Wi-Fi/QR acceptance pending |
 | Wrong Mac, other OS, Intel/T2 | Deferred/unverified; not part of the current host/Android acceptance claim |
 
 The [source quick start](macos-quickstart.md) provides the human-operated path.
@@ -131,3 +131,18 @@ support. The executable SHA-256 was
 No Windows/phone integration was performed. Mac workspace fmt, Clippy and tests
 also passed after these annotation changes; the previously installed Mac candidate
 and its historical archive evidence remain identified separately above.
+
+## iPhone application preparation
+
+The paired iPhone 15 Pro (user-reported iOS 26.6.1) previously had build `0.1.0.3`.
+Source `7d02d74` built an arm64 debug IPA using the existing local Apple Development
+identity. The signing team was supplied only through the environment; credentials
+and provisioning configuration are not committed. The IPA SHA-256 is
+`e74c0761839b4c2ed10afb8bca3ff839a00bed0d58b95080e561ebe7b50bf09c`.
+
+`codesign --verify --deep --strict` passed with access to the host trust service
+(the sandbox-only attempt could not establish trust). CoreDevice installed the app
+in place, reported version `0.1.0` / build `0.1.0.4`, and successfully launched it.
+There was no uninstall, identity replacement or automated native authorization.
+This establishes local development installation only; it is not distribution,
+Secure Enclave identity use, pairing, Wi-Fi/QR or Face ID acceptance evidence.

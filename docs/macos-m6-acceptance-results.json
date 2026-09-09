@@ -257,8 +257,19 @@
   "iphone": {
     "model": "iPhone 15 Pro",
     "os": "26.6.1",
-    "source": "user_report",
-    "application": "reinstallation_pending",
-    "physical_acceptance": "not_performed"
+    "os_source": "user_report",
+    "device_detection": "paired_physical_device",
+    "bundle_identifier": "io.github.biulight.age-plugin-phone",
+    "prior_build": "0.1.0.3",
+    "installed_version": "0.1.0",
+    "installed_build": "0.1.0.4",
+    "source_commit": "7d02d74",
+    "build": "debug_arm64_local_apple_development_signing",
+    "ipa_sha256": "e74c0761839b4c2ed10afb8bca3ff839a00bed0d58b95080e561ebe7b50bf09c",
+    "executable_sha256": "2fe6e62c06b2c6ac24af9022f1910f8fe5fdc3aa4bec55ace2254e1c840083ea",
+    "codesign_deep_strict": "passed_with_host_trust_service",
+    "installation": "passed_in_place_no_uninstall",
+    "launch": "passed",
+    "physical_pairing_and_unwrap_acceptance": "not_performed"
   }
 }
