@@ -7,6 +7,11 @@ on:
         description: Full immutable candidate commit SHA; must equal the workflow checkout
         required: true
         type: string
+      acceptance_only:
+        description: Build only the signed Android acceptance APK; no tag or release
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -23,11 +28,23 @@ jobs:
         name: Validate immutable candidate and release version
         env:
           EXPECTED_COMMIT: ${{ inputs.expected_commit }}
+          ACCEPTANCE_ONLY: ${{ inputs.acceptance_only }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           [[ "$EXPECTED_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+          test "$EXPECTED_COMMIT" = "$GITHUB_SHA"
+          case "$ACCEPTANCE_ONLY" in
+            true|false) ;;
+            *) echo "::error::Invalid acceptance-only mode"; exit 1 ;;
+          esac
           version="$(scripts/check-release-version.sh)"
+          if [[ "$ACCEPTANCE_ONLY" == true ]]; then
+            printf 'release_version=%s\n' "$version" >> "$GITHUB_OUTPUT"
+            printf 'candidate_commit=%s\n' "$GITHUB_SHA" >> "$GITHUB_OUTPUT"
+            echo 'Android acceptance artifact only; no tag or release will be created.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
           tag="v$version"
           tag_exists=false
           if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null; then
@@ -51,6 +68,7 @@ jobs:
           printf 'candidate_commit=%s\n' "$GITHUB_SHA" >> "$GITHUB_OUTPUT"
 
   windows:
+    if: ${{ !inputs.acceptance_only }}
     needs: metadata
     runs-on: windows-latest
     environment: alpha-release
@@ -396,7 +414,7 @@ jobs:
           cp "$evidence" "$artifact_dir/age-plugin-phone-$RELEASE_VERSION-android-signature-verification.txt"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: age-plugin-phone-${{ needs.metadata.outputs.release_version }}-android-alpha
+          name: age-plugin-phone-${{ needs.metadata.outputs.release_version }}-android-${{ inputs.acceptance_only && 'acceptance' || 'alpha' }}
           if-no-files-found: error
           path: ${{ runner.temp }}/alpha-release-artifact/*
           retention-days: 30
@@ -405,6 +423,7 @@ jobs:
         run: rm -f "$RUNNER_TEMP/alpha-release.p12"
 
   publish:
+    if: ${{ !inputs.acceptance_only }}
     needs: [metadata, windows, android]
     runs-on: ubuntu-latest
     environment: alpha-release-publish
