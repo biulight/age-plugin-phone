@@ -61,7 +61,7 @@ pairing revoked, phone verification automated or real plaintext processed.
 | M2 same-Mac valid-state rollback | Open; retain original requirement until solution/reviewed decision |
 | Exact final archive and installed digest | Passed for `cc7e120`; new Mac network candidate requires archive/install revalidation |
 | Terminal → age/rage → installed plugin | Public synthetic matrix passes; Ghostty → age 1.3.2 / rage 0.12.1 → Android ADB and iPhone Wi-Fi pass, including fresh native approvals and cancellation |
-| GUI application → age → installed plugin | Pending; Terminal permissions do not establish GUI permissions |
+| GUI application → age → installed plugin | Deferred by user on 2026-09-10; outside current CLI acceptance, not passed |
 | Android ADB pairing and two separate successful unwraps | User-operated setup and two independent decryptions pass; user confirms fresh native verification for every approval |
 | Cancellation and subsequent success | Android ADB cancellation returns failure without plaintext; subsequent fresh approval succeeds |
 | Android USB unplug/reconnect | Pending approval interrupted, no plaintext; rules empty on reconnect; fresh approval succeeds |
@@ -640,3 +640,12 @@ and harness digests are retained in the JSON evidence, and no temporary plaintex
 remains. Surge and ZeroTier stayed enabled. This closes the installed artifact's two-phone
 foreground Wi-Fi roundtrip matrices; GUI permissions, other transport rows and M2 remain
 separate open gates.
+
+### GUI caller acceptance deferred by user
+
+On 2026-09-10 the user explicitly deferred GUI testing because there is no current GUI
+use case. This includes GUI caller network, camera and hardware-key access attribution.
+It is outside the current terminal CLI acceptance scope, not a passing result or a GUI
+support claim. No GUI harness was created or run. Shine was inspected read-only: it is a
+CLI that invokes age, so running it from a terminal does not itself establish a GUI caller.
+The deferral does not weaken M2 rollback requirements or remaining terminal safety gates.

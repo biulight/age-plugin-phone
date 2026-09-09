@@ -1926,5 +1926,20 @@
       "harness_sha256": "6ec2e5585fb69e41f72697809aa1f1da4358f27646a46017252dd107643ab883",
       "temporary_plaintext_directories_remaining": 0
     }
+  },
+  "scope_decisions": {
+    "gui_caller_acceptance": {
+      "date": "2026-09-10",
+      "status": "deferred_by_user_not_passed",
+      "reason": "no_current_GUI_use_case",
+      "scope": [
+        "GUI_network_permissions",
+        "GUI_camera_permissions",
+        "GUI_hardware_key_access"
+      ],
+      "blocks_current_terminal_cli_acceptance": false,
+      "supports_gui_claim": false,
+      "m2_rollback_requirement": "unchanged"
+    }
   }
 }

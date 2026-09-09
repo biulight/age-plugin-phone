@@ -6,11 +6,11 @@
 Android ADB 与 iPhone 前台 Wi-Fi 已分别通过 age / rage 的配对、独立原生验证、取消无明文和取消后重试；
 两类手机的 age/rage QR 成功解密与逐次原生验证也已通过；Android QR 已确认使用 Mac 内建摄像头。
 两类手机 QR 均已通过 age/rage 原生取消、桌面自然扫描超时无明文及新的原生验证恢复检查；Android age 的恢复使用中断后的独立新密文测试。
-Android Wi-Fi 已定位 macOS 短掩码被误拒导致有效网卡全部遗漏的缺陷；已修正解析、按源接口发送及接收轮转，ZeroTier/Surge 保持开启，Mac 修复候选配合原签名更新后的 Android 已通过 age/rage 各四项批准、取消和恢复检查：六次批准均由用户即时确认新原生指纹，两次主动取消无明文。新版四 crate Cargo 归档、Rust 1.88 锁定安装、原硬件状态延续及安装版 Android 与 iPhone Wi-Fi 各八项真机矩阵也已通过；六次新指纹和六次新 Face ID 均有即时确认。其余传输/调用者组合继续分别验收。其余 QR 负面/权限、GUI 调用及其余生命周期矩阵仍待完成。
+Android Wi-Fi 已定位 macOS 短掩码被误拒导致有效网卡全部遗漏的缺陷；已修正解析、按源接口发送及接收轮转，ZeroTier/Surge 保持开启，Mac 修复候选配合原签名更新后的 Android 已通过 age/rage 各四项批准、取消和恢复检查：六次批准均由用户即时确认新原生指纹，两次主动取消无明文。新版四 crate Cargo 归档、Rust 1.88 锁定安装、原硬件状态延续及安装版 Android 与 iPhone Wi-Fi 各八项真机矩阵也已通过；六次新指纹和六次新 Face ID 均有即时确认。其余传输/调用者组合继续分别验收。其余 QR 负面/权限及生命周期矩阵仍待完成；GUI 调用与其权限验收按用户决定延期。
 Android USB 拔线、自然超时、调用进程树终止，以及等待旧请求退出后的 ADB 服务重启均已通过无明文、清理和新验证恢复检查；立即启动 ADB 的首次失败记录仍保留。
 独立恢复的六项 age/rage 测试已通过，见 M6 记录。
 M5 的四 crate 独立归档、Rust 1.88 锁定安装、不同摘要覆盖重建、卸载及重装已通过；
-原硬件引用和已消费 replay 保持不变，发布版本升级与 GUI 调用者仍待验收，见 [M5 记录](macos-m5-evidence.md)。
+原硬件引用和已消费 replay 保持不变，发布版本升级仍待验收，GUI 调用者延期，见 [M5 记录](macos-m5-evidence.md)。
 M4 的多网卡发现、失败处理和只读状态报告已先行实现，
 完整传输/手机/调用者验收仍未完成，见 [M4 记录](macos-m4-evidence.md)。
 PR 2 / M1 已实现双密钥后端与独立硬件 metadata，
@@ -26,6 +26,8 @@ M6 的最终候选 `cc7e120` 已通过四 crate 归档安装、硬件重装延�
 复审发现、手机制品与 age/rage 真机记录、待完成矩阵见 [M6 记录](macos-m6-evidence.md)；
 源码使用步骤见 [macOS quick start](macos-quickstart.md)。M2 [范围决定](macos-replay-decision.md)
 尚未批准，原要求保持有效。
+
+2026-09-10 范围调整：用户当前没有 GUI 调用需求，明确暂不验收 GUI 应用及其网络、摄像头和密钥访问权限。该范围延期、不记通过，也不阻塞当前终端 CLI 验收；不建立 GUI 支持声明。后续恢复 GUI 需求时再完成相应矩阵。此调整不改变 M2 回滚要求或其余终端安全验收。
 
 ## 1. 目标与交付边界
 
@@ -57,7 +59,7 @@ Intel Mac 可以执行公共加密和说明性诊断，但不开放桌面配对/
 | --- | --- |
 | Mac + Android | 具备合格 StrongBox 的真机完成 Wi-Fi、QR、显式 Developer USB 验收 |
 | Mac + iPhone | 具备 Secure Enclave 的真机完成 Wi-Fi、QR 验收；iOS 不提供 ADB |
-| 安装与调用 | `cargo install --locked` 安装 CLI；Terminal 和 GUI 应用经 age 调用均可用 |
+| 安装与调用 | `cargo install --locked` 安装 CLI；本轮验收 Terminal → age/rage → 插件，GUI 调用延期 |
 | 密钥与状态 | 双角色硬件密钥、严格本机绑定、持久重放保护、完整失败与恢复路径 |
 | CLI | `status`、`setup`、`setup --json`、resume/cleanup、显式 pair/unwrap 和两类状态清理 |
 | 更新 | 源码重新编译和覆盖安装可继续使用原配对；安装或替换二进制不会自动删除密钥 |
@@ -99,7 +101,7 @@ Android 与 iPhone 证据分开记录。可先交付完整的 Mac + Android 支�
   必须区分：本机已观察到恢复复制的引用可恢复操作；手机撤销仍是权威边界。
 - 决定 Keychain 模型、应用标识、签名要求、访问控制、禁同步/设备绑定策略及锁屏行为。
   Keychain 仅管理 Secure Enclave 项或引用，不保存可导出的桌面私钥作为替代。
-- 在普通 CLI、age 子进程、GUI 应用启动的 age 子进程中验证 Keychain 行为；禁止通过扩大
+- 在普通 CLI 和 age 子进程中验证 Keychain 行为；GUI 应用启动的 age 子进程按上述范围决定延期。禁止通过扩大
   全局访问权限或接受任意调用者来消除权限问题。
 - 验证两个独立源码构建及 `cargo install --force` 覆盖安装能打开同一密钥，覆盖代码哈希变化。
   先验证不依赖发布证书的 CLI 路径；若需要本地签名，明确构建步骤、权限和更新行为。
@@ -186,7 +188,7 @@ Android 与 iPhone 证据分开记录。可先交付完整的 Mac + Android 支�
   按实际发布形态验证 usage description、必要 entitlement 和调用者权限归属。
 - Android ADB：显式选择时验证设备授权状态、多设备、拔线、daemon 重启、Ctrl-C/杀进程、
   冷启动/后台自动唤醒与精确 reverse 清理；iPhone 不宣称支持该路径。
-- 在 Terminal → age/rage → 插件以及 GUI 应用 → age → 插件两条链上验收网络和摄像头权限；
+- 本轮在 Terminal → age/rage → 插件链上验收网络和摄像头权限；GUI 应用 → age → 插件链延期。
   不把 Terminal 成功当作 GUI 调用成功。拒绝权限时给出准确且不含敏感信息的诊断。
 - 状态报告真实区分 OS、密钥后端、可用传输、未验收能力和错误，不继续输出容易被误读的
   全平台固定可用文案；BLE 继续明确不可用。

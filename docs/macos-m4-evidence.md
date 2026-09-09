@@ -49,7 +49,7 @@ The existing `block 0.1.6` future-compatibility notice remains.
 
 - Actual Wi-Fi + Ethernet, VPN routing and interface removal during discovery;
   synthetic snapshots do not certify those physical configurations.
-- Terminal and GUI age/rage caller chains, local-network permission denial and
+- Terminal age/rage caller chains, local-network permission denial and
   revocation on the exact installed artifact. A timeout alone cannot diagnose TCC.
 - Built-in and UVC cameras, first permission grant/denial/revocation, occupancy,
   cancellation and timeout; usage description and caller permission attribution.
@@ -62,3 +62,8 @@ The existing `block 0.1.6` future-compatibility notice remains.
 M3 managed setup now has [separate implementation evidence](macos-m3-evidence.md).
 Normal/orphaned cleanup now also has M3 implementation evidence. M5 extracted-archive
 installation and M6 precise artifact acceptance/security review remain separate work.
+
+GUI caller network/camera/key-access acceptance was explicitly deferred by the user on
+2026-09-10 because there is no current use case. It is outside the current CLI scope, not
+a pass. Terminal observations do not imply GUI compatibility; restore this matrix before
+claiming GUI support.
