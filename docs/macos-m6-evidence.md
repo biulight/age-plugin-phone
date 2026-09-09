@@ -67,7 +67,7 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Android USB unplug/reconnect | Pending approval interrupted, no plaintext; rules empty on reconnect; fresh approval succeeds |
 | Android USB natural timeout | 60.383-second automatic failure, no plaintext, clean rules and new verification afterward pass |
 | Caller/plugin process-tree termination | SIGKILL while approval pending passes no-plaintext, prompt-close, cleanup and fresh retry checks |
-| ADB service restart | Initial attempt: safe request failure and cleanup; start-server exited 255, fresh retry not reached |
+| ADB service restart | Ordered restart passes no-plaintext, prompt-close, cleanup and fresh retry; initial immediate-start error retained below |
 | Wi-Fi multihoming, interface changes, ambiguity and permission errors | Logic tests pass; applicable physical combinations pending |
 | Built-in/UVC cameras; first allow, deny, revoke and occupied camera | Pending caller-specific physical tests |
 | Independent recovery drill | Six age/rage cases pass with the phone plugin and desktop state unavailable |
@@ -374,3 +374,15 @@ The harness correctly stopped before its fresh-approval recovery case. A later
 connection check reported the selected device online. The startup error was not
 retained by the initial harness, so its cause is undetermined; concurrent cleanup
 is only a hypothesis. This attempt does not pass the service-restart gate.
+
+## Android ADB service restart: ordered retry
+
+The retry stopped the local ADB server while verification was pending, waited for
+the old client to exit and finish cleanup, then explicitly started the server.
+Both service commands exited 0. The old request exited 1 without plaintext, the
+user confirmed automatic prompt closure, and reverse rules were empty. A new
+request decrypted successfully with fresh fingerprint verification confirmed
+immediately by the user; reverse rules were again empty. No temporary plaintext
+directory remained. This passes the ordered restart and recovery case for the
+original installed candidate. It does not explain the initial immediate-start
+exit 255 or establish that concurrent server startups always succeed.

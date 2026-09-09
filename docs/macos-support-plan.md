@@ -6,6 +6,7 @@
 Android ADB 与 iPhone 前台 Wi-Fi 已分别通过 age / rage 的配对、独立原生验证、取消无明文和取消后重试；
 两类手机的 age/rage QR 成功解密与逐次原生验证也已通过；Android QR 已确认使用 Mac 内建摄像头。
 Android Wi-Fi 间歇发现失败尚未定位；QR 负面/权限、GUI 调用及其余生命周期矩阵仍待完成。
+Android USB 拔线、自然超时、调用进程树终止，以及等待旧请求退出后的 ADB 服务重启均已通过无明文、清理和新验证恢复检查；立即启动 ADB 的首次失败记录仍保留。
 独立恢复的六项 age/rage 测试已通过，见 M6 记录。
 M5 的四 crate 独立归档、Rust 1.88 锁定安装、不同摘要覆盖重建、卸载及重装已通过；
 原硬件引用和已消费 replay 保持不变，发布版本升级与 GUI 调用者仍待验收，见 [M5 记录](macos-m5-evidence.md)。

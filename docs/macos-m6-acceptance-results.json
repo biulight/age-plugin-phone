@@ -656,6 +656,39 @@
       "overall_acceptance": "incomplete_start_server_exit_255_fresh_retry_not_reached",
       "cause": "undetermined",
       "followup_device_state": "device"
+    },
+    "macos_adb_daemon_restart_acceptance": {
+      "transport": "adb",
+      "caller": "age 1.3.2",
+      "fixture": "disposable_data_only",
+      "interruption_scope": "local_adb_server_restart",
+      "cases": [
+        {
+          "case": "adb_service_restart",
+          "restart_exit_codes": [
+            0,
+            0
+          ],
+          "exit_code": 1,
+          "pending_prompt_confirmed": "y",
+          "running_before_kill": true,
+          "no_plaintext": true,
+          "reverse_rules_empty": true,
+          "prompt_closed": "y",
+          "passed": true
+        },
+        {
+          "case": "fresh_approval_after_daemon_restart",
+          "exit_code": 0,
+          "passed": true,
+          "fresh_verification": "y",
+          "reverse_rules_empty": true
+        }
+      ],
+      "startup_error_categories": [],
+      "restart_order": "kill_server_then_wait_for_old_client_then_start_server",
+      "raw_result_sha256": "2ec3eee778b9dbd85898b929f3acf564a721aebe8f8350333306fc8e188e8eed",
+      "temporary_plaintext_directories_after_test": 0
     }
   },
   "physical_phone_verification": "android_adb_and_iphone_wifi_each_three_fresh_native_approvals_user_confirmed",
