@@ -283,3 +283,13 @@ appeared. Camera selection was not confirmed. Therefore these are successful
 QR data checks, not completed fresh-native-verification or built-in-camera rows.
 Subsequent human-operated harnesses should record each native observation
 immediately after that operation, before proceeding to another request.
+
+## Android QR per-operation native observation
+
+A separate observed run passed QR decryption with age and rage on the original
+installed candidate. Immediately after each operation, the user explicitly recorded
+a fresh fingerprint verification in the harness. Both outputs matched the disposable
+input. This closes the successful Android QR/native-approval cases for these callers;
+the user identified the Mac built-in camera. Cancellation/timeout, external cameras
+and permission cases remain separate.
+The earlier unconfirmed run remains preserved rather than relabeled.

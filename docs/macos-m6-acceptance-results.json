@@ -463,6 +463,30 @@
       "raw_result_sha256": "1fa9d98e1cd99a6866c753ae417da2f4cddf04159df25b3c23f2c47c556b2dd3",
       "temporary_plaintext_directories_after_test": 0,
       "overall_acceptance": "data_checks_passed_native_observation_open"
+    },
+    "macos_qr_observed_acceptance": {
+      "transport": "qr",
+      "synthetic_data_only": true,
+      "human_native_observation": "recorded_immediately_per_operation",
+      "cases": [
+        {
+          "client": "age",
+          "exit_code": 0,
+          "passed": true,
+          "native_observation": "user_confirmed_fresh_fingerprint"
+        },
+        {
+          "client": "rage",
+          "exit_code": 0,
+          "passed": true,
+          "native_observation": "user_confirmed_fresh_fingerprint"
+        }
+      ],
+      "desktop_source_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+      "desktop_binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+      "raw_result_sha256": "d2d9a43d12a788b3a42d74dcf010619f7b35f5939dfb084d8d647aaa52cb240e",
+      "camera_selection": "user_confirmed_mac_builtin_camera",
+      "negative_qr_cases": "not_tested"
     }
   },
   "physical_phone_verification": "android_adb_and_iphone_wifi_each_three_fresh_native_approvals_user_confirmed",
