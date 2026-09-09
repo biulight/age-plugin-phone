@@ -70,7 +70,7 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Independent recovery drill | Six age/rage cases pass with the phone plugin and desktop state unavailable |
 | Revocation and interrupted cleanup | Synthetic cleanup passes; human/native lifecycle drill pending |
 | Published-version upgrade/downgrade | Not tested by same-source rebuild or commit-to-commit continuity |
-| iPhone | iPhone 15 Pro / iOS 26.6.1; debug build 0.1.0.4 Wi-Fi pairing and four data checks pass; three fresh Face ID approvals and deliberate cancellation confirmed by user; QR untested |
+| iPhone | iPhone 15 Pro / iOS 26.6.1; debug build 0.1.0.4 Wi-Fi pairing and four data checks pass; Wi-Fi approvals/cancellation and age/rage QR approvals pass with fresh Face ID confirmed |
 | Wrong Mac, other OS, Intel/T2 | Deferred/unverified; not part of the current host/Android acceptance claim |
 
 The [source quick start](macos-quickstart.md) provides the human-operated path.
@@ -202,8 +202,8 @@ plaintext), and a successful new request after cancellation. The user confirmed
 new native verification for all six approvals and personally cancelling both
 negative tests. Each successful output matched its random disposable input;
 no temporary plaintext directories remained. Per-phone harness/result hashes
-and client/transport metadata are recorded in the JSON evidence. This covers
-these two transport/caller combinations, not Android Wi-Fi or either phone's QR.
+and client/transport metadata are recorded in the JSON evidence. This section covers
+these two transport/caller combinations; later QR observations are recorded separately.
 
 ## Android Wi-Fi initial attempt — incomplete
 
@@ -293,3 +293,14 @@ input. This closes the successful Android QR/native-approval cases for these cal
 the user identified the Mac built-in camera. Cancellation/timeout, external cameras
 and permission cases remain separate.
 The earlier unconfirmed run remains preserved rather than relabeled.
+
+## iPhone QR per-operation Face ID observation
+
+QR setup with the original installed candidate exited zero and created its
+identity reference; the user confirmed pairing completion. age and rage then each
+successfully decrypted a disposable file over explicitly selected QR. Immediately
+after each operation, the user recorded a new Face ID verification. Outputs matched
+exactly and no temporary plaintext directories remained. The harness instructed
+use of the Mac built-in camera; camera attribution for this iPhone run was not
+separately confirmed. QR cancellation/timeout and camera permission negatives
+remain untested. No QR images or payloads are retained in the evidence.

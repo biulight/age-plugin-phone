@@ -4,7 +4,9 @@
 自动化和隔离硬件提交/CLI 清理测试通过，真实手机生命周期与恢复验收仍待完成，见 [M3 记录](macos-m3-evidence.md)。
 本轮真机验收使用用户确认可用的 StrongBox Android，以及 iPhone 15 Pro（iOS 26.6.1）。
 Android ADB 与 iPhone 前台 Wi-Fi 已分别通过 age / rage 的配对、独立原生验证、取消无明文和取消后重试；
-Android Wi-Fi、两类手机 QR、GUI 调用及其余负面/恢复矩阵仍待完成。
+两类手机的 age/rage QR 成功解密与逐次原生验证也已通过；Android QR 已确认使用 Mac 内建摄像头。
+Android Wi-Fi 间歇发现失败尚未定位；QR 负面/权限、GUI 调用及其余生命周期矩阵仍待完成。
+独立恢复的六项 age/rage 测试已通过，见 M6 记录。
 M5 的四 crate 独立归档、Rust 1.88 锁定安装、不同摘要覆盖重建、卸载及重装已通过；
 原硬件引用和已消费 replay 保持不变，发布版本升级与 GUI 调用者仍待验收，见 [M5 记录](macos-m5-evidence.md)。
 M4 的多网卡发现、失败处理和只读状态报告已先行实现，

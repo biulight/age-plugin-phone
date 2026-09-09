@@ -613,6 +613,32 @@
       "temporary_plaintext_directories_after_test": 0,
       "harness_sha256": "7e517f95fd90dad9a4926058ee313d5b84556130bed756fc35709130d718774a",
       "raw_result_sha256": "7ebab1c54d22540a560c3ca0000822f0ab9f07cd9b4af9e87197b787411aa2ac"
+    },
+    "macos_qr_observed_acceptance": {
+      "transport": "qr",
+      "synthetic_data_only": true,
+      "human_native_observation": "recorded_immediately_per_operation",
+      "cases": [
+        {
+          "client": "age",
+          "exit_code": 0,
+          "passed": true,
+          "native_observation": "user_confirmed_fresh_face_id"
+        },
+        {
+          "client": "rage",
+          "exit_code": 0,
+          "passed": true,
+          "native_observation": "user_confirmed_fresh_face_id"
+        }
+      ],
+      "pairing": "setup_exit_zero_and_user_reported_complete",
+      "desktop_source_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+      "desktop_binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+      "raw_result_sha256": "adb6c797981bcbb8c78aa37dfb6feb8098eacf8790e50b2b95eecdc2707358d5",
+      "temporary_plaintext_directories_after_test": 0,
+      "camera_selection": "instructed_mac_builtin_not_separately_confirmed",
+      "negative_qr_cases": "not_tested"
     }
   },
   "wifi_discovery_followup": {
