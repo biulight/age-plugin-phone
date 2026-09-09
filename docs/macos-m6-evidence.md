@@ -489,3 +489,13 @@ A subsequent run of the existing Rust discovery probe succeeded on all three
 queries. This records intermittent behavior under unchanged networking, not a
 fix or proof that either network application is the cause. No unwrap or biometric
 operation was requested.
+
+The user subsequently identified the ZeroTier network as using 10.x addresses.
+A read-only interface classification found feth4032 in 10/8, Wi-Fi en0 in
+192.168/16, and en13 using an IPv4 link-local address outside RFC1918. Thus the
+recorded en13-derived send errors were on a different address class from the
+user-identified ZeroTier network. This does not independently prove which process
+owns either interface, or explain the no-response broadcast queries. Production
+`private_route` explicitly includes link-local addresses, so en13 eligibility is
+not merely an artifact of Python's address classification. Network settings
+remain unchanged; full addresses were not retained.

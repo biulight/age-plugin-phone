@@ -1373,5 +1373,26 @@
       }
     },
     "conclusion": "intermittent_broadcast_outage_and_cross_interface_send_errors_persist_later_rust_probe_passes"
+  },
+  "wifi_interface_address_classification_20260910": {
+    "user_reported_zerotier_address_class": "10/8",
+    "observed_interfaces": [
+      {
+        "interface": "feth4032",
+        "address_class": "10/8"
+      },
+      {
+        "interface": "en0",
+        "address_class": "192.168/16"
+      },
+      {
+        "interface": "en13",
+        "address_class": "IPv4_link_local_not_RFC1918"
+      }
+    ],
+    "send_error_target": "en13_derived_broadcast",
+    "conclusion": "observed_send_errors_were_not_on_the_user_identified_10_network",
+    "zerotier_process_ownership": "not_independently_confirmed",
+    "network_settings_changed": false
   }
 }
