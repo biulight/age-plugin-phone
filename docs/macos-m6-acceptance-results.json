@@ -1650,7 +1650,7 @@
     }
   },
   "macos_wifi_archive_revalidation": {
-    "status": "archive_install_continuity_and_android_wifi_native_matrix_passed_other_gates_open",
+    "status": "archive_install_continuity_and_both_phone_wifi_native_matrices_passed_other_gates_open",
     "source_provenance": {
       "source_commit": "a78a8cd5ae0e78e574cee19ba0380e7fdf033618",
       "crates_unchanged_since": "c9c2a3f",
@@ -1847,6 +1847,83 @@
       },
       "result_sha256": "8c3f17e2d5a63f17fc311262aac6da295aa9eefc8d531a94e24074331e8a0752",
       "harness_sha256": "6fac0cd8c482b60c85ac16f90f0fa19b2fca808351232d1051608b6107125a47",
+      "temporary_plaintext_directories_remaining": 0
+    },
+    "iphone_human_unwrap": {
+      "result": {
+        "scope": "cargo_installed_mac_and_iphone_wifi_real_phone",
+        "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+        "network_settings": "Surge_and_ZeroTier_retained",
+        "synthetic_data_only": true,
+        "cases": [
+          {
+            "client": "age",
+            "phase": "first_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "age",
+            "phase": "second_fresh_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "age",
+            "phase": "native_cancellation",
+            "exit_code": 1,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "age",
+            "phase": "approval_after_cancellation",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "first_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "second_fresh_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "native_cancellation",
+            "exit_code": 1,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "approval_after_cancellation",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          }
+        ]
+      },
+      "result_sha256": "243db4a7d5027e4f3a26881974343d2c52d58ea3f14061a85744407045755b7a",
+      "harness_sha256": "6ec2e5585fb69e41f72697809aa1f1da4358f27646a46017252dd107643ab883",
       "temporary_plaintext_directories_remaining": 0
     }
   }

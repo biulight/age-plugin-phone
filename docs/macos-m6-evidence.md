@@ -628,3 +628,15 @@ directories remain. ZeroTier and Surge stayed enabled.
 
 This establishes the installed artifact's Android foreground Wi-Fi matrix. It does not
 transfer the earlier artifact's iPhone or GUI/camera acceptance, or close M2 rollback.
+
+### Installed Mac artifact: iPhone Wi-Fi matrix passed
+
+The same Cargo-installed Mac artifact completed all eight iPhone Wi-Fi cases in Ghostty
+with age and rage: two fresh approvals, native cancellation without plaintext, and fresh
+approval after cancellation for each client. All six new Face ID observations and both
+intentional cancellations were immediately recorded as `y`; the user confirmed completion.
+The existing iPhone pairing was reused and no iPhone update occurred in this stage. Result
+and harness digests are retained in the JSON evidence, and no temporary plaintext directory
+remains. Surge and ZeroTier stayed enabled. This closes the installed artifact's two-phone
+foreground Wi-Fi roundtrip matrices; GUI permissions, other transport rows and M2 remain
+separate open gates.
