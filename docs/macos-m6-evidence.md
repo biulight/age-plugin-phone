@@ -272,3 +272,14 @@ removed. This simulates unavailable primary endpoints without deleting user keys
 it does not establish revocation, native destructive cleanup or re-encryption
 through a replacement pairing. Empty output was captured to a file by the harness
 because rage may not create an `-o` file for an empty plaintext.
+
+## Android QR initial run — native observation open
+
+The user completed QR pairing with the original installed Mac candidate; setup
+exited zero and saved its identity reference. Separate age and rage QR decryptions
+both exited zero and recovered the disposable input exactly. No temporary plaintext
+directory remained. The user could not recall whether fresh fingerprint prompts
+appeared. Camera selection was not confirmed. Therefore these are successful
+QR data checks, not completed fresh-native-verification or built-in-camera rows.
+Subsequent human-operated harnesses should record each native observation
+immediately after that operation, before proceeding to another request.

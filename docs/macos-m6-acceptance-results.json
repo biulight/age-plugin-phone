@@ -439,6 +439,30 @@
       "second_request_gap_seconds": 2.253,
       "sampling_limit": "one_second_sampling_with_socket_permission_warning; not_a_failure_capture",
       "timeline_sha256": "8e244f6fa76e910427c2e3b724eff951ecf6a54a810d4bab4cbd1b2e14c8be5d"
+    },
+    "macos_qr_initial_attempt": {
+      "transport": "qr",
+      "synthetic_data_only": true,
+      "human_native_observation": "user_could_not_recall",
+      "cases": [
+        {
+          "client": "age",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "client": "rage",
+          "exit_code": 0,
+          "passed": true
+        }
+      ],
+      "camera_selection": "not_confirmed",
+      "pairing": "user_reported_success_setup_exit_zero",
+      "desktop_source_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+      "desktop_binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+      "raw_result_sha256": "1fa9d98e1cd99a6866c753ae417da2f4cddf04159df25b3c23f2c47c556b2dd3",
+      "temporary_plaintext_directories_after_test": 0,
+      "overall_acceptance": "data_checks_passed_native_observation_open"
     }
   },
   "physical_phone_verification": "android_adb_and_iphone_wifi_each_three_fresh_native_approvals_user_confirmed",
