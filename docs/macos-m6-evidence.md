@@ -65,7 +65,8 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Android ADB pairing and two separate successful unwraps | User-operated setup and two independent decryptions pass; user confirms fresh native verification for every approval |
 | Cancellation and subsequent success | Android ADB cancellation returns failure without plaintext; subsequent fresh approval succeeds |
 | Android USB unplug/reconnect | Pending approval interrupted, no plaintext; rules empty on reconnect; fresh approval succeeds |
-| Timeout and daemon/process interruption | Physical evidence pending |
+| Android USB natural timeout | 60.383-second automatic failure, no plaintext, clean rules and new verification afterward pass |
+| Daemon/process interruption | Physical evidence pending |
 | Wi-Fi multihoming, interface changes, ambiguity and permission errors | Logic tests pass; applicable physical combinations pending |
 | Built-in/UVC cameras; first allow, deny, revoke and occupied camera | Pending caller-specific physical tests |
 | Independent recovery drill | Six age/rage cases pass with the phone plugin and desktop state unavailable |
@@ -340,3 +341,13 @@ successfully decrypted with a new fingerprint verification confirmed by the user
 its reverse-rule list was again empty. No temporary plaintext directory remained.
 This establishes unplug/reconnect behavior; daemon restart, process termination and
 natural authentication timeout are separate cases.
+
+## Android natural authentication timeout
+
+With USB connected, the user left the native fingerprint prompt unapproved and
+did not cancel it. age failed after 60.383 seconds with exit 1 and no plaintext;
+the user confirmed automatic prompt closure. The reverse-rule list was empty.
+A subsequent new request decrypted successfully with a fresh fingerprint
+verification confirmed immediately by the user; rules were again empty. Temporary
+plaintext was removed. This is actual native timeout evidence, not a harness-killed
+process or an inferred cancellation result.

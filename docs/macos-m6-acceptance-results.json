@@ -579,6 +579,30 @@
       ],
       "raw_result_sha256": "fefe8e6e9d6f171eeb88c1aa15567b165c23ca37f68ac704e70bb79e4e2baec1",
       "temporary_plaintext_directories_after_test": 0
+    },
+    "macos_adb_timeout_acceptance": {
+      "transport": "adb",
+      "caller": "age 1.3.2",
+      "fixture": "disposable_data_only",
+      "cases": [
+        {
+          "case": "natural_verification_timeout",
+          "exit_code": 1,
+          "elapsed_seconds": 60.383,
+          "no_plaintext": true,
+          "human_observation": "y",
+          "reverse_rules_empty": true
+        },
+        {
+          "case": "fresh_approval_after_timeout",
+          "exit_code": 0,
+          "passed": true,
+          "human_fresh_verification": "y",
+          "reverse_rules_empty": true
+        }
+      ],
+      "raw_result_sha256": "1d2fada303c390ef30b73692ee141347932173a8cffc99b68ef995e712a1200c",
+      "temporary_plaintext_directories_after_test": 0
     }
   },
   "physical_phone_verification": "android_adb_and_iphone_wifi_each_three_fresh_native_approvals_user_confirmed",
