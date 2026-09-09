@@ -159,8 +159,11 @@ availability, private IPv4 routing, and TCP success provide no authentication or
 no Wi-Fi background wake.
 
 Discovery and explicit Wi-Fi pairing follow [ADR 0021](adr/0021-wifi-discovery-and-pairing.md).
-Bounded UDP queries target the limited broadcast address and, on multi-homed Windows hosts, each
-eligible private IPv4 subnet broadcast. Existing-pairing responses must authenticate under the
+Bounded UDP queries target the limited broadcast address and, on multi-homed Windows and macOS
+hosts, each eligible private IPv4 subnet broadcast. macOS refreshes active broadcast-capable
+interfaces per attempt, excluding loopback and point-to-point tunnels. A local send failure is
+terminal even if another interface sent successfully; it cannot establish absence of a listener.
+Existing-pairing responses must authenticate under the
 paired phone-signing key and bind the exact query, including its nonce. Retransmits reuse only the
 in-memory public signed response to that exact query, never identity authorization. The discovered
 address remains an untrusted route hint. Pairing discovery is unauthenticated and requires the phone

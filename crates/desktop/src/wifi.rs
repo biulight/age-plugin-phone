@@ -51,7 +51,7 @@ pub enum WifiError {
     DiscoveryUnavailable,
     #[error("multiple matching foreground Wi-Fi listeners were discovered")]
     DiscoveryAmbiguous,
-    #[error("the Wi-Fi discovery socket was unavailable")]
+    #[error("local Wi-Fi discovery failed; check network permissions and active interfaces")]
     Discovery,
 }
 
@@ -142,7 +142,7 @@ fn discover_endpoint(
     socket
         .set_broadcast(true)
         .map_err(|_| WifiError::Discovery)?;
-    let mut targets = discovery_targets();
+    let mut targets = discovery_targets()?;
     targets.insert(target);
     discover_with_socket(&socket, query, verifying_key, timeout, &targets)
 }
@@ -167,13 +167,9 @@ fn discover_with_socket(
             break;
         }
         if now >= next_send {
-            let mut sent = false;
-            for target in targets {
-                sent |= socket.send_to(&encoded, target).is_ok();
-            }
-            if !sent {
-                return Err(WifiError::Discovery);
-            }
+            send_discovery_queries(targets, &encoded, |bytes, target| {
+                socket.send_to(bytes, target)
+            })?;
             next_send = now + DISCOVERY_RETRY_INTERVAL;
         }
         let wait_until = deadline.min(next_send);
@@ -212,13 +208,36 @@ fn discover_with_socket(
     }
 }
 
-#[cfg(not(windows))]
-fn discovery_targets() -> BTreeSet<SocketAddr> {
-    BTreeSet::from([SocketAddr::from((Ipv4Addr::BROADCAST, WIFI_DISCOVERY_PORT))])
+fn send_discovery_queries(
+    targets: &BTreeSet<SocketAddr>,
+    encoded: &[u8],
+    mut send: impl FnMut(&[u8], &SocketAddr) -> std::io::Result<usize>,
+) -> Result<(), WifiError> {
+    if targets.is_empty() {
+        return Err(WifiError::Discovery);
+    }
+    for target in targets {
+        // A successful send on one interface must not hide denial or a lost route on another.
+        // Such failures cannot establish that there is no matching listener.
+        if send(encoded, target).map_err(|_| WifiError::Discovery)? != encoded.len() {
+            return Err(WifiError::Discovery);
+        }
+    }
+    Ok(())
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+#[allow(clippy::unnecessary_wraps)]
+fn discovery_targets() -> Result<BTreeSet<SocketAddr>, WifiError> {
+    Ok(BTreeSet::from([SocketAddr::from((
+        Ipv4Addr::BROADCAST,
+        WIFI_DISCOVERY_PORT,
+    ))]))
 }
 
 #[cfg(windows)]
-fn discovery_targets() -> BTreeSet<SocketAddr> {
+#[allow(clippy::unnecessary_wraps)]
+fn discovery_targets() -> Result<BTreeSet<SocketAddr>, WifiError> {
     let mut targets =
         BTreeSet::from([SocketAddr::from((Ipv4Addr::BROADCAST, WIFI_DISCOVERY_PORT))]);
     targets.extend(
@@ -226,16 +245,36 @@ fn discovery_targets() -> BTreeSet<SocketAddr> {
             .into_iter()
             .map(|address| SocketAddr::from((address, WIFI_DISCOVERY_PORT))),
     );
+    Ok(targets)
+}
+
+#[cfg(target_os = "macos")]
+fn discovery_targets() -> Result<BTreeSet<SocketAddr>, WifiError> {
+    let subnets = age_plugin_phone_platform_storage::macos::network::ipv4_interface_subnets()
+        .map_err(|_| WifiError::Discovery)?;
+    Ok(targets_for_subnets(subnets))
+}
+
+#[cfg(any(target_os = "macos", test))]
+fn targets_for_subnets(
+    subnets: impl IntoIterator<Item = (Ipv4Addr, Ipv4Addr)>,
+) -> BTreeSet<SocketAddr> {
+    let mut targets =
+        BTreeSet::from([SocketAddr::from((Ipv4Addr::BROADCAST, WIFI_DISCOVERY_PORT))]);
+    targets.extend(subnets.into_iter().filter_map(|(address, mask)| {
+        directed_broadcast(address, mask)
+            .map(|address| SocketAddr::from((address, WIFI_DISCOVERY_PORT)))
+    }));
     targets
 }
 
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 fn directed_broadcast(address: Ipv4Addr, mask: Ipv4Addr) -> Option<Ipv4Addr> {
     if !private_route(address) {
         return None;
     }
     let mask = u32::from(mask);
-    if mask == 0 || mask == u32::MAX || (!mask).checked_add(1)?.count_ones() != 1 {
+    if mask == 0 || mask.count_ones() >= 31 || (!mask).checked_add(1)?.count_ones() != 1 {
         return None;
     }
     let broadcast = Ipv4Addr::from(u32::from(address) | !mask);
@@ -604,6 +643,62 @@ mod tests {
     }
 
     #[test]
+    fn local_send_failure_cannot_be_hidden_by_another_interface() {
+        let targets = BTreeSet::from([
+            SocketAddr::from(([10, 0, 0, 255], WIFI_DISCOVERY_PORT)),
+            SocketAddr::from(([192, 168, 1, 255], WIFI_DISCOVERY_PORT)),
+        ]);
+        for kind in [
+            std::io::ErrorKind::PermissionDenied,
+            std::io::ErrorKind::NetworkUnreachable,
+            std::io::ErrorKind::AddrNotAvailable,
+        ] {
+            let mut calls = 0;
+            assert_eq!(
+                send_discovery_queries(&targets, &[0; DISCOVERY_QUERY_BYTES], |bytes, _| {
+                    calls += 1;
+                    if calls == 1 {
+                        Ok(bytes.len())
+                    } else {
+                        Err(kind.into())
+                    }
+                }),
+                Err(WifiError::Discovery)
+            );
+            assert_eq!(calls, 2);
+        }
+        assert_eq!(
+            send_discovery_queries(&targets, &[0; 72], |_, _| Ok(71)),
+            Err(WifiError::Discovery)
+        );
+        assert_eq!(
+            send_discovery_queries(&BTreeSet::new(), &[0; 72], |_, _| unreachable!()),
+            Err(WifiError::Discovery)
+        );
+    }
+
+    #[test]
+    fn multihomed_targets_are_private_deduplicated_and_refreshable() {
+        let mask = Ipv4Addr::new(255, 255, 255, 0);
+        let wifi = (Ipv4Addr::new(192, 168, 1, 3), mask);
+        let wired = (Ipv4Addr::new(10, 0, 0, 7), mask);
+        let targets = targets_for_subnets([wifi, wired, wifi, (Ipv4Addr::new(8, 8, 8, 8), mask)]);
+        assert_eq!(
+            targets,
+            BTreeSet::from([
+                SocketAddr::from(([192, 168, 1, 255], WIFI_DISCOVERY_PORT)),
+                SocketAddr::from(([10, 0, 0, 255], WIFI_DISCOVERY_PORT)),
+                SocketAddr::from((Ipv4Addr::BROADCAST, WIFI_DISCOVERY_PORT)),
+            ])
+        );
+        assert!(
+            !targets_for_subnets([wifi])
+                .contains(&SocketAddr::from(([10, 0, 0, 255], WIFI_DISCOVERY_PORT)))
+        );
+        assert_eq!(targets_for_subnets([]).len(), 1);
+    }
+
+    #[test]
     fn derives_only_private_subnet_broadcasts() {
         assert_eq!(
             directed_broadcast(
@@ -622,6 +717,7 @@ mod tests {
         for (address, mask) in [
             ([8, 8, 8, 8], [255, 255, 255, 0]),
             ([192, 168, 50, 53], [255, 255, 255, 255]),
+            ([192, 168, 50, 52], [255, 255, 255, 254]),
             ([192, 168, 50, 53], [0, 0, 0, 0]),
             ([192, 168, 50, 53], [255, 0, 255, 0]),
         ] {

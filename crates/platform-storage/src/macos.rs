@@ -1,6 +1,9 @@
 //! Descriptor-relative macOS private files. Business callers own names, formats and recovery.
 //! Existing unsafe permissions are rejected, never repaired through a caller-supplied path.
 #![allow(clippy::missing_errors_doc)]
+#[path = "macos_network.rs"]
+pub mod network;
+
 use std::{
     ffi::{CString, c_void},
     fs::File,

@@ -70,7 +70,7 @@ enum Command {
         #[arg(long)]
         serial: String,
     },
-    /// Report implementation status and read-only Windows Alpha capabilities.
+    /// Report implementation status and read-only platform capabilities.
     Status,
     /// Diagnose one bounded Wi-Fi discovery window without pairing or requesting an unwrap.
     WifiDoctor {
@@ -213,6 +213,7 @@ fn main() -> io::Result<()> {
         Command::Status => {
             println!("status: common-transport-adb-alpha");
             println!("protocol_version: {PROTOCOL_VERSION}");
+            #[cfg(not(target_os = "macos"))]
             println!("qr_capture_probe: available");
             println!("pairing_transport: adb_reverse_or_foreground_wifi_or_desktop_camera_qr");
             println!("unwrap_transport: adb_reverse_or_foreground_wifi_or_desktop_camera_qr");
@@ -221,11 +222,15 @@ fn main() -> io::Result<()> {
                 "wifi_transport: foreground_discovery_port_47141_stream_port_{WIFI_UNWRAP_PORT}"
             );
             println!("ble_transport: not_implemented");
-            println!("mobile_identity: android_strongbox_pairing");
+            println!("mobile_identity: android_strongbox_or_ios_secure_enclave");
             println!("age_recipient_v1: available");
-            println!("age_identity_v1: available");
+            println!(
+                "age_identity_v1: implemented_requires_paired_hardware_and_fresh_phone_verification"
+            );
             #[cfg(windows)]
             print_windows_platform_status();
+            #[cfg(target_os = "macos")]
+            print_macos_platform_status();
             Ok(())
         }
         Command::Setup {
@@ -1394,6 +1399,24 @@ fn ensure_desktop_platform_supported() -> io::Result<()> {
 #[allow(clippy::unnecessary_wraps)]
 fn ensure_desktop_platform_supported() -> io::Result<()> {
     Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn print_macos_platform_status() {
+    // Status deliberately does not open cameras, request permissions, discover phones,
+    // or create/reopen persistent keys. Compilation is not a hardware acceptance result.
+    println!("desktop_os: macos");
+    println!("desktop_arch: {}", std::env::consts::ARCH);
+    println!("macos_support: experimental_acceptance_incomplete");
+    println!("desktop_key_backend: cryptokit_secure_enclave_dual_p256");
+    println!("secure_enclave_usability: unverified_no_key_operation_performed");
+    println!("qr_capture_probe: unverified_camera_not_opened");
+    println!("camera_permission: unverified_for_current_caller");
+    println!("local_network_permission: unverified_for_current_caller");
+    println!("wifi_discovery_interfaces: active_ipv4_broadcast_snapshot_per_attempt");
+    println!("developer_usb: explicit_android_adb_only_device_authorization_unverified");
+    println!("macos_setup: not_yet_integrated");
+    println!("macos_snapshot_rollback_protection: unresolved");
 }
 
 #[cfg(windows)]
