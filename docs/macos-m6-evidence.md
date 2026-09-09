@@ -203,3 +203,14 @@ negative tests. Each successful output matched its random disposable input;
 no temporary plaintext directories remained. Per-phone harness/result hashes
 and client/transport metadata are recorded in the JSON evidence. This covers
 these two transport/caller combinations, not Android Wi-Fi or either phone's QR.
+
+## Android Wi-Fi initial attempt — incomplete
+
+A second, distinct desktop pairing with the Android phone completed over Wi-Fi;
+the original USB identity reference remained. age passed all four data checks.
+rage passed its first approval, then failed before stream exchange with the
+coarse discovery error `phone Wi-Fi discovery failed or was ambiguous`.
+The user could not recall foreground/listener/network state or confirm native
+observations for this run. This is an open failure, not a passed Android Wi-Fi
+acceptance row. A later retry must retain this observation and cannot by itself
+establish the cause of this failure.
