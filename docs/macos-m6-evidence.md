@@ -304,3 +304,14 @@ exactly and no temporary plaintext directories remained. The harness instructed
 use of the Mac built-in camera; camera attribution for this iPhone run was not
 separately confirmed. QR cancellation/timeout and camera permission negatives
 remain untested. No QR images or payloads are retained in the evidence.
+
+## Android single-pairing revocation and isolation
+
+The user revoked only the Android QR test pairing in the native phone UI. An old
+ciphertext for that pairing was then tested through explicit ADB, separating
+revocation enforcement from QR availability. The client exited 1 with no plaintext;
+the user immediately confirmed no biometric prompt appeared. An independent test
+recovery identity decrypted the same ciphertext successfully. The original Android
+USB pairing still decrypted its own ciphertext, with the user immediately confirming
+fresh fingerprint verification. Desktop state for the revoked pairing remained
+present throughout this test; normal desktop cleanup is the next separate step.

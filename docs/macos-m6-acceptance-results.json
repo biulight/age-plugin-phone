@@ -487,6 +487,31 @@
       "raw_result_sha256": "d2d9a43d12a788b3a42d74dcf010619f7b35f5939dfb084d8d647aaa52cb240e",
       "camera_selection": "user_confirmed_mac_builtin_camera",
       "negative_qr_cases": "not_tested"
+    },
+    "qr_pairing_revocation": {
+      "phone_revocation": "user_reported_completed",
+      "cases": [
+        {
+          "case": "revoked_pairing_rejected_over_adb",
+          "exit_code": 1,
+          "no_plaintext": true,
+          "user_reported_no_biometric_prompt": "y"
+        },
+        {
+          "case": "independent_recovery_after_revocation",
+          "passed": true
+        },
+        {
+          "case": "other_usb_pairing_retained",
+          "exit_code": 0,
+          "passed": true,
+          "user_reported_fresh_biometric": "y"
+        }
+      ],
+      "scope": "one_android_qr_pairing_revoked_by_user_native_ui",
+      "rejection_transport": "adb_explicitly_selected_to_test_revocation_independent_of_qr",
+      "raw_result_sha256": "2f2df6ed3d4a6e6aa14892d6a58c8d59bf01c8974b7aaf748361b325c6e302d8",
+      "desktop_cleanup": "pending"
     }
   },
   "physical_phone_verification": "android_adb_and_iphone_wifi_each_three_fresh_native_approvals_user_confirmed",
