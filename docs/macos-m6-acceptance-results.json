@@ -1029,5 +1029,149 @@
     ],
     "temporary_keys_plaintext_ciphertext_removed": true,
     "output_capture": "stdout_to_temporary_file_including_empty_input"
+  },
+  "wifi_discovery_passive_followup_20260910": {
+    "scope": "no_stream_or_unwrap",
+    "initial_android_online_and_app_foreground": true,
+    "runs": {
+      "existing_rust_probe": {
+        "scope": "authenticated_discovery_only_no_stream_or_unwrap",
+        "runs": [
+          {
+            "run": 1,
+            "tcp_visible_before": true,
+            "udp_visible_before": true,
+            "socket_permission_warning": true,
+            "exit_code": 1,
+            "elapsed_seconds": 9.034,
+            "discovery": [
+              "attempt 1: no matching foreground Wi-Fi listener was discovered",
+              "attempt 2: no matching foreground Wi-Fi listener was discovered",
+              "attempt 3: one authenticated listener"
+            ]
+          },
+          {
+            "run": 2,
+            "tcp_visible_before": true,
+            "udp_visible_before": true,
+            "socket_permission_warning": true,
+            "exit_code": 0,
+            "elapsed_seconds": 9.018,
+            "discovery": [
+              "attempt 1: one authenticated listener",
+              "attempt 2: one authenticated listener",
+              "attempt 3: one authenticated listener"
+            ]
+          }
+        ],
+        "raw_result_sha256": "16fc8edeb6927be1fd018bdec02542ea5a12bb5b52f14a920590cce511f44c38"
+      },
+      "diagnostic_broadcast_unicast": {
+        "scope": "diagnostic_only_no_stream_or_unwrap_no_route_policy_change",
+        "deadline_seconds": 3,
+        "retry_interval_seconds": 0.2,
+        "runs": [
+          {
+            "mode": "broadcast",
+            "target_count": 4,
+            "first_authenticated_response_seconds": 0.534,
+            "valid_responses": 28,
+            "invalid_responses": 0,
+            "send_errors": 0
+          },
+          {
+            "mode": "unicast",
+            "target_count": 1,
+            "first_authenticated_response_seconds": 0.246,
+            "valid_responses": 15,
+            "invalid_responses": 0,
+            "send_errors": 0
+          },
+          {
+            "mode": "broadcast",
+            "target_count": 4,
+            "first_authenticated_response_seconds": 0.31,
+            "valid_responses": 29,
+            "invalid_responses": 0,
+            "send_errors": 11
+          },
+          {
+            "mode": "unicast",
+            "target_count": 1,
+            "first_authenticated_response_seconds": 0.272,
+            "valid_responses": 15,
+            "invalid_responses": 0,
+            "send_errors": 0
+          },
+          {
+            "mode": "broadcast",
+            "target_count": 4,
+            "first_authenticated_response_seconds": 0.202,
+            "valid_responses": 30,
+            "invalid_responses": 0,
+            "send_errors": 15
+          },
+          {
+            "mode": "unicast",
+            "target_count": 1,
+            "first_authenticated_response_seconds": 0.315,
+            "valid_responses": 15,
+            "invalid_responses": 0,
+            "send_errors": 0
+          }
+        ],
+        "raw_result_sha256": "5051a13d7aaef1bf3e0726ddcc4609d838d6d37caff407f74cd6f63908945f9a"
+      },
+      "diagnostic_active_interfaces": {
+        "scope": "diagnostic_only_no_stream_or_unwrap_no_route_policy_change",
+        "interface_filter": "UP_RUNNING_BROADCAST_without_LOOPBACK_POINTOPOINT",
+        "deadline_seconds": 3,
+        "retry_interval_seconds": 0.2,
+        "runs": [
+          {
+            "mode": "unicast",
+            "target_count": 1,
+            "first_authenticated_response_seconds": 0.178,
+            "valid_responses": 15,
+            "invalid_responses": 0,
+            "send_errors": 0,
+            "send_error_codes": {}
+          },
+          {
+            "mode": "broadcast",
+            "target_count": 4,
+            "first_authenticated_response_seconds": 0.262,
+            "valid_responses": 28,
+            "invalid_responses": 0,
+            "send_errors": 0,
+            "send_error_codes": {}
+          },
+          {
+            "mode": "unicast",
+            "target_count": 1,
+            "first_authenticated_response_seconds": 0.326,
+            "valid_responses": 15,
+            "invalid_responses": 0,
+            "send_errors": 0,
+            "send_error_codes": {}
+          },
+          {
+            "mode": "broadcast",
+            "target_count": 4,
+            "first_authenticated_response_seconds": 0.227,
+            "valid_responses": 30,
+            "invalid_responses": 0,
+            "send_errors": 13,
+            "send_error_codes": {
+              "65": 1,
+              "64": 12
+            }
+          }
+        ],
+        "raw_result_sha256": "c0ab2449cf07736a6ab6039493c30bda6e29a678519be3d6d23eb1b6dac0496a"
+      }
+    },
+    "root_cause": "unresolved",
+    "diagnostic_limit": "Python_comparison_is_separate_from_production_routing_and_continues_counting_send_errors; does_not_change_product_behavior"
   }
 }

@@ -427,3 +427,34 @@ client failure after 300.096 seconds. The subsequent request in that same run
 recovered the exact input with fresh fingerprint verification confirmed by the
 user. No temporary plaintext directories remained. These are QR cancellation and
 scan-deadline results; permission and other lifecycle gates remain open.
+
+## Passive Android Wi-Fi failure reproduced without unwrap
+
+On 2026-09-10, ADB confirmed the Android device online and the app foregrounded.
+The existing Rust discovery-only probe first returned no matching listener twice,
+then one authenticated listener; its next three queries all succeeded. TCP 47140
+and UDP 47141 were visible before both batches, with the known socket inspection
+permission warning. No TCP stream, unwrap request or biometric operation was
+started. This reproduces a discovery outage without an immediately preceding
+unwrap, so post-unwrap listener re-arming alone cannot explain every occurrence.
+Port visibility before a batch does not prove listener health throughout it.
+
+A separate temporary Python diagnostic compared broadcast with unicast to the
+ADB-observed phone Wi-Fi address. It checked exact nonce-bound response prefixes,
+length, low-S P-256 signatures and the discovery signature domain; only timings
+and counts were retained. All six queries received valid responses within
+0.202–0.534 seconds. Two broadcast queries also had local send errors. Unlike the
+production client, this diagnostic counted those errors and kept observing, so
+receiving a signature in those runs is not a production success. A follow-up
+with UP/RUNNING/BROADCAST interface flags was recorded separately. The initial
+comparison did not require RUNNING and must not be equated with production
+interface selection. These diagnostic runs do not establish the outage cause,
+change route selection, or justify relaxed deadlines or authentication checks.
+
+The active-interface follow-up received authenticated responses in all four
+queries (0.178–0.326 seconds), but its last broadcast query counted one
+EHOSTUNREACH and twelve EHOSTDOWN send errors. These are local route failures,
+not evidence of a phone signature failure; the affected route is not yet
+identified. Synthetic checks of the temporary diagnostic verifier accepted a
+valid response and rejected truncation, a different query, high-S and a wrong
+signing key. No product code or timeout was changed.
