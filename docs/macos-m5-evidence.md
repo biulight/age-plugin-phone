@@ -75,3 +75,7 @@ Still unverified: released-version upgrade/downgrade, fresh-OS install and first
 real setup, PATH discovery through age/rage and GUI callers, real Android
 verification, other Mac hardware/OS, Intel/T2, and iPhone. M2 same-Mac replay
 snapshot rollback remains an observed counterexample, not an installation pass.
+
+The later [M6 record](macos-m6-evidence.md) repeats the full installation lifecycle
+on candidate `cc7e120`, including explicit-pair journaling, and checks continuity
+against this original M5 fixture. The earlier hashes above remain historical.

@@ -16,7 +16,8 @@ PR 2 / M1 已实现双密钥后端与独立硬件 metadata，
 不扩大当前支持声明。见 [M0 验证记录](macos-m0-evidence.md) 和
 [ADR 0025](adr/0025-macos-secure-enclave-m0.md)。
 基线：`b4be976`，`0.1.0-alpha.4`。
-M6 的复审发现、当前制品与手机只读核对、待完成矩阵见 [M6 记录](macos-m6-evidence.md)；
+M6 的最终候选 `cc7e120` 已通过四 crate 归档安装、硬件重装延续与 age/rage 合成互操作；
+复审发现、手机只读制品核对、待完成矩阵见 [M6 记录](macos-m6-evidence.md)；
 源码使用步骤见 [macOS quick start](macos-quickstart.md)。M2 [范围决定](macos-replay-decision.md)
 尚未批准，原要求保持有效。
 

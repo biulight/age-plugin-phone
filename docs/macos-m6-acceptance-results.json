@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "generated_utc": "2026-09-09T13:03:19.084768+00:00",
+  "status": "automated_and_synthetic_passed_physical_gates_open",
+  "candidate": {
+    "commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+    "version": "0.1.0-alpha.4",
+    "binary": "/private/tmp/age-phone-macos-final-registry-20260909/install/bin/age-plugin-phone",
+    "binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7"
+  },
+  "host": {
+    "model": "MacBookPro18,3",
+    "architecture": "arm64",
+    "macos": "26.6.2",
+    "build": "25G83"
+  },
+  "checks": {
+    "fmt": "passed",
+    "workspace_all_target_clippy_locked_deny_warnings": "passed",
+    "workspace_tests_locked": "passed",
+    "four_detached_archives_rust_1_88": "passed",
+    "native_synthetic_managed_and_explicit_journal": "passed",
+    "macos_x86_64_all_targets_check": "passed_compile_only",
+    "windows_x86_64_three_libraries_check": "passed_compile_only",
+    "windows_desktop_cross_compile": "blocked_mozjpeg_host_c_compiler",
+    "windows_native_regression": "pending_explicit_source_transfer_authorization",
+    "snapshot_restore_store_freshness": "failed_counterexample_unresolved",
+    "old_response_against_fresh_session_after_restore": "synthetic_negative_passed"
+  },
+  "installation_lifecycle": {
+    "schema_version": 1,
+    "source_version": "0.1.0-alpha.4",
+    "architecture": "arm64",
+    "macos": "26.6.2",
+    "fixture_kind": "synthetic_only_no_phone",
+    "helper_sha256": "68d606e9bc69c9a0cfdb123f88f01119b33862f07e86ecb4ae37a31c3980d8ad",
+    "registry_evidence_sha256": "3c65393da5043a3ed75f2ef762992adff86f72f95964603fcb99d53e092f697d",
+    "state": {
+      "b6b6b6b6b6b6b6b6b6b6b6b6b6b6b6b6-a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5.cbor": {
+        "sha256": "35246d2c42998f007f0c500a8526067388a611bd2c02893b3bd8c07cfca2e8ad",
+        "mode": 384
+      },
+      "desktop-a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5.state": {
+        "sha256": "d6f567f88c6b4d76531f469b0227a19a499a037bc69ced5c36a614ee6e82816e",
+        "mode": 384
+      },
+      "identity-a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5.txt": {
+        "sha256": "40b12d9d9b975bebfeaf143bc0956d83ba26bf1d6d942774da441a1237d63ef7",
+        "mode": 384
+      },
+      "replay-a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5.state": {
+        "sha256": "c51dda25d6bf56788ea384fc8a948de2ba10106137ceabeb98edde82556c2e7d",
+        "mode": 384
+      },
+      "replay-a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5.state.lock": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 384
+      },
+      "synthetic-fixture": {
+        "sha256": "aeb1e6c7790c6297a84676d80a8a6dc4d4a382ad6b8063fb692b7a3c57182d13",
+        "mode": 384
+      }
+    },
+    "phases": [
+      {
+        "phase": "initial_install",
+        "binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+        "state_unchanged": true,
+        "hardware_reopened": true,
+        "consumed_response_rejected": true
+      },
+      {
+        "phase": "force_rebuild",
+        "binary_sha256": "1f2c82fee7c2dad1176f499635221d41d45c74c4c68ed2419931ebd57f565873",
+        "state_unchanged": true,
+        "hardware_reopened": true,
+        "consumed_response_rejected": true
+      },
+      {
+        "phase": "uninstall",
+        "binary_removed": true,
+        "state_unchanged": true
+      },
+      {
+        "phase": "reinstall",
+        "binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+        "state_unchanged": true,
+        "hardware_reopened": true,
+        "consumed_response_rejected": true
+      }
+    ],
+    "released_version_upgrade": "not_tested",
+    "real_phone_and_caller_matrix": "not_tested"
+  },
+  "prior_fixture_continuity": {
+    "source_pairing_commit": "5a75ee2",
+    "installed_commit": "cc7e120",
+    "installed_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+    "hardware_reopened": true,
+    "consumed_response_rejected": true,
+    "state_unchanged": true,
+    "fixture": "synthetic_only_no_phone",
+    "released_version_upgrade": "not_tested"
+  },
+  "archive_files": {
+    "age-plugin-phone-platform-storage": {
+      "Cargo.lock": "a38ebca4551149a3c338efdfdcc724a5cbb0dbb4e5ab9d5671a4b02559193602",
+      "Cargo.toml": "c2e21b52e6a0ea17a113a5a93c892e7fabdf9aa290b93598da7c8ad458b8eedc",
+      "Cargo.toml.orig": "5392049d07d6e438d2333d136ab99874e14f74249c91cd03bfa3537421ba0044",
+      "LICENSE": "88700e87477e6c807313eab757083fa8bcb8c75066b3fb0db6087dc2be042a11",
+      "README.md": "2f2f33920b37d36e59b58aa7fed0e26362a43904d6e6f14803bce185e568a648",
+      "src/lib.rs": "377012183532c54294064a4b98509b9949e2a4473870359314577316ad57853e",
+      "src/macos.rs": "ce8054b039397b65f621378608d459a688c406786be5270b07f4c1bb070757a3",
+      "src/macos_network.rs": "41847a083813ebe3585cda6932b45312056a0995bfe7933fae3fe9d2751fe2b4",
+      "src/unix/private_file.rs": "591a1b8bb6437f4e148f901810f719a4f8cd26455f7e9b7c9fa918fca010e424",
+      "src/unix.rs": "cc10c3838bdabd7f579d4aba52c9de2c704d31492381374ef7f28bebc766839c",
+      "src/windows.rs": "3ce845a3a320ab2a160b5ccfb100f360dc38325fabf813ed6737b68af52f792c",
+      "src/windows_network.rs": "bcc80f037db3729243a56e48693968a16db3e8d6464ac6b08f8084ce35fcff79"
+    },
+    "age-plugin-phone-core": {
+      "Cargo.lock": "1f877d7966fa14185728240b29f8abb686a68cbbc7bad0166e9842c441e10a36",
+      "Cargo.toml": "403dc8e6419222f8e03299e3318d2ea0b933dc6c9491192c63e0ffad7b690dcd",
+      "Cargo.toml.orig": "77384452317b5d7bdd4f6d4eeae2ff3554a468859ad0f5296601821fc2197c16",
+      "LICENSE": "88700e87477e6c807313eab757083fa8bcb8c75066b3fb0db6087dc2be042a11",
+      "README.md": "13e0634752c2bf040e8d9a30babd4758a37708a96748f70e5afe46a8c905872f",
+      "examples/macos-replay-acceptance.rs": "8c3f8ca0e716a0ef5cd66405bf9597809e006959a8e8cc7ee69c86601113bee4",
+      "examples/public_vector.rs": "30c785f4e8be0bc4406332c91d712db7f9519adbbce2e693e051ae4d2c87a9e3",
+      "examples/public_vector_v2.rs": "969cbcfd5270100c283c1c7f2533c238c821aaab3aa364557daffedc26120364",
+      "src/lib.rs": "5df568a1f441f7ce2b77029c9f4a8fac75d8d152c2b94092c33f356a5c101edc",
+      "src/protocol/mod.rs": "39b88b7e8013ec95b73681aee170f1f0b30fcac7d059be29234574d5f9a14b17",
+      "src/protocol/qr.rs": "318e95c7bedc741f1f1cfee47a6004c250f4ef0545e22331fe5f8115f71fdfdd",
+      "src/protocol/replay.rs": "1d37614a4c51c8071155d6922053ac023567a7fd5acc849017a4a5cbc68731ca",
+      "src/protocol/replay_macos.rs": "7bd12f8606a9e4e6baaaacd88aaa657a112d4ab3b30487f3189d390c64088047",
+      "src/recipient/mod.rs": "cf3bbd3c7e74a29517bb9d1b4a3185740d47381495fcb39ad641a7ca52144eae",
+      "src/recipient/plugin.rs": "292fb265107c2b8f341927c3a9eafcbcae7d8fb84e5aa0a964ee232d0c144db2",
+      "test-vectors/offline-envelope-v2.json": "5e1cca6da4f06ce1f1c0e3f19b42908871a3710e84fee6ff38af41e9da90699b",
+      "test-vectors/p256-recipient-v1.json": "6028deb7ae9122407214d1e8d6c3bdeb8d53c33f85340c499568ac1ac969d1e6",
+      "test-vectors/p256-recipient-v2.json": "3765db88b82b8f3ec9710a22090f09826502602d2be90611cbbadbc85ad3c48c",
+      "test-vectors/pairing-transcript-v2.json": "baaa4289a6ca0eb7f6c3876ff0a0eb1074cde98eb5b158b2ae870ca9a80e18bd",
+      "tests/fixtures/README.md": "d9931a2bb8c707b5bf7aaf578c09be8f6bf952ce3bd9fffe2b63d255d86739b6",
+      "tests/fixtures/generate-replay.rs": "8d52fcc5527deedb73ddf990c349b24b216af81b5d1f10bf1780aa0202449ad1",
+      "tests/fixtures/requests.cbor": "fe0695f735dbed899d1cdf1d289567ec25fcd9d0cd07d39696034a4dfa1aac48",
+      "tests/fixtures/responses.cbor": "2b5654243d1bf965ac1904ca8cf640fdcab22bdac6368e9f9a6aa03ad7b6ee8e",
+      "tests/public_vector.rs": "0ef97a73fac89c50b6415b4339ea4b40f568239f9b45c82af00ea396b583f654",
+      "tests/public_vector_v2.rs": "8b7c20f521a723e9373cb2c641139c99cef3522bb1f80429d24aad187e1f6fa9",
+      "tests/upgrade_replay.rs": "8f389d760bcd518b182e9bf6f49d3e032730ce1cbe01f6f1b12fcb83d5d2bbd7"
+    },
+    "age-plugin-phone-platform-keys": {
+      "Cargo.lock": "479665c2934f5d6f3b5fb021da1caa773584c722642e38154bd1fa33b51d5140",
+      "Cargo.toml": "530dac29cb4d9a50eae792ae242f600f5bc6dff936fdd228680f8c353dcb0d59",
+      "Cargo.toml.orig": "0eece3e8782d84f9ad180dedbeabef0e731d83ba14148663a04beb90ff2769bc",
+      "LICENSE": "88700e87477e6c807313eab757083fa8bcb8c75066b3fb0db6087dc2be042a11",
+      "README.md": "382e9ced80f2f5092830d0c31bc9af3dd8d080f9cf4743a2259f58e50588e1c7",
+      "build.rs": "11f36cbbf51e04eff73812a7f4d35599cba7c246a575a82afe9c5e10009c2bb1",
+      "examples/macos-cryptokit-verify.rs": "308e6e967a330600820a4e043cc33af9fecf06f3f66f680bfa5335b40385e4c8",
+      "examples/macos-key-probe.rs": "456ce937ef8daf320ed3787d2fc8a09797ebe2fbf81b17e82cbb960998935247",
+      "native/Keys.swift": "0b189cbda36e024f07f04c8569d7cf452d236eeabab2a39d48e1b992ef1f673a",
+      "src/lib.rs": "d27663b082731ce1eca2c91162ddd14a22a4fe59330c510ae12adace2d373de9",
+      "src/macos/mod.rs": "756e55bcce1c0e5d4b3fbc3cb751d30ba6fc812b2e55c9d06cfdd3bec172fa72",
+      "src/macos/probe.rs": "bc91d1df40950a2a7e188902327af39af89da32c17acdee2c8167e7579f662c5",
+      "src/windows.rs": "a0844383302452da6e5418190ed2504c4fcdfec28777a2916dd622971e4359e3"
+    },
+    "age-plugin-phone": {
+      "Cargo.lock": "8c0f45382950f072abd563be7d8ccebfa874f7ad70a55835308ed2375a9534f1",
+      "Cargo.toml": "6c19eea880c88daf99f21c20d798ff29d98f248b74ed90085d5cbeb528737c1e",
+      "Cargo.toml.orig": "6d00eb6417bbf36e413a031203bd0775b10d626b903f68695e89f7d8a36f3646",
+      "LICENSE": "88700e87477e6c807313eab757083fa8bcb8c75066b3fb0db6087dc2be042a11",
+      "README.md": "c7bf8eda90d028e06ce424f902d33491235592ec23d267c4863db6e3bd7586ed",
+      "examples/macos-install-acceptance.rs": "fcf3b6c3ce60434526f798660b74e3d543237ac083754e14bdc3e2aeaaff7d12",
+      "src/adb.rs": "be46df7073858beb11bc782ed8ca4f4872c3e65787c7171322ddc00d3e10fb8f",
+      "src/age_identity.rs": "f5a949814a02390e3429dc13d5d04dd4a6ac43504b974d28172142ecdacb7df2",
+      "src/age_recipient.rs": "b2864e65044859706d3de8baf6edcdd4af648f6a82e35a2deb3c5b8c468e1046",
+      "src/cleanup_journal.rs": "11f250685592e4ef4967da7cd9a9ec8518876983a6dc8d20ef28118edbd3c834",
+      "src/desktop_cleanup.rs": "e6cc6b5da6dc7e96599df2c8e9f414c3d630a51e925d01bdea7426013b816600",
+      "src/lib.rs": "ba219db97006b4631e924a5728413532f69588c538cef0d5ca2680f452b5018f",
+      "src/locator.rs": "6e4cc05bf915b659af3fd377d3157daa716062fd89673677f49179b81221629a",
+      "src/macos_state.rs": "e6ffab9c66f90e4a40f3e3ccd8ca6ded7775452fb48fc3789828574acc64d929",
+      "src/main.rs": "aff0ae6f9d11e0283e0403b3974600ed28fa712390a2f2bfa28b948e68b422ee",
+      "src/pairing.rs": "5d0b4da759176f55b31ee303e42134d2231370b8773334df7039d1d389caa8b6",
+      "src/qr_scanner.rs": "9eb52af1cad8d2dca3f4786e1c26236bcb89ae53d2bd7c2ce5b6780222b74644",
+      "src/qr_terminal.rs": "0827143d5d24303049639e190629958a0e438b392204ebe3cd7009cdc26f3c1a",
+      "src/setup.rs": "0f5e35c5df8abe13ef883f997c4ef6c796b561001cec23d5c66b63d06bf60cbb",
+      "src/transport.rs": "e1e2cdf59b8583e1ec4f0bcd760adf71e1dd8023360ad9a1153329d47da9cec3",
+      "src/transport_policy.rs": "18dae6b6d352d78a4fd3f1a1b333f88f1b7ea3567a5f0dff421133ebeccfada8",
+      "src/unwrap.rs": "5cc98b06f1a6dfed2f8e535280460faafdc9900482cba4f3b851f8110870e21c",
+      "src/wifi.rs": "32027926ad646a1be0a0a4f1f19b0913335c148598dac9aa50d0158f4a1c1b55",
+      "tests/fixtures/README.md": "150bf1ed04ef1792e5c6cfc96f3d64d96066d0439cd9b99c2683ac3db371b703",
+      "tests/fixtures/locator-v3.cbor": "347f48e34f87d7cb1c6d48c15e47b3deb412e4f1594567ff263c4cabd98ddb05",
+      "tests/fixtures/locator_v3.rs": "62e81500c0565efea8d3a1b2088802744e2599d740c6debc8ca4fd0d9af2b168",
+      "tests/macos_setup.rs": "ee4c460d9c6149856099e208e627980b95f06f74696f2101827f22e0b15e79f4"
+    }
+  },
+  "interoperability": {
+    "scope": "public_plugin_encryption_and_synthetic_independent_recovery_no_phone",
+    "recoveries": 12,
+    "malformed_recipient_rejections": 2,
+    "clients": [
+      {
+        "name": "age",
+        "version": "1.3.2",
+        "sha256": "5e5d756f6659ca8fe0a2f2e05f126529e5d36c5d65c961e6912966482f0f8de1"
+      },
+      {
+        "name": "rage",
+        "version": "0.12.1",
+        "sha256": "b56f0b764c429e4cd5abaed4ea10e5d1a9fd28bf953542d4c17c9dacf3e7ed3d"
+      }
+    ]
+  },
+  "android": {
+    "inspection": "read_only_no_new_pairing",
+    "model": "SM-F9660",
+    "os": "16",
+    "package": "io.github.biulight.age_plugin_phone",
+    "version": "0.1.0-alpha.4",
+    "version_code": 1000,
+    "apk_sha256": "6e77ada9917673f0a5a392bb9a4327dd2275f9ff403d15015a6280da190d4f62",
+    "matches_recorded_alpha4_apk": true
+  },
+  "physical_phone_verification": "not_performed",
+  "gui_network_camera_permissions": "not_tested",
+  "published_version_upgrade": "not_tested",
+  "support_claim": "experimental_incomplete"
+}
