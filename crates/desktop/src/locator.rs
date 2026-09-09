@@ -134,7 +134,7 @@ pub fn open_pairing_locator(
     open_pairing_locator_record(root, stub).map(|(_, locator)| locator)
 }
 
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 pub(crate) fn existing_pairing_locator_path(
     root: &Path,
     stub: &PublicIdentityStub,
@@ -142,7 +142,7 @@ pub(crate) fn existing_pairing_locator_path(
     open_pairing_locator_record(root, stub).map(|(path, _)| path)
 }
 
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 pub(crate) fn open_pairing_locator_for_cleanup(
     root: &Path,
     supplied_path: &Path,
@@ -154,12 +154,54 @@ pub(crate) fn open_pairing_locator_for_cleanup(
         return Err(LocatorError::Invalid);
     }
     let record = decode_record(&read_locator_file(&path)?)?;
+    validate_layout(&directory, &record.locator)?;
     if path != locator_path_for_record(&directory, &record)
         && path != legacy_locator_path_for_record(&directory, &record)
     {
         return Err(LocatorError::Invalid);
     }
     Ok((path, record))
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn ensure_exclusive_cleanup_target(
+    root: &Path,
+    locator_path: &Path,
+    desktop_state: &Path,
+    replay_state: &Path,
+) -> Result<(), LocatorError> {
+    let directory = age_plugin_phone_platform_storage::macos::Directory::open(root)
+        .map_err(|_| LocatorError::Invalid)?;
+    for name in directory
+        .child_names(4096)
+        .map_err(|_| LocatorError::Invalid)?
+    {
+        let Some(stem) = name.to_str().and_then(|name| name.strip_suffix(".cbor")) else {
+            continue;
+        };
+        let parts: Vec<_> = stem.split('-').collect();
+        if !(parts.len() == 1 || parts.len() == 2)
+            || !parts.iter().all(|part| {
+                part.len() == 32
+                    && part
+                        .bytes()
+                        .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+            })
+        {
+            continue;
+        }
+        let path = root.join(&name);
+        if path == locator_path {
+            continue;
+        }
+        let (_, other) = open_pairing_locator_for_cleanup(root, &path)?;
+        if other.locator.desktop_state == desktop_state
+            || other.locator.replay_state == replay_state
+        {
+            return Err(LocatorError::Invalid);
+        }
+    }
+    directory.validate().map_err(|_| LocatorError::Invalid)
 }
 
 fn open_pairing_locator_record(
@@ -371,7 +413,7 @@ fn legacy_pairing_locator_path(root: &Path, stub: &PublicIdentityStub) -> PathBu
     root.join(format!("{}.cbor", hex(&stub.identity_id)))
 }
 
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 fn locator_path_for_record(root: &Path, record: &PairingLocatorRecord) -> PathBuf {
     root.join(format!(
         "{}-{}.cbor",
@@ -380,7 +422,7 @@ fn locator_path_for_record(root: &Path, record: &PairingLocatorRecord) -> PathBu
     ))
 }
 
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 fn legacy_locator_path_for_record(root: &Path, record: &PairingLocatorRecord) -> PathBuf {
     root.join(format!("{}.cbor", hex(&record.identity_id)))
 }

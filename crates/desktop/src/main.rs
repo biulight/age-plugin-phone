@@ -170,13 +170,13 @@ enum Command {
         #[arg(long)]
         html_output: Option<PathBuf>,
     },
-    /// Remove one revoked pairing's exact private Windows desktop state.
+    /// Remove one revoked pairing's exact private hardware desktop state.
     RemoveDesktopState {
         /// Public identity stub for the exact pairing to remove.
         #[arg(long)]
         identity_stub: PathBuf,
     },
-    /// Remove orphaned private Windows desktop state when its public stub is unavailable.
+    /// Remove orphaned private hardware desktop state when its public stub is unavailable.
     RemoveOrphanedDesktopState {
         /// Canonical private locator in the age-plugin-phone configuration root.
         #[arg(long)]

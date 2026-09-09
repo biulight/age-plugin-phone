@@ -95,8 +95,16 @@ exists, locator opening rejects the target pairing before unwrap; unrelated pair
 available. Replay state, the two exact CNG keys derived from the committed desktop ID, TPM metadata,
 locator, replay lock, public stub, and finally the journal are removed idempotently. A crash,
 concurrent replay owner, malformed or insecure file, or partial key deletion leaves the journal in
-place and a later invocation may resume only that same cleanup. The command is unsupported outside
-the Windows Alpha product boundary.
+place and a later invocation may resume only that same cleanup.
+
+The experimental macOS implementation now exposes normal and orphan cleanup with
+native descriptor-relative storage and exact journal targets. It parses signed
+hardware metadata without requiring an enclave private operation for deletion;
+managed unavailable state can be removed after explicit fingerprint confirmation.
+Local CryptoKit reference removal is not irreversible hardware destruction, and
+phone revocation remains authoritative. Shared-state targets are rejected rather
+than deleting another pairing's dependency. See the [macOS recovery guide](../macos-recovery.md)
+and [M3 evidence](../macos-m3-evidence.md); real-device acceptance remains separate.
 
 The stub-based command remains the normal and preferred path. If the public stub is already missing
 but its private locator remains, `age-plugin-phone remove-orphaned-desktop-state --locator PATH`

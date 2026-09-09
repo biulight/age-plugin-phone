@@ -1,6 +1,7 @@
 # macOS M3 setup integration and remaining lifecycle gates
 
-Date: 2026-09-09. Scope: PR 4 (managed setup and age entry points) of the
+Date: 2026-09-09. Scope: PR 4 (managed setup and age entry points) and PR 5
+(normal/orphaned cleanup and recovery guidance) of the
 [macOS plan](macos-support-plan.md), after M1/M2 and independent M4 preparation.
 This is implementation evidence, not complete macOS or real-phone acceptance.
 
@@ -70,8 +71,8 @@ access ran outside the sandbox. The existing `block 0.1.6` notice remains.
 
 ## Remaining gates
 
-- PR 5 must integrate normal and orphaned pairing cleanup, including unavailable
-  keys and replay, interrupted teardown at every transition, and recovery guidance.
+- Real-phone revocation, native phone destructive confirmation and independent
+  recovery drills remain unperformed for this macOS implementation.
 - Legacy unscoped M2 temporaries cannot be safely attributed to a pairing. They
   remain retained and are not reported as securely destroyed. No software state
   is imported or silently erased.
@@ -81,3 +82,42 @@ access ran outside the sandbox. The existing `block 0.1.6` notice remains.
   verification, caller permissions, revocation and independent recovery still need
   the M4–M6 real-device acceptance. Windows runtime regression is not established
   by compiling/testing the macOS target.
+
+## PR 5 cleanup extension
+
+Normal and orphan cleanup now share the existing journal state machine with a
+small native operation boundary. Windows retains its CNG deletion operations;
+macOS removes local CryptoKit metadata/references and attributable temporaries.
+The public-file boundary now uses bounded descriptor-relative no-follow reads,
+single-link/owner/permission/ACL checks and parent full-sync on deletion, without
+requiring public stubs to reside in a private directory.
+
+macOS journals are checked both on creation and reopening: private targets are
+distinct direct children of the current root, the locator name matches the paired
+IDs, and neither public nor private targets may overlap journals, lifecycle locks,
+or replay sidecars. A bounded scan rejects another canonical locator sharing the
+desktop or replay path before journaling or resuming cleanup. Native cleanup holds
+the replay lock and checks its namespace before each step until that lock file's
+own planned removal. An active or replaced lock stops deletion.
+
+Complete hardware metadata is parsed and signature/public bindings are verified
+without exercising the enclave; this permits local deletion while hardware private
+operations are unavailable. Deterministic managed filenames also allow deletion of
+missing or known partial hardware state after exact confirmation. Unavailable replay
+is deleted as part of that journaled teardown, never recreated for unwrap. Arbitrary
+explicit paths require intact hardware metadata and a valid matching replay scope
+before a new cleanup can begin. `APDK2` is not a product cleanup/import fallback.
+
+Additional passing tests cover every paired/orphan deletion transition with injected
+failure; native public hard-link refusal late in teardown and subsequent resume;
+wrong fingerprint/device/public key; shared state; lost keys and corrupt/pending
+replay; replaced locks; and redirected, overlapping or reserved journal targets.
+The ignored native setup test now also runs the real CLI against its isolated
+synthetic hardware fixture: wrong confirmation preserves state, exact synthetic
+confirmation removes only that fixture's pairing. This validates CLI plumbing,
+not a real user's product confirmation or phone revocation.
+
+See [macOS state removal and recovery](macos-recovery.md). Reference deletion still
+does not destroy copied same-Mac references, and old unscoped M2 temporary files
+remain unattributable. These facts and the M2 rollback counterexample are retained
+in the support boundary rather than presented as successful security acceptance.

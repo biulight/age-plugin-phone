@@ -1,4 +1,4 @@
-//! Crash-safe Windows desktop cleanup journal.
+//! Crash-safe hardware desktop cleanup journal.
 
 #![cfg_attr(not(windows), allow(dead_code))]
 
@@ -42,6 +42,66 @@ pub(crate) struct CleanupJournal {
 }
 
 impl CleanupJournal {
+    #[cfg(target_os = "macos")]
+    fn validate_macos_root(&self, root: &Path) -> Result<(), JournalError> {
+        use std::path::Component;
+        let canonical = |path: &Path| {
+            path.is_absolute()
+                && path
+                    .components()
+                    .all(|part| matches!(part, Component::RootDir | Component::Normal(_)))
+        };
+        let private = [&self.locator_path, &self.desktop_state, &self.replay_state];
+        let reserved = [
+            journal_path(root),
+            journal_lock_path(root),
+            crate::setup::journal_path(root),
+        ];
+        if !canonical(root)
+            || !self.paths_are_valid()
+            || private.iter().any(|path| {
+                path.parent() != Some(root) || !canonical(path) || reserved.contains(path)
+            })
+            || self.desktop_state == self.replay_state
+            || self.locator_path == self.desktop_state
+            || self.locator_path == self.replay_state
+        {
+            return Err(JournalError::Invalid);
+        }
+        let encode_id = |id: Id| {
+            use std::fmt::Write as _;
+            id.iter().fold(String::new(), |mut text, byte| {
+                write!(text, "{byte:02x}").expect("writing to String cannot fail");
+                text
+            })
+        };
+        let identity = encode_id(self.identity_id());
+        let desktop = encode_id(self.desktop_id());
+        if self.locator_path != root.join(format!("{identity}-{desktop}.cbor"))
+            && self.locator_path != root.join(format!("{identity}.cbor"))
+        {
+            return Err(JournalError::Invalid);
+        }
+        let replay_name = self.replay_state.file_name().ok_or(JournalError::Invalid)?;
+        let sidecar = |suffix: &str| {
+            let mut name = replay_name.to_os_string();
+            name.push(suffix);
+            root.join(name)
+        };
+        let sidecars = [sidecar(".lock"), sidecar(".pending")];
+        if sidecars.contains(&self.desktop_state) || sidecars.contains(&self.locator_path) {
+            return Err(JournalError::Invalid);
+        }
+        if self.paired().is_some_and(|(_, stub)| {
+            !canonical(stub)
+                || private.iter().any(|path| path.as_path() == stub)
+                || reserved.iter().any(|path| path == stub)
+                || sidecars.iter().any(|path| path == stub)
+        }) {
+            return Err(JournalError::Invalid);
+        }
+        Ok(())
+    }
     pub(crate) fn encode(&self) -> Result<Vec<u8>, JournalError> {
         let locator_path = encoded_path(&self.locator_path)?;
         let desktop_state = encoded_path(&self.desktop_state)?;
@@ -291,7 +351,11 @@ pub(crate) fn read(root: &Path) -> Result<Option<CleanupJournal>, JournalError> 
         &journal_path(root),
         MAX_JOURNAL_BYTES,
     ) {
-        Ok(bytes) => CleanupJournal::decode(&bytes).map(Some),
+        Ok(bytes) => {
+            let value = CleanupJournal::decode(&bytes)?;
+            value.validate_macos_root(root)?;
+            Ok(Some(value))
+        }
         Err(age_plugin_phone_platform_storage::macos::Error::Missing) => Ok(None),
         Err(_) => Err(JournalError::Invalid),
     }
@@ -299,6 +363,7 @@ pub(crate) fn read(root: &Path) -> Result<Option<CleanupJournal>, JournalError> 
 
 #[cfg(target_os = "macos")]
 pub(crate) fn create(root: &Path, journal: &CleanupJournal) -> Result<(), JournalError> {
+    journal.validate_macos_root(root)?;
     let encoded = journal.encode()?;
     age_plugin_phone_platform_storage::macos::atomic_create(&journal_path(root), &encoded)
         .map_err(|_| JournalError::Storage)

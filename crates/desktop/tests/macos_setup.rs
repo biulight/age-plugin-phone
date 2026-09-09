@@ -1,6 +1,11 @@
 //! Explicit native acceptance using synthetic pairing metadata, never a real phone peer.
 #![cfg(target_os = "macos")]
 
+use std::{
+    io::Write as _,
+    process::{Command, Stdio},
+};
+
 use age_plugin_phone::{
     locator::open_pairing_locator,
     pairing::{DesktopKeyState, PublicIdentityStub},
@@ -63,6 +68,32 @@ fn native_confirmed_setup_reopens_and_commits_hardware_roles() {
     );
     assert!(value.identity_stub.exists());
     drop(reopened);
+    for (entered, success) in [
+        ("wrong\n".to_owned(), false),
+        (format!("{}\n", "41".repeat(32)), true),
+    ] {
+        // Feed only the synthetic fixture's confirmation. Never use this harness to automate
+        // a real user's fingerprint comparison or native destructive-action confirmation.
+        let mut child = Command::new(env!("CARGO_BIN_EXE_age-plugin-phone"))
+            .env("AGE_PLUGIN_PHONE_CONFIG_DIR", &root)
+            .args(["remove-desktop-state", "--identity-stub"])
+            .arg(&value.identity_stub)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .unwrap();
+        child
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(entered.as_bytes())
+            .unwrap();
+        assert_eq!(child.wait().unwrap().success(), success);
+        assert_eq!(value.desktop_state.exists(), !success);
+        assert_eq!(value.identity_stub.exists(), !success);
+        assert_eq!(value.replay_state.exists(), !success);
+    }
     // The whole root belongs to this synthetic fixture. Removing references is local cleanup,
     // not a claim of hardware destruction or of exercising product fingerprint confirmation.
     std::fs::remove_dir_all(root).unwrap();

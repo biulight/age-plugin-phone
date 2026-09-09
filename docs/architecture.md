@@ -86,8 +86,10 @@ binding and private operations; `APDK2` software state is rejected on macOS. Uni
 use test-only software keys. No ordinary feature or environment variable enables a
 macOS software fallback. The subsequent M2 implementation adds descriptor-relative private storage and
 persistent replay pending markers. M3 now shares managed setup/resume, journals confirmed
-commits, and provides exact incomplete-setup cleanup with native storage. Normal/orphaned
-cleanup integration and M2 acceptance gates remain open; this is not a complete macOS support declaration.
+commits, and provides exact incomplete-setup, normal and orphan cleanup with native storage.
+macOS cleanup verifies metadata without requiring private hardware operations, refuses
+shared state, and validates exact journal paths and replay locks. Phone lifecycle acceptance
+and M2 acceptance gates remain open; this is not a complete macOS support declaration.
 See [the M1 implementation record](macos-m1-evidence.md) and
 [the M2 implementation/remaining-gates record](macos-m2-evidence.md) and
 [the M3 setup record](macos-m3-evidence.md).

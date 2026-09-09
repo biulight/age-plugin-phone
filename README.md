@@ -120,6 +120,11 @@ On Windows, `status` performs a read-only Alpha capability probe. It reports the
 version, client/server edition, x64 architecture, TPM 2.0 availability, and Microsoft Platform
 Crypto Provider availability without creating or opening persisted keys.
 
+The experimental macOS path now implements Secure Enclave managed setup/resume and journaled
+normal/orphaned cleanup. Hardware, transport and lifecycle acceptance remains tracked in the
+[macOS plan](docs/macos-support-plan.md); this is not a complete platform support claim.
+See the [macOS recovery guide](docs/macos-recovery.md) before changing or deleting pairing state.
+
 On the supported Windows Alpha path, the normal identity entry point is
 `age-plugin-phone setup --label LABEL`. It preflights Windows and the selected transport before
 creating state, allocates create-only TPM metadata, replay, locator, and public-stub paths under

@@ -19,6 +19,26 @@ const MAX_REFERENCE: usize = 4096;
 const MAX_STATE: usize = HEADER + 2 * MAX_REFERENCE + 64;
 const DOMAIN: &[u8] = b"age-plugin-phone/macos-key-metadata/v2\0";
 
+pub(super) fn cleanup_binding(
+    path: &Path,
+) -> Result<(Id, EncodedPublicKey, EncodedPublicKey), PairingError> {
+    let bytes = Zeroizing::new(
+        age_plugin_phone_platform_storage::macos::read_private_file(path, MAX_STATE as u64)
+            .map_err(|error| match error {
+                age_plugin_phone_platform_storage::macos::Error::Missing => {
+                    PairingError::StateMissing
+                }
+                _ => PairingError::State,
+            })?,
+    );
+    let metadata = Metadata::parse(&bytes)?;
+    Ok((
+        metadata.id,
+        metadata.signing_public,
+        metadata.selection_public,
+    ))
+}
+
 pub struct DesktopKeyState {
     pub desktop_id: Id,
     signing: MacosSigner,

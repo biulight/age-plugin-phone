@@ -1,7 +1,8 @@
 # macOS 完整支持实施计划
 
-日期：2026-09-09。状态：M3 / PR 4 的托管 setup、resume、setup cleanup 及入口检查已实现，
-自动化和隔离硬件提交测试通过，PR 5 生命周期与真机验收仍待完成，见 [M3 记录](macos-m3-evidence.md)。
+日期：2026-09-09。状态：M3 / PR 4–5 的托管 setup、resume、各类 journal 清理及入口检查已实现，
+自动化和隔离硬件提交/CLI 清理测试通过，真实手机生命周期与恢复验收仍待完成，见 [M3 记录](macos-m3-evidence.md)。
+本轮真机验收使用用户确认可用的 StrongBox Android；iPhone 仍为未验收范围。
 M4 的多网卡发现、失败处理和只读状态报告已先行实现，
 完整传输/手机/调用者验收仍未完成，见 [M4 记录](macos-m4-evidence.md)。
 PR 2 / M1 已实现双密钥后端与独立硬件 metadata，

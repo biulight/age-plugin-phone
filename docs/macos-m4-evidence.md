@@ -53,5 +53,5 @@ The existing `block 0.1.6` future-compatibility notice remains.
   and fingerprint comparison; automation cannot replace them.
 
 M3 managed setup now has [separate implementation evidence](macos-m3-evidence.md).
-Normal/orphaned cleanup, M5 extracted-archive installation, and M6 precise artifact
-acceptance/security review remain separate work.
+Normal/orphaned cleanup now also has M3 implementation evidence. M5 extracted-archive
+installation and M6 precise artifact acceptance/security review remain separate work.

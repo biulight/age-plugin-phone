@@ -428,6 +428,25 @@ pub fn create_identity_stub_file(
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
+pub(crate) fn cleanup_desktop_binding(
+    path: &Path,
+) -> Result<(Id, EncodedPublicKey, EncodedPublicKey), PairingError> {
+    #[cfg(not(test))]
+    return macos_state::cleanup_binding(path);
+    #[cfg(test)]
+    {
+        // Ordinary cleanup fixtures use only software test operations. Product cleanup parses
+        // signed hardware metadata without requiring private operations on a locked/lost enclave.
+        let state = DesktopKeyState::open(path)?;
+        Ok((
+            state.desktop_id,
+            state.signing_public_key()?,
+            state.selection_public_key()?,
+        ))
+    }
+}
+
 pub fn read_identity_stub_file(path: &Path) -> Result<PublicIdentityStub, PairingError> {
     let text = std::fs::read_to_string(path).map_err(|_| PairingError::StubStorage)?;
     decode_identity_stub_text(&text)

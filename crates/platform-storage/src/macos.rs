@@ -86,7 +86,9 @@ fn check(file: &File, private: bool, directory: bool) -> Result<(), Error> {
         || (!directory && (!m.is_file() || m.nlink() != 1))
         || (private && (m.uid() != uid || m.mode() & 0o7077 != 0))
         || (!private && (m.uid() != 0 && m.uid() != uid))
-        || (!private && m.mode() & 0o022 != 0 && !(m.uid() == 0 && m.mode() & 0o1000 != 0))
+        || (!private
+            && m.mode() & 0o022 != 0
+            && !(directory && m.uid() == 0 && m.mode() & 0o1000 != 0))
     {
         return Err(Error::Invalid);
     }
@@ -346,6 +348,21 @@ impl Directory {
         }
         self.sync()
     }
+    /// Returns a bounded snapshot of direct child names, validating the held namespace.
+    pub fn child_names(&self, max: usize) -> Result<Vec<PathBuf>, Error> {
+        self.validate()?;
+        let mut names = Vec::new();
+        for entry in std::fs::read_dir(&self.path).map_err(|_| Error::Storage)? {
+            if names.len() >= max {
+                return Err(Error::Invalid);
+            }
+            names.push(PathBuf::from(
+                entry.map_err(|_| Error::Storage)?.file_name(),
+            ));
+        }
+        self.validate()?;
+        Ok(names)
+    }
     pub fn remove(&self, child: &Path) -> Result<(), Error> {
         self.validate()?;
         let child = name(child)?;
@@ -433,6 +450,47 @@ pub fn remove_private_file(path: &Path) -> Result<(), Error> {
         .remove(Path::new(path.file_name().ok_or(Error::Invalid)?))
 }
 
+/// Bounded no-follow read for public files, without requiring a private parent directory.
+pub fn read_regular_file(path: &Path, max: u64) -> Result<Vec<u8>, Error> {
+    if max > MAX_BYTES {
+        return Err(Error::Invalid);
+    }
+    let parent = path.parent().ok_or(Error::Invalid)?;
+    let directory = open_ancestor(parent)?;
+    let child = name(Path::new(path.file_name().ok_or(Error::Invalid)?))?;
+    let file = open_at(&directory, &child, libc::O_RDONLY)?;
+    check(&file, false, false)?;
+    let mut bytes = Vec::new();
+    (&file)
+        .take(max + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|_| Error::Storage)?;
+    if bytes.is_empty() || bytes.len() as u64 > max {
+        return Err(Error::Invalid);
+    }
+    check(&file, false, false)?;
+    same(&directory, &open_ancestor(parent)?)?;
+    same(&file, &open_at(&directory, &child, libc::O_RDONLY)?)?;
+    Ok(bytes)
+}
+
+/// Removes a checked, single-link public file and fully synchronizes its parent.
+pub fn remove_regular_file(path: &Path) -> Result<(), Error> {
+    let parent = path.parent().ok_or(Error::Invalid)?;
+    let directory = open_ancestor(parent)?;
+    let child = name(Path::new(path.file_name().ok_or(Error::Invalid)?))?;
+    let file = open_at(&directory, &child, libc::O_RDONLY)?;
+    check(&file, false, false)?;
+    same(&directory, &open_ancestor(parent)?)?;
+    same(&file, &open_at(&directory, &child, libc::O_RDONLY)?)?;
+    // SAFETY: child is one NUL-terminated name under the owned directory descriptor.
+    if unsafe { libc::unlinkat(directory.as_raw_fd(), child.as_ptr(), 0) } != 0 {
+        return Err(os_error());
+    }
+    full_sync(&directory)?;
+    same(&directory, &open_ancestor(parent)?)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -500,6 +558,30 @@ mod tests {
         );
         assert_eq!(dir.read(Path::new("state-other"), 10).unwrap(), b"old");
         std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn public_files_are_bounded_single_link_and_never_followed() {
+        let root = root();
+        std::fs::create_dir(&root).unwrap();
+        std::fs::set_permissions(&root, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let path = root.join("public");
+        std::fs::write(&path, b"public").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+        assert_eq!(read_regular_file(&path, 6).unwrap(), b"public");
+        assert!(read_regular_file(&path, 5).is_err());
+        let alias = root.join("alias");
+        symlink(&path, &alias).unwrap();
+        assert!(read_regular_file(&alias, 6).is_err());
+        assert!(remove_regular_file(&alias).is_err());
+        std::fs::remove_file(&alias).unwrap();
+        std::fs::hard_link(&path, &alias).unwrap();
+        assert!(read_regular_file(&path, 6).is_err());
+        assert!(remove_regular_file(&path).is_err());
+        std::fs::remove_file(alias).unwrap();
+        remove_regular_file(&path).unwrap();
+        assert!(matches!(read_regular_file(&path, 6), Err(Error::Missing)));
+        std::fs::remove_dir(root).unwrap();
     }
 
     #[test]
