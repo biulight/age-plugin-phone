@@ -68,7 +68,8 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Wi-Fi multihoming, interface changes, ambiguity and permission errors | Logic tests pass; applicable physical combinations pending |
 | Built-in/UVC cameras; first allow, deny, revoke and occupied camera | Pending caller-specific physical tests |
 | Independent recovery drill | Six age/rage cases pass with the phone plugin and desktop state unavailable |
-| Revocation and interrupted cleanup | Synthetic cleanup passes; human/native lifecycle drill pending |
+| Revocation and normal cleanup | Android QR pairing revoked; old ciphertext rejected without biometrics, recovery and original USB pairing pass; desktop cleanup preserves 21 other file hashes |
+| Interrupted and orphan cleanup | Synthetic tests pass; physical lifecycle cases remain pending |
 | Published-version upgrade/downgrade | Not tested by same-source rebuild or commit-to-commit continuity |
 | iPhone | iPhone 15 Pro / iOS 26.6.1; debug build 0.1.0.4 Wi-Fi pairing and four data checks pass; Wi-Fi approvals/cancellation and age/rage QR approvals pass with fresh Face ID confirmed |
 | Wrong Mac, other OS, Intel/T2 | Deferred/unverified; not part of the current host/Android acceptance claim |
@@ -315,3 +316,14 @@ recovery identity decrypted the same ciphertext successfully. The original Andro
 USB pairing still decrypted its own ciphertext, with the user immediately confirming
 fresh fingerprint verification. Desktop state for the revoked pairing remained
 present throughout this test; normal desktop cleanup is the next separate step.
+
+## Native desktop cleanup after phone revocation
+
+The user ran the original installed candidate's `remove-desktop-state` for the
+revoked Android QR pairing and personally entered its exact full fingerprint.
+The command exited zero. The identity reference was absent afterward, no files
+named for that desktop identifier remained, and content hashes of all 21 other
+regular files in the private state directory were unchanged. This establishes
+normal removal and file-level isolation for this exact target, not interrupted
+or orphan cleanup. The temporary recovery key, ciphertext fixtures and their
+manifest were then removed; coarse acceptance results were retained.

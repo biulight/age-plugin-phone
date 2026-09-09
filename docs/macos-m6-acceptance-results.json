@@ -511,7 +511,17 @@
       "scope": "one_android_qr_pairing_revoked_by_user_native_ui",
       "rejection_transport": "adb_explicitly_selected_to_test_revocation_independent_of_qr",
       "raw_result_sha256": "2f2df6ed3d4a6e6aa14892d6a58c8d59bf01c8974b7aaf748361b325c6e302d8",
-      "desktop_cleanup": "pending"
+      "desktop_cleanup": "passed"
+    },
+    "qr_pairing_desktop_cleanup": {
+      "exit_code": 0,
+      "target_identity_removed": true,
+      "other_file_hashes_unchanged": true,
+      "other_file_count": 21,
+      "remaining_target_named_file_count": 0,
+      "raw_result_sha256": "bd5fa1821f0151568bdb233930861369b71b0c053f0aac4043dff7a47ec4ee48",
+      "confirmation": "user_entered_exact_full_fingerprint_in_cli",
+      "temporary_recovery_fixture_removed": true
     }
   },
   "physical_phone_verification": "android_adb_and_iphone_wifi_each_three_fresh_native_approvals_user_confirmed",
