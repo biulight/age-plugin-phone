@@ -479,3 +479,13 @@ ownership is therefore not confirmed. A controlled comparison with ZeroTier
 paused and Surge unchanged remains pending. No addresses, network identifiers,
 credentials or discovery payloads were retained in the evidence. The diagnostic
 continues counting send errors and is not a product routing or fallback change.
+
+The user requested a direct retry with ZeroTier and Surge left enabled; no pause
+comparison was performed. The first diagnostic broadcast again received no
+response, while unicast succeeded at 0.285 seconds. The next broadcast received a
+signature at 0.329 seconds but counted one EHOSTUNREACH and thirteen EHOSTDOWN
+errors on the en13-derived target. The next unicast succeeded at 0.277 seconds.
+A subsequent run of the existing Rust discovery probe succeeded on all three
+queries. This records intermittent behavior under unchanged networking, not a
+fix or proof that either network application is the cause. No unwrap or biometric
+operation was requested.

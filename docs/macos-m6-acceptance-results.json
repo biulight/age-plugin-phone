@@ -1269,5 +1269,109 @@
     },
     "zerotier_interface_attribution": "not_confirmed_cli_listnetworks_exit_2",
     "network_settings_changed": false
+  },
+  "wifi_unchanged_network_retry_20260910": {
+    "user_constraint": "keep_ZeroTier_and_Surge_enabled",
+    "network_settings_changed": false,
+    "runs": {
+      "route_diagnostic": {
+        "routes": [
+          {
+            "target": "subnet_feth4032",
+            "route_exit": 0,
+            "interface": "feth4032"
+          },
+          {
+            "target": "subnet_en13",
+            "route_exit": 0,
+            "interface": "en0"
+          },
+          {
+            "target": "phone_unicast",
+            "route_exit": 0,
+            "interface": "en0"
+          },
+          {
+            "target": "subnet_en0",
+            "route_exit": 0,
+            "interface": "en0"
+          },
+          {
+            "target": "limited_broadcast",
+            "route_exit": 0,
+            "interface": "en0"
+          }
+        ],
+        "user_reported_mac_proxy": "Surge_system_proxy",
+        "zerotier": "left_enabled_per_user_request",
+        "scope": "diagnostic_only_no_stream_or_unwrap_no_route_policy_change",
+        "interface_filter": "UP_RUNNING_BROADCAST_without_LOOPBACK_POINTOPOINT",
+        "deadline_seconds": 3,
+        "retry_interval_seconds": 0.2,
+        "runs": [
+          {
+            "mode": "broadcast",
+            "target_count": 4,
+            "first_authenticated_response_seconds": null,
+            "valid_responses": 0,
+            "invalid_responses": 0,
+            "send_errors": 0,
+            "send_error_codes": {},
+            "target_errors": {}
+          },
+          {
+            "mode": "unicast",
+            "target_count": 1,
+            "first_authenticated_response_seconds": 0.285,
+            "valid_responses": 15,
+            "invalid_responses": 0,
+            "send_errors": 0,
+            "send_error_codes": {},
+            "target_errors": {}
+          },
+          {
+            "mode": "broadcast",
+            "target_count": 4,
+            "first_authenticated_response_seconds": 0.329,
+            "valid_responses": 28,
+            "invalid_responses": 0,
+            "send_errors": 14,
+            "send_error_codes": {
+              "65": 1,
+              "64": 13
+            },
+            "target_errors": {
+              "subnet_en13": {
+                "65": 1,
+                "64": 13
+              }
+            }
+          },
+          {
+            "mode": "unicast",
+            "target_count": 1,
+            "first_authenticated_response_seconds": 0.277,
+            "valid_responses": 15,
+            "invalid_responses": 0,
+            "send_errors": 0,
+            "send_error_codes": {},
+            "target_errors": {}
+          }
+        ],
+        "raw_result_sha256": "3f5db8fdb10418f1591f87b42b89b6ef87c4fe31208639b84283ddeba7b49f32"
+      },
+      "existing_rust_probe": {
+        "scope": "existing_rust_discovery_probe_no_stream_or_unwrap",
+        "network_settings": "unchanged_zeroTier_and_Surge_enabled",
+        "exit_code": 0,
+        "discovery": [
+          "attempt 1: one authenticated listener",
+          "attempt 2: one authenticated listener",
+          "attempt 3: one authenticated listener"
+        ],
+        "raw_result_sha256": "8263495cc90519938cec386876e44e2bec7429d18ee9288d7974e2ef8588071a"
+      }
+    },
+    "conclusion": "intermittent_broadcast_outage_and_cross_interface_send_errors_persist_later_rust_probe_passes"
   }
 }
