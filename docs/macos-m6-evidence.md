@@ -46,7 +46,7 @@ This local review does not replace the project's independent external security r
 | Attached Android | Samsung SM-F9660, Android 16; one authorized USB device observed |
 | Installed Android package | `io.github.biulight.age_plugin_phone`, version `0.1.0-alpha.4`, versionCode 1000 |
 | Installed APK SHA-256 | `6e77ada9917673f0a5a392bb9a4327dd2275f9ff403d15015a6280da190d4f62` — matches the recorded alpha.4 signed artifact |
-| New Mac/Android pairing | **Not performed**; APK/version inspection is read-only |
+| New Mac/Android pairing | User-operated ADB setup succeeded; exit 0 and identity reference created |
 | Windows regression | Native Windows 11 / Rust 1.96 four-crate fmt, all-target Clippy and 96 tests pass after two platform lint annotations; TPM creation/reopen and read-only status pass |
 
 The APK digest was calculated on the installed public APK, without reading app
@@ -60,10 +60,11 @@ pairing revoked, phone verification automated or real plaintext processed.
 | --- | --- |
 | M2 same-Mac valid-state rollback | Open; retain original requirement until solution/reviewed decision |
 | Exact final archive and installed digest | Passed for `cc7e120`; digest below |
-| Terminal → age/rage → installed plugin | 12 public synthetic recoveries and 2 malformed-recipient rejections pass; real phone flow pending |
+| Terminal → age/rage → installed plugin | Public synthetic matrix passes; Ghostty → age 1.3.2 → Android ADB passes; real rage flow pending |
 | GUI application → age → installed plugin | Pending; Terminal permissions do not establish GUI permissions |
-| Android ADB pairing and two separate successful unwraps | Pending full human fingerprint comparison and fresh native verification |
-| Cancellation, failure then success, timeout, unplug, daemon/process interruption | New Mac/Android physical evidence pending |
+| Android ADB pairing and two separate successful unwraps | User-operated setup and two independent decryptions pass; user confirms fresh native verification for every approval |
+| Cancellation and subsequent success | Android ADB cancellation returns failure without plaintext; subsequent fresh approval succeeds |
+| Timeout, unplug, daemon/process interruption | New Mac/Android physical evidence pending |
 | Wi-Fi multihoming, interface changes, ambiguity and permission errors | Logic tests pass; applicable physical combinations pending |
 | Built-in/UVC cameras; first allow, deny, revoke and occupied camera | Pending caller-specific physical tests |
 | Revocation, interrupted cleanup and independent recovery drill | Synthetic cleanup passes; human/native endpoint-loss drill pending |
@@ -146,3 +147,31 @@ in place, reported version `0.1.0` / build `0.1.0.4`, and successfully launched 
 There was no uninstall, identity replacement or automated native authorization.
 This establishes local development installation only; it is not distribution,
 Secure Enclave identity use, pairing, Wi-Fi/QR or Face ID acceptance evidence.
+
+## Android ADB pairing and native unwrap acceptance
+
+The user ran the installed `cc7e120` candidate in Ghostty against the recorded
+StrongBox Android APK. Setup exited zero and created the public identity reference.
+The age 1.3.2 harness encrypted 128 random disposable bytes using setup's `recipient`
+with `-r`, then used `identity_path` with `-i` for four separate decryptions:
+
+| Operation | Client result | Data check |
+| --- | --- | --- |
+| First native approval | Exit 0 | Exact round trip |
+| Second native approval | Exit 0 | Exact round trip |
+| Phone cancellation | Exit 1 | No plaintext output |
+| New approval after cancellation | Exit 0 | Exact round trip |
+
+The user explicitly confirmed a new native biometric prompt was completed for all
+three approvals. The cancellation's generic client error (`phone response unavailable
+or malformed`) was expected by this negative test. After the flow, the selected
+phone had no ADB reverse rules, and the harness retained no temporary plaintext
+directory. Machine-readable evidence binds the script, results, installed plugin
+and APK hashes; it contains no phone keys, protocol payloads or plaintext.
+
+Two acceptance-script errors were corrected before this successful run: its PATH
+initially omitted Android SDK platform-tools, and encryption incorrectly supplied
+the identity file to `-R`. Those failed before pairing state creation and before
+unwrap respectively; neither is counted as a successful protocol test.
+This row does not establish Wi-Fi, QR, GUI caller, timeout, unplug or replay-rollback
+acceptance. Those gates remain separate.

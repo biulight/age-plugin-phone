@@ -208,16 +208,53 @@
     ]
   },
   "android": {
-    "inspection": "read_only_no_new_pairing",
+    "inspection": "read_only_artifact_inspection_followed_by_human_operated_adb_acceptance",
     "model": "SM-F9660",
     "os": "16",
     "package": "io.github.biulight.age_plugin_phone",
     "version": "0.1.0-alpha.4",
     "version_code": 1000,
     "apk_sha256": "6e77ada9917673f0a5a392bb9a4327dd2275f9ff403d15015a6280da190d4f62",
-    "matches_recorded_alpha4_apk": true
+    "matches_recorded_alpha4_apk": true,
+    "macos_adb_acceptance": {
+      "caller": "age 1.3.2",
+      "transport": "adb",
+      "synthetic_data_only": true,
+      "human_native_observation": "user_confirmed_fresh_native_biometric_verification_on_all_three_approvals",
+      "phases": [
+        {
+          "phase": "first_approval",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": "second_fresh_approval",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": "native_cancellation",
+          "exit_code": 1,
+          "passed": true
+        },
+        {
+          "phase": "approval_after_cancellation",
+          "exit_code": 0,
+          "passed": true
+        }
+      ],
+      "terminal": "Ghostty_user_operated",
+      "desktop_source_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+      "desktop_binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+      "pairing": "user_reported_success_and_setup_exit_zero_identity_reference_created",
+      "cancellation": "nonzero_client_exit_and_no_plaintext_output",
+      "adb_reverse_after_test": "empty",
+      "temporary_plaintext_directories_after_test": 0,
+      "harness_sha256": "e4ee27f69ff9d4df65b7fba1a4f904a7f15461bbefa884344a1d806758989716",
+      "raw_result_sha256": "ca28a9ee8e835460050673811c215205e3eaca3f7418e60c0a9b1b7bde09eb19"
+    }
   },
-  "physical_phone_verification": "not_performed",
+  "physical_phone_verification": "android_adb_three_fresh_biometric_approvals_user_confirmed",
   "gui_network_camera_permissions": "not_tested",
   "published_version_upgrade": "not_tested",
   "support_claim": "experimental_incomplete",
