@@ -65,8 +65,8 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Gate | Status |
 | --- | --- |
 | Desktop valid-state rollback | User-approved common Windows/macOS limitation; stronger protection deferred to later POC, not passed |
-| Exact final archive and installed digest | Passed for `cc7e120`; new Mac network candidate requires archive/install revalidation |
-| Terminal → age/rage → installed plugin | Public synthetic matrix passes; Ghostty → age 1.3.2 / rage 0.12.1 → Android ADB and iPhone Wi-Fi pass, including fresh native approvals and cancellation |
+| Exact final archive and installed digest | Network-corrected archive/install passed; installed digest `078d3f1d…f42f12cd`, full evidence below |
+| Terminal → age/rage → installed plugin | Current installed artifact: Android and iPhone Wi-Fi each pass all eight cases; earlier USB/QR evidence retained separately |
 | GUI application → age → installed plugin | Deferred by user on 2026-09-10; outside current CLI acceptance, not passed |
 | Android ADB pairing and two separate successful unwraps | User-operated setup and two independent decryptions pass; user confirms fresh native verification for every approval |
 | Cancellation and subsequent success | Android ADB cancellation returns failure without plaintext; subsequent fresh approval succeeds |
@@ -655,3 +655,17 @@ It is outside the current terminal CLI acceptance scope, not a passing result or
 support claim. No GUI harness was created or run. Shine was inspected read-only: it is a
 CLI that invokes age, so running it from a terminal does not itself establish a GUI caller.
 The deferral does not weaken M2 rollback requirements or remaining terminal safety gates.
+
+### Follow-up after the approved replay boundary decision
+
+Commit `a51df0f` is the current user-approved scope: stronger Windows/macOS desktop
+restore freshness is deferred as a POC proposal, not an implemented enhancement. No
+privileged service or protocol revision is required for this acceptance stage. The
+remaining transport and lifecycle matrix continues under the preserved native verification,
+session binding, durable consumption and fail-closed requirements.
+
+An isolated harness is prepared for the current Cargo-installed binary and updated
+Android APK over Developer USB, reusing the existing USB pairing. Its eight age/rage
+cases require immediate native observations and also check that reverse rules are empty
+after each operation. Read-only preflight found the device connected and no reverse rules.
+No identity operation was performed by this preparation; its physical results are pending.
