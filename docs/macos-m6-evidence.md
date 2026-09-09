@@ -615,3 +615,16 @@ rejections. This is commit-to-commit continuity, not a published-version upgrade
 of the full uninstall/reinstall lifecycle. Native-only ignored tests are not counted as passes.
 The exact installed artifact still needs user-operated phone acceptance; the debug candidate's
 eight successful Wi-Fi cases are recorded separately.
+
+### Installed Mac artifact: Android Wi-Fi matrix passed
+
+The user completed all eight Android Wi-Fi cases with the exact Cargo-installed binary
+`078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd` and the recorded
+same-signed reception-update APK. age and rage each passed two separate approvals, native
+cancellation without plaintext, and approval after cancellation. All six fresh fingerprint
+observations and both intentional cancellations were recorded immediately as `y`. The
+retained result and harness hashes are in the JSON evidence; no temporary plaintext
+directories remain. ZeroTier and Surge stayed enabled.
+
+This establishes the installed artifact's Android foreground Wi-Fi matrix. It does not
+transfer the earlier artifact's iPhone or GUI/camera acceptance, or close M2 rollback.
