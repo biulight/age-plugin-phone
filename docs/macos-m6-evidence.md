@@ -60,7 +60,7 @@ pairing revoked, phone verification automated or real plaintext processed.
 | --- | --- |
 | M2 same-Mac valid-state rollback | Open; retain original requirement until solution/reviewed decision |
 | Exact final archive and installed digest | Passed for `cc7e120`; digest below |
-| Terminal → age/rage → installed plugin | Public synthetic matrix passes; Ghostty → age 1.3.2 → Android ADB and iPhone Wi-Fi data checks pass; real rage flow pending |
+| Terminal → age/rage → installed plugin | Public synthetic matrix passes; Ghostty → age 1.3.2 / rage 0.12.1 → Android ADB and iPhone Wi-Fi pass, including fresh native approvals and cancellation |
 | GUI application → age → installed plugin | Pending; Terminal permissions do not establish GUI permissions |
 | Android ADB pairing and two separate successful unwraps | User-operated setup and two independent decryptions pass; user confirms fresh native verification for every approval |
 | Cancellation and subsequent success | Android ADB cancellation returns failure without plaintext; subsequent fresh approval succeeds |
@@ -191,3 +191,15 @@ The user explicitly confirmed three new Face ID verifications and deliberate
 cancellation of the third test. The four client/data checks and this human/native
 observation pass. QR, background operation, camera/network permission cases and
 other callers are not established by this foreground Wi-Fi run.
+
+## rage caller acceptance on both phones
+
+The same installed Mac candidate completed the four-operation matrix with rage
+0.12.1 on Android ADB and separately on iPhone foreground Wi-Fi. Each run passed
+two independent decryptions, a deliberately cancelled operation (exit 1 and no
+plaintext), and a successful new request after cancellation. The user confirmed
+new native verification for all six approvals and personally cancelling both
+negative tests. Each successful output matched its random disposable input;
+no temporary plaintext directories remained. Per-phone harness/result hashes
+and client/transport metadata are recorded in the JSON evidence. This covers
+these two transport/caller combinations, not Android Wi-Fi or either phone's QR.

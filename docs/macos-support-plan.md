@@ -3,9 +3,10 @@
 日期：2026-09-09。状态：M3 / PR 4–5 的托管 setup、显式 pair ownership journal、resume、各类 journal 清理及入口检查已实现，
 自动化和隔离硬件提交/CLI 清理测试通过，真实手机生命周期与恢复验收仍待完成，见 [M3 记录](macos-m3-evidence.md)。
 本轮真机验收使用用户确认可用的 StrongBox Android，以及 iPhone 15 Pro（iOS 26.6.1）。
-iPhone 测试包已安装并启动；两类手机的配对、传输与原生验证证据仍须分别完成。
+Android ADB 与 iPhone 前台 Wi-Fi 已分别通过 age / rage 的配对、独立原生验证、取消无明文和取消后重试；
+Android Wi-Fi、两类手机 QR、GUI 调用及其余负面/恢复矩阵仍待完成。
 M5 的四 crate 独立归档、Rust 1.88 锁定安装、不同摘要覆盖重建、卸载及重装已通过；
-原硬件引用和已消费 replay 保持不变，发布版本升级与真实调用者仍待验收，见 [M5 记录](macos-m5-evidence.md)。
+原硬件引用和已消费 replay 保持不变，发布版本升级与 GUI 调用者仍待验收，见 [M5 记录](macos-m5-evidence.md)。
 M4 的多网卡发现、失败处理和只读状态报告已先行实现，
 完整传输/手机/调用者验收仍未完成，见 [M4 记录](macos-m4-evidence.md)。
 PR 2 / M1 已实现双密钥后端与独立硬件 metadata，
@@ -18,7 +19,7 @@ PR 2 / M1 已实现双密钥后端与独立硬件 metadata，
 [ADR 0025](adr/0025-macos-secure-enclave-m0.md)。
 基线：`b4be976`，`0.1.0-alpha.4`。
 M6 的最终候选 `cc7e120` 已通过四 crate 归档安装、硬件重装延续与 age/rage 合成互操作；
-复审发现、手机只读制品核对、待完成矩阵见 [M6 记录](macos-m6-evidence.md)；
+复审发现、手机制品与 age/rage 真机记录、待完成矩阵见 [M6 记录](macos-m6-evidence.md)；
 源码使用步骤见 [macOS quick start](macos-quickstart.md)。M2 [范围决定](macos-replay-decision.md)
 尚未批准，原要求保持有效。
 
