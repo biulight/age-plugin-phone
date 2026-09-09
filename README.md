@@ -59,15 +59,18 @@ user. It must never export the long-term private key to the desktop.
 
 - `crates/desktop`: the CLI, age entry point and bounded one-shot transport module.
 - `crates/core`: separate public `recipient` and `protocol` modules and public test vectors.
-- `crates/platform-keys`: Windows TPM key custody; future macOS backends belong here.
-- `crates/platform-storage`: explicit Windows and Unix filesystem boundaries.
+- `crates/platform-keys`: Windows TPM and experimental macOS Secure Enclave key custody.
+- `crates/platform-storage`: explicit Windows, macOS and other Unix filesystem boundaries.
 - `apps/mobile`: Tauri 2 mobile application with a deliberately non-sensitive TypeScript UI.
 - `docs`: architecture, protocol, threat model, and roadmap.
 
 The [desktop four-crate PRD](docs/desktop-crates-refactor-prd.md) defines acceptance criteria.
 See [ADR 0024](docs/adr/0024-four-desktop-crates.md) for the package boundaries and
 [candidate evidence](docs/desktop-refactor-evidence.md) for completed validation.
-The refactor does not add macOS hardware-key support or upload packages.
+The original refactor did not add macOS hardware-key support or upload packages.
+The later [macOS implementation plan](docs/macos-support-plan.md) now includes dual
+Secure Enclave roles, native storage, setup and cleanup. Its rollback and physical
+acceptance gates remain open; see the [macOS source quick start](docs/macos-quickstart.md).
 After a version is published, install it with
 `cargo install age-plugin-phone --version <published-version> --locked`;
 [build requirements and the manual release procedure](docs/crates-io-release.md) apply.

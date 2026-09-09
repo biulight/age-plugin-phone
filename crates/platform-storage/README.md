@@ -1,7 +1,7 @@
 # age-plugin-phone-platform-storage
 
 Private Windows, macOS and other Unix filesystem operations. `windows::network`
-separately provides IPv4 interface enumeration.
+and `macos::network` separately provide IPv4 interface enumeration.
 
 `macos::Directory` provides bounded descriptor-relative operations with no-follow
 path traversal, owner/mode/ACL/type/link checks, exclusive locks, and file/directory

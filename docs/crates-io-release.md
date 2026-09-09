@@ -15,16 +15,19 @@ cargo install age-plugin-phone --version <published-version> --locked
 Only the CLI is installed; Cargo builds its three library dependencies. Rust 1.88
 or later, a native C/C++ compiler and platform SDK are needed. Windows requires
 the MSVC Rust toolchain and Visual Studio C++ Build Tools/Windows SDK. Hardware
-desktop use currently requires Windows 11+ x64, TPM 2.0 and Microsoft Platform
-Crypto Provider, plus a compatible phone and fresh native verification per unwrap.
-The Windows support probe must succeed before pairing.
+desktop use on Windows requires Windows 11+ x64, TPM 2.0 and Microsoft Platform
+Crypto Provider. All hardware desktop use requires a compatible phone and fresh
+native verification per unwrap. The Windows support probe must succeed before pairing.
 
 Linux builds need a C toolchain, Clang/libclang and the Video4Linux headers for
-camera support. macOS builds need Xcode command-line tools and the macOS SDK.
-Non-Windows desktop behavior remains experimental software-key prototype behavior;
-macOS Secure Enclave/Keychain desktop keys are not implemented. A successful build
-does not establish hardware-key protection or native-device acceptance. The PC
-archive builds independently of Tauri, Android and iOS tooling.
+camera support. macOS builds need Xcode Command Line Tools, the macOS SDK and
+`xcrun swiftc` for the archived CryptoKit bridge. The current source implementation
+uses distinct Secure Enclave desktop roles with no software fallback; other
+non-Windows desktop targets retain software prototypes. macOS still has open
+rollback and physical acceptance gates: a successful build is not full support.
+See the [source quick start](macos-quickstart.md) and [installation evidence](macos-m5-evidence.md).
+The PC archive builds independently of Tauri, Android and iOS tooling. Published
+versions predating the macOS implementation must not be assumed to contain it.
 
 ## Preflight
 
@@ -45,7 +48,9 @@ python3 scripts/registry-preflight.py --output /tmp/phone-packages
 Windows portable CI retains the seven native TPM skips listed in
 `scripts/windows-portable-test-skips.txt`. Skipped hardware tests are not passes.
 Run native tests and the PRD upgrade/phone/cancellation checks separately on the
-designated hardware. Linux and macOS run the fixed old Unix state tests.
+designated hardware. Linux retains the fixed old Unix state tests. macOS runs its
+native storage/journal tests; explicitly ignored Secure Enclave tests must be run
+separately on the declared hardware baseline. Ignored tests do not count as passes.
 
 The script rewrites only temporary package publish registries and the explicit
 internal dependency registry, keeping exact versions and third-party crates.io

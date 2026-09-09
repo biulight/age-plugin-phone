@@ -3,8 +3,9 @@
 Windows TPM and macOS CryptoKit Secure Enclave desktop key custody.
 
 Experimental alpha software, unsuitable for real secrets. The macOS backend is
-PR 2 of the support plan; complete macOS product support remains pending storage,
-setup/lifecycle, transport/caller, installation and security acceptance.
+part of the macOS support plan. Native storage, journaled setup/cleanup and source
+installation are implemented; rollback, the transport/caller matrix and complete
+security acceptance still prevent a full macOS support claim.
 
 On macOS, Cargo builds the included `native/Keys.swift` into a static bridge with
 `xcrun swiftc` (Xcode or Command Line Tools required). The development deployment

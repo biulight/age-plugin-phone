@@ -12,8 +12,9 @@ invariant.
 - Address the gap recorded by Shine decision 0032: Windows users need an independent fresh
   user-verification gesture for every age private-key operation without leaving a reusable age
   identity on the desktop. Windows 11 x64 is therefore the first desktop product target; macOS
-  remains an interoperability target because Secure Enclave and Touch ID age integrations already
-  exist there.
+  has a separate [source support plan](macos-support-plan.md). Its Secure Enclave backend,
+  storage and journaled lifecycle are implemented, while rollback and native acceptance gates
+  keep the platform experimental.
 - Keep this repository independent from Shine. The first Alpha integrates through ordinary age
   recipients, public identity stubs, and the external age process only; it requires no Shine code or
   ciphertext-format change.

@@ -26,6 +26,10 @@ session. A retry requires a fresh exchange and re-verification of the complete t
 The public desktop identity stub contains only public identity and pairing metadata, with no private
 keys or filesystem paths. Separate desktop state provides access to distinct signing and selection
 keys, private locators, and response-replay state; Windows keys remain non-exportable in the TPM.
+The experimental macOS implementation uses separate Secure Enclave roles and stores hardware-wrapped
+references rather than software private keys. Local reference deletion is not irreversible key
+destruction, and filesystem replay state has an unresolved snapshot rollback gate; see the
+[macOS support plan](macos-support-plan.md). These platform changes do not change protocol v2.
 Phone identity and signing keys remain in secure hardware, while paired desktop public keys,
 request-replay state, and revocation state use protected native storage.
 

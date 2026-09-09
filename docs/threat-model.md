@@ -64,7 +64,7 @@ least one independent recovery recipient, such as a second phone, Secure Enclave
 token, or offline age identity. Replacing a phone requires decrypting with that recovery recipient
 and resealing to a newly generated phone recipient.
 
-The recovery path must not share the primary phone StrongBox keys or the paired Windows desktop TPM
+The recovery path must not share the primary phone hardware keys or the paired desktop TPM/Secure Enclave
 keys. Phone replacement, paired-desktop revocation, application removal, identity deletion, and
 hardware invalidation follow [`ADR 0017`](adr/0017-lifecycle-and-recovery.md). Without a recovery
 recipient that was included when the data was encrypted, loss of either required version 2 hardware
