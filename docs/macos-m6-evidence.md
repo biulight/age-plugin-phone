@@ -680,3 +680,14 @@ Both cancellation recovery operations succeeded with new native verification. Th
 harness checked empty ADB reverse rules after every case, and no temporary plaintext
 directory remains. This adds current-artifact USB roundtrip/cleanup evidence; it does
 not replace the distinct multiple-device, authorization or cold-start lifecycle rows.
+
+### Installed artifact: QR success on both phones
+
+Android and iPhone each passed age and rage QR unwraps with the exact installed
+Mac artifact. Both Android operations have immediate fresh-fingerprint confirmation,
+and both iPhone operations have immediate fresh-Face-ID confirmation. The user
+selected the Mac built-in camera for both runs. The Android run used the retained
+active USB pairing with explicit QR transport, not the previously revoked QR pairing.
+All four plaintext equality checks passed and no harness temporary plaintext
+directories remain. This closes current-artifact QR success; camera permission
+negatives, external UVC and remaining lifecycle cases stay distinct.

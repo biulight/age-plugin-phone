@@ -2024,6 +2024,60 @@
       "result_sha256": "17401ba36e4fc542cd4732d3a156de210f8ff0097ab390ba963fedd4a7d100b6",
       "harness_sha256": "53f9e286e20abd8c4fc4772254970edf3cddc448ed2b9862e4a0ebafe9997e71",
       "temporary_plaintext_directories_remaining": 0
+    },
+    "both_phone_qr": {
+      "android": {
+        "result": {
+          "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+          "camera_observation": "b",
+          "transport": "qr",
+          "synthetic_data_only": true,
+          "human_native_observation": "recorded_immediately_per_operation",
+          "cases": [
+            {
+              "client": "age",
+              "exit_code": 0,
+              "passed": true,
+              "native_observation": "user_confirmed_fresh_fingerprint"
+            },
+            {
+              "client": "rage",
+              "exit_code": 0,
+              "passed": true,
+              "native_observation": "user_confirmed_fresh_fingerprint"
+            }
+          ]
+        },
+        "result_sha256": "17a67929f18be2b89ab7884a21345276e5725da38d489cce03a403d78d4b1aca",
+        "harness_sha256": "3068bd9138dcd354ea6663789e77656adc4014b73f6ab4c1f7a8e9dfb2695c34",
+        "temporary_plaintext_directories_remaining": 0
+      },
+      "iphone": {
+        "result": {
+          "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+          "camera_observation": "b",
+          "transport": "qr",
+          "synthetic_data_only": true,
+          "human_native_observation": "recorded_immediately_per_operation",
+          "cases": [
+            {
+              "client": "age",
+              "exit_code": 0,
+              "passed": true,
+              "native_observation": "user_confirmed_fresh_face_id"
+            },
+            {
+              "client": "rage",
+              "exit_code": 0,
+              "passed": true,
+              "native_observation": "user_confirmed_fresh_face_id"
+            }
+          ]
+        },
+        "result_sha256": "c7d60269e3d9368983cb9d0cb909722fed6690f9f61a3a8b17d034b90aa8b518",
+        "harness_sha256": "64849d3aa44aa4dea77c0cadd6bd49657f088b15e56b3040ac763a4fa7b437fb",
+        "temporary_plaintext_directories_remaining": 0
+      }
     }
   },
   "scope_decisions": {
