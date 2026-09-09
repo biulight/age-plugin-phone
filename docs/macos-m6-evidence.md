@@ -66,7 +66,7 @@ pairing revoked, phone verification automated or real plaintext processed.
 | --- | --- |
 | Desktop valid-state rollback | User-approved common Windows/macOS limitation; stronger protection deferred to later POC, not passed |
 | Exact final archive and installed digest | Network-corrected archive/install passed; installed digest `078d3f1d…f42f12cd`, full evidence below |
-| Terminal → age/rage → installed plugin | Current installed artifact: Android and iPhone Wi-Fi each pass all eight cases; earlier USB/QR evidence retained separately |
+| Terminal → age/rage → installed plugin | Current installed artifact: Android and iPhone Wi-Fi each pass all eight cases; current Android USB also passes eight cases with reverse cleanup; earlier QR evidence retained separately |
 | GUI application → age → installed plugin | Deferred by user on 2026-09-10; outside current CLI acceptance, not passed |
 | Android ADB pairing and two separate successful unwraps | User-operated setup and two independent decryptions pass; user confirms fresh native verification for every approval |
 | Cancellation and subsequent success | Android ADB cancellation returns failure without plaintext; subsequent fresh approval succeeds |
@@ -669,3 +669,14 @@ Android APK over Developer USB, reusing the existing USB pairing. Its eight age/
 cases require immediate native observations and also check that reverse rules are empty
 after each operation. Read-only preflight found the device connected and no reverse rules.
 No identity operation was performed by this preparation; its physical results are pending.
+
+### Installed Mac artifact: updated Android USB matrix passed
+
+The exact installed binary and same-signed Android reception-update APK passed all
+eight age/rage Developer USB cases using the retained original USB pairing. Six
+approvals each have an immediate fresh-fingerprint confirmation; two native
+cancellations have immediate intentional-cancellation confirmation and no plaintext.
+Both cancellation recovery operations succeeded with new native verification. The
+harness checked empty ADB reverse rules after every case, and no temporary plaintext
+directory remains. This adds current-artifact USB roundtrip/cleanup evidence; it does
+not replace the distinct multiple-device, authorization or cold-start lifecycle rows.

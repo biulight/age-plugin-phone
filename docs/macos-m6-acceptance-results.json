@@ -1925,6 +1925,105 @@
       "result_sha256": "243db4a7d5027e4f3a26881974343d2c52d58ea3f14061a85744407045755b7a",
       "harness_sha256": "6ec2e5585fb69e41f72697809aa1f1da4358f27646a46017252dd107643ab883",
       "temporary_plaintext_directories_remaining": 0
+    },
+    "android_usb_human_unwrap": {
+      "result": {
+        "scope": "cargo_installed_mac_and_android_reception_update_usb_real_phone",
+        "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+        "network_settings": "Surge_and_ZeroTier_retained",
+        "synthetic_data_only": true,
+        "cases": [
+          {
+            "client": "age",
+            "phase": "first_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "reverse_rules_empty": true,
+            "passed": true
+          },
+          {
+            "client": "age",
+            "phase": "second_fresh_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "reverse_rules_empty": true,
+            "passed": true
+          },
+          {
+            "client": "age",
+            "phase": "native_cancellation",
+            "exit_code": 1,
+            "data_check": true,
+            "human_native_observation": "y",
+            "reverse_rules_empty": true,
+            "passed": true
+          },
+          {
+            "client": "age",
+            "phase": "approval_after_cancellation",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "reverse_rules_empty": true,
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "first_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "reverse_rules_empty": true,
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "second_fresh_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "reverse_rules_empty": true,
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "native_cancellation",
+            "exit_code": 1,
+            "data_check": true,
+            "human_native_observation": "y",
+            "reverse_rules_empty": true,
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "approval_after_cancellation",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "reverse_rules_empty": true,
+            "passed": true
+          }
+        ],
+        "android_update": {
+          "run_id": 34384436759,
+          "candidate_commit": "6a0cf142258a25a73bbf10fa106a2aa7cac93cda",
+          "apk_sha256": "bab6b9cb3ca4b4faa513935ec1904cd01613bbb4990933bd92f5cfc774f72873",
+          "previous_apk_sha256": "6e77ada9917673f0a5a392bb9a4327dd2275f9ff403d15015a6280da190d4f62",
+          "signer_certificate_sha256": "9a3e5a00a0a363ca58bbe0abfa1bbc0e36cbdce58e314c0c0dbfa94baff1d58b",
+          "signature_verification": "both_passed_same_signer",
+          "checksum": "passed",
+          "package_matches": true,
+          "multicast_permission_present": true,
+          "installation": "adb_install_r_success",
+          "installed_apk_digest_matches": true
+        },
+        "transport": "adb"
+      },
+      "result_sha256": "17401ba36e4fc542cd4732d3a156de210f8ff0097ab390ba963fedd4a7d100b6",
+      "harness_sha256": "53f9e286e20abd8c4fc4772254970edf3cddc448ed2b9862e4a0ebafe9997e71",
+      "temporary_plaintext_directories_remaining": 0
     }
   },
   "scope_decisions": {
