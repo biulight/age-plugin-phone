@@ -27,7 +27,13 @@ The desktop sends a bounded IPv4 UDP broadcast to port `47141` before it creates
 unwrap request. It always targets `255.255.255.255`; on Windows it also derives and targets the
 directed broadcast for every active private or link-local IPv4 interface with a valid subnet mask.
 This prevents a VPN or virtual default route from swallowing discovery on a multi-homed desktop.
-Failure to enumerate interfaces retains the limited-broadcast target. It retransmits the same query
+On Windows, failure to enumerate interfaces retains the limited-broadcast target. On macOS,
+automatic discovery uses active RFC1918 interfaces, excluding link-local addresses and
+point-to-point tunnels. Limited and subnet broadcasts are sent with `IP_BOUND_IF` set to the
+corresponding interface on a separate source-address socket, then cleared before receiving.
+Sockets are polled in rotation so one busy interface cannot monopolize reception. No eligible interface, enumeration, binding
+or send failure is terminal; it does not fall back to an unscoped broadcast. Explicit link-local
+routes remain supported. It retransmits the same query
 every 200 milliseconds for a total three-second window and accepts only private or link-local IPv4
 response sources. The window covers observed StrongBox signing and Android scheduling latency; a
 900-millisecond production window succeeded only intermittently even though earlier three-second

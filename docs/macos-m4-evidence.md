@@ -8,9 +8,15 @@ declare the M4 phone/transport/caller acceptance matrix complete.
 - The platform package takes a new `getifaddrs` snapshot for each discovery attempt.
   Only active, running, broadcast-capable IPv4 interfaces are returned; loopback
   and point-to-point interfaces (including typical VPN tunnels) are excluded.
+  Darwin compact netmasks are zero-extended without reading beyond their advertised
+  length. The earlier full-structure length check incorrectly discarded these interfaces.
   Native list ownership and pointer checks remain outside the unsafe-free desktop.
-- Desktop derives and deduplicates broadcasts for private subnets, alongside the
-  existing limited broadcast. Invalid masks and /31 or /32 point-to-point/host
+- Desktop derives and deduplicates broadcasts per interface for RFC1918 subnets,
+  excluding self-assigned link-local addresses from automatic discovery. Both subnet
+  and limited broadcasts use separate source-address sockets and `IP_BOUND_IF` for
+  the enumerated interface; replies are polled in rotation and the binding
+  is cleared before reception, including after a failed send. Explicit link-local
+  routes remain supported. No interface-specific address is hardcoded. Invalid masks and /31 or /32 point-to-point/host
   routes do not produce a subnet broadcast. Interface addresses remain untrusted
   route hints, and no protocol, discovery signature or phone authorization changes.
 - Enumeration errors, send errors on any destination, and short sends terminate
@@ -26,7 +32,8 @@ declare the M4 phone/transport/caller acceptance matrix complete.
 
 On the current M0 host, automated tests cover null/short/wrong-family native
 addresses, byte order, interface flags, native enumeration, multiple subnets,
-deduplication, changed snapshots, invalid masks, partial send failure, permission
+interface-scoped deduplication, link-local exclusion, native binding cleanup after successful
+and failed loopback sends, changed snapshots, invalid masks, partial send failure, permission
 denial, disappearing routes, short sends and empty destination sets. Existing
 discovery authentication, replay, ambiguity, timeout, cancellation, wrong-device,
 malformed-message and stream-disconnect tests remain enabled.

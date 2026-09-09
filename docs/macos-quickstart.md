@@ -86,3 +86,12 @@ references and replay state. `cargo uninstall` removes the executable only. Actu
 published-version upgrades, other callers and other hardware need separate evidence;
 see [M5 results](macos-m5-evidence.md). For normal/orphan removal, endpoint replacement,
 legacy software state and independent recovery, follow [the recovery guide](macos-recovery.md).
+
+## Automatic discovery with multiple network interfaces
+
+On macOS, automatic Wi-Fi discovery uses active private IPv4 subnets (10.x,
+172.16–31.x and 192.168.x). It excludes self-assigned 169.254.x addresses. Keep the
+phone and Mac on a shared LAN; no particular subnet is required. Virtual private
+interfaces remain eligible, with broadcasts sent through their own interface.
+An interface or send failure still ends the attempt. This change does not remove
+the experimental acceptance gates recorded above.

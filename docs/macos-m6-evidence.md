@@ -499,3 +499,47 @@ owns either interface, or explain the no-response broadcast queries. Production
 `private_route` explicitly includes link-local addresses, so en13 eligibility is
 not merely an artifact of Python's address classification. Network settings
 remain unchanged; full addresses were not retained.
+
+## Compact macOS netmask and interface-scoped discovery correction
+
+The user identified a shared private Wi-Fi subnet and requested that ZeroTier and
+Surge remain enabled. Native structure inspection then found the primary code
+defect: Darwin returned full interface addresses but compact netmasks with
+`sa_len` 6–7. The original parser required a full 16-byte `sockaddr_in` for both,
+so it dropped every eligible interface on this host. The original product fell
+back to limited broadcast only. Earlier Python diagnostics enumerated interfaces
+independently; their en13 send errors were not proof the original Rust product
+sent to en13. Those historical observations remain retained with this correction.
+
+The new parser copies only the advertised mask bytes and zero-extends the omitted
+suffix. Automatic discovery now targets RFC1918 interfaces, excludes self-assigned
+link-local interfaces, and retains virtual private interfaces. Every interface
+uses its own source-address UDP socket; both directed and limited broadcasts use
+`IP_BOUND_IF` for that interface. Reception rotates among sockets. An enumeration,
+binding or send error remains terminal; no unscoped fallback, timeout extension,
+phone authorization cache or protocol change was added. Explicit link-local routes
+remain valid. No concrete host subnet is hardcoded as a supported network.
+
+Intermediate candidates are retained separately: interface scoping without the
+mask fix failed immediately because no routes remained; fixing the mask while
+sharing one unbound-source socket still yielded six no-response queries. Separate
+source-address sockets then passed six consecutive authenticated Android discovery
+queries with the existing VPN/proxy settings. The final receive-rotation change
+requires its own final artifact record and human unwrap acceptance; earlier
+candidate successes are not a substitute for that acceptance.
+
+The final receive-rotation candidate subsequently passed six more authenticated
+Android discovery queries with ZeroTier and Surge retained. Its exact debug binary
+and probe digests, source-file hashes and automated check results are recorded in
+`macos-m6-acceptance-results.json` under `macos_wifi_interface_fix`. The full locked
+workspace test suite, all-target Clippy with warnings denied and formatting check
+passed. Native hardware-only tests retain their declared ignored status; the real
+loopback interface-binding test ran successfully. Existing `block 0.1.6` future
+compatibility and cached Xcode build-script warnings remain. This new candidate
+has not yet completed user-operated age/rage unwrap acceptance or archive-install
+revalidation; the original installed candidate's earlier passes are not transferred.
+
+Documentation review for this correction compared the working tree with `9506563`
+and updated only this product repository's architecture, discovery ADR, quick start,
+M4/M6 evidence and plan. The nearby documentation registry has no entry for this
+product and no migrated bilingual manual mapping; no other repository was changed.

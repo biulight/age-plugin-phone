@@ -1394,5 +1394,47 @@
     "conclusion": "observed_send_errors_were_not_on_the_user_identified_10_network",
     "zerotier_process_ownership": "not_independently_confirmed",
     "network_settings_changed": false
+  },
+  "macos_wifi_interface_fix": {
+    "scope": "final_scoped_source_sockets_round_robin_discovery_only",
+    "network_settings": "Surge_and_ZeroTier_retained",
+    "binary_sha256": "07dfa42fe05852f7f847e888684c8d247bdd899bc68a9c9849fabf265386c79a",
+    "probe_sha256": "bc6cf9e2ec6dc11cf71f9e3658d0463fba308e01247910876531105865267756",
+    "batches": [
+      {
+        "batch": 1,
+        "exit_code": 0,
+        "discovery": [
+          "attempt 1: one authenticated listener",
+          "attempt 2: one authenticated listener",
+          "attempt 3: one authenticated listener"
+        ]
+      },
+      {
+        "batch": 2,
+        "exit_code": 0,
+        "discovery": [
+          "attempt 1: one authenticated listener",
+          "attempt 2: one authenticated listener",
+          "attempt 3: one authenticated listener"
+        ]
+      }
+    ],
+    "raw_result_sha256": "6b9cc604357e74dcda8d8162537ff107a1858da3dd7ebb037e796c5097f1050c",
+    "source_base_commit": "9506563",
+    "source_files_sha256": {
+      "crates/desktop/src/wifi.rs": "9e23914a3af630935f7c9d55744217651446a8baac3d984dc9dce85ef2997874",
+      "crates/platform-storage/src/macos_network.rs": "c773afb36f9b288aa88c3d027862f28265e150925159ad3fe15e8788eb5f6e4d"
+    },
+    "checks": {
+      "fmt_all_check": "passed",
+      "clippy_workspace_all_targets_locked_deny_warnings": "passed",
+      "test_workspace_locked": "passed_native_hardware_ignored_as_declared",
+      "native_loopback_scoped_send_and_binding_cleanup": "passed",
+      "compact_mask_negative_tests": "passed",
+      "signed_response_malformed_wrong_nonce_and_ambiguity": "passed"
+    },
+    "real_phone_unwrap": "pending_user_operation",
+    "build_profile": "debug_local_candidate_distinct_from_original_installed_artifact"
   }
 }
