@@ -1,8 +1,9 @@
 # macOS source quick start — experimental acceptance
 
 Use disposable data. The [macOS plan](macos-support-plan.md) is not fully accepted:
-same-Mac replay snapshot rollback is unresolved, and the real-phone/transport/caller
-matrix remains open. This guide describes the current source implementation, not
+the real-phone/transport/caller matrix remains open. Windows and macOS do not detect
+restoration of older valid desktop replay snapshots; stronger protection is deferred.
+Do not restore replay files to recover a failed operation. This guide describes the current source implementation, not
 older published releases. It does not promise protection for production secrets.
 
 ## Build and inspect

@@ -69,8 +69,9 @@ See [ADR 0024](docs/adr/0024-four-desktop-crates.md) for the package boundaries 
 [candidate evidence](docs/desktop-refactor-evidence.md) for completed validation.
 The original refactor did not add macOS hardware-key support or upload packages.
 The later [macOS implementation plan](docs/macos-support-plan.md) now includes dual
-Secure Enclave roles, native storage, setup and cleanup. Its rollback and physical
-acceptance gates remain open; see the [macOS source quick start](docs/macos-quickstart.md).
+Secure Enclave roles, native storage, setup and cleanup. Its physical acceptance gates
+remain open. Windows and macOS do not guarantee detection of older valid desktop replay
+snapshots; stronger protection is deferred. See the [macOS source quick start](docs/macos-quickstart.md).
 After a version is published, install it with
 `cargo install age-plugin-phone --version <published-version> --locked`;
 [build requirements and the manual release procedure](docs/crates-io-release.md) apply.

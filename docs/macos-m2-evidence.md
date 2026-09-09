@@ -1,5 +1,11 @@
 # macOS P3 / M2 storage implementation and remaining gates
 
+Current scope note (2026-09-10): the user approved the common Windows/macOS
+[desktop replay restore boundary](desktop-replay-rollback-poc.md). Stronger snapshot
+freshness is deferred to a later POC, not fixed or passed. Earlier statements below
+that rollback alone blocks Mac acceptance describe the pre-decision scope. All
+measured counterexamples and other outstanding acceptance gates remain valid.
+
 Date: 2026-09-09. Base: P2 commit `0504533`, followed by this working-tree M2 change.
 Status: implementation and local automated checks completed; **M2 acceptance is
 not complete**. No expanded macOS support or production-secrets claim is made.

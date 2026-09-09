@@ -4,8 +4,9 @@ Experimental offline phone-backed age CLI, unsuitable for real secrets.
 
 Windows hardware use requires Windows 11 x64 and TPM 2.0. The macOS source implementation
 uses distinct Secure Enclave signing and selection keys, native private storage and journaled
-setup/cleanup. It has no software-key fallback. macOS remains experimental: snapshot rollback
-and the complete physical acceptance matrix are unresolved. Other desktop targets retain
+setup/cleanup. It has no software-key fallback. macOS remains experimental: the complete physical acceptance matrix is unresolved.
+Windows and macOS do not guarantee detection of older valid replay snapshots;
+stronger restore protection is deferred for future cross-platform validation. Other desktop targets retain
 software prototypes.
 
 Source builds require Rust 1.88+, a C/C++ compiler and platform SDK. macOS additionally requires

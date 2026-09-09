@@ -1,5 +1,11 @@
 # macOS M6 review and acceptance status
 
+Current scope note (2026-09-10): the user approved the common Windows/macOS
+[desktop replay restore boundary](desktop-replay-rollback-poc.md). Stronger snapshot
+freshness is deferred to a later POC, not fixed or passed. Earlier statements below
+that rollback alone blocks Mac acceptance describe the pre-decision scope. All
+measured counterexamples and other outstanding acceptance gates remain valid.
+
 Date: 2026-09-09. Status: **in progress; no full macOS support claim**.
 Implementation snapshot `cc7e120` includes M1/M2 storage and keys, M3 managed/explicit
 pairing and cleanup, M4 directed discovery and status, and M5 installation harnesses.
@@ -58,7 +64,7 @@ pairing revoked, phone verification automated or real plaintext processed.
 
 | Gate | Status |
 | --- | --- |
-| M2 same-Mac valid-state rollback | Open; retain original requirement until solution/reviewed decision |
+| Desktop valid-state rollback | User-approved common Windows/macOS limitation; stronger protection deferred to later POC, not passed |
 | Exact final archive and installed digest | Passed for `cc7e120`; new Mac network candidate requires archive/install revalidation |
 | Terminal → age/rage → installed plugin | Public synthetic matrix passes; Ghostty → age 1.3.2 / rage 0.12.1 → Android ADB and iPhone Wi-Fi pass, including fresh native approvals and cancellation |
 | GUI application → age → installed plugin | Deferred by user on 2026-09-10; outside current CLI acceptance, not passed |

@@ -87,13 +87,23 @@ make the operation unavailable instead of creating a fallback key or replay scop
   connections, LAN addresses, private subnets, Wi-Fi association, TCP connections, or enabled
   foreground listeners as peer authentication or phone user authorization.
 
-## macOS M2 acceptance gap
+## Desktop replay persistence and restore boundary
 
-The new macOS storage boundary checks native handles, permissions, ACLs and links,
-and retains uncertain replay writes through a pending marker. This reduces path
-redirection and crash uncertainty; it does not provide a trusted monotonic anchor
-against a same-user adversary replacing canonical state or restoring old snapshots.
-Time Machine exclusion and Secure Enclave key binding do not establish that anchor.
-The existing adversary model is not weakened by this implementation. This remains
-an open macOS support gate in [the M2 record](macos-m2-evidence.md), requiring a
-solution or an explicitly reviewed scope decision before full support is declared.
+Windows and macOS retain response consumption across supported ordinary failures
+and restarts and reject missing, corrupt, mismatched, full or uncertain state. Neither
+currently promises detection of an older valid same-machine replay file or filesystem
+snapshot restored by a same-user attacker. ACLs, atomic replacement, backup exclusion
+and TPM/Secure Enclave key custody do not supply an independent freshness authority.
+
+This exception is limited to desktop store freshness. Same-user invocation and file
+modification remain adversary capabilities. Old responses must still fail against a
+fresh session's complete cryptographic binding; each new phone identity operation
+requires fresh native verification. Phone request consumption before prompting and
+retention on cancellation/failure remain required. No state reset, replay-based
+recovery, software-key fallback or authorization cache is permitted.
+
+The user approved this common boundary on 2026-09-10. Stronger restore resistance is
+a deferred [cross-platform POC](desktop-replay-rollback-poc.md), not a Mac-only current
+acceptance gate. The Mac store counterexample remains real; the analogous Windows
+limitation is based on implementation inspection pending native reproduction. This
+is not evidence of an end-to-end biometric bypass or completion of other security gates.

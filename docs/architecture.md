@@ -89,7 +89,9 @@ persistent replay pending markers. M3 now shares managed setup/resume, journals 
 commits, and provides exact incomplete-setup, normal and orphan cleanup with native storage.
 macOS cleanup verifies metadata without requiring private hardware operations, refuses
 shared state, and validates exact journal paths and replay locks. Phone lifecycle acceptance
-and M2 acceptance gates remain open; this is not a complete macOS support declaration.
+and remaining M2 acceptance gates remain open; this is not a complete macOS support declaration.
+Desktop snapshot freshness is a shared Windows/macOS limitation deferred to a
+[later POC](desktop-replay-rollback-poc.md), not a Mac-only current gate.
 See [the M1 implementation record](macos-m1-evidence.md) and
 [the M2 implementation/remaining-gates record](macos-m2-evidence.md) and
 [the M3 setup record](macos-m3-evidence.md).

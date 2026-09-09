@@ -100,7 +100,19 @@ automatic marker cleanup or empty-state reset. Errors poison the live guard.
 File and directory commits additionally require `F_FULLFSYNC` on macOS.
 
 The marker covers interrupted/uncertain writes, not deliberate same-user marker
-removal or restoration of an earlier snapshot. The M2 anti-rollback requirement
-has not been waived or declared satisfied. See [the M2 record](../macos-m2-evidence.md)
+removal or restoration of an earlier snapshot. The stronger M2 anti-rollback requirement
+was deferred by the user on 2026-09-10 to the [cross-platform POC](../desktop-replay-rollback-poc.md);
+it is not satisfied. See [the M2 record](../macos-m2-evidence.md)
 for tests and remaining acceptance gates. Other Unix and Windows implementations
 retain their previous semantics.
+
+## Common desktop scope decision (2026-09-10)
+
+Windows and macOS do not guarantee detection of an older valid desktop replay file
+restored on the same machine. This includes same-user file replacement without OS
+compromise; user-only permissions are not an independent freshness authority. The
+[threat model](../threat-model.md#desktop-replay-persistence-and-restore-boundary) now
+states this exception explicitly. Ordinary persistence, uncertain-state rejection,
+phone request replay protection, fresh native verification and response/session
+binding remain requirements. Earlier platform-specific evidence is retained;
+stronger desktop freshness is deferred, not fixed or silently marked passed.

@@ -1939,7 +1939,24 @@
       ],
       "blocks_current_terminal_cli_acceptance": false,
       "supports_gui_claim": false,
-      "m2_rollback_requirement": "unchanged"
+      "m2_rollback_requirement": "unchanged_by_GUI_decision_see_later_desktop_replay_restore_decision"
+    },
+    "desktop_replay_restore": {
+      "date": "2026-09-10",
+      "status": "user_approved_common_windows_macos_boundary",
+      "stronger_store_freshness": "deferred_future_poc_not_passed",
+      "blocks_current_macos_acceptance": false,
+      "poc": "desktop-replay-rollback-poc.md",
+      "macos_evidence": "store_level_counterexample_preserved",
+      "windows_evidence": "code_inspection_native_rollback_reproduction_pending",
+      "runtime_changed": false,
+      "preserved_requirements": [
+        "fresh_native_phone_verification_per_identity_operation",
+        "complete_response_session_binding",
+        "durable_consumption_on_cancellation_and_failure",
+        "reject_missing_corrupt_mismatched_full_or_uncertain_state",
+        "no_automatic_replay_reset"
+      ]
     }
   }
 }

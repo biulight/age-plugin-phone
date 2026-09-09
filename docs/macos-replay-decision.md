@@ -1,8 +1,10 @@
-# macOS replay rollback decision — pending review
+# macOS replay rollback decision — historical review
 
-Status: **no scope change approved**. The current threat model and M2 acceptance
-requirement remain in force. This document makes the unresolved choice reviewable;
-it does not close the macOS support gate.
+Status: **superseded on 2026-09-10 by the user-approved cross-platform boundary**.
+See [Desktop replay rollback POC](desktop-replay-rollback-poc.md) for the current
+Windows/macOS guarantee and deferred validation. The choices and feasibility review
+below record the earlier discussion; statements that approval is pending or rollback
+alone blocks current Mac acceptance are historical. No runtime fix is claimed.
 
 ## Observed boundary
 
