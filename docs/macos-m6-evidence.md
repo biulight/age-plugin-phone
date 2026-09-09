@@ -66,7 +66,8 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Cancellation and subsequent success | Android ADB cancellation returns failure without plaintext; subsequent fresh approval succeeds |
 | Android USB unplug/reconnect | Pending approval interrupted, no plaintext; rules empty on reconnect; fresh approval succeeds |
 | Android USB natural timeout | 60.383-second automatic failure, no plaintext, clean rules and new verification afterward pass |
-| Daemon/process interruption | Physical evidence pending |
+| Caller/plugin process-tree termination | SIGKILL while approval pending passes no-plaintext, prompt-close, cleanup and fresh retry checks |
+| ADB service restart | Physical evidence pending |
 | Wi-Fi multihoming, interface changes, ambiguity and permission errors | Logic tests pass; applicable physical combinations pending |
 | Built-in/UVC cameras; first allow, deny, revoke and occupied camera | Pending caller-specific physical tests |
 | Independent recovery drill | Six age/rage cases pass with the phone plugin and desktop state unavailable |
@@ -351,3 +352,14 @@ A subsequent new request decrypted successfully with a fresh fingerprint
 verification confirmed immediately by the user; rules were again empty. Temporary
 plaintext was removed. This is actual native timeout evidence, not a harness-killed
 process or an inferred cancellation result.
+
+## Android pending request interrupted by process termination
+
+After the user confirmed the phone verification prompt was pending and unapproved,
+the harness sent SIGKILL only to its newly created age/plugin process group.
+The client exited with signal 9, no plaintext was present, the user confirmed
+that the phone prompt closed automatically, and the reverse-rule list became
+empty. A new request then decrypted successfully with a fresh fingerprint
+verification confirmed by the user; its rules were also cleaned. The independent
+cleanup guardian was outside the killed group. This tests caller/plugin tree
+termination, not ADB service restart. Temporary plaintext was removed.
