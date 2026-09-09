@@ -840,7 +840,34 @@
       "raw_result_sha256": "adb6c797981bcbb8c78aa37dfb6feb8098eacf8790e50b2b95eecdc2707358d5",
       "temporary_plaintext_directories_after_test": 0,
       "camera_selection": "instructed_mac_builtin_not_separately_confirmed",
-      "negative_qr_cases": "not_tested"
+      "negative_qr_cases": "age_native_cancellation_scan_timeout_and_fresh_recovery_passed_other_cases_open"
+    },
+    "macos_qr_cancellation_acceptance": {
+      "transport": "qr",
+      "caller": "age 1.3.2",
+      "fixture": "disposable_data_only",
+      "cases": [
+        {
+          "case": "native_cancel_then_desktop_scan_end",
+          "exit_code": 1,
+          "elapsed_seconds": 300.138,
+          "human_native_cancellation": "y",
+          "no_plaintext": true,
+          "harness_forced_termination": false,
+          "passed": true
+        },
+        {
+          "case": "fresh_approval_after_qr_cancellation",
+          "exit_code": 0,
+          "data_matches": true,
+          "fresh_verification": "y",
+          "passed": true
+        }
+      ],
+      "raw_result_sha256": "39469f0d12f579a3d9cf04ead575222a284d5c52a9b0184443a326c4f48a1a68",
+      "temporary_plaintext_directories_after_test": 0,
+      "desktop_source_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+      "desktop_binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7"
     }
   },
   "wifi_discovery_followup": {

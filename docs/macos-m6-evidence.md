@@ -68,6 +68,7 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Android USB natural timeout | 60.383-second automatic failure, no plaintext, clean rules and new verification afterward pass |
 | Caller/plugin process-tree termination | SIGKILL while approval pending passes no-plaintext, prompt-close, cleanup and fresh retry checks |
 | ADB service restart | Ordered restart passes no-plaintext, prompt-close, cleanup and fresh retry; initial immediate-start error retained below |
+| iPhone QR native cancellation and recovery | age: user cancellation, 300.138-second natural scan timeout without plaintext, fresh Face ID recovery pass; rage pending |
 | Wi-Fi multihoming, interface changes, ambiguity and permission errors | Logic tests pass; applicable physical combinations pending |
 | Built-in/UVC cameras; first allow, deny, revoke and occupied camera | Pending caller-specific physical tests |
 | Independent recovery drill | Six age/rage cases pass with the phone plugin and desktop state unavailable |
@@ -386,3 +387,17 @@ immediately by the user; reverse rules were again empty. No temporary plaintext
 directory remained. This passes the ordered restart and recovery case for the
 original installed candidate. It does not explain the initial immediate-start
 exit 255 or establish that concurrent server startups always succeed.
+
+## iPhone QR native cancellation, scan timeout and recovery
+
+On 2026-09-10, the user repeated an interrupted QR cancellation test with a
+separate result file and the original installed candidate. The user immediately
+confirmed cancelling native Face ID without a phone response QR. age 1.3.2 exited
+1 after 300.138 seconds without plaintext; the harness did not terminate it.
+The elapsed time is consistent with the desktop scanner's five-minute deadline.
+A new QR request then recovered the exact temporary input, and the user confirmed
+fresh Face ID immediately. No temporary plaintext directory remained. This is
+phone cancellation followed by desktop timeout, not immediate cancellation
+signalling over QR. The earlier interrupted attempt produced no result file and
+is not counted as a pass. Other callers and QR permission/lifecycle cases remain
+separate gates.
