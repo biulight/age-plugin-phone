@@ -769,3 +769,24 @@ built-in QR success and historical cancellation/timeout evidence remain valid at
 their recorded artifact scope. This decision does not implicitly waive other QR,
 Wi-Fi, USB, durability or cleanup requirements. External UVC availability remains
 unconfirmed; that separate scope has not been decided by this instruction.
+
+### Android Wi-Fi disable/reconnect passed, with delayed failure
+
+After immediate user confirmation of pending, unapproved fingerprint verification,
+the harness disabled Android Wi-Fi over USB and confirmed the radio was disabled.
+The same app process remained alive; the user confirmed foreground operation and
+old prompt closure without approval. The age request failed without plaintext.
+The harness restored Wi-Fi, and after reconnection a fresh request decrypted with
+immediately confirmed new fingerprint verification. Both cases passed; Mac network
+settings were unchanged and no temporary plaintext directory remains.
+
+The user observed a noticeable wait after disconnect. The desktop sets a 90-second
+socket read timeout and Android a 60-second native-authentication timeout. A lost
+network need not deliver immediate EOF/reset to a waiting reader; bounded timeout
+behavior is a plausible explanation, not a measured cause. The recorded 104.601
+seconds includes the later PID check and the user's answer because the harness
+sampled its end timestamp too late. It is retained with this caveat and must not
+be quoted as network failure latency. Functional failure/recovery passes remain
+valid; immediate disconnect detection and precise latency are not established.
+A separate future harness fixes the timing boundary and prints waiting progress,
+without changing product deadlines or requiring this successful run to be repeated.

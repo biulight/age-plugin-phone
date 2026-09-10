@@ -2334,5 +2334,46 @@
       "harness_sha256": "cc87df413aba38adbaf477ad926904bbf56d10005735e09ade01918010637bbb",
       "temporary_plaintext_directories_remaining": 0
     }
+  },
+  "installed_android_wifi_disconnect": {
+    "status": "no_plaintext_failure_and_fresh_recovery_passed_exact_disconnect_latency_not_measured",
+    "result": {
+      "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+      "transport": "wifi",
+      "client": "age 1.3.2",
+      "synthetic_only": true,
+      "mac_network_settings_unchanged": true,
+      "cases": [
+        {
+          "phase": "wifi_disabled_while_verification_pending",
+          "exit_code": 1,
+          "wifi_disabled_confirmed": true,
+          "same_app_process": true,
+          "no_plaintext": true,
+          "human_pending": "y",
+          "human_prompt_closed_foreground": "y",
+          "seconds_after_disconnect": 104.601,
+          "passed": true
+        },
+        {
+          "phase": "fresh_approval_after_wifi_reconnect",
+          "exit_code": 0,
+          "data_check": true,
+          "human_fresh_verification": "y",
+          "passed": true
+        }
+      ],
+      "wifi_restored": true
+    },
+    "result_sha256": "6d11b55ecab5901f6fbae5877484fd03182ed766e174091c171183322ab0d80c",
+    "harness_sha256": "f27d6983af1cefea88c0edf3996aa0d56e2d87c5f47cb21b39f7533f3fb58c5a",
+    "timing_caveat": "seconds_after_disconnect_includes_post_exit_PID_check_and_user_answer_not_pure_network_latency",
+    "user_report": "terminal_waited_after_wifi_disabled_before_returning_failure",
+    "configured_timeouts_seconds": {
+      "desktop_socket_read": 90,
+      "android_native_authentication": 60
+    },
+    "cause_assessment": "consistent_with_bounded_socket_timeout_no_exact_failure_cause_observed",
+    "temporary_plaintext_directories_remaining": 0
   }
 }
