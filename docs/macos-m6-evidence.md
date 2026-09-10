@@ -725,3 +725,13 @@ prompt. After unlock and foreground return, each phone decrypted a fresh request
 and the user confirmed new fingerprint/Face ID verification. All four cases passed
 on the recorded installed binary; no harness plaintext directories remain. This
 row covers screen locking, separately from backgrounding and process termination.
+
+### Android process termination and restart passed
+
+After the user confirmed pending, unapproved native fingerprint verification, the
+harness force-stopped only the Android application. The command succeeded and a
+subsequent PID check confirmed process absence. The Wi-Fi request failed without
+plaintext and the user confirmed prompt closure. Relaunching the same app preserved
+the pairing; a new request decrypted correctly with an immediately confirmed fresh
+fingerprint. Both cases passed on the installed artifact and no temporary plaintext
+directory remains. No app uninstall, data reset or replay restoration occurred.

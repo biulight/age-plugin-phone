@@ -2242,5 +2242,37 @@
     "result_sha256": "506941389d8133a927891e1da6fa7cd97a413e766e082c737b39e4a9bfbb2f9c",
     "harness_sha256": "c5e41c3b10c27374437f40c6cf047b16ebf7227c8b8bd9b57482e124aea56913",
     "temporary_plaintext_directories_remaining": 0
+  },
+  "installed_android_wifi_process_termination": {
+    "status": "passed",
+    "result": {
+      "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+      "transport": "wifi",
+      "client": "age 1.3.2",
+      "synthetic_only": true,
+      "cases": [
+        {
+          "phase": "force_stop_while_verification_pending",
+          "exit_code": 1,
+          "force_stop_exit": 0,
+          "process_absent": true,
+          "no_plaintext": true,
+          "human_pending": "y",
+          "human_prompt_closed": "y",
+          "seconds_after_stop": 5.335,
+          "passed": true
+        },
+        {
+          "phase": "fresh_approval_after_app_restart",
+          "exit_code": 0,
+          "data_check": true,
+          "human_fresh_verification": "y",
+          "passed": true
+        }
+      ]
+    },
+    "result_sha256": "73bc603593a37db1cde377090a9f0b4609dfc74d1579a0d4905d1d68c78873a2",
+    "harness_sha256": "c46bdc79e01a4891c0a835d4806e8768cfe0b7850503b73ac547e3d75c314553",
+    "temporary_plaintext_directories_remaining": 0
   }
 }
