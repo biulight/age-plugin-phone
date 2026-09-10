@@ -77,7 +77,8 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Android QR native cancellation and recovery | age/rage cancellation and natural timeout without plaintext pass; fresh fingerprint recovery passes, age recovery used a separate run/new ciphertext |
 | iPhone QR native cancellation and recovery | age/rage: user cancellation, natural scan timeout without plaintext, fresh Face ID recovery pass |
 | Wi-Fi multihoming, interface changes, ambiguity and permission errors | Logic tests pass; applicable physical combinations pending |
-| Built-in/UVC cameras; first allow, deny, revoke and occupied camera | Pending caller-specific physical tests |
+| Camera permission denial/revocation | Deferred by user for current version on 2026-09-10; QR is not the primary flow, not passed |
+| Other camera coverage | Built-in QR success passed; first-permission grant, occupancy and external UVC remain separate unverified rows |
 | Independent recovery drill | Six age/rage cases pass with the phone plugin and desktop state unavailable |
 | Revocation and normal cleanup | Android QR pairing revoked; old ciphertext rejected without biometrics, recovery and original USB pairing pass; desktop cleanup preserves 21 other file hashes |
 | Interrupted and orphan cleanup | Synthetic tests pass; physical lifecycle cases remain pending |
@@ -758,3 +759,13 @@ Face ID. The original interrupted harness had already cleaned its plaintext. The
 separate recovery harness also left no temporary plaintext directory. This completes
 the process-termination/new-verification recovery evidence using manual relaunch;
 it does not relabel the failed CoreDevice launch or claim a same-run recovery.
+
+### Camera permission negative tests deferred for current version
+
+The user explicitly deferred the proposed camera permission denial/revocation
+acceptance because QR is not the current primary flow. No permission switch was
+changed and no TCC reset occurred. These cases are not counted as passed. Existing
+built-in QR success and historical cancellation/timeout evidence remain valid at
+their recorded artifact scope. This decision does not implicitly waive other QR,
+Wi-Fi, USB, durability or cleanup requirements. External UVC availability remains
+unconfirmed; that separate scope has not been decided by this instruction.

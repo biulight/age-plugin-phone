@@ -2110,6 +2110,18 @@
         "reject_missing_corrupt_mismatched_full_or_uncertain_state",
         "no_automatic_replay_reset"
       ]
+    },
+    "camera_permission_negatives": {
+      "date": "2026-09-10",
+      "status": "deferred_by_user_for_current_version_not_passed",
+      "reason": "QR_not_primary_flow",
+      "scope": [
+        "camera_permission_denial",
+        "camera_permission_revocation"
+      ],
+      "permission_settings_changed": false,
+      "blocks_current_version_acceptance": false,
+      "other_QR_requirements": "not_implicitly_waived"
     }
   },
   "installed_wifi_background_lifecycle": {

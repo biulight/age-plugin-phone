@@ -67,3 +67,8 @@ GUI caller network/camera/key-access acceptance was explicitly deferred by the u
 2026-09-10 because there is no current use case. It is outside the current CLI scope, not
 a pass. Terminal observations do not imply GUI compatibility; restore this matrix before
 claiming GUI support.
+
+For this version, the user also deferred the proposed camera permission denial and
+revocation tests on 2026-09-10 because QR is not the primary flow. No permissions
+were changed and these rows are not passed. Other camera rows remain separately
+unverified; continue current acceptance with Wi-Fi/USB priorities.
