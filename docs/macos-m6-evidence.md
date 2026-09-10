@@ -86,7 +86,8 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Other camera coverage | Built-in QR success passed; first-permission grant, occupancy and external UVC remain separate unverified rows |
 | Independent recovery drill | Six age/rage cases pass with the phone plugin and desktop state unavailable |
 | Revocation and normal cleanup | Android QR pairing revoked; old ciphertext rejected without biometrics, recovery and original USB pairing pass; desktop cleanup preserves 21 other file hashes |
-| Interrupted and orphan cleanup | Synthetic tests pass; physical lifecycle cases remain pending |
+| Orphan cleanup | Current installed artifact: separate Android pairing, user revocation, unavailable original public stub and exact orphan teardown pass; 21 other pairing files unchanged |
+| Interrupted cleanup | Synthetic failure/resume tests pass; physical interrupted teardown remains pending |
 | Focused storage/cleanup/replay review | Reviewed again at `e33d3db`; 29 selected automated tests pass, no new actionable finding in this bounded local review; not an independent security audit |
 | Published-version upgrade/downgrade | Not tested by same-source rebuild or commit-to-commit continuity |
 | iPhone | iPhone 15 Pro / iOS 26.6.1; debug build 0.1.0.4 Wi-Fi pairing and four data checks pass; Wi-Fi approvals/cancellation and age/rage QR approvals pass with fresh Face ID confirmed |
@@ -856,3 +857,25 @@ zero tests and is not acceptance evidence; the actual module filter above ran al
 four tests. Cargo still reports the existing future-compatibility warning for
 `block 0.1.6`. No dependency upgrade or whole-workspace requalification was performed
 for this documentation-only continuation.
+
+### Real Android pairing: orphan cleanup passed
+
+The recorded installed binary (`078d3f1d…f42f12cd`) created a separate Android USB
+pairing in an isolated configuration root. Setup returned exit 0 and the user
+reported completing pairing. Before teardown the user confirmed personally revoking
+this exact test pairing on Android. The harness moved only its public identity
+reference outside the configuration root, leaving the private locator and hardware
+metadata in place. This models an unavailable public stub, not hardware-key loss.
+
+The user then entered the full transcript fingerprint into the installed
+`remove-orphaned-desktop-state --locator` command. It returned exit 0. The target
+locator, desktop metadata, replay state and replay sidecars were absent afterward,
+and no cleanup journal remained. The unrelated control file and cleanup lock were
+unchanged; all 21 files in the original configuration retained their hashes and
+modes. A follow-up directory check confirmed that only the unrelated control and
+cleanup lock remained in the isolated root. The held public reference was unchanged.
+
+This passes normal orphan teardown using a real, user-revoked phone pairing. It does
+not establish interrupted teardown/restart recovery, irreversible deletion of
+CryptoKit keys, or stronger replay snapshot freshness. No private state was restored
+and no phone verification or destructive confirmation was automated.
