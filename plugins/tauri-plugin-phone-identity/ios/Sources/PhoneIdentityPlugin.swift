@@ -264,10 +264,8 @@ final class PhoneIdentityPlugin: Plugin {
                     do {
                         let request = try self.pairings.verifyAndConsume(message, nowUnix: UInt64(Date().timeIntervalSince1970))
                         let requestFingerprint = request.digest.hex
-                        let (key, context) = try self.identity.freshIdentityKey(reason: "Approve one age unwrap: \(requestFingerprint.prefix(16))")
-                        self.stateQueue.sync { self.activeAuthenticationContext = context }
-                        var fileKey = try TaggedRecipientCrypto.unwrap(stanza: request.stanza, identity: key)
-                        defer { fileKey.resetBytes(in: 0..<fileKey.count); context.invalidate(); self.stateQueue.sync { self.activeAuthenticationContext = nil } }
+                        var fileKey = try self.openAuthenticatedFileKey(request)
+                        defer { fileKey.resetBytes(in: 0..<fileKey.count) }
                         let response = try OfflineEnvelopeCrypto.sealResponse(request: request, fileKey: fileKey, signingKey: self.identity.signingKey())
                         let frames = try QRFraming.fragment(response)
                         DispatchQueue.main.async {
@@ -539,16 +537,50 @@ final class PhoneIdentityPlugin: Plugin {
         }
     }
 
+    // Request verification and durable replay consumption precede this method on every path.
+    // Transport receive timers stop protecting us once the request has been delivered.
+    private func openAuthenticatedFileKey(_ request: VerifiedUnwrapRequest) throws -> Data {
+        guard UInt64(Date().timeIntervalSince1970) <= request.expiresAtUnix else {
+            throw NativeQRFlowError.timeout
+        }
+        let (key, context) = try identity.freshIdentityKey(reason: "Approve one age unwrap: \(request.digest.hex.prefix(16))")
+        stateQueue.sync { activeAuthenticationContext = context }
+        let remaining = Double(request.expiresAtUnix) + 1 - Date().timeIntervalSince1970
+        guard remaining > 0 else {
+            context.invalidate()
+            stateQueue.sync { activeAuthenticationContext = nil }
+            throw NativeQRFlowError.timeout
+        }
+        let deadline = AuthenticationDeadline(timeout: min(60, remaining)) { context.invalidate() }
+        defer {
+            deadline.invalidate()
+            context.invalidate()
+            stateQueue.sync {
+                if activeAuthenticationContext === context { activeAuthenticationContext = nil }
+            }
+        }
+        var fileKey: Data
+        do { fileKey = try TaggedRecipientCrypto.unwrap(stanza: request.stanza, identity: key) }
+        catch {
+            guard deadline.complete() else { throw NativeQRFlowError.timeout }
+            throw error
+        }
+        guard deadline.complete(),
+              UInt64(Date().timeIntervalSince1970) <= request.expiresAtUnix,
+              stateQueue.sync(execute: { activeAuthenticationContext === context }) else {
+            fileKey.resetBytes(in: 0..<fileKey.count)
+            throw NativeQRFlowError.timeout
+        }
+        return fileKey
+    }
+
     private func handleAutomaticWifiUnwrap(_ raw: Data, session: PhoneStreamSession) {
         cryptoQueue.async {
             var message = raw; defer { message.resetBytes(in: 0..<message.count) }
             do {
                 let request = try self.pairings.verifyAndConsume(message, nowUnix: UInt64(Date().timeIntervalSince1970))
-                let fingerprint = request.digest.hex
-                let (key, context) = try self.identity.freshIdentityKey(reason: "Approve one age unwrap: \(fingerprint.prefix(16))")
-                self.stateQueue.sync { self.activeAuthenticationContext = context }
-                var fileKey = try TaggedRecipientCrypto.unwrap(stanza: request.stanza, identity: key)
-                defer { fileKey.resetBytes(in: 0..<fileKey.count); context.invalidate(); self.stateQueue.sync { self.activeAuthenticationContext = nil } }
+                var fileKey = try self.openAuthenticatedFileKey(request)
+                defer { fileKey.resetBytes(in: 0..<fileKey.count) }
                 let response = try OfflineEnvelopeCrypto.sealResponse(request: request, fileKey: fileKey, signingKey: self.identity.signingKey())
                 session.sendResponse(response) { result in
                     self.stopWifiResources(nextState: "waiting_for_prerequisites", error: result.failureCategory)

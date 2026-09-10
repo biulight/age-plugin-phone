@@ -344,3 +344,16 @@ accepted uploads followed by client timeouts, partial completion, matching and
 mismatching existing versions, no duplicate upload, downstream stopping, and
 credential-free diagnostics/artifacts. Local fixtures cannot establish remote
 Environment rules, OIDC exchange or real crates.io upload success.
+
+## Native tag candidate gate
+
+The optional tag implementation is tracked in [candidate evidence](tagged-recipient-evidence.md)
+and [ADR 0026](adr/0026-native-tagged-recipients.md). Desktop, Android and iOS must support
+p256tag in the same compatible release batch. Preserve protocol v2 pairing and replay state;
+phone remains the default. Age v1.3.2/rage 0.12.1 software interoperability does not satisfy
+StrongBox/Secure Enclave physical authorization, cancellation, timeout, lifecycle, wrong-device,
+upgrade, independent recovery or mixed phone/SE prompt tests. Run those on exact candidate
+artifacts and record hashes before advertising tag support. Unrun hardware rows are unverified.
+Shine acceptance is separate and does not authorize a plugin-specific application interface.
+Signing, uploading and publication require their own authorization; this implementation does not
+perform them or expand production support.

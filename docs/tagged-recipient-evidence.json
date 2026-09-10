@@ -1,0 +1,621 @@
+{
+  "date": "2026-09-11",
+  "status": "signed Android and replacement iOS candidates installed in place; iOS native timeout bug fixed and physically retested; scoped cross-platform and Shine integration checks passed; full release matrix incomplete",
+  "base_commit": "ecde426b055ac75c0791e709b0e4da9cf52698ce",
+  "upstream_age_plugin_se_commit": "57ccea12fc1a3d3bb81b8866745be4d2951c4eaf",
+  "clients": {
+    "age": "v1.3.2",
+    "rage": "0.12.1"
+  },
+  "sha256": {
+    "modified_source_and_tests": {
+      "crates/core/examples/public_tag_envelope.rs": "74b441b4122b667e1a5c13cc32d055240e6124d71a03e50463e77eda5c7f8516",
+      "crates/core/examples/public_tag_vector.rs": "1d0603d8ecd8cd6a6a4c32501a51fc05f4d7e98ddd5e2167f3a1788db6dc313e",
+      "crates/core/src/protocol/mod.rs": "f26474669db635a63749b2fbea7141b6c5ff4e3d40bea69c6fd98545c5e25d62",
+      "crates/core/src/recipient/mod.rs": "414dcc8de5f8d9f9bf8161fa1b15cf90838f9b2a94b4315c1f7c43f2414d6a26",
+      "crates/core/src/recipient/tag.rs": "1d73bbeddc286624179c813bc1636bc2989c38b4080648daa28daa47dc3cc1b7",
+      "crates/core/test-vectors/p256tag-collision.json": "9dad2c42a5e26819a7ef8f7a935f95fd6a07f2b7d9b3099157bb9db34d2b3e62",
+      "crates/core/test-vectors/p256tag-envelope-v2.json": "832e81cece94cd848d4350ff2af8a95947a006ba235e6e9fec8d502e88432f04",
+      "crates/core/test-vectors/p256tag.json": "d298ccda3620109a1f593af956910ef96bdbdbd848e014ce6694a09d25ea7b09",
+      "crates/core/tests/p256tag.rs": "6a48447479b5336352b0516cd576605a37273e3b527b741a028112d44bed64ab",
+      "crates/core/tests/p256tag_replay.rs": "1637ad008c01704fefafe28b24eba541c6e67047fdd2f2761fb10e9fe9c15362",
+      "crates/desktop/src/age_identity.rs": "04f10d07ebf97eae3f7f621c2ff6a305d092361b13ab641624815464de68d0a1",
+      "crates/desktop/src/main.rs": "af377177c8c8622b74c0e4d868c222012f58113e22c290cadaeda8159dde04d0",
+      "crates/desktop/src/pairing.rs": "8870abbc4d9d0f5ce16869238e29452ad34693be5f25359ace962dce348a4105",
+      "crates/desktop/src/setup.rs": "595c47724319626b9da680297b06dece3bac46a51272b3540b57b01589503a44",
+      "crates/desktop/tests/recipients.rs": "56b16723cad0b8a02e767cdb07c0e67d647684483f8e0929b16911509c86abfa",
+      "plugins/tauri-plugin-phone-identity/android/src/main/java/io/github/biulight/phone_identity/PhoneIdentityPlugin.kt": "fd454905ec55bf3e2ef48734c7819853bf398066ca89e98435950f19063e1538",
+      "plugins/tauri-plugin-phone-identity/android/src/main/java/io/github/biulight/phone_identity/TaggedRecipientCrypto.kt": "175ec4f00a2d8e389d8525f01942226f77a84be41354887688754585ef445b1c",
+      "plugins/tauri-plugin-phone-identity/android/src/test/java/io/github/biulight/phone_identity/OfflineEnvelopeCryptoTest.kt": "10856b60c05adb11e86176337cc7945587b194c675560459c3045e9117b3dc25",
+      "plugins/tauri-plugin-phone-identity/android/src/test/java/io/github/biulight/phone_identity/TaggedRecipientCryptoTest.kt": "624e1e2ae245c40fc8805f6983308a655e5352d7eb5dfaa1ebef173ba7afe69e",
+      "plugins/tauri-plugin-phone-identity/ios/Core/Sources/PhoneIdentityCore/P256Tag.swift": "a0272f1b18f441f11454e94f589d18e48adb2e058981c492472e0c5f95ad348a",
+      "plugins/tauri-plugin-phone-identity/ios/Core/Sources/PhoneIdentityCore/AuthenticationDeadline.swift": "f2a1839601ae1c2c2f662fc18126c52d02853f5e0251193ba18ca5b600a61463",
+      "plugins/tauri-plugin-phone-identity/ios/Core/Sources/PhoneIdentityCore/RecipientEncoding.swift": "d77da31022335e92d1f7f42021f81372cddfc5273fd190b2ed07aa3dc4e6b286",
+      "plugins/tauri-plugin-phone-identity/ios/Core/Tests/PhoneIdentityCoreTests/AuthenticationDeadlineTests.swift": "9d88cc22b59cc76798000d4115d6d20cbfa3dca658401fc2ed1abd223b5ba9c9",
+      "plugins/tauri-plugin-phone-identity/ios/Core/Tests/PhoneIdentityCoreTests/PhoneIdentityTests.swift": "867ca0a6bf56cd627711102fd75319033420366e54b27291ec7c2b38fac5a361",
+      "plugins/tauri-plugin-phone-identity/ios/Sources/PhoneIdentityPlugin.swift": "e8bb9c346d8b03aca14ce73ad65d2ab761042b283462c9f7966facb7b67d8641",
+      "plugins/tauri-plugin-phone-identity/ios/Sources/TaggedRecipientCrypto.swift": "20f9c9c6d6fd66097928c53359bcbab161b0c3a41d13709b8ecb7d55a9401f9d"
+    },
+    "local_build_artifacts": {
+      "target/debug/age-plugin-phone": "301a328cb78acc74df439f3eaf56182fb469f8ed9478380cbea44a0ea6203f78",
+      "plugins/tauri-plugin-phone-identity/android/build/outputs/aar/tauri-plugin-phone-identity-debug.aar": "b99752ee5e4037ca472335baa921aeb76dc5d0291d47654625b8737157d55c85",
+      "apps/mobile/src-tauri/gen/apple/build/arm64-sim/age-plugin-phone.app/age-plugin-phone": "fe23452cd5ee0dccc0dd3c0198260b62b8382af12c0664034459f4f712a46bb2",
+      "apps/mobile/src-tauri/gen/apple/build/arm64/age-plugin-phone.ipa": "295a6c621d836e3177b59aefcd1517d0a22334477dfc4048f841e85a43fdef4a",
+      "apps/mobile/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk": "c1172ef6a235428957b704ac62051c1785ddc1e2878776c3e45a521d8f510f44",
+      "target/tagged-recipient-acceptance-20260911/android-arm64.apk": "f0aed186f02509407b3f558b73438074aa850e30eed54eb722a8c27f11c2408f",
+      "target/tagged-recipient-acceptance-20260911/ios-arm64.ipa": "295a6c621d836e3177b59aefcd1517d0a22334477dfc4048f841e85a43fdef4a",
+      "target/tagged-recipient-acceptance-20260911/ios-arm64-before-timeout-fix.ipa": "0de81cbb7de27c6751fe6b81c01e598d482ea1e8d6207fc768d22d78fc7bdb23"
+    }
+  },
+  "not_verified": [
+    "Android persistence-failure and clock-rollback physical fault injection remain unverified",
+    "Replacement iOS disconnect, persistence-failure and clock-rollback physical fault injection remain unverified",
+    "retained historical ciphertext migration beyond newly generated old-format ciphertext"
+  ],
+  "build_limitations": [],
+  "excluded_scope": [
+    "QR tag transport is intentionally not validated for this version per owner direction"
+  ],
+  "remaining_evidence_constraints": {
+    "historical_ciphertext": "no retained .age ciphertext fixture exists in the repository working tree or Git history; newly generated old-format ciphertext is recorded separately and is not treated as historical evidence",
+    "physical_fault_injection": "mobile replay-store corruption/write failure and device clock rollback were not injected into retained real pairings because that would mutate trusted device state; software fail-closed coverage is recorded separately",
+    "ios_disconnect": "not physically injected; changing Wi-Fi from Control Center also causes foreground loss and would not isolate transport disconnect from the already-passed lifecycle test"
+  },
+  "targeted_fail_closed_tests": {
+    "rust_replay_filter": "14 passed, 0 failed; includes missing/corrupt/non-private state, write-failure poisoning, uncertain/post-replacement commits, replay and clock monotonicity",
+    "rust_upgrade_replay": "1 passed, 0 failed; pre-refactor states preserve consumption, clock checks and later commits",
+    "android_pairing_state_store": "Gradle PairingStateStoreTest passed; includes durable replay after restart, capacity, clock rollback, corruption, scope and storage behavior",
+    "ios_authentication_deadline": "included in the previously recorded 11 passing Swift core tests; clock rollback and nonfinite monotonic values fail closed"
+  },
+  "windows": {
+    "host": "nuc.win.local",
+    "candidate_directory": "C:\\Users\\biulight\\phone-tag-candidate-20260910",
+    "rustc": "1.96.0 (ac68faa20), x86_64-pc-windows-msvc",
+    "checks": [
+      "fmt",
+      "workspace clippy --all-targets --locked -D warnings",
+      "workspace tests --locked: 103 passed, 0 failed, 1 ignored, 0 filtered",
+      "native age 1.3.1 and rage 0.12.1 tag encryption tests",
+      "desktop debug build"
+    ],
+    "binary_sha256": "6749faabe5bf0fd9675197627880328443ec466b157cbc9fb8850a00cde0757d",
+    "log_sha256": {
+      "build.log": "5b2b1c034d4a7d61053d01f5c7ede4aba236dbcf57b523de23a332e4aa2f3316",
+      "clippy.log": "d7bd9034cb48dc8fb9c01b4a0781616e6daec7a72b2f23f4bd04f322f0ebe409",
+      "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "native-age.log": "2395a5e71b7958299da4f5e4cd1645d674a2885383d5e63d74e6e78f246602f5",
+      "native-rage.log": "51d071ab5ddd0499d3cb1ff6ef22212e2dca5c7bc6ad2352137ea70edeebcb88",
+      "tests.log": "1a00376235ad68caef2d70b7ac27c8acf65b85c365141598e9679635879bfba1"
+    }
+  },
+  "resolved_build_issues": [
+    "Simulator export rename: preserved existing build/arm64-sim/age-plugin-phone.app, then full unsigned build passed",
+    "Xcode sccache subprocess: temporary workspace Cargo wrapper override, removed after build",
+    "Android host default JDK 26: selected JDK 17",
+    "macOS Windows cross-compile toolchain unavailable: native Windows verification passed instead"
+  ],
+  "signed_acceptance": {
+    "date": "2026-09-11",
+    "authorized": true,
+    "candidate_commit": "3c13706fcd05679adc2013c4bdd3ce3cb08ccbf9",
+    "android_workflow_run": 34503925021,
+    "ios": {
+      "previous_unsigned_ipa_sha256": "9d5e73e8d2dbf649b5e717c458c0b3be6ff4c27402f0ccc5f0635a516c99b662",
+      "signed_ipa_sha256": "0de81cbb7de27c6751fe6b81c01e598d482ea1e8d6207fc768d22d78fc7bdb23",
+      "signature_verification": "codesign --verify --deep --strict passed",
+      "application_identifier": "88R4BGL627.io.github.biulight.age-plugin-phone",
+      "installed_build_before": "0.1.0.4",
+      "installed_build_after": "0.1.0.5",
+      "install": "in-place devicectl update succeeded; no uninstall",
+      "physical": {
+        "tag_first_open": "success; synthetic bytes matched; owner confirmed fresh Face ID",
+        "tag_second_open_with_recovery_recipient": "success; synthetic bytes matched",
+        "independent_recovery": "success with empty PATH, no phone plugin",
+        "first_cancel_attempt": "not a cancellation test pass: owner reported Face ID completed before Cancel; successful output retained in local evidence",
+        "cancel": "explicit camera-covered cancellation: exit 1, no output file; subsequent fresh tag request succeeded",
+        "ios-open-2": {
+          "case": "ios-open-2",
+          "exit": 0,
+          "output_exists": true,
+          "output_bytes": 128,
+          "output_matches": true
+        },
+        "ios-cancel": {
+          "case": "ios-cancel",
+          "exit": 0,
+          "output_exists": true,
+          "output_bytes": 128,
+          "output_matches": true
+        },
+        "ios-cancel-2": {
+          "case": "ios-cancel-2",
+          "exit": 1,
+          "output_exists": false,
+          "output_bytes": 0,
+          "output_matches": false
+        },
+        "ios-after-cancel": {
+          "case": "ios-after-cancel",
+          "exit": 0,
+          "output_exists": true,
+          "output_bytes": 128,
+          "output_matches": true
+        },
+        "ios-phone-format": {
+          "case": "ios-phone-format",
+          "exit": 0,
+          "output_exists": true,
+          "output_bytes": 128,
+          "output_matches": true
+        },
+        "ios-background": {
+          "case": "ios-background",
+          "exit": 1,
+          "output_exists": false,
+          "output_bytes": 0,
+          "output_matches": false
+        },
+        "ios-after-background": {
+          "case": "ios-after-background",
+          "exit": 0,
+          "output_exists": true,
+          "output_bytes": 128,
+          "output_matches": true
+        },
+        "ios-observed-bad-signature": {
+          "exit": 0,
+          "results": [
+            {
+              "attempt": 1,
+              "case": "bad-signature",
+              "elapsed_ms": 3127,
+              "response_received": false
+            }
+          ]
+        },
+        "ios-observed-malformed-envelope": {
+          "exit": 0,
+          "results": [
+            {
+              "attempt": 1,
+              "case": "malformed-envelope",
+              "elapsed_ms": 3056,
+              "response_received": false
+            }
+          ]
+        },
+        "ios-observed-wrong-stanza": {
+          "exit": 0,
+          "results": [
+            {
+              "attempt": 1,
+              "case": "wrong-stanza",
+              "elapsed_ms": 3093,
+              "response_received": false
+            }
+          ]
+        },
+        "ios-observed-expired": {
+          "exit": 0,
+          "results": [
+            {
+              "attempt": 1,
+              "case": "expired",
+              "elapsed_ms": 3108,
+              "response_received": false
+            }
+          ]
+        },
+        "negative_prompt_observation": "owner confirmed no Face ID for expired, wrong-stanza, bad-signature and malformed-envelope requests",
+        "replay_after_restart": {
+          "first_attempt": {
+            "response_received": false,
+            "elapsed_ms": 14088
+          },
+          "second_attempt": {
+            "response_received": false,
+            "elapsed_ms": 3036
+          },
+          "restart": "devicectl terminate-existing and launch, no state reset",
+          "owner_observation": "owner confirmed no second Face ID prompt"
+        },
+        "ios-timeout-before-fix": {
+          "case": "ios-timeout",
+          "elapsed_seconds": 93.202,
+          "exit": 1,
+          "output_exists": false,
+          "output_bytes": 0,
+          "output_matches": false,
+          "native_result": "failed: owner observed Face ID prompt still present after desktop timeout; subsequent signed discovery unavailable until cancellation"
+        }
+      },
+      "timeout_fix": {
+        "candidate_commit": "2ec6ec808820867ae2ef84416ca9375f2fd874e2",
+        "signed_ipa_sha256": "295a6c621d836e3177b59aefcd1517d0a22334477dfc4048f841e85a43fdef4a",
+        "signature_verification": "codesign --verify --deep --strict passed",
+        "install": "in-place devicectl update succeeded; build 0.1.0.5; no uninstall",
+        "source_sha256": {
+          "plugins/tauri-plugin-phone-identity/ios/Sources/PhoneIdentityPlugin.swift": "e8bb9c346d8b03aca14ce73ad65d2ab761042b283462c9f7966facb7b67d8641",
+          "plugins/tauri-plugin-phone-identity/ios/Core/Sources/PhoneIdentityCore/AuthenticationDeadline.swift": "f2a1839601ae1c2c2f662fc18126c52d02853f5e0251193ba18ca5b600a61463",
+          "plugins/tauri-plugin-phone-identity/ios/Core/Tests/PhoneIdentityCoreTests/AuthenticationDeadlineTests.swift": "9d88cc22b59cc76798000d4115d6d20cbfa3dca658401fc2ed1abd223b5ba9c9"
+        },
+        "swift_core_tests": "11 passed, including 5 authentication deadline tests",
+        "physical_status": "passed scoped replacement-package checks: tag and old-format success, fresh authentication after timeout/background, timeout dismissal, foreground loss, invalid-request no-prompt rejection, cancellation and replay rejection after restart",
+        "physical": {
+          "ios-timeout-fixed": {
+            "case": "ios-timeout-fixed",
+            "elapsed_seconds": 67.239,
+            "exit": 1,
+            "output_exists": false,
+            "output_bytes": 0,
+            "output_matches": false,
+            "owner_observation": "Face ID/retry prompt disappeared automatically without manual cancellation"
+          },
+          "discovery_after_timeout": "wifi-doctor: one authenticated candidate after 3001 ms",
+          "ios-after-timeout-fixed": {
+            "case": "ios-after-timeout-fixed",
+            "elapsed_seconds": 4.029,
+            "exit": 0,
+            "output_exists": true,
+            "output_bytes": 128,
+            "output_matches": true,
+            "owner_observation": "owner confirmed a fresh Face ID prompt and successful verification"
+          },
+          "replay_after_restart": {
+            "first_attempt": {
+              "response_received": false,
+              "elapsed_ms": 11128
+            },
+            "second_attempt": {
+              "response_received": false,
+              "elapsed_ms": 3100
+            },
+            "restart": "devicectl terminate-existing and launch, no state reset",
+            "owner_observation": "owner confirmed cancelling the first prompt and no second Face ID prompt after restart"
+          },
+          "invalid_requests": {
+            "expired_elapsed_ms": 3033,
+            "wrong_stanza_elapsed_ms": 3068,
+            "bad_signature_elapsed_ms": 3078,
+            "malformed_envelope_elapsed_ms": 3020,
+            "responses_received": 0,
+            "owner_observation": "owner watched the replacement package and confirmed no Face ID prompt"
+          },
+          "native_malformed_stanza": {
+            "request": "canonical protocol envelope and valid paired-desktop hardware signature; p256tag body shortened by one byte after normal request creation and re-signed",
+            "elapsed_ms": 3023,
+            "response_received": false,
+            "owner_observation": "owner confirmed no Face ID prompt"
+          },
+          "binding_rejections": {
+            "wrong_identity_elapsed_ms": 3126,
+            "wrong_desktop_elapsed_ms": 3097,
+            "responses_received": 0,
+            "request_signing": "valid paired-desktop hardware signatures over the mutated canonical payloads",
+            "owner_observation": "owner confirmed no Face ID prompts"
+          },
+          "ios-phone-format-fixed": {
+            "case": "ios-phone-format-fixed",
+            "elapsed_seconds": 6.433,
+            "exit": 0,
+            "output_exists": true,
+            "output_bytes": 128,
+            "output_matches": true
+          },
+          "ios-background-fixed": {
+            "case": "ios-background-fixed",
+            "elapsed_seconds": 7.885,
+            "exit": 1,
+            "output_exists": false,
+            "output_bytes": 0,
+            "output_matches": false
+          },
+          "ios-after-background-fixed": {
+            "case": "ios-after-background-fixed",
+            "elapsed_seconds": 3.791,
+            "exit": 0,
+            "output_exists": true,
+            "output_bytes": 128,
+            "output_matches": true
+          },
+          "ios-kill-process-fixed": {
+            "case": "ios-kill-process-fixed",
+            "elapsed_seconds": 9.368,
+            "exit": 1,
+            "output_exists": false,
+            "output_bytes": 0,
+            "output_matches": false,
+            "owner_observation": "application process was killed after Face ID appeared"
+          },
+          "ios-after-kill-fixed": {
+            "case": "ios-after-kill-fixed",
+            "elapsed_seconds": 3.086,
+            "exit": 1,
+            "output_exists": false,
+            "phase": "initial post-launch discovery; no Face ID prompt",
+            "follow_up_discovery": "wifi-doctor found one authenticated candidate after 3004 ms"
+          },
+          "ios-after-kill-fixed-retry": {
+            "case": "ios-after-kill-fixed-retry",
+            "elapsed_seconds": 3.776,
+            "exit": 0,
+            "output_exists": true,
+            "output_bytes": 128,
+            "output_matches": true,
+            "owner_observation": "owner completed a new Face ID after listener recovery"
+          }
+        }
+      }
+    },
+    "android": {
+      "workflow_result": "success",
+      "run_attempt": 1,
+      "apk_sha256": "f0aed186f02509407b3f558b73438074aa850e30eed54eb722a8c27f11c2408f",
+      "signer_certificate_sha256": "9a3e5a00a0a363ca58bbe0abfa1bbc0e36cbdce58e314c0c0dbfa94baff1d58b",
+      "installed_signer_match": true,
+      "installed_version_before": "0.1.0-alpha.4",
+      "installed_version_after": "0.1.0-alpha.5",
+      "version_code": 1000,
+      "install": "adb install -r succeeded; no uninstall, clear-data or downgrade option",
+      "physical": {
+        "android-open-2": {
+          "case": "android-open-2",
+          "exit": 0,
+          "output_exists": true,
+          "output_bytes": 128,
+          "output_matches": true
+        },
+        "android-cancel": {
+          "case": "android-cancel",
+          "exit": 1,
+          "output_exists": false,
+          "output_bytes": 0,
+          "output_matches": false
+        },
+        "android-after-cancel": {
+          "case": "android-after-cancel",
+          "exit": 0,
+          "output_exists": true,
+          "output_bytes": 128,
+          "output_matches": true
+        },
+        "android-phone-format": {
+          "case": "android-phone-format",
+          "exit": 0,
+          "output_exists": true,
+          "output_bytes": 128,
+          "output_matches": true
+        },
+        "android-open-1": {
+          "case": "android-open-1",
+          "exit": 0,
+          "output_exists": true,
+          "output_bytes": 128,
+          "output_matches": true
+        },
+        "android-background": {
+          "case": "android-background",
+          "exit": 1,
+          "output_exists": false,
+          "output_bytes": 0,
+          "output_matches": false
+        },
+        "android-timeout": {
+          "case": "android-timeout",
+          "elapsed_seconds": 60.466,
+          "exit": 1,
+          "output_exists": false,
+          "output_bytes": 0,
+          "output_matches": false
+        },
+        "android-wifi": {
+          "transport": "authenticated Wi-Fi from macOS",
+          "exit": 0,
+          "output_exists": true,
+          "output_bytes": 128,
+          "output_matches": true
+        },
+        "android-kill-process": {
+          "case": "android-kill-process",
+          "elapsed_seconds": 7.37,
+          "exit": 1,
+          "output_exists": false,
+          "output_bytes": 0,
+          "output_matches": false,
+          "owner_observation": "application was force-stopped after the fingerprint prompt appeared"
+        },
+        "android-after-kill": {
+          "case": "android-after-kill",
+          "elapsed_seconds": 21.564,
+          "exit": 0,
+          "output_exists": true,
+          "output_bytes": 128,
+          "output_matches": true,
+          "owner_observation": "owner completed a new fingerprint verification after relaunch"
+        },
+        "android-disconnect": {
+          "case": "android-disconnect",
+          "elapsed_seconds": 2.838,
+          "exit": 1,
+          "output_exists": false,
+          "output_bytes": 0,
+          "output_matches": false,
+          "owner_observation": "owner unplugged USB after the fingerprint prompt appeared"
+        },
+        "android-after-disconnect": {
+          "case": "android-after-disconnect",
+          "elapsed_seconds": 5.577,
+          "exit": 0,
+          "output_exists": true,
+          "output_bytes": 128,
+          "output_matches": true,
+          "owner_observation": "owner completed a new fingerprint verification after reconnect"
+        },
+        "background_owner_observation": "owner confirmed returning to home screen while fingerprint prompt was active",
+        "replay_after_restart": {
+          "results": [
+            {
+              "attempt": 1,
+              "case": "replay",
+              "elapsed_ms": 1907,
+              "response_received": false
+            },
+            {
+              "attempt": 2,
+              "case": "replay_after_restart",
+              "elapsed_ms": 387,
+              "response_received": false
+            }
+          ],
+          "owner_observation": "first prompt cancelled; no second prompt after restart",
+          "request_storage": "memory only; phone replay state never reset"
+        },
+        "android-observed-bad-signature": {
+          "exit": 0,
+          "results": [
+            {
+              "attempt": 1,
+              "case": "bad-signature",
+              "elapsed_ms": 263,
+              "response_received": false
+            }
+          ]
+        },
+        "android-observed-malformed-stanza": {
+          "exit": 1,
+          "results": []
+        },
+        "android-observed-malformed-envelope": {
+          "exit": 0,
+          "results": [
+            {
+              "attempt": 1,
+              "case": "malformed-envelope",
+              "elapsed_ms": 269,
+              "response_received": false
+            }
+          ]
+        },
+        "android-observed-wrong-phone": {
+          "exit": 0,
+          "results": [
+            {
+              "attempt": 1,
+              "case": "wrong-phone",
+              "elapsed_ms": 277,
+              "response_received": false
+            }
+          ]
+        },
+        "android-observed-expired": {
+          "exit": 0,
+          "results": [
+            {
+              "attempt": 1,
+              "case": "expired",
+              "elapsed_ms": 256,
+              "response_received": false
+            }
+          ]
+        },
+        "android-observed-wrong-stanza": {
+          "exit": 0,
+          "results": [
+            {
+              "attempt": 1,
+              "case": "wrong-stanza",
+              "elapsed_ms": 338,
+              "response_received": false
+            }
+          ]
+        },
+        "negative_prompt_observation": "confirmed on repeat: owner watched expired, wrong-phone, wrong-stanza, bad-signature and malformed-envelope requests and observed no fingerprint prompt; all were rejected within 347 ms",
+        "malformed_stanza_probe": "production request creation rejected the malformed stanza before transport; a separate valid-hardware-signature native probe was then rejected by Android in 266 ms with no fingerprint prompt",
+        "native_malformed_stanza": {
+          "request": "canonical protocol envelope and valid paired-desktop hardware signature; p256tag body shortened by one byte after normal request creation and re-signed",
+          "elapsed_ms": 266,
+          "response_received": false,
+          "owner_observation": "owner confirmed no fingerprint prompt"
+        },
+        "binding_rejections": {
+          "wrong_identity_elapsed_ms": 277,
+          "wrong_desktop_elapsed_ms": 279,
+          "responses_received": 0,
+          "request_signing": "valid paired-desktop hardware signatures over the mutated canonical payloads",
+          "owner_observation": "owner confirmed no fingerprint prompts"
+        }
+      }
+    },
+    "windows_to_android": {
+      "transport": "authenticated Wi-Fi",
+      "existing_pairing": true,
+      "client": "age 1.3.1",
+      "plugin_sha256": "6749faabe5bf0fd9675197627880328443ec466b157cbc9fb8850a00cde0757d",
+      "result": {
+        "output_matches": true,
+        "output_exists": true,
+        "exit": 0
+      }
+    },
+    "shine_macos_to_ios": {
+      "shine_version": "2.0.3",
+      "shine_commit": "47499e3ab1c765cacd3f96a10eba83be28212ecd",
+      "shine_binary_sha256": "27e32d121b6c0f671b4b92b9437354c1a82917a17f894c0d6872cfbda0e8f73a",
+      "workspace_sha256": "f187ccbeb858ea9739e3536872c18603f56433e9c839ff8281458e10c5a4e3fa",
+      "sealed_source_sha256": "9ca9a7df3264c25248505804fd7a4664c6e450619358139e968e1bcd21b60eae",
+      "public_recipient_export": "read-only plugin export matched the previously recorded iPhone age1tag recipient",
+      "plugin_free_seal": "passed with age 1.3.2 and a PATH containing no age-plugin-phone; phone tag plus independent recovery recipient",
+      "fresh_phone_authorized_decrypt": "two successive Shine workspace runs passed synthetic-value comparison; owner confirmed a distinct Face ID verification for each run",
+      "plaintext_handling": "synthetic value only; comparison occurred in the child process and no plaintext was printed",
+      "scope": "isolated temporary Shine config and workspace; no user Shine config, real workspace or pairing state changed"
+    },
+    "mixed_phone_se_recovery": {
+      "client": "age 1.3.2",
+      "ciphertext_sha256": "c196b7c4fa2ed42ec2c7386fff65892b02bb156a1b89ca64131df63a9db1b0c4",
+      "recipients": "recorded iPhone age1tag, existing Secure Enclave age1tag and disposable ordinary recovery recipient",
+      "plugin_free_encryption": "passed with a PATH containing no age-plugin-phone; all recipient stanzas were produced natively by age",
+      "independent_decryption": {
+        "ordinary_recovery": "passed; exact synthetic bytes matched with a PATH containing no identity plugins",
+        "phone": "passed; exact synthetic bytes matched; owner confirmed one Face ID",
+        "secure_enclave": "passed on retry; exact synthetic bytes matched; initial attempt was cancelled and produced no output"
+      },
+      "selection_with_both_identities": {
+        "phone_only_ciphertext": "passed; owner confirmed one iPhone Face ID and no Mac Touch ID",
+        "secure_enclave_only_ciphertext": "passed; owner confirmed one Mac Touch ID and no iPhone Face ID"
+      },
+      "owner_observation": "all three requested prompt-isolation observations matched"
+    }
+  },
+  "additional_negative_checks": {
+    "public-unmatched-host": {
+      "case": "public-unmatched-host",
+      "exit": 1,
+      "output_exists": false,
+      "elapsed_seconds": 0.018,
+      "private_configuration": "nonexistent",
+      "transport_override": "invalid"
+    },
+    "public-malformed-host": {
+      "case": "public-malformed-host",
+      "exit": 1,
+      "output_exists": false,
+      "elapsed_seconds": 0.017,
+      "private_configuration": "nonexistent",
+      "transport_override": "invalid"
+    },
+    "sandbox_attempts": "initial public-only probes returned EOF under sandbox hardware capability check; not counted; host-permission reruns returned explicit unmatched/malformed errors"
+  },
+  "negative_probe": {
+    "initial_source_sha256": "67471b650708bd4fa120e5e2364994dfc49615d66d1db0192f2f45b1f21c4deb",
+    "initial_binary_sha256": "ab3297c02492dae235112a8f7d7040653500f6e7d5e603e16577b2ef8deb11aa",
+    "source_sha256": "f64d7895d91156d6fad91834ea9a4f426aa31b3d5ba92ff7318b61c1917b84ea",
+    "manifest_sha256": "06f7aabaeec74b97d600a2770be7e3ae44a7621999b7701c8a3afdd459b965d6",
+    "lockfile_sha256": "1a3ab9577208d1468b34d91bc59f0b91d98c4b359ef0ce0b457c0dbd90e49923",
+    "binary_sha256": "28f0f38aab0c6defcdcee13ac1b85792089106268b6d2e4b21014ca64ebbd00a",
+    "scope": "temporary test harness uses existing hardware-backed desktop signing and existing public pairing; no production code changes",
+    "native_malformed_stanza_method": "creates a normal request, shortens only the p256tag body, reproduces canonical request encoding and signs the malformed payload with the paired desktop hardware key",
+    "binding_rejection_method": "creates a normal request, changes only identity_id or desktop_id, then signs the canonical mutated payload with the paired desktop hardware key",
+    "payload_handling": "signed requests and encrypted responses in memory only; raw requests not logged or written; only response presence/timing recorded",
+    "limitations": "transport rejection alone does not establish a particular native error category or absence of a biometric prompt; observation recorded separately"
+  }
+}

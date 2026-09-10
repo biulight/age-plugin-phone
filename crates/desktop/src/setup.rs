@@ -3,6 +3,8 @@
 #![cfg_attr(not(any(windows, target_os = "macos")), allow(dead_code))]
 #![allow(clippy::missing_errors_doc)]
 
+use crate::pairing::RecipientType;
+
 use std::path::{Path, PathBuf};
 
 use age_plugin_phone_core::protocol::Id;
@@ -438,8 +440,12 @@ pub fn acquire_lifecycle_lock(
 }
 
 #[cfg(windows)]
-fn create_managed_stub(path: &Path, stub: &PublicIdentityStub) -> Result<(), SetupError> {
-    crate::pairing::create_identity_stub_file(path, stub).map_err(|_| SetupError::Storage)
+fn create_managed_stub(
+    path: &Path,
+    stub: &PublicIdentityStub,
+    kind: RecipientType,
+) -> Result<(), SetupError> {
+    crate::pairing::create_identity_stub_file_for(path, stub, kind).map_err(|_| SetupError::Storage)
 }
 
 #[cfg(windows)]
@@ -448,8 +454,14 @@ fn read_managed_stub(path: &Path) -> Result<PublicIdentityStub, SetupError> {
 }
 
 #[cfg(target_os = "macos")]
-fn create_managed_stub(path: &Path, stub: &PublicIdentityStub) -> Result<(), SetupError> {
-    let text = stub.identity_file().map_err(|_| SetupError::Invalid)?;
+fn create_managed_stub(
+    path: &Path,
+    stub: &PublicIdentityStub,
+    kind: RecipientType,
+) -> Result<(), SetupError> {
+    let text = stub
+        .identity_file_for(kind)
+        .map_err(|_| SetupError::Invalid)?;
     age_plugin_phone_platform_storage::macos::create_regular_file(path, text.as_bytes())
         .map_err(|_| SetupError::Storage)
 }
@@ -616,10 +628,11 @@ pub fn remove(_root: &Path) -> Result<(), SetupError> {
 }
 
 #[cfg(any(windows, target_os = "macos"))]
-pub fn commit_confirmed(
+pub fn commit_confirmed_for(
     root: &Path,
     value: &SetupJournal,
     now_unix: u64,
+    kind: RecipientType,
 ) -> Result<(), SetupError> {
     use age_plugin_phone_core::protocol::{
         DEFAULT_REPLAY_CAPACITY, FileReplayGuard, PairingRecord, ReplayRole, ReplayScope,
@@ -689,9 +702,31 @@ pub fn commit_confirmed(
     }
     commit_checkpoint("after_locator")?;
 
-    if create_managed_stub(&value.identity_stub, stub).is_err() {
+    if create_managed_stub(&value.identity_stub, stub, kind).is_err() {
         let existing = read_managed_stub(&value.identity_stub).map_err(|_| SetupError::Invalid)?;
         if existing != *stub {
+            return Err(SetupError::Invalid);
+        }
+        // A crash after the public file was created must not report a different recipient
+        // from that file's comment. Resume with the same explicit type; never rewrite a stub.
+        #[cfg(windows)]
+        let bytes = age_plugin_phone_platform_storage::windows::read_regular_file(
+            &value.identity_stub,
+            16_384,
+        )
+        .map_err(|_| SetupError::Invalid)?;
+        #[cfg(target_os = "macos")]
+        let bytes = age_plugin_phone_platform_storage::macos::read_regular_file(
+            &value.identity_stub,
+            16_384,
+        )
+        .map_err(|_| SetupError::Invalid)?;
+        let text = std::str::from_utf8(&bytes).map_err(|_| SetupError::Invalid)?;
+        let comment = format!(
+            "# recipient: {}",
+            stub.recipient_for(kind).map_err(|_| SetupError::Invalid)?
+        );
+        if !text.lines().any(|line| line == comment) {
             return Err(SetupError::Invalid);
         }
     }
@@ -699,11 +734,21 @@ pub fn commit_confirmed(
     remove(root)
 }
 
-#[cfg(not(any(windows, target_os = "macos")))]
+/// Compatibility commit using the default phone recipient comment.
 pub fn commit_confirmed(
+    root: &Path,
+    value: &SetupJournal,
+    now_unix: u64,
+) -> Result<(), SetupError> {
+    commit_confirmed_for(root, value, now_unix, RecipientType::Phone)
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+pub fn commit_confirmed_for(
     _root: &Path,
     _value: &SetupJournal,
     _now_unix: u64,
+    _kind: RecipientType,
 ) -> Result<(), SetupError> {
     Err(SetupError::Unsupported)
 }
@@ -1097,30 +1142,32 @@ mod tests {
     #[cfg(target_os = "macos")]
     #[test]
     fn macos_confirmed_commit_resumes_at_every_write_boundary() {
-        for explicit in [false, true] {
-            for stage in [
-                "before_replay",
-                "after_replay",
-                "after_locator",
-                "after_stub",
-            ] {
-                let (root, value) = macos_fixture_with_paths(explicit);
-                let lock = acquire_lifecycle_lock(&root).unwrap();
-                assert!(acquire_lifecycle_lock(&root).is_err());
-                COMMIT_FAILURE.with(|failure| failure.set(Some(stage)));
-                assert_eq!(
-                    commit_confirmed(&root, &value, 100),
-                    Err(SetupError::Storage)
-                );
-                assert_eq!(read(&root).unwrap(), value);
-                let stub = value.candidate.as_ref().unwrap();
-                assert!(crate::locator::open_pairing_locator(&root, stub).is_err());
-                commit_confirmed(&root, &value, 100).unwrap();
-                assert_eq!(read(&root), Err(SetupError::Missing));
-                assert_eq!(read_managed_stub(&value.identity_stub).unwrap(), *stub);
-                assert!(crate::locator::open_pairing_locator(&root, stub).is_ok());
-                drop(lock);
-                std::fs::remove_dir_all(root).unwrap();
+        for kind in [RecipientType::Phone, RecipientType::Tag] {
+            for explicit in [false, true] {
+                for stage in [
+                    "before_replay",
+                    "after_replay",
+                    "after_locator",
+                    "after_stub",
+                ] {
+                    let (root, value) = macos_fixture_with_paths(explicit);
+                    let lock = acquire_lifecycle_lock(&root).unwrap();
+                    assert!(acquire_lifecycle_lock(&root).is_err());
+                    COMMIT_FAILURE.with(|failure| failure.set(Some(stage)));
+                    assert_eq!(
+                        commit_confirmed_for(&root, &value, 100, kind),
+                        Err(SetupError::Storage)
+                    );
+                    assert_eq!(read(&root).unwrap(), value);
+                    let stub = value.candidate.as_ref().unwrap();
+                    assert!(crate::locator::open_pairing_locator(&root, stub).is_err());
+                    commit_confirmed_for(&root, &value, 100, kind).unwrap();
+                    assert_eq!(read(&root), Err(SetupError::Missing));
+                    assert_eq!(read_managed_stub(&value.identity_stub).unwrap(), *stub);
+                    assert!(crate::locator::open_pairing_locator(&root, stub).is_ok());
+                    drop(lock);
+                    std::fs::remove_dir_all(root).unwrap();
+                }
             }
         }
     }

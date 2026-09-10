@@ -1,0 +1,17 @@
+{
+  "ephemeral_scalar_hex": "0000000000000000000000000000000000000000000000000000000000000002",
+  "file_key_hex": "00112233445566778899aabbccddeeff",
+  "identity_scalar_hex": "0000000000000000000000000000000000000000000000000000000000000001",
+  "recipient": "age1tag1qd43050juykyy3lchnnw2caygre8wqmasyk7kvaq7jsnj3wcnrpfvt5hxye",
+  "recipient_public_key_base64": "A2sX0fLhLEJH+Lzm5WOkQPJ3A32BLeszoPShOUXYmMKW",
+  "spec": "https://c2sp.org/age@v1.1.0",
+  "stanza": {
+    "args": [
+      "VU+GyQ",
+      "BHzyexiNA09+ilI4AwS1GsPAiWnid/IbNaYLSPxHZpl4B3dVENuO0EApPZrGn3Qw27p9reY86YIpngS3nSJ4c9E"
+    ],
+    "body_base64": "uW2uztERLV24keFkTp8btcYdxJKavOSJrphlevYsvPg",
+    "tag": "p256tag"
+  },
+  "warning": "PUBLIC TEST KEYS ONLY. Never use for real data."
+}

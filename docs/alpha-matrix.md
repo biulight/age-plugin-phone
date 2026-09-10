@@ -111,3 +111,16 @@ The Alpha gate remains closed while any required row or scenario is pending, whi
 review finding is unresolved, or while protocol version 2 is still an unfrozen experimental format.
 macOS success cannot waive a Windows requirement, and QR success cannot waive the Developer USB
 matrix (or vice versa). Owner-only operation does not change this public-Alpha decision.
+
+## Native tag candidate gate
+
+The optional tag implementation is tracked in [candidate evidence](tagged-recipient-evidence.md)
+and [ADR 0026](adr/0026-native-tagged-recipients.md). Desktop, Android and iOS must support
+p256tag in the same compatible release batch. Preserve protocol v2 pairing and replay state;
+phone remains the default. Age v1.3.2/rage 0.12.1 software interoperability does not satisfy
+StrongBox/Secure Enclave physical authorization, cancellation, timeout, lifecycle, wrong-device,
+upgrade, independent recovery or mixed phone/SE prompt tests. Run those on exact candidate
+artifacts and record hashes before advertising tag support. Unrun hardware rows are unverified.
+Shine acceptance is separate and does not authorize a plugin-specific application interface.
+Signing, uploading and publication require their own authorization; this implementation does not
+perform them or expand production support.
