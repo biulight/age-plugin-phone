@@ -2193,5 +2193,54 @@
       "harness_sha256": "fa84854a31ed1a62f05a49495dd9c62f416b3fc207cad12db411cd4b6aaa7b23",
       "temporary_plaintext_directories_remaining": 0
     }
+  },
+  "installed_wifi_lock_lifecycle": {
+    "status": "both_phones_passed",
+    "result": {
+      "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+      "transport": "wifi",
+      "client": "age 1.3.2",
+      "synthetic_only": true,
+      "network_settings": "Surge_and_ZeroTier_retained",
+      "cases": [
+        {
+          "phone": "Android",
+          "phase": "lock_while_verification_pending",
+          "exit_code": 1,
+          "elapsed_seconds": 24.587,
+          "no_plaintext": true,
+          "human_lock_observation": "y",
+          "passed": true
+        },
+        {
+          "phone": "Android",
+          "phase": "fresh_approval_after_unlock",
+          "exit_code": 0,
+          "data_check": true,
+          "human_fresh_verification": "y",
+          "passed": true
+        },
+        {
+          "phone": "iPhone",
+          "phase": "lock_while_verification_pending",
+          "exit_code": 1,
+          "elapsed_seconds": 15.247,
+          "no_plaintext": true,
+          "human_lock_observation": "y",
+          "passed": true
+        },
+        {
+          "phone": "iPhone",
+          "phase": "fresh_approval_after_unlock",
+          "exit_code": 0,
+          "data_check": true,
+          "human_fresh_verification": "y",
+          "passed": true
+        }
+      ]
+    },
+    "result_sha256": "506941389d8133a927891e1da6fa7cd97a413e766e082c737b39e4a9bfbb2f9c",
+    "harness_sha256": "c5e41c3b10c27374437f40c6cf047b16ebf7227c8b8bd9b57482e124aea56913",
+    "temporary_plaintext_directories_remaining": 0
   }
 }

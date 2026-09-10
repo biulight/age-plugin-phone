@@ -715,3 +715,13 @@ No retry plaintext directory remains. Together with the previous Android pass th
 closes the two-phone Wi-Fi background/foreground case; the original failed iPhone
 recovery remains retained and is not relabeled. Lock-screen and process-termination
 scenarios are separate lifecycle cases.
+
+### Installed artifact: both phones' lock-screen lifecycle passed
+
+On Wi-Fi through age, Android and iPhone each terminated a pending verification
+request after user-operated screen lock, returning failure without plaintext. The
+user immediately confirmed locking before authorization and closure of the old
+prompt. After unlock and foreground return, each phone decrypted a fresh request
+and the user confirmed new fingerprint/Face ID verification. All four cases passed
+on the recorded installed binary; no harness plaintext directories remain. This
+row covers screen locking, separately from backgrounding and process termination.
