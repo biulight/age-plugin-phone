@@ -66,7 +66,7 @@ pairing revoked, phone verification automated or real plaintext processed.
 | --- | --- |
 | Desktop valid-state rollback | User-approved common Windows/macOS limitation; stronger protection deferred to later POC, not passed |
 | Exact final archive and installed digest | Network-corrected archive/install passed; installed digest `078d3f1d…f42f12cd`, full evidence below |
-| Terminal → age/rage → installed plugin | Current installed artifact: Android and iPhone Wi-Fi each pass all eight cases; current Android USB also passes eight cases with reverse cleanup; earlier QR evidence retained separately |
+| Terminal → age/rage → installed plugin | Current installed artifact: Android and iPhone Wi-Fi each pass all eight cases; current Android USB also passes eight cases with reverse cleanup; both phones also pass current-artifact QR success; older QR negative evidence retained separately |
 | GUI application → age → installed plugin | Deferred by user on 2026-09-10; outside current CLI acceptance, not passed |
 | Android ADB pairing and two separate successful unwraps | User-operated setup and two independent decryptions pass; user confirms fresh native verification for every approval |
 | Cancellation and subsequent success | Android ADB cancellation returns failure without plaintext; subsequent fresh approval succeeds |
@@ -74,6 +74,10 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Android USB natural timeout | 60.383-second automatic failure, no plaintext, clean rules and new verification afterward pass |
 | Caller/plugin process-tree termination | SIGKILL while approval pending passes no-plaintext, prompt-close, cleanup and fresh retry checks |
 | ADB service restart | Ordered restart passes no-plaintext, prompt-close, cleanup and fresh retry; initial immediate-start error retained below |
+| Android USB cold app launch | Current installed artifact: age/rage both pass process-absent start, automatic app launch, fresh fingerprint and empty reverse rules |
+| Wi-Fi phone background and lock | Both phones pass pending-request failure without plaintext and fresh verification after foreground/unlock |
+| Wi-Fi phone process termination | Both phones pass process absence and no-plaintext failure; Android automatic relaunch and iPhone separate manual relaunch recover with new verification |
+| Android Wi-Fi loss/reconnect | Radio disable confirmed, same app process, no-plaintext failure and fresh recovery pass; exact failure latency not measured |
 | Android QR native cancellation and recovery | age/rage cancellation and natural timeout without plaintext pass; fresh fingerprint recovery passes, age recovery used a separate run/new ciphertext |
 | iPhone QR native cancellation and recovery | age/rage: user cancellation, natural scan timeout without plaintext, fresh Face ID recovery pass |
 | Wi-Fi multihoming, interface changes, ambiguity and permission errors | Logic tests pass; applicable physical combinations pending |
@@ -790,3 +794,14 @@ be quoted as network failure latency. Functional failure/recovery passes remain
 valid; immediate disconnect detection and precise latency are not established.
 A separate future harness fixes the timing boundary and prints waiting progress,
 without changing product deadlines or requiring this successful run to be repeated.
+
+### USB cold app launch passed for both age clients
+
+Before each operation the harness force-stopped the Android test app and confirmed
+that its process was absent. The ordinary plugin Developer USB route then opened
+the app. The user immediately confirmed automatic launch without manual opening
+and fresh fingerprint verification for both age and rage. Both plaintext equality
+checks passed; reverse rules were empty after each operation and no temporary
+plaintext directory remains. This covers app-process cold start on an already
+USB-authorized, unlocked phone, not OS reboot, initial USB authorization or multiple
+Android-device selection.

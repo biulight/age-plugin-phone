@@ -2375,5 +2375,54 @@
     },
     "cause_assessment": "consistent_with_bounded_socket_timeout_no_exact_failure_cause_observed",
     "temporary_plaintext_directories_remaining": 0
+  },
+  "installed_android_usb_cold_start": {
+    "status": "age_and_rage_passed",
+    "result": {
+      "scope": "cargo_installed_mac_android_usb_cold_start",
+      "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+      "network_settings": "Surge_and_ZeroTier_retained",
+      "synthetic_data_only": true,
+      "cases": [
+        {
+          "client": "age",
+          "phase": "cold_start_fresh_approval",
+          "exit_code": 0,
+          "data_check": true,
+          "human_native_observation": "y",
+          "reverse_rules_empty": true,
+          "process_absent_before_request": true,
+          "passed": true
+        },
+        {
+          "client": "rage",
+          "phase": "cold_start_fresh_approval",
+          "exit_code": 0,
+          "data_check": true,
+          "human_native_observation": "y",
+          "reverse_rules_empty": true,
+          "process_absent_before_request": true,
+          "passed": true
+        }
+      ],
+      "android_update": {
+        "run_id": 34384436759,
+        "candidate_commit": "6a0cf142258a25a73bbf10fa106a2aa7cac93cda",
+        "apk_sha256": "bab6b9cb3ca4b4faa513935ec1904cd01613bbb4990933bd92f5cfc774f72873",
+        "previous_apk_sha256": "6e77ada9917673f0a5a392bb9a4327dd2275f9ff403d15015a6280da190d4f62",
+        "signer_certificate_sha256": "9a3e5a00a0a363ca58bbe0abfa1bbc0e36cbdce58e314c0c0dbfa94baff1d58b",
+        "signature_verification": "both_passed_same_signer",
+        "checksum": "passed",
+        "package_matches": true,
+        "multicast_permission_present": true,
+        "installation": "adb_install_r_success",
+        "installed_apk_digest_matches": true
+      },
+      "transport": "adb"
+    },
+    "result_sha256": "91bcab95b0a7883daa1015f0d9677fa1dbd39c4d351e5ac9f6d4c5244a2c4177",
+    "harness_sha256": "e55b414eb81fa8189753bcbee3861b2da281ee57308c845bca9600fdc9ce2898",
+    "human_observation_meaning": "USB_request_automatically_opened_app_without_manual_launch_and_required_fresh_native_fingerprint",
+    "temporary_plaintext_directories_remaining": 0
   }
 }
