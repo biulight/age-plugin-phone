@@ -14,10 +14,12 @@ Shine environments, or define a Shine-specific ciphertext format.
 > protocol v2 remains unfrozen and the complete lifecycle, replay, multi-phone, public-signing, and
 > external-user gates remain open. Do not use it to protect real secrets.
 
-The latest installable snapshot is
-[`v0.1.0-alpha.4`](docs/releases/v0.1.0-alpha.4.md), a test-signed developer prerelease for
+The alpha.5 release is described in
+[`v0.1.0-alpha.5`](docs/releases/v0.1.0-alpha.5.md), an experimental developer prerelease for
 synthetic or disposable data with a separately verified independent recovery recipient. Publishing
 that snapshot does not constitute a public-Alpha, stable-protocol, or production-secret claim.
+It adds macOS source installation; GitHub release binaries remain Windows and Android.
+The next implementation stage is [tagged recipients](docs/tagged-recipient-prd.md).
 
 The alpha.4 exact signed Windows/Android package pair passed owner-only physical acceptance and
 was published on 2026-09-07. See the [acceptance and publication record](docs/windows-acceptance-2026-09-07.md)
@@ -69,8 +71,10 @@ See [ADR 0024](docs/adr/0024-four-desktop-crates.md) for the package boundaries 
 [candidate evidence](docs/desktop-refactor-evidence.md) for completed validation.
 The original refactor did not add macOS hardware-key support or upload packages.
 The later [macOS implementation plan](docs/macos-support-plan.md) now includes dual
-Secure Enclave roles, native storage, setup and cleanup. Its physical acceptance gates
-remain open. Windows and macOS do not guarantee detection of older valid desktop replay
+Secure Enclave roles, native storage, setup and cleanup. Remaining physical acceptance
+is deferred for the interim experimental release by the
+[release-scope decision](docs/macos-release-scope-decision.md), not marked passed.
+Windows and macOS do not guarantee detection of older valid desktop replay
 snapshots; stronger protection is deferred. See the [macOS source quick start](docs/macos-quickstart.md).
 After a version is published, install it with
 `cargo install age-plugin-phone --version <published-version> --locked`;

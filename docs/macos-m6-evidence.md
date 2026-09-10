@@ -1,5 +1,11 @@
 # macOS M6 review and acceptance status
 
+Latest scope decision (2026-09-10): the user stopped additional macOS acceptance
+for the interim experimental release. Remaining rows below stay unverified and
+are deferred, not release blockers solely due to missing physical evidence.
+The development stage ends after the tagged-recipient PRD is completed. See the
+[release-scope decision](macos-release-scope-decision.md); no test result is changed.
+
 Current scope note (2026-09-10): the user approved the common Windows/macOS
 [desktop replay restore boundary](desktop-replay-rollback-poc.md). Stronger snapshot
 freshness is deferred to a later POC, not fixed or passed. Earlier statements below

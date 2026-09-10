@@ -1,7 +1,9 @@
 # macOS source quick start — experimental acceptance
 
 Use disposable data. The [macOS plan](macos-support-plan.md) is not fully accepted:
-the real-phone/transport/caller matrix remains open. Windows and macOS do not detect
+the remaining matrix is deferred for the interim experimental release by the
+[user's scope decision](macos-release-scope-decision.md), not marked passed.
+Windows and macOS do not detect
 restoration of older valid desktop replay snapshots; stronger protection is deferred.
 Do not restore replay files to recover a failed operation. This guide describes the current source implementation, not
 older published releases. It does not promise protection for production secrets.

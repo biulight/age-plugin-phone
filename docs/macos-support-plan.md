@@ -1,5 +1,11 @@
 # macOS 完整支持实施计划
 
+2026-09-10 最新范围决定：用户停止本轮追加 macOS 验收，以现有实现和证据推进 `0.1.0-alpha.5`
+的 crates.io 和 GitHub 预发布。剩余验收项保留为延期、未通过，不再单独阻塞本次版本发布；
+既有安全要求和已知限制不变。随后实施 [tagged-recipient PRD](tagged-recipient-prd.md)，完成
+该 PRD 才是当前开发阶段的完结点。本次中间版本不包含 tag 能力，也不代表原计划全部验收通过。
+详见[发布范围与阶段决定](macos-release-scope-decision.md)。下方保留各次验收的历史范围。
+
 日期：2026-09-09。状态：M3 / PR 4–5 的托管 setup、显式 pair ownership journal、resume、各类 journal 清理及入口检查已实现，
 自动化和隔离硬件提交/CLI 清理测试通过，真实手机生命周期与恢复验收仍待完成，见 [M3 记录](macos-m3-evidence.md)。
 本轮真机验收使用用户确认可用的 StrongBox Android，以及 iPhone 15 Pro（iOS 26.6.1）。

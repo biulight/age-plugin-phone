@@ -23,8 +23,10 @@ Linux builds need a C toolchain, Clang/libclang and the Video4Linux headers for
 camera support. macOS builds need Xcode Command Line Tools, the macOS SDK and
 `xcrun swiftc` for the archived CryptoKit bridge. The current source implementation
 uses distinct Secure Enclave desktop roles with no software fallback; other
-non-Windows desktop targets retain software prototypes. macOS still has open
-rollback and physical acceptance gates: a successful build is not full support.
+non-Windows desktop targets retain software prototypes. macOS retains a known replay
+snapshot limitation and unverified physical rows; the latter are deferred for the interim
+experimental release by the [scope decision](macos-release-scope-decision.md).
+A successful build is not full support.
 See the [source quick start](macos-quickstart.md) and [installation evidence](macos-m5-evidence.md).
 The PC archive builds independently of Tauri, Android and iOS tooling. Published
 versions predating the macOS implementation must not be assumed to contain it.
