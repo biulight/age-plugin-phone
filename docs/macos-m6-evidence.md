@@ -704,3 +704,14 @@ by failed recovery (exit 1, native confirmation not reached). The user reported 
 input mistake, so the original rows remain evidence but are not counted as a complete
 iPhone lifecycle pass. A separate iPhone-only two-case retry is prepared, leaving the
 Android result and original failed run intact. No temporary plaintext directories remain.
+
+### iPhone background lifecycle retry passed
+
+The separate iPhone retry passed both cases on the same installed artifact.
+Backgrounding before Face ID succeeded ended the request with exit 1 and no plaintext;
+the user confirmed the transition and prompt closure. After returning to foreground,
+a fresh request decrypted correctly and the user immediately confirmed new Face ID.
+No retry plaintext directory remains. Together with the previous Android pass this
+closes the two-phone Wi-Fi background/foreground case; the original failed iPhone
+recovery remains retained and is not relabeled. Lock-screen and process-termination
+scenarios are separate lifecycle cases.
