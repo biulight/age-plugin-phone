@@ -456,16 +456,18 @@ fn run_pair(
         ensure_managed_private_state_path(&config_root, desktop_state)?;
         ensure_managed_private_state_path(&config_root, replay_state)?;
     }
+    #[cfg(any(windows, target_os = "macos"))]
     let state = match existing {
         Some(state) => state,
-        #[cfg(any(windows, target_os = "macos"))]
         None => DesktopKeyState::create_new(desktop_state, desktop_id).map_err(|_| {
             io::Error::other(
                 "desktop authentication state is unavailable; partial state must be retained",
             )
         })?,
-        #[cfg(not(any(windows, target_os = "macos")))]
-        None => unreachable!("experimental software state is already open"),
+    };
+    #[cfg(not(any(windows, target_os = "macos")))]
+    let Some(state) = existing else {
+        unreachable!("experimental software state is already open")
     };
     let selection_public = state
         .selection_public_key()
@@ -607,7 +609,6 @@ fn ensure_no_setup_pending_for_pair(config_root: &std::path::Path) -> io::Result
     Ok(())
 }
 
-#[cfg(any(windows, target_os = "macos", test))]
 fn validate_setup_label(label: &str) -> io::Result<()> {
     if label.len() > 64 {
         return Err(io::Error::new(
