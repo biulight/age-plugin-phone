@@ -10,12 +10,14 @@ artifacts_dir=$1
 stage_dir=$2
 release_body=$3
 version=$4
+release_channel=${version#*-}
+release_channel=${release_channel%%.*}
 expected_commit=$5
 expected_run=$6
 tag="v$version"
 
 fail() {
-  echo "alpha release artifact verification failed: $*" >&2
+  echo "prerelease artifact verification failed: $*" >&2
   exit 1
 }
 
@@ -91,7 +93,7 @@ while IFS= read -r artifact_file; do
 done < <(find "$artifacts_dir" -type f -print)
 [[ ${#artifact_files[@]} -eq 6 ]] || fail "expected exactly six source artifacts, found ${#artifact_files[@]}"
 
-windows_zip=$(single_file "Windows ZIP" -name "age-plugin-phone-$version-windows-x64-alpha-test-signed.zip")
+windows_zip=$(single_file "Windows ZIP" -name "age-plugin-phone-$version-windows-x64-$release_channel-test-signed.zip")
 android_apk=$(single_file "Android APK" -name "age-plugin-phone-$version-android-arm64.apk")
 windows_sums=$(single_file "Windows checksum record" -name "age-plugin-phone-$version-windows-SHA256SUMS.txt")
 windows_evidence=$(single_file "Windows signature record" -name "age-plugin-phone-$version-windows-signature-verification.txt")
@@ -163,5 +165,5 @@ cat >> "$release_body" <<EOF
 The Windows package is test-signed by a private root. Its Authenticode content and signature and
 custom-root chain validation passed, but ordinary Windows installations do not trust that root.
 This is a developer prerelease for synthetic or disposable data with a separately verified
-independent recovery recipient; it is not a public-Alpha or production-secret claim.
+independent recovery recipient; it is not a publicly trusted Windows distribution or production-secret claim.
 EOF

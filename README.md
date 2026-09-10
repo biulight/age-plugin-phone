@@ -8,33 +8,31 @@ It is intended to work with any compatible age client. It does not depend on Shi
 Shine environments, or define a Shine-specific ciphertext format.
 
 > [!WARNING]
-> This repository is an experimental prototype. An independent source review has been completed
-> and its actionable finding resolved. The first exact test-signed Windows/Android pair has passed
-> a minimal one-phone Developer USB, independent-recovery, and foreground Wi-Fi regression, but
-> protocol v2 remains unfrozen and the complete lifecycle, replay, multi-phone, public-signing, and
-> external-user gates remain open. Do not use it to protect real secrets.
+> Beta 1 is in closeout, not published. The source candidate has recorded hardware-backed tag
+> unwrap, cancellation, timeout, restart/replay and independent-recovery evidence, including
+> Shine integration. Final beta-package checks and mandatory physical gaps remain open.
+> Protocol v2 is unfrozen. Do not use this experimental software to protect real secrets.
 
-The alpha.5 release is described in
-[`v0.1.0-alpha.5`](docs/releases/v0.1.0-alpha.5.md), an experimental developer prerelease for
-synthetic or disposable data with a separately verified independent recovery recipient. Publishing
-that snapshot does not constitute a public-Alpha, stable-protocol, or production-secret claim.
-It adds macOS source installation; GitHub release binaries remain Windows and Android.
-The source candidate adds explicit [tagged recipients](docs/tagged-recipient-quickstart.md);
-`phone` remains the default. [Candidate evidence](docs/tagged-recipient-evidence.md) separates
-software interoperability from pending phone hardware and Shine acceptance. Alpha.5 predates this feature.
+See the [Beta 1 closeout checklist](docs/beta-readiness.md) and
+[candidate release notes](docs/releases/v0.1.0-beta.1.md). The target is a limited technical-user
+beta on recorded hardware, with Windows and macOS source installation, an optional test-signed
+Windows ZIP and a signed Android APK. iOS remains an existing development-device cohort;
+external iOS distribution is outside this candidate's scope. Current deployment remains owner-only
+until launch gates are closed. Unverified device combinations and deferred rows are not passes.
 
-The alpha.4 exact signed Windows/Android package pair passed owner-only physical acceptance and
-was published on 2026-09-07. See the [acceptance and publication record](docs/windows-acceptance-2026-09-07.md)
-and [completed checklist](docs/alpha.4-acceptance-checklist.md). The complete public-Alpha matrix
-remains deferred.
+Windows source installation requires the MSVC Rust toolchain and Visual Studio C++ Build Tools /
+Windows SDK; macOS requires Xcode Command Line Tools. After publication, either desktop can use
+`cargo install age-plugin-phone --version 0.1.0-beta.1 --locked`. See the
+[build requirements](docs/crates-io-release.md). Windows still requires Windows 11 x64, TPM 2.0
+and Microsoft Platform Crypto Provider at runtime. Source installation does not require trusting
+the private Windows test-signing root.
 
-The current deployment posture is an
-[owner-only technical preview](docs/owner-only-preview.md): one repository owner, one known
-Windows/TPM desktop, one capability-qualified StrongBox phone, and Developer USB as the normal
-route. An opt-in foreground Wi-Fi auto-listen PoC is available as an explicit owner experiment. UVC-camera
-QR evidence, a second StrongBox family, multi-phone testing, public Windows
-signing, and an external technical-user Alpha are recorded but deferred until broader use is
-planned. Deferred means unverified, not passed.
+The published [alpha.5 snapshot](docs/releases/v0.1.0-alpha.5.md) predates explicit
+[tagged recipients](docs/tagged-recipient-quickstart.md); the current candidate adds them while
+keeping `phone` as the default. [Tag evidence](docs/tagged-recipient-evidence.md) records the
+exact software, signed artifacts and physical observations. The historical
+[alpha.4 acceptance record](docs/windows-acceptance-2026-09-07.md) and
+[owner-only preview](docs/owner-only-preview.md) remain historical scope references.
 
 ## Intended boundary
 
@@ -269,9 +267,11 @@ credential provisioning and RC0 dispatch in [the signing runbook](docs/release-s
 workflow intentionally fails when signing configuration is absent or does not match the registered
 certificate identity.
 
-For a synthetic-data walkthrough from signed package verification through pairing, reference-age
-round trips, recovery, and the existing Shine configuration boundary, use the
-[Windows Alpha quick start](docs/windows-alpha-quickstart.md).
+For the proposed beta's Windows source install, pairing, reference-age round trip,
+recovery and tagged-recipient checks, use the
+[Windows Beta quick start](docs/windows-beta-quickstart.md). The longer historical
+[Alpha guide](docs/windows-alpha-quickstart.md) retains detailed Shine, cleanup and
+failure-recovery procedures.
 
 CI also runs [`scripts/interoperability-smoke.sh`](scripts/interoperability-smoke.sh) against
 checksum-pinned released age and rage binaries. It verifies that both clients invoke the production

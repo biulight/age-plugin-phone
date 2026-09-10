@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, 'codex/alpha.*']
+    branches: [main, 'codex/alpha.*', 'codex/beta.*']
 
 permissions:
   contents: read
@@ -175,7 +175,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Exercise Alpha release staging validation fixtures
+      - name: Exercise prerelease staging validation fixtures
         run: |
           scripts/test-prepare-alpha-release-publish.sh
           scripts/test-validate-alpha-release-candidate.sh

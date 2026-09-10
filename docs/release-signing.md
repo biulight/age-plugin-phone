@@ -1,4 +1,4 @@
-# Alpha release signing setup
+# Prerelease signing setup
 
 This runbook configures the credentials consumed by
 `.github/workflows/alpha-release.yml`. Distribution signing is separate from the protocol key
@@ -213,7 +213,7 @@ reported as passed by the minimum regression.
 
 1. Commit the Alpha candidate. Its full 40-character commit SHA, all three application manifests,
    and `docs/releases/vVERSION.md` must agree on one `X.Y.Z-alpha.N` version.
-2. From that exact commit, manually dispatch `Publish test-signed Alpha prerelease`, supplying the
+2. From that exact commit, manually dispatch `Publish test-signed prerelease`, supplying the
    same full SHA in `expected_commit`. The preflight rejects a branch snapshot that is not that SHA,
    inconsistent manifests, a missing release note, or an existing tag or GitHub release.
 3. Approve the `alpha-release` signing jobs only after reviewing the candidate and workflow.

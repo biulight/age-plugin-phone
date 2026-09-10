@@ -13,14 +13,14 @@ tag_exists=$4
 release_exists=$5
 
 fail() {
-  echo "alpha release candidate validation failed: $*" >&2
+  echo "prerelease candidate validation failed: $*" >&2
   exit 1
 }
 
 [[ $expected_commit =~ ^[0-9a-f]{40}$ ]] || fail "expected commit is not a full SHA-1"
 [[ $actual_commit =~ ^[0-9a-f]{40}$ ]] || fail "workflow commit is not a full SHA-1"
 [[ $actual_commit == "$expected_commit" ]] || fail "workflow commit does not match the selected candidate"
-[[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+-alpha\.[0-9]+$ ]] || fail "version is not an Alpha SemVer prerelease"
+[[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta)\.[0-9]+$ ]] || fail "version is not an Alpha or Beta SemVer prerelease"
 [[ $tag_exists == false || $tag_exists == true ]] || fail "tag existence result is invalid"
 [[ $release_exists == false || $release_exists == true ]] || fail "release existence result is invalid"
 

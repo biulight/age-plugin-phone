@@ -1,4 +1,4 @@
-name: Publish test-signed Alpha prerelease
+name: Publish test-signed prerelease
 
 on:
   workflow_dispatch:
@@ -270,10 +270,11 @@ jobs:
             throw "Authenticode signer chained to an unexpected test root"
           }
           $releaseVersion = "${{ needs.metadata.outputs.release_version }}"
-          $packageName = "age-plugin-phone-$releaseVersion-windows-x64-alpha-test-signed.zip"
+          $releaseChannel = ($releaseVersion -split '-')[1].Split('.')[0]
+          $packageName = "age-plugin-phone-$releaseVersion-windows-x64-$releaseChannel-test-signed.zip"
           $package = "target/release/$packageName"
           $releaseNotes = "docs/releases/v$releaseVersion.md"
-          Compress-Archive -Path target/release/age-plugin-phone.exe,README.md,CHANGELOG.md,SECURITY.md,LICENSE,$releaseNotes,docs/windows-alpha-quickstart.md,docs/windows-wifi.md,scripts/windows-wifi-firewall.ps1,scripts/windows-minimal-acceptance.ps1,docs/alpha.4-acceptance-checklist.md -DestinationPath $package
+          Compress-Archive -Path target/release/age-plugin-phone.exe,README.md,CHANGELOG.md,SECURITY.md,LICENSE,$releaseNotes,docs/windows-beta-quickstart.md,docs/windows-wifi.md,scripts/windows-wifi-firewall.ps1,scripts/windows-minimal-acceptance.ps1,docs/beta-readiness.md -DestinationPath $package
           $exeHash = (Get-FileHash target/release/age-plugin-phone.exe -Algorithm SHA256).Hash.ToLowerInvariant()
           $packageHash = (Get-FileHash $package -Algorithm SHA256).Hash.ToLowerInvariant()
           "$exeHash  age-plugin-phone.exe" | Set-Content -Encoding utf8NoBOM target/release/SHA256SUMS.txt
@@ -300,7 +301,7 @@ jobs:
           Copy-Item -LiteralPath target/release/signature-verification.txt -Destination "$artifactDir/age-plugin-phone-$releaseVersion-windows-signature-verification.txt"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: age-plugin-phone-${{ needs.metadata.outputs.release_version }}-windows-x64-alpha-test-signed
+          name: age-plugin-phone-${{ needs.metadata.outputs.release_version }}-windows-x64-test-signed
           if-no-files-found: error
           path: target/release/alpha-release-artifact/*
           retention-days: 30
@@ -414,7 +415,7 @@ jobs:
           cp "$evidence" "$artifact_dir/age-plugin-phone-$RELEASE_VERSION-android-signature-verification.txt"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: age-plugin-phone-${{ needs.metadata.outputs.release_version }}-android-${{ inputs.acceptance_only && 'acceptance' || 'alpha' }}
+          name: age-plugin-phone-${{ needs.metadata.outputs.release_version }}-android-${{ inputs.acceptance_only && 'acceptance' || 'prerelease' }}
           if-no-files-found: error
           path: ${{ runner.temp }}/alpha-release-artifact/*
           retention-days: 30

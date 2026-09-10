@@ -1,6 +1,8 @@
 # crates.io release pipeline
 
-These packages remain experimental alpha software, unsuitable for real secrets.
+These packages remain experimental prerelease software, unsuitable for real secrets.
+Windows and macOS source installation are both planned Beta 1 delivery routes;
+see the [current closeout](beta-readiness.md).
 This procedure does not claim that any version has been uploaded. Consult
 [candidate evidence](desktop-refactor-evidence.md) for actual validation status.
 
@@ -76,7 +78,8 @@ The new `.github/workflows/crates-release.yml` adds an explicitly dispatched
 publication capability after the four-crate refactor. The PRD's original “no
 automatic upload workflow” scope and the historical refactor/hardware evidence
 remain historical facts; this document defines the later release capability.
-`alpha-release.yml` continues to publish its existing Alpha binary artifacts.
+`alpha-release.yml` retains its historical filename and publishes the supported
+numbered Alpha or Beta binary prerelease artifacts.
 This pipeline never increments a version, creates a tag or GitHub Release, or
 changes protocol, custody, phone authentication, CLI behavior or platform support.
 

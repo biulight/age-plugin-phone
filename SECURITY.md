@@ -2,10 +2,13 @@
 
 ## Supported versions
 
-No version is supported for production secrets. `0.1.0-alpha.5` retains experimental
-developer-preview scope; remaining macOS physical acceptance is deferred under the
-[release-scope decision](docs/macos-release-scope-decision.md), not marked passed.
-See the [release notes](docs/releases/v0.1.0-alpha.5.md) for the current boundaries.
+No version is supported for production secrets. `0.1.0-beta.1` is an unpublished
+candidate for limited technical testing. The [beta closeout](docs/beta-readiness.md)
+tracks unresolved launch gates and compatibility limits. Existing hardware evidence
+does not establish support for every device or certify the final beta artifacts.
+Protocol v2 remains unfrozen; independent recovery is required.
+See the [candidate notes](docs/releases/v0.1.0-beta.1.md). The published alpha.5
+snapshot retains its [experimental scope](docs/releases/v0.1.0-alpha.5.md).
 
 Historically, `0.1.0-alpha.4` is an experimental,
 test-signed developer prerelease for synthetic or disposable data with an independent recovery

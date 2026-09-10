@@ -6,18 +6,20 @@ cd "$repo_root"
 temp_root=$(mktemp -d)
 trap 'rm -rf "$temp_root"' EXIT
 version=$(scripts/check-release-version.sh)
+release_channel=${version#*-}
+release_channel=${release_channel%%.*}
 commit=0123456789abcdef0123456789abcdef01234567
 run=123456
 windows_dir="$temp_root/artifacts/windows"
 android_dir="$temp_root/artifacts/android"
 mkdir -p "$windows_dir" "$android_dir" "$temp_root/windows-contents"
 printf 'synthetic Windows executable\n' > "$temp_root/windows-contents/age-plugin-phone.exe"
-(cd "$temp_root/windows-contents" && zip -q "$windows_dir/age-plugin-phone-$version-windows-x64-alpha-test-signed.zip" age-plugin-phone.exe)
-windows_zip="$windows_dir/age-plugin-phone-$version-windows-x64-alpha-test-signed.zip"
+(cd "$temp_root/windows-contents" && zip -q "$windows_dir/age-plugin-phone-$version-windows-x64-$release_channel-test-signed.zip" age-plugin-phone.exe)
+windows_zip="$windows_dir/age-plugin-phone-$version-windows-x64-$release_channel-test-signed.zip"
 windows_exe="$temp_root/windows-contents/age-plugin-phone.exe"
 {
   sha256sum "$windows_exe" | sed 's# .*#  age-plugin-phone.exe#'
-  sha256sum "$windows_zip" | sed "s# .*#  age-plugin-phone-$version-windows-x64-alpha-test-signed.zip#"
+  sha256sum "$windows_zip" | sed "s# .*#  age-plugin-phone-$version-windows-x64-$release_channel-test-signed.zip#"
 } > "$windows_dir/SHA256SUMS.txt"
 windows_sums="$windows_dir/age-plugin-phone-$version-windows-SHA256SUMS.txt"
 mv "$windows_dir/SHA256SUMS.txt" "$windows_sums"
@@ -61,7 +63,7 @@ grep -q "commit=$commit run=$run attempt=1" "$body"
 grep -q 'Windows test-root certificate SHA-256' "$body"
 grep -q 'synthetic or disposable data' "$body"
 for asset in \
-  "age-plugin-phone-$version-windows-x64-alpha-test-signed.zip" \
+  "age-plugin-phone-$version-windows-x64-$release_channel-test-signed.zip" \
   "age-plugin-phone-$version-android-arm64.apk" \
   "age-plugin-phone-$version-windows-SHA256SUMS.txt" \
   "age-plugin-phone-$version-windows-signature-verification.txt" \
