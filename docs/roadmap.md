@@ -1,5 +1,14 @@
 # Roadmap
 
+## Beta closeout — 2026-09-11
+
+The owner authorized preparation of `0.1.0-beta.1`. Stop feature expansion and follow
+[the closeout checklist](beta-readiness.md): scope and compatibility, final-source
+verification, remaining mandatory tag evidence, exact artifacts and limited-user
+installation. Windows and macOS source installation are both intended beta routes.
+This sequencing update does not publish a version or mark older unchecked gates
+as passed. The owner-only deployment remains until the launch gates are resolved.
+
 ## Product sequencing principles
 
 2026-09-10 sequencing decision: stop additional macOS acceptance for an interim
