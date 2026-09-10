@@ -2111,5 +2111,56 @@
         "no_automatic_replay_reset"
       ]
     }
+  },
+  "installed_wifi_background_lifecycle": {
+    "status": "android_passed_iphone_retry_required",
+    "result": {
+      "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+      "transport": "wifi",
+      "client": "age 1.3.2",
+      "synthetic_only": true,
+      "network_settings": "Surge_and_ZeroTier_retained",
+      "cases": [
+        {
+          "phone": "Android",
+          "phase": "background_while_verification_pending",
+          "exit_code": 1,
+          "elapsed_seconds": 18.521,
+          "no_plaintext": true,
+          "human_background_observation": "y",
+          "passed": true
+        },
+        {
+          "phone": "Android",
+          "phase": "fresh_approval_after_foreground",
+          "exit_code": 0,
+          "data_check": true,
+          "human_fresh_verification": "y",
+          "passed": true
+        },
+        {
+          "phone": "iPhone",
+          "phase": "background_while_verification_pending",
+          "exit_code": 1,
+          "elapsed_seconds": 11.717,
+          "no_plaintext": true,
+          "human_background_observation": "y",
+          "passed": true
+        },
+        {
+          "phone": "iPhone",
+          "phase": "fresh_approval_after_foreground",
+          "exit_code": 1,
+          "data_check": false,
+          "human_fresh_verification": "not_reached",
+          "passed": false
+        }
+      ]
+    },
+    "result_sha256": "1c1e74cca046f7e22e2f6f9271836d84c85def25194237f47e0da638884d2df3",
+    "harness_sha256": "0918061952788d58539ccded3a826d45459dc629c7ea4e66adffa347f451cb7a",
+    "user_report": "Android_passed_iPhone_input_mistake_interrupted_run",
+    "iphone_interpretation": "original_rows_retained_not_complete_acceptance_due_to_failed_recovery_and_reported_input_error",
+    "temporary_plaintext_directories_remaining": 0
   }
 }

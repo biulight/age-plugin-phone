@@ -691,3 +691,16 @@ active USB pairing with explicit QR transport, not the previously revoked QR pai
 All four plaintext equality checks passed and no harness temporary plaintext
 directories remain. This closes current-artifact QR success; camera permission
 negatives, external UVC and remaining lifecycle cases stay distinct.
+
+### Wi-Fi background lifecycle: Android passed, iPhone retry pending
+
+On the installed artifact, Android backgrounding while native verification was pending
+ended with nonzero exit and no plaintext; the user confirmed the background transition
+and prompt closure. Returning to foreground allowed a fresh request to succeed with
+new fingerprint verification. Both cases passed and the user confirmed completion.
+
+iPhone's original record reports background interruption without plaintext, followed
+by failed recovery (exit 1, native confirmation not reached). The user reported an
+input mistake, so the original rows remain evidence but are not counted as a complete
+iPhone lifecycle pass. A separate iPhone-only two-case retry is prepared, leaving the
+Android result and original failed run intact. No temporary plaintext directories remain.
