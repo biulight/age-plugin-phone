@@ -76,6 +76,20 @@ inside the Swift native boundary. Every unwrap uses a fresh LocalAuthentication 
 Biometric-set invalidation, protected-storage failure, replay-state uncertainty, and clock rollback
 make the operation unavailable instead of creating a fallback key or replay scope.
 
+## Explicit tag privacy and selection
+
+The optional native `age1tag` mode exposes a publicly testable four-byte stanza selector. Anyone
+who knows the recipient can check whether a ciphertext may target it. The default phone v2 mode
+retains private selection. Tag collision is possible and provides no authorization: multiple distinct
+matching configured keys fail before private state is opened, and even a single match must pass
+HPKE authentication, fresh phone verification, complete signed-response checks and durable replay.
+
+Duplicate pairings for one phone key use the first input pairing. Its missing state, cancellation,
+timeout or cryptographic failure never selects another pairing or recipient mode. Phone v2 binds
+ciphertext to its paired desktop; tag ciphertext can be accessed through another explicitly
+confirmed pairing to the same phone key. Neither changing recipients nor revoking a pairing
+retroactively erases plaintext or historical ciphertext access. See [ADR 0026](adr/0026-native-tagged-recipients.md).
+
 ## Prohibited shortcuts
 
 - Returning the long-term identity to the desktop.

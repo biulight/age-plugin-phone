@@ -38,6 +38,10 @@ enum TaggedRecipientCrypto {
     }
 
     static func parse(_ stanza: RecipientStanza) throws -> (Int, P256.KeyAgreement.PublicKey, Data) {
+        if stanza.tag == "p256tag" {
+            let key = try P256Tag.parse(arguments: stanza.arguments, body: stanza.body)
+            return (3, key, key.x963Representation)
+        }
         let version: Int
         if stanza.tag == stanzaTag, stanza.arguments.count == 1 { version = 1 }
         else if stanza.tag == stanzaTagV2, stanza.arguments.count == 2 { version = 2 }
@@ -67,6 +71,13 @@ enum TaggedRecipientCrypto {
         identity: SecureEnclave.P256.KeyAgreement.PrivateKey
     ) throws -> Data {
         let (version, ephemeral, ephemeralBytes) = try parse(stanza)
+        if version == 3 {
+            guard try P256Tag.matches(recipient: identity.publicKey, arguments: stanza.arguments, body: stanza.body) else {
+                throw TaggedRecipientError.authentication
+            }
+            let secret = try identity.sharedSecretFromKeyAgreement(with: ephemeral)
+            return try P256Tag.open(secret: secret, recipient: identity.publicKey, arguments: stanza.arguments, body: stanza.body)
+        }
         let secret = try identity.sharedSecretFromKeyAgreement(with: ephemeral)
         let recipient = try RecipientEncoding.compressed(identity.publicKey)
         let info = Data((version == 2

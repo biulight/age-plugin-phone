@@ -137,6 +137,20 @@ key, in a domain separate from the phone file-key wrap. This selects the local p
 phone private operation or public stable tag. The desktop selection key cannot decrypt the age
 file key ([ADR 0012](adr/0012-private-stanza-selection.md), with key roles split by ADR 0014).
 
+## Native tagged recipient mode
+
+[ADR 0026](adr/0026-native-tagged-recipients.md) adds explicit `age1tag` export from the same
+compressed phone public key. `phone` remains the default and retains private paired-desktop
+selection. Native tag encryption requires age 1.3+ and no plugin; the public selector trades
+recipient privacy for portable encryption. All supported stanzas are validated before private state
+is opened, and unmatched tags require no private state or transport. Distinct matching phone keys
+are rejected as ambiguous; duplicate pairings for one key select the first input pairing.
+
+Android and iOS perform standard RFC 9180 HPKE Open after durable request consumption and fresh
+hardware authorization. The existing request, response, replay and transport boundaries are
+unchanged. No second private attempt follows a selected tag's failure. See the
+[workflow](tagged-recipient-quickstart.md) and [platform evidence](tagged-recipient-evidence.md).
+
 ## Transport strategy
 
 Transports carry opaque canonical protocol messages. Framing bounds allocation and detects

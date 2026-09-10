@@ -1,0 +1,11 @@
+{
+  "warning": "PUBLIC TEST KEYS ONLY. Real 32-bit tag collision, not successful HPKE authentication.",
+  "first_scalar_hex": "0000000000000000000000000000000000000000000000000000000000010f5f",
+  "second_scalar_hex": "0000000000000000000000000000000000000000000000000000000000019a8a",
+  "first_public_hex": "0393c9db8de26d0c2e47f25721f68f53c58d4afc153d222769e591f9a0b1c61b05",
+  "second_public_hex": "0216a58b99bc15d7d705c667fb22eb07c29ae7875c768ae7260c086fd7d662a7db",
+  "enc_base64": "BHzyexiNA09+ilI4AwS1GsPAiWnid/IbNaYLSPxHZpl4B3dVENuO0EApPZrGn3Qw27p9reY86YIpngS3nSJ4c9E",
+  "tag_base64": "3/obTQ",
+  "file_key_hex": "04040404040404040404040404040404",
+  "body_base64": "NfMzIBYZv9oCrYcadr2EsJj2eap9I3Lv8lq8tR1xtZA"
+}

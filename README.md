@@ -19,7 +19,9 @@ The alpha.5 release is described in
 synthetic or disposable data with a separately verified independent recovery recipient. Publishing
 that snapshot does not constitute a public-Alpha, stable-protocol, or production-secret claim.
 It adds macOS source installation; GitHub release binaries remain Windows and Android.
-The next implementation stage is [tagged recipients](docs/tagged-recipient-prd.md).
+The source candidate adds explicit [tagged recipients](docs/tagged-recipient-quickstart.md);
+`phone` remains the default. [Candidate evidence](docs/tagged-recipient-evidence.md) separates
+software interoperability from pending phone hardware and Shine acceptance. Alpha.5 predates this feature.
 
 The alpha.4 exact signed Windows/Android package pair passed owner-only physical acceptance and
 was published on 2026-09-07. See the [acceptance and publication record](docs/windows-acceptance-2026-09-07.md)
@@ -56,6 +58,21 @@ interoperability. Shine uses the standard `age` CLI and does not require `rage` 
 
 The phone should release only the file key for the single age recipient stanza approved by the
 user. It must never export the long-term private key to the desktop.
+
+## Choose a public recipient
+
+`setup` and `pair` accept `--recipient-type phone|tag`; omission remains `phone`.
+Existing pairings can export either public address without private state or phone access:
+
+```console
+age-plugin-phone recipients -i phone-identity.txt --recipient-type tag
+```
+
+Tag encryption requires age 1.3+ and no phone plugin on the encrypting machine. Its standard short
+selector is publicly testable by anyone knowing the recipient. Phone v2 retains private selection
+and requires the plugin for encryption. Both decrypt through the same public identity stub and
+fresh phone authorization. There is no automatic conversion or failure fallback. See the
+[dual-mode workflow](docs/tagged-recipient-quickstart.md).
 
 ## Repository layout
 

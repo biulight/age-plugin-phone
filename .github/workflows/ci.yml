@@ -226,3 +226,9 @@ jobs:
             "$RUNNER_TEMP/released-clients/rage/rage" \
             "$RUNNER_TEMP/released-clients/rage/rage-keygen" \
             "$GITHUB_WORKSPACE/registry-installed/age-plugin-phone"
+      - name: Native tag encryption without any plugin on PATH
+        run: |
+          P256TAG_AGE_CLIENT="$RUNNER_TEMP/released-clients/age/age" \
+            cargo test --locked -p age-plugin-phone-core --test p256tag native_client -- --ignored
+          P256TAG_AGE_CLIENT="$RUNNER_TEMP/released-clients/rage/rage" \
+            cargo test --locked -p age-plugin-phone-core --test p256tag native_client -- --ignored

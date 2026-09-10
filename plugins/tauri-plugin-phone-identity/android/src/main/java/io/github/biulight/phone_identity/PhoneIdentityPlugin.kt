@@ -897,6 +897,7 @@ class PhoneIdentityPlugin(private val activity: Activity) : Plugin(activity) {
                 verified.request.identityId,
                 parsed.ephemeralPublic,
             )
+            TaggedRecipientCrypto.requireMatchingTag(prepared.identityPublicKey, verified.request.stanza)
             return PendingPhoneUnwrap(
                 token = UUID.randomUUID(),
                 cancellation = CancellationSignal(),

@@ -21,6 +21,7 @@ use thiserror::Error;
 use zeroize::{Zeroize as _, Zeroizing};
 
 mod plugin;
+pub mod tag;
 
 /// Plugin name used by age recipient dispatch.
 pub const PLUGIN_NAME: &str = "phone";
@@ -443,6 +444,9 @@ pub fn unwrap_file_key(
     identity: &SecretKey,
     stanza: &TaggedStanza,
 ) -> Result<Zeroizing<[u8; FILE_KEY_BYTES]>, Error> {
+    if stanza.tag == tag::STANZA_TAG {
+        return tag::unwrap(identity, stanza);
+    }
     let parsed = ParsedStanza::parse(stanza)?;
     let recipient = Recipient(identity.public_key());
     let shared = diffie_hellman(identity.to_nonzero_scalar(), parsed.ephemeral.as_affine());
@@ -512,6 +516,9 @@ pub fn matches_stanza_v2(
 /// Returns an error for an unknown tag, wrong argument or body length, non-canonical Base64, or an
 /// invalid P-256 ephemeral point.
 pub fn validate_stanza(stanza: &TaggedStanza) -> Result<(), Error> {
+    if stanza.tag == tag::STANZA_TAG {
+        return tag::parse(stanza).map(|_| ());
+    }
     ParsedStanza::parse(stanza).map(|_| ())
 }
 

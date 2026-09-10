@@ -1,0 +1,80 @@
+{
+  "date": "2026-09-10",
+  "status": "source candidate; no signed phone package or physical tag acceptance",
+  "base_commit": "ecde426b055ac75c0791e709b0e4da9cf52698ce",
+  "upstream_age_plugin_se_commit": "57ccea12fc1a3d3bb81b8866745be4d2951c4eaf",
+  "clients": {
+    "age": "v1.3.2",
+    "rage": "0.12.1"
+  },
+  "sha256": {
+    "modified_source_and_tests": {
+      "crates/core/examples/public_tag_envelope.rs": "74b441b4122b667e1a5c13cc32d055240e6124d71a03e50463e77eda5c7f8516",
+      "crates/core/examples/public_tag_vector.rs": "1d0603d8ecd8cd6a6a4c32501a51fc05f4d7e98ddd5e2167f3a1788db6dc313e",
+      "crates/core/src/protocol/mod.rs": "f26474669db635a63749b2fbea7141b6c5ff4e3d40bea69c6fd98545c5e25d62",
+      "crates/core/src/recipient/mod.rs": "414dcc8de5f8d9f9bf8161fa1b15cf90838f9b2a94b4315c1f7c43f2414d6a26",
+      "crates/core/src/recipient/tag.rs": "1d73bbeddc286624179c813bc1636bc2989c38b4080648daa28daa47dc3cc1b7",
+      "crates/core/test-vectors/p256tag-collision.json": "9dad2c42a5e26819a7ef8f7a935f95fd6a07f2b7d9b3099157bb9db34d2b3e62",
+      "crates/core/test-vectors/p256tag-envelope-v2.json": "832e81cece94cd848d4350ff2af8a95947a006ba235e6e9fec8d502e88432f04",
+      "crates/core/test-vectors/p256tag.json": "d298ccda3620109a1f593af956910ef96bdbdbd848e014ce6694a09d25ea7b09",
+      "crates/core/tests/p256tag.rs": "6a48447479b5336352b0516cd576605a37273e3b527b741a028112d44bed64ab",
+      "crates/core/tests/p256tag_replay.rs": "1637ad008c01704fefafe28b24eba541c6e67047fdd2f2761fb10e9fe9c15362",
+      "crates/desktop/src/age_identity.rs": "04f10d07ebf97eae3f7f621c2ff6a305d092361b13ab641624815464de68d0a1",
+      "crates/desktop/src/main.rs": "af377177c8c8622b74c0e4d868c222012f58113e22c290cadaeda8159dde04d0",
+      "crates/desktop/src/pairing.rs": "8870abbc4d9d0f5ce16869238e29452ad34693be5f25359ace962dce348a4105",
+      "crates/desktop/src/setup.rs": "595c47724319626b9da680297b06dece3bac46a51272b3540b57b01589503a44",
+      "crates/desktop/tests/recipients.rs": "56b16723cad0b8a02e767cdb07c0e67d647684483f8e0929b16911509c86abfa",
+      "plugins/tauri-plugin-phone-identity/android/src/main/java/io/github/biulight/phone_identity/PhoneIdentityPlugin.kt": "fd454905ec55bf3e2ef48734c7819853bf398066ca89e98435950f19063e1538",
+      "plugins/tauri-plugin-phone-identity/android/src/main/java/io/github/biulight/phone_identity/TaggedRecipientCrypto.kt": "175ec4f00a2d8e389d8525f01942226f77a84be41354887688754585ef445b1c",
+      "plugins/tauri-plugin-phone-identity/android/src/test/java/io/github/biulight/phone_identity/OfflineEnvelopeCryptoTest.kt": "10856b60c05adb11e86176337cc7945587b194c675560459c3045e9117b3dc25",
+      "plugins/tauri-plugin-phone-identity/android/src/test/java/io/github/biulight/phone_identity/TaggedRecipientCryptoTest.kt": "624e1e2ae245c40fc8805f6983308a655e5352d7eb5dfaa1ebef173ba7afe69e",
+      "plugins/tauri-plugin-phone-identity/ios/Core/Sources/PhoneIdentityCore/P256Tag.swift": "a0272f1b18f441f11454e94f589d18e48adb2e058981c492472e0c5f95ad348a",
+      "plugins/tauri-plugin-phone-identity/ios/Core/Sources/PhoneIdentityCore/RecipientEncoding.swift": "d77da31022335e92d1f7f42021f81372cddfc5273fd190b2ed07aa3dc4e6b286",
+      "plugins/tauri-plugin-phone-identity/ios/Core/Tests/PhoneIdentityCoreTests/PhoneIdentityTests.swift": "867ca0a6bf56cd627711102fd75319033420366e54b27291ec7c2b38fac5a361",
+      "plugins/tauri-plugin-phone-identity/ios/Sources/PhoneIdentityPlugin.swift": "7dcda6318a52eb907b59e51d1028148a3072e7f3a625550c25b196dfa634c6ce",
+      "plugins/tauri-plugin-phone-identity/ios/Sources/TaggedRecipientCrypto.swift": "20f9c9c6d6fd66097928c53359bcbab161b0c3a41d13709b8ecb7d55a9401f9d"
+    },
+    "local_build_artifacts": {
+      "target/debug/age-plugin-phone": "301a328cb78acc74df439f3eaf56182fb469f8ed9478380cbea44a0ea6203f78",
+      "plugins/tauri-plugin-phone-identity/android/build/outputs/aar/tauri-plugin-phone-identity-debug.aar": "b99752ee5e4037ca472335baa921aeb76dc5d0291d47654625b8737157d55c85",
+      "apps/mobile/src-tauri/gen/apple/build/arm64-sim/age-plugin-phone.app/age-plugin-phone": "fe23452cd5ee0dccc0dd3c0198260b62b8382af12c0664034459f4f712a46bb2",
+      "apps/mobile/src-tauri/gen/apple/build/arm64/age-plugin-phone.ipa": "9d5e73e8d2dbf649b5e717c458c0b3be6ff4c27402f0ccc5f0635a516c99b662",
+      "apps/mobile/src-tauri/gen/android/app/build/outputs/apk/universal/release/app-universal-release-unsigned.apk": "c1172ef6a235428957b704ac62051c1785ddc1e2878776c3e45a521d8f510f44"
+    }
+  },
+  "not_verified": [
+    "Android StrongBox tag physical acceptance",
+    "iOS Secure Enclave tag physical acceptance",
+    "mixed real phone and age-plugin-se authorization",
+    "Shine candidate integration",
+    "Windows TPM-to-phone tag physical flow"
+  ],
+  "build_limitations": [],
+  "windows": {
+    "host": "nuc.win.local",
+    "candidate_directory": "C:\\Users\\biulight\\phone-tag-candidate-20260910",
+    "rustc": "1.96.0 (ac68faa20), x86_64-pc-windows-msvc",
+    "checks": [
+      "fmt",
+      "workspace clippy --all-targets --locked -D warnings",
+      "workspace tests --locked: 103 passed, 0 failed, 1 ignored, 0 filtered",
+      "native age 1.3.1 and rage 0.12.1 tag encryption tests",
+      "desktop debug build"
+    ],
+    "binary_sha256": "6749faabe5bf0fd9675197627880328443ec466b157cbc9fb8850a00cde0757d",
+    "log_sha256": {
+      "build.log": "5b2b1c034d4a7d61053d01f5c7ede4aba236dbcf57b523de23a332e4aa2f3316",
+      "clippy.log": "d7bd9034cb48dc8fb9c01b4a0781616e6daec7a72b2f23f4bd04f322f0ebe409",
+      "fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "native-age.log": "2395a5e71b7958299da4f5e4cd1645d674a2885383d5e63d74e6e78f246602f5",
+      "native-rage.log": "51d071ab5ddd0499d3cb1ff6ef22212e2dca5c7bc6ad2352137ea70edeebcb88",
+      "tests.log": "1a00376235ad68caef2d70b7ac27c8acf65b85c365141598e9679635879bfba1"
+    }
+  },
+  "resolved_build_issues": [
+    "Simulator export rename: preserved existing build/arm64-sim/age-plugin-phone.app, then full unsigned build passed",
+    "Xcode sccache subprocess: temporary workspace Cargo wrapper override, removed after build",
+    "Android host default JDK 26: selected JDK 17",
+    "macOS Windows cross-compile toolchain unavailable: native Windows verification passed instead"
+  ]
+}

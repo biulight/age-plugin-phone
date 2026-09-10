@@ -1,10 +1,16 @@
 # 原生 Tagged Recipient 与 `age1phone` 双模式 PRD
 
-状态：提案，尚未实施，不适用于真实或生产秘密。
+状态：源码实现候选；软件验证和待完成验收见 [实施记录](tagged-recipient-evidence.md)。
+Android/iOS tag 真机验收与 Shine 集成尚未验证，不适用于真实或生产秘密。
 
-日期：2026-09-09
+日期：2026-09-10
 
 ## 1. 背景与目标
+
+本需求的目标是在 Shine 中使用手机硬件身份，同时把能力实现为任何兼容 age 客户端均可
+使用的标准 age 插件。实现直接参考 `age-plugin-se` 支持 `age1tag` 的方式：同一硬件身份
+导出标准 tagged recipient，加密由 age 原生完成，解密仍由原插件 identity 调用硬件私钥。
+Shine 是目标使用场景和集成验收对象，不是协议参与方或插件运行依赖。
 
 `age-plugin-phone` 当前通过标准 age 插件协议提供 `age1phone` recipient。即使加密只使用
 公开材料，age 客户端看到 `age1phone` 后仍会从 `PATH` 启动 `age-plugin-phone` 的
@@ -37,13 +43,30 @@ phone identity P-256 公钥派生的 `age1tag`。现有 `recipient-v1` 加密能
 ## 2. 范围与非目标
 
 本期设计包括：tagged recipient 编码与派生、标准 `p256tag` stanza 选择和解封、桌面 CLI
-接口、Android/iOS 原生 HPKE 解封、兼容与迁移行为、跨语言向量、age 互操作、文档和协调
-发布门槛。
+接口、Android/iOS 原生 HPKE 解封、兼容与迁移行为、跨语言向量、age 互操作和文档。
+Shine 使用上述通用接口的集成验证单独记录，不作为标准插件能力的发布依赖。
 
 本期不删除或弃用 `age1phone`，不改变现有 phone v1/v2 stanza 字节，不迁移或重建手机和桌面
 私钥，不改变配对 transcript、持久状态编码、传输选择、签名请求、响应封装或 replay 语义。
 不新增软件私钥、DPAPI、Keychain、密码、TOTP 或授权缓存回退，不让手机解析完整 age 文件、
 应用配置或明文。`age1tagpq` 和后量子硬件身份另立设计，不属于本期。
+
+### 2.1 `age-plugin-se` 参照与项目适配
+
+以 `age-plugin-se` 的 `Sources/Plugin.swift` 和 `Sources/HPKE.swift` 为实现参照，标准字节
+格式以 C2SP age 规范为准。实施时记录实际参照的上游 commit 和互操作客户端版本。
+
+| `age-plugin-se` 已有做法 | 本项目对应实现 |
+| --- | --- |
+| `Recipient.ageRecipient(type:)` 将同一压缩 P-256 公钥编码为 `se` 或 `tag` | 从现有 public stub 的手机公钥导出 `tag`，保留现有配对专用 `phone` 输出 |
+| `keygen` / `recipients` 提供 `--recipient-type` | `setup` / `pair` / `recipients` 提供 `phone\|tag` 选择 |
+| age 1.3+ 原生加密给 `age1tag` | 无 phone 插件的加密端直接使用 age |
+| `runIdentityV1()` 识别 `p256tag`，通过公开 tag 筛选后进行 HPKE 解封 | 桌面筛选，手机在既有配对和新鲜验证流程中完成 HPKE 解封 |
+| 原 `AGE-PLUGIN-SE-` identity 同时解密旧 stanza 和 `p256tag` | 原 `AGE-PLUGIN-PHONE-` stub 同时接入旧 phone stanza 和 `p256tag` |
+
+phone v2 recipient 含配对信息，不能像 SE 的纯公钥 recipient 一样只替换 HRP；tag 必须从
+stub 中的手机公钥派生。复用的是 SE 的标准 recipient 编码、tag 计算和 HPKE 路径；本项目
+既有的远程配对、每次手机验证、请求绑定和 replay 边界继续适用。
 
 ## 3. 用户接口与默认行为
 
@@ -201,24 +224,27 @@ paired desktop 状态或用户授权，也不能替代 HPKE 认证。
 `--recipient-type tag`。文档不得把 `tag` 描述成在所有维度上取代或改进 `phone`；它优化的是
 跨平台公开加密和部署依赖。
 
-## 6. 版本与协调发布
+## 6. 版本与集成边界
 
 tag 模式的最低加密客户端为 age 1.3。旧 age 客户端继续使用 `age1phone` 加上
 `age-plugin-phone`，不能把不识别 `age1tag` 的错误降级成 phone 模式。状态和帮助输出应明确
 报告 tag 能力与最低版本，但插件不负责安装或升级 age。
 
-发布并宣传显式 tag 能力前必须协调以下交付：
+发布并宣传显式 tag 插件能力前必须完成以下交付：
 
 1. desktop、Android 和 iOS 在同一兼容批次支持 `p256tag` 解封，已有配对无需重建；
 2. age/rage 互操作、跨语言向量和指定真机验收完成；
-3. Shine 先接受显式选择 tag 时 `setup --json` 返回的 `age1tag`，其相关加密路径要求
-   age 1.3+；
-4. 其他已知调用方完成同等兼容检查；
-5. 上述门槛满足后，才发布支持显式 `tag` 的插件版本和更新后的快速开始。
+3. 不安装或启动 Shine，通过插件通用 CLI 导出公开 recipient，并通过 age CLI 完成加密和
+   手机授权解密；
+4. 通用 CLI、`setup --json` 兼容回归和更新后的快速开始完成。
 
-所有版本继续以 `phone` 为默认，不规划自动切换。若调用方尚未兼容，发布候选可以包含内部
-tag 实现和测试，但不得对外宣称对应调用方或跨平台 workspace 已完整支持。`setup --json`
-schema 保持 v1 不能被当作跳过消费者回归的理由。
+所有版本继续以 `phone` 为默认，不规划自动切换。插件发布不等待 Shine 或其他消费者同步
+发布；对某个消费者的支持声明须有该消费者自己的集成证据。
+
+Shine 通过通用 setup/recipient 导出接口取得 `age1tag` 与 identity 路径，再由标准 age 客户端
+处理加解密。Shine 负责其加密路径的 age 1.3+ 要求和自身配置兼容；插件不检测 Shine、不解析
+其 workspace、不增加专用参数或协议分支。`setup --json` schema 保持 v1，显式选择 tag 时
+返回 `age1tag` 的消费者兼容性仍需验证。
 
 本功能不改变项目当前实验状态。源码、软件或单平台测试通过不代表协议冻结、生产可用或所有
 手机/桌面组合完成验收。
@@ -235,7 +261,9 @@ schema 保持 v1 不能被当作跳过消费者回归的理由。
    封装流程；WebView 和 Rust/Tauri 命令面不接触秘密材料。
 5. 完成 age/rage、多 recipient、旧密文、升级、恢复和真机安全回归；记录精确候选制品摘要。
 6. 更新 `architecture.md`、`protocol.md`、`threat-model.md`、README、roadmap、快速开始、发布
-   指南和支持矩阵；协调 Shine 后再公开显式 tag 工作流，默认值保持 `phone`。
+   指南和支持矩阵；发布通用显式 tag 工作流，默认值保持 `phone`。
+7. 用同一候选插件验证 Shine 的实际使用路径，单独记录客户端版本和结果；问题在所属项目
+   中修复，不能通过新增 Shine 专用插件接口绕过。
 
 历史 ADR 和验收记录保持其当时含义。新 ADR 说明叠加关系，不把旧 phone v2 设计或证据改写成
 已经覆盖 `p256tag`。
@@ -246,8 +274,9 @@ schema 保持 v1 不能被当作跳过消费者回归的理由。
 
 - 增加 Rust/Kotlin/Swift 共用 `p256tag` 公开向量，固定 phone P-256 公私钥、ephemeral key、
   recipient、4 字节 tag、enc、body 和 16 字节 file key；逐字节匹配 age/C2SP 规范。
-- Rust 的编码、选择与测试解封、Android StrongBox 路径和 iOS Secure Enclave 路径独立复现
-  同一向量；生产代码不得使用向量私钥。
+- Rust/Kotlin/Swift 的测试代码独立复现同一固定向量；生产代码不得使用向量私钥。
+- Android StrongBox 和 iOS Secure Enclave 真机使用各自硬件生成的密钥，由标准 age 向其
+  公开 recipient 加密并经真实硬件路径解封；不要求将固定向量私钥导入硬件。
 - age 1.3+ 在 `PATH` 中没有 `age-plugin-phone` 时成功加密给 phone `age1tag`；对应插件 identity
   在已配对桌面完成解密。
 - 与 age 1.3+ 和支持 tagged recipient 的 rage 版本分别互操作，固定并记录精确版本。
@@ -286,21 +315,35 @@ schema 保持 v1 不能被当作跳过消费者回归的理由。
 - 执行现有 workspace locked 测试、Clippy 和格式检查；涉及手机代码时运行相应 Kotlin/Swift
   测试与构建。无安全硬件的 CI 必须记录未运行，不能以 skip 计为通过。
 
+### 8.5 Shine 使用场景验收
+
+- Shine 通过通用接口显式取得 `age1tag`，以标准 age recipient 保存和使用；默认 phone 路径
+  保持兼容。
+- 对全部 recipient 均可由 age 原生处理的 workspace，在未安装 phone 插件的机器上完成
+  `seal`；若需解开旧 payload，使用该机器上已有且有效的其他 identity。
+- 在已配对桌面通过 Shine 调用 age 解密，由 phone 插件和手机完成新鲜用户验证。
+- 同一 recipient 和 identity 可脱离 Shine，通过 age CLI 完成对应加解密，不依赖 Shine
+  进程、配置、环境变量或 RPC。
+
+本节用于确认 Shine 中的目标体验，不改变标准插件的协议、实现完成定义或发布条件。
+
 ## 9. 完成定义
 
 “实现完成”要求：两种 recipient CLI 和 stub 派生稳定；标准 `p256tag` 在三端通过向量；旧
 phone 行为与状态回归通过；age/rage 无插件加密互操作通过；全部负面路径失败关闭；文档准确
 披露隐私与版本要求。缺少 Android 或 iOS 必需真机证据时只能标记对应平台未验证。
 
-“显式 tag 可发布”还要求 Shine 和其他已知消费者兼容 schema v1 在显式选择时返回
-`age1tag`，并对该路径执行 age 1.3+ 预检。默认 setup 继续返回 `age1phone`。实际发布、签名、
-上传或扩大生产支持声明均是独立授权和验收动作，不因本文完成而自动发生。
+“显式 tag 可发布”还要求第 6 节的插件交付完成；“Shine 中可用”要求第 8.5 节集成验收
+完成，两者分别记录。默认 setup 继续返回 `age1phone`。实际发布、签名、上传或扩大生产
+支持声明均是独立授权和验收动作，不因本文完成而自动发生。
 
 ## 10. 规范与先例
 
 - [age 1.3+ 手册：Tagged recipients](https://github.com/FiloSottile/age/blob/main/doc/age.1.ronn#tagged-recipients)
 - [C2SP age：p256tag recipient stanza](https://c2sp.org/age#the-tagged-recipient-types)
-- [age-plugin-se：`tag` 与 `se` recipient](https://github.com/remko/age-plugin-se#age-plugin-for-apples-secure-enclave)
+- [age-plugin-se：`tag` 与 `se` recipient](https://github.com/remko/age-plugin-se#converting-age-plugin-se-recipients-to-age-plugin-tag-recipients)
+- [age-plugin-se：recipient、tag 选择和 identity 状态机](https://github.com/remko/age-plugin-se/blob/main/Sources/Plugin.swift)
+- [age-plugin-se：HPKE 实现](https://github.com/remko/age-plugin-se/blob/main/Sources/HPKE.swift)
 - [项目架构](architecture.md)
 - [离线协议](protocol.md)
 - [威胁模型](threat-model.md)

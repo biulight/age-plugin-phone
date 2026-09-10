@@ -266,8 +266,9 @@ final class PhoneIdentityPlugin: Plugin {
                         let requestFingerprint = request.digest.hex
                         let (key, context) = try self.identity.freshIdentityKey(reason: "Approve one age unwrap: \(requestFingerprint.prefix(16))")
                         self.stateQueue.sync { self.activeAuthenticationContext = context }
+                        defer { context.invalidate(); self.stateQueue.sync { self.activeAuthenticationContext = nil } }
                         var fileKey = try TaggedRecipientCrypto.unwrap(stanza: request.stanza, identity: key)
-                        defer { fileKey.resetBytes(in: 0..<fileKey.count); context.invalidate(); self.stateQueue.sync { self.activeAuthenticationContext = nil } }
+                        defer { fileKey.resetBytes(in: 0..<fileKey.count) }
                         let response = try OfflineEnvelopeCrypto.sealResponse(request: request, fileKey: fileKey, signingKey: self.identity.signingKey())
                         let frames = try QRFraming.fragment(response)
                         DispatchQueue.main.async {
@@ -362,6 +363,7 @@ final class PhoneIdentityPlugin: Plugin {
             let context = LAContext(); context.localizedReason = "Authorize the synthetic Secure Enclave Doctor probe"
             context.touchIDAuthenticationAllowableReuseDuration = 0
             self.stateQueue.sync { self.activeAuthenticationContext = context }
+                defer { context.invalidate(); self.stateQueue.sync { self.activeAuthenticationContext = nil } }
             defer {
                 context.invalidate()
                 self.stateQueue.sync { self.activeAuthenticationContext = nil }
@@ -547,8 +549,9 @@ final class PhoneIdentityPlugin: Plugin {
                 let fingerprint = request.digest.hex
                 let (key, context) = try self.identity.freshIdentityKey(reason: "Approve one age unwrap: \(fingerprint.prefix(16))")
                 self.stateQueue.sync { self.activeAuthenticationContext = context }
+                defer { context.invalidate(); self.stateQueue.sync { self.activeAuthenticationContext = nil } }
                 var fileKey = try TaggedRecipientCrypto.unwrap(stanza: request.stanza, identity: key)
-                defer { fileKey.resetBytes(in: 0..<fileKey.count); context.invalidate(); self.stateQueue.sync { self.activeAuthenticationContext = nil } }
+                defer { fileKey.resetBytes(in: 0..<fileKey.count) }
                 let response = try OfflineEnvelopeCrypto.sealResponse(request: request, fileKey: fileKey, signingKey: self.identity.signingKey())
                 session.sendResponse(response) { result in
                     self.stopWifiResources(nextState: "waiting_for_prerequisites", error: result.failureCategory)

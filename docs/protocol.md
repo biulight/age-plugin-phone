@@ -143,6 +143,25 @@ authorization. The selection HKDF/AEAD domain is independent from the phone file
 selector is bound to the complete encrypted file-key body. Legacy v1 stanzas remain supported only
 when exactly one phone identity and one v1 stanza are present.
 
+## Standard p256tag extension
+
+[ADR 0026](adr/0026-native-tagged-recipients.md) adds `p256tag` to the supported stanza allowlist;
+protocol version 2, algorithm suite 1, canonical arrays, signatures and replay scopes do not change.
+The complete standard stanza (two arguments, canonical 4-byte selector and 65-byte uncompressed
+P-256 enc, 32-byte body) is signed inside the existing request. Structural rejection precedes any
+private state, network or biometric operation. Unknown age stanza tags remain ignored.
+
+HPKE base mode uses DHKEM(P-256, HKDF-SHA256), HKDF-SHA256, ChaCha20-Poly1305,
+`info = age-encryption.org/p256tag`, empty AAD and the derived sequence-zero nonce. The public tag
+is HKDF-Extract-SHA256(`salt = info`, `ikm = enc || SHA256(compressed recipient)[:4]`)[:4].
+The phone uses its hardware ECDH identity and fresh native authorization; a short tag match never
+replaces HPKE authentication. Old mobile parsers strictly reject this new stanza without fallback.
+
+Tag ciphertext binds the phone public key, while each unwrap still binds its current authorized
+pairing and one-time response session. A new pairing to the same surviving phone identity can
+therefore access old tag ciphertext; the phone v2 replacement restriction below applies to phone
+v2 ciphertext. No automatic migration or state re-encoding occurs.
+
 ## BLE
 
 BLE remains unavailable pending a separately reviewed native implementation. The intended transport
