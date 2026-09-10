@@ -2276,7 +2276,7 @@
     "temporary_plaintext_directories_remaining": 0
   },
   "installed_iphone_wifi_process_termination": {
-    "status": "termination_passed_developer_relaunch_failed_recovery_pending",
+    "status": "termination_and_separate_manual_relaunch_recovery_passed_developer_launch_failure_retained",
     "result": {
       "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
       "transport": "wifi",
@@ -2299,6 +2299,28 @@
     "result_sha256": "a906ac1a50bbbe230fb36a10fed3641fd066f1b47d0ceb1c1d53e81517487fea",
     "harness_sha256": "7cca0f171a92cd017f440f30edeefade0bbd831172de78dd94e7b153baf9ee0a",
     "interruption": "CoreDevice_launch_nonzero_before_recovery_request_user_reported_traceback",
-    "temporary_plaintext_directories_remaining": 0
+    "temporary_plaintext_directories_remaining": 0,
+    "recovery_retry1": {
+      "result": {
+        "scope": "iphone_manual_relaunch_after_process_kill_separate_recovery",
+        "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+        "network_settings": "Surge_and_ZeroTier_retained",
+        "synthetic_data_only": true,
+        "cases": [
+          {
+            "client": "age",
+            "phase": "fresh_approval_after_manual_app_restart",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          }
+        ],
+        "recovery_scope": "separate_new_ciphertext_after_original_harness_cleanup"
+      },
+      "result_sha256": "83c11cd35b384ed1bc023db61ee323666e211316e1ad4575556a283aabb7afea",
+      "harness_sha256": "cc87df413aba38adbaf477ad926904bbf56d10005735e09ade01918010637bbb",
+      "temporary_plaintext_directories_remaining": 0
+    }
   }
 }

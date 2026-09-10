@@ -748,3 +748,13 @@ started. The error does not establish a plugin recovery failure or a recovery pa
 The original result and failed launch report are retained. A separate fresh-ciphertext
 recovery check will use user-operated app launch; no repeat termination is required.
 No temporary plaintext directory remains.
+
+### iPhone manual relaunch recovery passed
+
+After the developer-tool relaunch failure, the user manually opened the iPhone
+app. A separate age request using newly generated disposable ciphertext decrypted
+correctly on the same installed artifact, and the user immediately confirmed new
+Face ID. The original interrupted harness had already cleaned its plaintext. The
+separate recovery harness also left no temporary plaintext directory. This completes
+the process-termination/new-verification recovery evidence using manual relaunch;
+it does not relabel the failed CoreDevice launch or claim a same-run recovery.
