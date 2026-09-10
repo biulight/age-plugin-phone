@@ -62,6 +62,8 @@ macOS, iOS and native-tag additions; it is not a review of the complete beta sou
 - [x] Define the candidate scope and compatibility limitations.
 - [x] Prepare beta version metadata and Alpha/Beta release-channel support without
   weakening commit, signature, checksum or existing-release checks.
+- [x] Prepare an exact [security review brief](beta-security-review-brief.md) for
+  the post-2026-08-29 source delta; this is review input, not independent approval.
 - [ ] Review security-sensitive changes since the independent review, especially
   native HPKE/tag selection and the iOS authentication deadline. Record scope,
   reviewer, exact source and findings; local tests are not independent review.
