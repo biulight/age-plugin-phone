@@ -48,7 +48,15 @@ for member in workspace['members']:
             listing = subprocess.check_output(['cargo', '+1.88.0', 'package', '--allow-dirty', '--list', '-p', name], cwd=root, text=True)
             files = {line.replace('\\', '/') for line in listing.splitlines()}
             assert {'LICENSE', 'README.md', 'Cargo.toml', 'Cargo.toml.orig', 'Cargo.lock', 'src/lib.rs'} <= files, name
-            assert all(f in {'LICENSE', 'README.md', 'Cargo.toml', 'Cargo.toml.orig', 'Cargo.lock', '.cargo_vcs_info.json'} or f.startswith(('src/', 'tests/', 'test-vectors/', 'examples/')) for f in files), name
+            allowed_files = {'LICENSE', 'README.md', 'Cargo.toml', 'Cargo.toml.orig', 'Cargo.lock', '.cargo_vcs_info.json'}
+            # The macOS Secure Enclave bridge is compiled from the published crate;
+            # these two inputs must remain in the archive and are not generated files.
+            if name == 'age-plugin-phone-platform-keys':
+                allowed_files |= {'build.rs'}
+                allowed_prefixes = ('src/', 'tests/', 'test-vectors/', 'examples/', 'native/')
+            else:
+                allowed_prefixes = ('src/', 'tests/', 'test-vectors/', 'examples/')
+            assert all(f in allowed_files or f.startswith(allowed_prefixes) for f in files), name
             required = {p.relative_to(root / member).as_posix() for directory in ['src', 'tests', 'test-vectors', 'examples'] for p in (root / member / directory).rglob('*') if p.is_file()}
             assert required <= files, (name, required - files)
     else:
