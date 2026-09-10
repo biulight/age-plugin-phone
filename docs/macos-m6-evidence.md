@@ -735,3 +735,16 @@ plaintext and the user confirmed prompt closure. Relaunching the same app preser
 the pairing; a new request decrypted correctly with an immediately confirmed fresh
 fingerprint. Both cases passed on the installed artifact and no temporary plaintext
 directory remains. No app uninstall, data reset or replay restoration occurred.
+
+### iPhone process termination passed; developer relaunch failed
+
+The user confirmed pending, unapproved Face ID before the harness terminated the
+uniquely matched test app process with SIGKILL. The termination command succeeded,
+process absence was confirmed, and the old Wi-Fi request failed without plaintext.
+The user confirmed Face ID prompt closure. This negative case passed.
+
+CoreDevice's subsequent app launch returned nonzero before the recovery request
+started. The error does not establish a plugin recovery failure or a recovery pass.
+The original result and failed launch report are retained. A separate fresh-ciphertext
+recovery check will use user-operated app launch; no repeat termination is required.
+No temporary plaintext directory remains.
