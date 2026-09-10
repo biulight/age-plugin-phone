@@ -62,3 +62,14 @@ wrong scope, corruption, missing state, and persistence-failure poisoning. The c
 crate compiled and passed Clippy with warnings denied and passed its native test suite. The CNG
 tests provisioned, exercised, reopened, and removed distinct TPM signing and selection keys; a
 post-test Microsoft Platform Crypto Provider enumeration contained no `age-plugin-phone-` key.
+
+## Restore boundary clarification (2026-09-10)
+
+The current-user full-control DACL does not prevent all same-user processes from
+replacing state. The replay backend does not consult a TPM monotonic/NV counter or
+independent authority before accepting a canonical file. An older valid file is
+therefore expected to pass the same validation, subject to scope/time checks; this
+is code analysis, not a native Windows rollback result. TPM key custody does not
+make the replay file fresh. Windows and macOS share the explicit
+[desktop restore limitation](../threat-model.md#desktop-replay-persistence-and-restore-boundary);
+stronger protection is tracked in the [future POC](../desktop-replay-rollback-poc.md).

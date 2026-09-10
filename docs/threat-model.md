@@ -64,7 +64,7 @@ least one independent recovery recipient, such as a second phone, Secure Enclave
 token, or offline age identity. Replacing a phone requires decrypting with that recovery recipient
 and resealing to a newly generated phone recipient.
 
-The recovery path must not share the primary phone StrongBox keys or the paired Windows desktop TPM
+The recovery path must not share the primary phone hardware keys or the paired desktop TPM/Secure Enclave
 keys. Phone replacement, paired-desktop revocation, application removal, identity deletion, and
 hardware invalidation follow [`ADR 0017`](adr/0017-lifecycle-and-recovery.md). Without a recovery
 recipient that was included when the data was encrypted, loss of either required version 2 hardware
@@ -86,3 +86,24 @@ make the operation unavailable instead of creating a fallback key or replay scop
 - Trusting caller labels, device names, BLE pairing, ADB authorization, selected serials, reverse
   connections, LAN addresses, private subnets, Wi-Fi association, TCP connections, or enabled
   foreground listeners as peer authentication or phone user authorization.
+
+## Desktop replay persistence and restore boundary
+
+Windows and macOS retain response consumption across supported ordinary failures
+and restarts and reject missing, corrupt, mismatched, full or uncertain state. Neither
+currently promises detection of an older valid same-machine replay file or filesystem
+snapshot restored by a same-user attacker. ACLs, atomic replacement, backup exclusion
+and TPM/Secure Enclave key custody do not supply an independent freshness authority.
+
+This exception is limited to desktop store freshness. Same-user invocation and file
+modification remain adversary capabilities. Old responses must still fail against a
+fresh session's complete cryptographic binding; each new phone identity operation
+requires fresh native verification. Phone request consumption before prompting and
+retention on cancellation/failure remain required. No state reset, replay-based
+recovery, software-key fallback or authorization cache is permitted.
+
+The user approved this common boundary on 2026-09-10. Stronger restore resistance is
+a deferred [cross-platform POC](desktop-replay-rollback-poc.md), not a Mac-only current
+acceptance gate. The Mac store counterexample remains real; the analogous Windows
+limitation is based on implementation inspection pending native reproduction. This
+is not evidence of an end-to-end biometric bypass or completion of other security gates.

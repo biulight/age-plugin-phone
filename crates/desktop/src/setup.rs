@@ -1,6 +1,6 @@
-//! Crash-safe ownership record for simplified Windows desktop setup.
+//! Crash-safe ownership record for simplified hardware desktop setup.
 
-#![cfg_attr(not(windows), allow(dead_code))]
+#![cfg_attr(not(any(windows, target_os = "macos")), allow(dead_code))]
 #![allow(clippy::missing_errors_doc)]
 
 use std::path::{Path, PathBuf};
@@ -12,10 +12,31 @@ use thiserror::Error;
 use crate::pairing::PublicIdentityStub;
 use crate::transport_policy::TransportChoice;
 
+const EXPLICIT_SETUP_VERSION: u16 = 3;
 const SETUP_VERSION: u16 = 2;
 const LEGACY_SETUP_VERSION: u16 = 1;
 const JOURNAL_NAME: &str = "desktop-setup.cbor";
-#[cfg(windows)]
+#[cfg(test)]
+std::thread_local! { static COMMIT_FAILURE: std::cell::Cell<Option<&'static str>> = const { std::cell::Cell::new(None) }; }
+
+#[cfg(any(windows, target_os = "macos"))]
+#[cfg_attr(not(test), allow(clippy::unnecessary_wraps))]
+fn commit_checkpoint(stage: &'static str) -> Result<(), SetupError> {
+    #[cfg(test)]
+    if COMMIT_FAILURE.with(|failure| {
+        if failure.get() == Some(stage) {
+            failure.set(None);
+            true
+        } else {
+            false
+        }
+    }) {
+        return Err(SetupError::Storage);
+    }
+    let _ = stage;
+    Ok(())
+}
+#[cfg(any(windows, target_os = "macos"))]
 const MAX_JOURNAL_BYTES: u64 = 32_768;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -41,6 +62,7 @@ impl SetupStage {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct SetupJournal {
+    pub explicit_paths: bool,
     pub stage: SetupStage,
     pub setup_code: Id,
     pub desktop_id: Id,
@@ -56,6 +78,7 @@ impl SetupJournal {
     pub fn new(root: &Path, setup_code: Id, desktop_id: Id) -> Self {
         let suffix = hex(&desktop_id);
         Self {
+            explicit_paths: false,
             stage: SetupStage::Provisioning,
             setup_code,
             desktop_id,
@@ -78,6 +101,25 @@ impl SetupJournal {
             transport,
             ..Self::new(root, setup_code, desktop_id)
         }
+    }
+
+    /// Explicit macOS pairing owns only newly created caller-selected output paths.
+    pub fn new_explicit(
+        root: &Path,
+        setup_code: Id,
+        desktop_id: Id,
+        paths: [&Path; 3],
+        transport: TransportChoice,
+    ) -> Result<Self, SetupError> {
+        let value = Self {
+            explicit_paths: true,
+            desktop_state: paths[0].to_owned(),
+            replay_state: paths[1].to_owned(),
+            identity_stub: paths[2].to_owned(),
+            ..Self::new_with_transport(root, setup_code, desktop_id, transport)
+        };
+        value.validate_root(root)?;
+        Ok(value)
     }
 
     pub fn set_pairing(&mut self) {
@@ -121,9 +163,13 @@ impl SetupJournal {
     fn encode(&self) -> Result<Vec<u8>, SetupError> {
         let mut encoder = Encoder::new(Vec::new());
         encoder
-            .array(9)
+            .array(if self.explicit_paths { 10 } else { 9 })
             .map_err(|_| SetupError::Invalid)?
-            .u16(SETUP_VERSION)
+            .u16(if self.explicit_paths {
+                EXPLICIT_SETUP_VERSION
+            } else {
+                SETUP_VERSION
+            })
             .map_err(|_| SetupError::Invalid)?
             .u16(self.stage as u16)
             .map_err(|_| SetupError::Invalid)?
@@ -146,6 +192,9 @@ impl SetupJournal {
         } else {
             encoder.null().map_err(|_| SetupError::Invalid)?;
         }
+        if self.explicit_paths {
+            encoder.bool(true).map_err(|_| SetupError::Invalid)?;
+        }
         Ok(encoder.into_writer())
     }
 
@@ -155,7 +204,9 @@ impl SetupJournal {
         let version = decoder.u16().map_err(|_| SetupError::Invalid)?;
         if !matches!(
             (fields, version),
-            (Some(9), SETUP_VERSION) | (Some(8), LEGACY_SETUP_VERSION)
+            (Some(10), EXPLICIT_SETUP_VERSION)
+                | (Some(9), SETUP_VERSION)
+                | (Some(8), LEGACY_SETUP_VERSION)
         ) {
             return Err(SetupError::Invalid);
         }
@@ -165,14 +216,14 @@ impl SetupJournal {
         let desktop_state = PathBuf::from(decoder.str().map_err(|_| SetupError::Invalid)?);
         let replay_state = PathBuf::from(decoder.str().map_err(|_| SetupError::Invalid)?);
         let identity_stub = PathBuf::from(decoder.str().map_err(|_| SetupError::Invalid)?);
-        let transport = if version == SETUP_VERSION {
+        let transport = if version == LEGACY_SETUP_VERSION {
+            TransportChoice::Auto
+        } else {
             decoder
                 .str()
                 .map_err(|_| SetupError::Invalid)?
                 .parse()
                 .map_err(|_| SetupError::Invalid)?
-        } else {
-            TransportChoice::Auto
         };
         let candidate = match decoder.datatype().map_err(|_| SetupError::Invalid)? {
             Type::Null => {
@@ -185,7 +236,12 @@ impl SetupJournal {
             ),
             _ => return Err(SetupError::Invalid),
         };
+        let explicit_paths = version == EXPLICIT_SETUP_VERSION;
+        if explicit_paths && !decoder.bool().map_err(|_| SetupError::Invalid)? {
+            return Err(SetupError::Invalid);
+        }
         let value = Self {
+            explicit_paths,
             stage,
             setup_code,
             desktop_id,
@@ -196,10 +252,10 @@ impl SetupJournal {
             candidate,
         };
         if decoder.position() != bytes.len()
-            || if version == SETUP_VERSION {
-                value.encode()? != bytes
-            } else {
+            || if version == LEGACY_SETUP_VERSION {
                 value.encode_legacy()? != bytes
+            } else {
+                value.encode()? != bytes
             }
             || value.candidate.is_some()
                 != matches!(stage, SetupStage::ResponseVerified | SetupStage::Confirmed)
@@ -243,6 +299,9 @@ impl SetupJournal {
     }
 
     fn validate_root(&self, root: &Path) -> Result<(), SetupError> {
+        if self.explicit_paths {
+            return self.validate_explicit_root(root);
+        }
         if !root.is_absolute() {
             return Err(SetupError::Invalid);
         }
@@ -255,11 +314,68 @@ impl SetupJournal {
         }
         Ok(())
     }
+    #[cfg(not(target_os = "macos"))]
+    // Match the macOS validator's method interface while rejecting this layout.
+    #[allow(clippy::unused_self)]
+    fn validate_explicit_root(&self, _root: &Path) -> Result<(), SetupError> {
+        Err(SetupError::Unsupported)
+    }
+
+    #[cfg(target_os = "macos")]
+    fn validate_explicit_root(&self, root: &Path) -> Result<(), SetupError> {
+        use std::path::Component;
+        let canonical = |path: &Path| {
+            path.is_absolute()
+                && path
+                    .components()
+                    .all(|part| matches!(part, Component::RootDir | Component::Normal(_)))
+        };
+        let paths = [&self.desktop_state, &self.replay_state, &self.identity_stub];
+        if !canonical(root)
+            || paths.iter().any(|path| !canonical(path))
+            || self.desktop_state.parent() != Some(root)
+            || self.replay_state.parent() != Some(root)
+            || paths[0] == paths[1]
+            || paths[0] == paths[2]
+            || paths[1] == paths[2]
+        {
+            return Err(SetupError::Invalid);
+        }
+        // Reserve all journal/locator and replay-sidecar namespaces even before a phone
+        // identity is known. An explicit path must never alias another operation's metadata.
+        let mut names = std::collections::BTreeSet::new();
+        for path in paths {
+            let name = path
+                .file_name()
+                .and_then(|name| name.to_str())
+                .ok_or(SetupError::Invalid)?;
+            // Avoid case-folding/Unicode aliases on ordinary case-insensitive APFS. Public
+            // output also reserves these names, including when its parent aliases this root.
+            if name.is_empty()
+                || !name.bytes().all(|byte| {
+                    byte.is_ascii_lowercase()
+                        || byte.is_ascii_digit()
+                        || matches!(byte, b'.' | b'-' | b'_')
+                })
+                || !names.insert(name)
+                || path.extension().is_some_and(|ext| {
+                    ["cbor", "lock", "pending"]
+                        .iter()
+                        .any(|reserved| ext == *reserved)
+                })
+                || name.starts_with(".replace-")
+                || name.starts_with(".state-")
+            {
+                return Err(SetupError::Invalid);
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum SetupError {
-    #[error("simplified setup is supported only on the Windows Alpha platform")]
+    #[error("simplified setup requires a supported Windows or macOS hardware desktop")]
     Unsupported,
     #[error("a desktop setup attempt is already pending")]
     Pending,
@@ -278,7 +394,7 @@ pub fn journal_path(root: &Path) -> PathBuf {
     root.join(JOURNAL_NAME)
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 pub fn ensure_no_cleanup_pending(root: &Path) -> Result<(), SetupError> {
     if crate::cleanup_journal::read(root)
         .map_err(|_| SetupError::Invalid)?
@@ -289,7 +405,7 @@ pub fn ensure_no_cleanup_pending(root: &Path) -> Result<(), SetupError> {
     Ok(())
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn ensure_no_cleanup_pending(_root: &Path) -> Result<(), SetupError> {
     Err(SetupError::Unsupported)
 }
@@ -304,9 +420,46 @@ pub fn acquire_lifecycle_lock(
     .map_err(|_| SetupError::Busy)
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn acquire_lifecycle_lock(_root: &Path) -> Result<(), SetupError> {
     Err(SetupError::Unsupported)
+}
+
+#[cfg(target_os = "macos")]
+pub fn acquire_lifecycle_lock(
+    root: &Path,
+) -> Result<age_plugin_phone_platform_storage::macos::PrivateLock, SetupError> {
+    let directory = age_plugin_phone_platform_storage::macos::Directory::open(root)
+        .map_err(|_| SetupError::Invalid)?;
+    let path = crate::cleanup_journal::journal_lock_path(root);
+    directory
+        .lock(Path::new(path.file_name().ok_or(SetupError::Invalid)?))
+        .map_err(|_| SetupError::Busy)
+}
+
+#[cfg(windows)]
+fn create_managed_stub(path: &Path, stub: &PublicIdentityStub) -> Result<(), SetupError> {
+    crate::pairing::create_identity_stub_file(path, stub).map_err(|_| SetupError::Storage)
+}
+
+#[cfg(windows)]
+fn read_managed_stub(path: &Path) -> Result<PublicIdentityStub, SetupError> {
+    crate::pairing::read_identity_stub_file(path).map_err(|_| SetupError::Invalid)
+}
+
+#[cfg(target_os = "macos")]
+fn create_managed_stub(path: &Path, stub: &PublicIdentityStub) -> Result<(), SetupError> {
+    let text = stub.identity_file().map_err(|_| SetupError::Invalid)?;
+    age_plugin_phone_platform_storage::macos::create_regular_file(path, text.as_bytes())
+        .map_err(|_| SetupError::Storage)
+}
+
+#[cfg(target_os = "macos")]
+fn read_managed_stub(path: &Path) -> Result<PublicIdentityStub, SetupError> {
+    let bytes = age_plugin_phone_platform_storage::macos::read_regular_file(path, 16_384)
+        .map_err(|_| SetupError::Invalid)?;
+    let text = std::str::from_utf8(&bytes).map_err(|_| SetupError::Invalid)?;
+    crate::pairing::decode_identity_stub_text(text).map_err(|_| SetupError::Invalid)
 }
 
 #[cfg(windows)]
@@ -324,7 +477,22 @@ pub fn read(root: &Path) -> Result<SetupJournal, SetupError> {
     Ok(value)
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+pub fn read(root: &Path) -> Result<SetupJournal, SetupError> {
+    let bytes = age_plugin_phone_platform_storage::macos::read_private_file(
+        &journal_path(root),
+        MAX_JOURNAL_BYTES,
+    )
+    .map_err(|error| match error {
+        age_plugin_phone_platform_storage::macos::Error::Missing => SetupError::Missing,
+        _ => SetupError::Invalid,
+    })?;
+    let value = SetupJournal::decode(&bytes)?;
+    value.validate_root(root)?;
+    Ok(value)
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn read(_root: &Path) -> Result<SetupJournal, SetupError> {
     Err(SetupError::Unsupported)
 }
@@ -338,7 +506,16 @@ pub fn read_optional(root: &Path) -> Result<Option<SetupJournal>, SetupError> {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+pub fn read_optional(root: &Path) -> Result<Option<SetupJournal>, SetupError> {
+    match read(root) {
+        Ok(value) => Ok(Some(value)),
+        Err(SetupError::Missing) => Ok(None),
+        Err(error) => Err(error),
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn read_optional(_root: &Path) -> Result<Option<SetupJournal>, SetupError> {
     Ok(None)
 }
@@ -353,7 +530,44 @@ pub fn create(root: &Path, value: &SetupJournal) -> Result<(), SetupError> {
         })
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+pub fn create(root: &Path, value: &SetupJournal) -> Result<(), SetupError> {
+    value.validate_root(root)?;
+    if value.explicit_paths {
+        // Only a new explicit attempt can claim paths. A broken symlink or an uncertain
+        // replay sidecar is existing state, never an empty path available for reuse.
+        let mut paths = vec![
+            value.desktop_state.clone(),
+            value.replay_state.clone(),
+            value.identity_stub.clone(),
+        ];
+        for suffix in [".lock", ".pending"] {
+            let mut name = value.replay_state.as_os_str().to_os_string();
+            name.push(suffix);
+            paths.push(PathBuf::from(name));
+        }
+        for path in paths {
+            match std::fs::symlink_metadata(path) {
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+                _ => return Err(SetupError::Invalid),
+            }
+        }
+        crate::locator::ensure_exclusive_cleanup_target(
+            root,
+            &journal_path(root),
+            &value.desktop_state,
+            &value.replay_state,
+        )
+        .map_err(|_| SetupError::Invalid)?;
+    }
+    age_plugin_phone_platform_storage::macos::atomic_create(&journal_path(root), &value.encode()?)
+        .map_err(|error| match error {
+            age_plugin_phone_platform_storage::macos::Error::AlreadyExists => SetupError::Pending,
+            _ => SetupError::Storage,
+        })
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn create(_root: &Path, _value: &SetupJournal) -> Result<(), SetupError> {
     Err(SetupError::Unsupported)
 }
@@ -368,7 +582,14 @@ pub fn replace(root: &Path, value: &SetupJournal) -> Result<(), SetupError> {
     .map_err(|_| SetupError::Storage)
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+pub fn replace(root: &Path, value: &SetupJournal) -> Result<(), SetupError> {
+    value.validate_root(root)?;
+    age_plugin_phone_platform_storage::macos::atomic_replace(&journal_path(root), &value.encode()?)
+        .map_err(|_| SetupError::Storage)
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn replace(_root: &Path, _value: &SetupJournal) -> Result<(), SetupError> {
     Err(SetupError::Unsupported)
 }
@@ -381,12 +602,20 @@ pub fn remove(root: &Path) -> Result<(), SetupError> {
     }
 }
 
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
+pub fn remove(root: &Path) -> Result<(), SetupError> {
+    match age_plugin_phone_platform_storage::macos::remove_private_file(&journal_path(root)) {
+        Ok(()) | Err(age_plugin_phone_platform_storage::macos::Error::Missing) => Ok(()),
+        Err(_) => Err(SetupError::Storage),
+    }
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn remove(_root: &Path) -> Result<(), SetupError> {
     Err(SetupError::Unsupported)
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 pub fn commit_confirmed(
     root: &Path,
     value: &SetupJournal,
@@ -397,7 +626,7 @@ pub fn commit_confirmed(
     };
 
     value.validate_root(root)?;
-    if value.stage != SetupStage::Confirmed {
+    if value.stage != SetupStage::Confirmed || read(root)? != *value {
         return Err(SetupError::Invalid);
     }
     let stub = value.candidate.as_ref().ok_or(SetupError::Invalid)?;
@@ -423,6 +652,7 @@ pub fn commit_confirmed(
         phone_signing_public_key: stub.phone_signing_public_key,
     };
     let scope = ReplayScope::for_pairing(ReplayRole::DesktopResponses, &pairing);
+    commit_checkpoint("before_replay")?;
     match FileReplayGuard::create(
         &value.replay_state,
         scope,
@@ -435,6 +665,7 @@ pub fn commit_confirmed(
                 .map_err(|_| SetupError::Invalid)?,
         ),
     }
+    commit_checkpoint("after_replay")?;
 
     match crate::locator::create_pairing_locator_with_transport(
         root,
@@ -456,18 +687,19 @@ pub fn commit_confirmed(
         }
         Err(_) => return Err(SetupError::Storage),
     }
+    commit_checkpoint("after_locator")?;
 
-    if crate::pairing::create_identity_stub_file(&value.identity_stub, stub).is_err() {
-        let existing = crate::pairing::read_identity_stub_file(&value.identity_stub)
-            .map_err(|_| SetupError::Invalid)?;
+    if create_managed_stub(&value.identity_stub, stub).is_err() {
+        let existing = read_managed_stub(&value.identity_stub).map_err(|_| SetupError::Invalid)?;
         if existing != *stub {
             return Err(SetupError::Invalid);
         }
     }
+    commit_checkpoint("after_stub")?;
     remove(root)
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn commit_confirmed(
     _root: &Path,
     _value: &SetupJournal,
@@ -510,9 +742,78 @@ pub fn cleanup_owned(root: &Path, value: &SetupJournal) -> Result<(), SetupError
     remove(root)
 }
 
-#[cfg(not(windows))]
+#[cfg(not(any(windows, target_os = "macos")))]
 pub fn cleanup_owned(_root: &Path, _value: &SetupJournal) -> Result<(), SetupError> {
     Err(SetupError::Unsupported)
+}
+
+#[cfg(target_os = "macos")]
+pub fn cleanup_owned(root: &Path, value: &SetupJournal) -> Result<(), SetupError> {
+    use age_plugin_phone_platform_storage::macos::{Directory, Error};
+    value.validate_root(root)?;
+    // Teardown requires the original durable ownership record. Never fabricate ownership from
+    // a partial key file or use a missing/corrupt journal as permission to clear replay state.
+    if read(root)? != *value {
+        return Err(SetupError::Invalid);
+    }
+    let own_locator = value.candidate.as_ref().map_or_else(
+        || journal_path(root),
+        |stub| crate::locator::pairing_locator_path(root, stub),
+    );
+    crate::locator::ensure_exclusive_cleanup_target(
+        root,
+        &own_locator,
+        &value.desktop_state,
+        &value.replay_state,
+    )
+    .map_err(|_| SetupError::Invalid)?;
+    let directory = Directory::open(root).map_err(|_| SetupError::Invalid)?;
+    let replay_name = value.replay_state.file_name().ok_or(SetupError::Invalid)?;
+    let mut lock_name = replay_name.to_os_string();
+    lock_name.push(".lock");
+    let replay_lock = directory
+        .lock(Path::new(&lock_name))
+        .map_err(|_| SetupError::Busy)?;
+    let remove = |path: &Path| -> Result<(), SetupError> {
+        replay_lock
+            .validate(&directory)
+            .map_err(|_| SetupError::Busy)?;
+        let child = Path::new(path.file_name().ok_or(SetupError::Invalid)?);
+        match directory.remove(child) {
+            Ok(()) | Err(Error::Missing) => {}
+            Err(_) => return Err(SetupError::Storage),
+        }
+        directory
+            .remove_replacement_temporaries(child)
+            .map_err(|_| SetupError::Storage)
+    };
+    // These are local reference deletions, not irreversible enclave destruction or phone revocation.
+    remove(&value.desktop_state)?;
+    remove(&value.replay_state)?;
+    let mut pending_name = replay_name.to_os_string();
+    pending_name.push(".pending");
+    remove(&root.join(pending_name))?;
+    if let Some(stub) = &value.candidate {
+        remove(&crate::locator::pairing_locator_path(root, stub))?;
+    }
+    if value.identity_stub.parent() == Some(root) {
+        remove(&value.identity_stub)?;
+    } else {
+        replay_lock
+            .validate(&directory)
+            .map_err(|_| SetupError::Busy)?;
+        match age_plugin_phone_platform_storage::macos::remove_regular_file(&value.identity_stub) {
+            Ok(()) | Err(Error::Missing) => {}
+            Err(_) => return Err(SetupError::Storage),
+        }
+    }
+    // Keep the journal through all earlier errors, including a failed lock-file deletion.
+    remove(&root.join(&lock_name))?;
+    drop(replay_lock);
+    directory
+        .remove_replacement_temporaries(Path::new(JOURNAL_NAME))
+        .map_err(|_| SetupError::Storage)?;
+    self::remove(root)
 }
 
 pub(crate) fn ensure_pairing_available(
@@ -631,5 +932,348 @@ mod tests {
         );
         value.desktop_state = root().join("wrong.state");
         assert_eq!(value.validate_root(&root()), Err(SetupError::Invalid));
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn explicit_journal_is_versioned_and_rejects_aliases_and_reserved_paths() {
+        let root = root();
+        let desktop = root.join("custom-desktop.state");
+        let replay = root.join("custom-replay.state");
+        let public = PathBuf::from("/private/public/phone.txt");
+        let value = SetupJournal::new_explicit(
+            &root,
+            [1; 16],
+            [2; 16],
+            [&desktop, &replay, &public],
+            TransportChoice::Qr,
+        )
+        .unwrap();
+        let bytes = value.encode().unwrap();
+        assert_eq!(SetupJournal::decode(&bytes).unwrap(), value);
+        let mut wrong_marker = bytes.clone();
+        *wrong_marker.last_mut().unwrap() = 0xf4; // false cannot disguise version 3 as managed
+        assert_eq!(
+            SetupJournal::decode(&wrong_marker),
+            Err(SetupError::Invalid)
+        );
+        for name in [
+            "desktop-setup.cbor",
+            "custom-replay.state.lock",
+            ".replace-test",
+            "UPPER.state",
+        ] {
+            assert!(
+                SetupJournal::new_explicit(
+                    &root,
+                    [1; 16],
+                    [2; 16],
+                    [&root.join(name), &replay, &public],
+                    TransportChoice::Qr
+                )
+                .is_err()
+            );
+        }
+        assert!(
+            SetupJournal::new_explicit(
+                &root,
+                [1; 16],
+                [2; 16],
+                [&desktop, &desktop, &public],
+                TransportChoice::Qr
+            )
+            .is_err()
+        );
+        assert!(
+            SetupJournal::new_explicit(
+                &root,
+                [1; 16],
+                [2; 16],
+                [&public, &replay, &desktop],
+                TransportChoice::Qr
+            )
+            .is_err()
+        );
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn explicit_ownership_never_claims_existing_or_uncertain_outputs() {
+        use age_plugin_phone_platform_storage::macos::Directory;
+        use std::os::unix::fs::symlink;
+        let root = std::env::temp_dir().canonicalize().unwrap().join(format!(
+            "phone-explicit-ownership-{}-{}",
+            std::process::id(),
+            rand_core::RngCore::next_u64(&mut OsRng)
+        ));
+        Directory::prepare(&root).unwrap();
+        let desktop = root.join("desktop.state");
+        let replay = root.join("replay.state");
+        let public = root.join("phone.txt");
+        let value = SetupJournal::new_explicit(
+            &root,
+            [1; 16],
+            [2; 16],
+            [&desktop, &replay, &public],
+            TransportChoice::Qr,
+        )
+        .unwrap();
+        for name in [
+            "desktop.state",
+            "replay.state",
+            "phone.txt",
+            "replay.state.pending",
+            "replay.state.lock",
+        ] {
+            let path = root.join(name);
+            std::fs::write(&path, b"uncertain synthetic state").unwrap();
+            assert_eq!(create(&root, &value), Err(SetupError::Invalid));
+            assert!(!journal_path(&root).exists());
+            assert_eq!(std::fs::read(&path).unwrap(), b"uncertain synthetic state");
+            std::fs::remove_file(path).unwrap();
+        }
+        symlink(root.join("missing"), &desktop).unwrap();
+        assert_eq!(create(&root, &value), Err(SetupError::Invalid));
+        std::fs::remove_file(&desktop).unwrap();
+        create(&root, &value).unwrap();
+        assert_eq!(read(&root).unwrap(), value);
+        Directory::open(&root)
+            .unwrap()
+            .create(Path::new("desktop.state"), b"pending")
+            .unwrap();
+        cleanup_owned(&root, &value).unwrap();
+        assert!(!desktop.exists());
+        assert!(!journal_path(&root).exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(target_os = "macos")]
+    fn macos_fixture() -> (PathBuf, SetupJournal) {
+        macos_fixture_with_paths(false)
+    }
+
+    #[cfg(target_os = "macos")]
+    fn macos_fixture_with_paths(explicit: bool) -> (PathBuf, SetupJournal) {
+        use age_plugin_phone_platform_storage::macos::Directory;
+        let root = std::env::temp_dir().canonicalize().unwrap().join(format!(
+            "phone-setup-test-{}-{}",
+            std::process::id(),
+            rand_core::RngCore::next_u64(&mut OsRng)
+        ));
+        Directory::prepare(&root).unwrap();
+        // This module's ordinary fixture uses the cfg(test) operation implementation, never
+        // the user's Secure Enclave. Native provisioning is a separately invoked test.
+        let source = root.join("fixture-key");
+        let keys = crate::pairing::DesktopKeyState::open_or_create(&source, &mut OsRng).unwrap();
+        let public_root = root.join("public");
+        std::fs::create_dir(&public_root).unwrap();
+        let mut value = if explicit {
+            SetupJournal::new_explicit(
+                &root,
+                [1; 16],
+                keys.desktop_id,
+                [
+                    &root.join("explicit-desktop.state"),
+                    &root.join("explicit-replay.state"),
+                    &public_root.join("phone.txt"),
+                ],
+                TransportChoice::Qr,
+            )
+            .unwrap()
+        } else {
+            SetupJournal::new(&root, [1; 16], keys.desktop_id)
+        };
+        create(&root, &value).unwrap();
+        std::fs::rename(source, &value.desktop_state).unwrap();
+        let mut stub = candidate(keys.desktop_id);
+        stub.desktop_signing_public_key = keys.signing_public_key().unwrap();
+        stub.desktop_selection_public_key = keys.selection_public_key().unwrap();
+        value.set_candidate(stub.clone()).unwrap();
+        value.set_confirmed(&stub).unwrap();
+        replace(&root, &value).unwrap();
+        (root, value)
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_confirmed_commit_resumes_at_every_write_boundary() {
+        for explicit in [false, true] {
+            for stage in [
+                "before_replay",
+                "after_replay",
+                "after_locator",
+                "after_stub",
+            ] {
+                let (root, value) = macos_fixture_with_paths(explicit);
+                let lock = acquire_lifecycle_lock(&root).unwrap();
+                assert!(acquire_lifecycle_lock(&root).is_err());
+                COMMIT_FAILURE.with(|failure| failure.set(Some(stage)));
+                assert_eq!(
+                    commit_confirmed(&root, &value, 100),
+                    Err(SetupError::Storage)
+                );
+                assert_eq!(read(&root).unwrap(), value);
+                let stub = value.candidate.as_ref().unwrap();
+                assert!(crate::locator::open_pairing_locator(&root, stub).is_err());
+                commit_confirmed(&root, &value, 100).unwrap();
+                assert_eq!(read(&root), Err(SetupError::Missing));
+                assert_eq!(read_managed_stub(&value.identity_stub).unwrap(), *stub);
+                assert!(crate::locator::open_pairing_locator(&root, stub).is_ok());
+                drop(lock);
+                std::fs::remove_dir_all(root).unwrap();
+            }
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_unconfirmed_wrong_key_and_uncertain_replay_do_not_commit() {
+        use age_plugin_phone_platform_storage::macos::Directory;
+        let (root, mut value) = macos_fixture();
+        for stage in [
+            SetupStage::Provisioning,
+            SetupStage::Pairing,
+            SetupStage::ResponseVerified,
+        ] {
+            value.stage = stage;
+            assert_eq!(
+                commit_confirmed(&root, &value, 100),
+                Err(SetupError::Invalid)
+            );
+            assert!(!value.replay_state.exists());
+        }
+        value.stage = SetupStage::Confirmed;
+        let original = value.candidate.clone();
+        value.candidate = Some(candidate(value.desktop_id));
+        assert_eq!(
+            commit_confirmed(&root, &value, 100),
+            Err(SetupError::Invalid)
+        );
+        assert!(!value.replay_state.exists());
+        value.candidate = original;
+        let directory = Directory::open(&root).unwrap();
+        let pending = root.join(format!(
+            "{}.pending",
+            value.replay_state.file_name().unwrap().to_str().unwrap()
+        ));
+        directory
+            .create(Path::new(pending.file_name().unwrap()), b"uncertain")
+            .unwrap();
+        assert_eq!(
+            commit_confirmed(&root, &value, 100),
+            Err(SetupError::Invalid)
+        );
+        assert_eq!(std::fs::read(pending).unwrap(), b"uncertain");
+        assert_eq!(read(&root).unwrap(), value);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_owned_cleanup_is_exact_idempotent_and_rejects_active_replay() {
+        use age_plugin_phone_platform_storage::macos::Directory;
+        let (root, value) = macos_fixture();
+        let directory = Directory::open(&root).unwrap();
+        directory.create(Path::new("unrelated"), b"keep").unwrap();
+        COMMIT_FAILURE.with(|failure| failure.set(Some("after_stub")));
+        assert_eq!(
+            commit_confirmed(&root, &value, 100),
+            Err(SetupError::Storage)
+        );
+        let mut wrong = value.clone();
+        wrong.setup_code[0] ^= 1;
+        assert_eq!(cleanup_owned(&root, &wrong), Err(SetupError::Invalid));
+        let lock_name = format!(
+            "{}.lock",
+            value.replay_state.file_name().unwrap().to_str().unwrap()
+        );
+        let replay_lock = directory.lock(Path::new(&lock_name)).unwrap();
+        assert_eq!(cleanup_owned(&root, &value), Err(SetupError::Busy));
+        assert!(value.desktop_state.exists());
+        drop(replay_lock);
+        // Simulate a process dying after its first deletion; journal remains authoritative.
+        directory
+            .remove(Path::new(value.desktop_state.file_name().unwrap()))
+            .unwrap();
+        cleanup_owned(&root, &value).unwrap();
+        assert_eq!(directory.read(Path::new("unrelated"), 10).unwrap(), b"keep");
+        assert!(!value.replay_state.exists());
+        assert!(!value.identity_stub.exists());
+        assert!(!journal_path(&root).exists());
+        assert_eq!(cleanup_owned(&root, &value), Err(SetupError::Missing));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn explicit_cleanup_resumes_after_rejecting_a_linked_public_output() {
+        let (root, value) = macos_fixture_with_paths(true);
+        COMMIT_FAILURE.with(|failure| failure.set(Some("after_stub")));
+        assert_eq!(
+            commit_confirmed(&root, &value, 100),
+            Err(SetupError::Storage)
+        );
+        let alias = root.join("public-alias");
+        std::fs::hard_link(&value.identity_stub, &alias).unwrap();
+        assert_eq!(cleanup_owned(&root, &value), Err(SetupError::Storage));
+        assert!(value.identity_stub.exists());
+        assert!(journal_path(&root).exists());
+        std::fs::remove_file(alias).unwrap();
+        cleanup_owned(&root, &value).unwrap();
+        assert!(!value.identity_stub.exists());
+        assert!(!journal_path(&root).exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[cfg(target_os = "macos")]
+    #[test]
+    fn macos_resume_preserves_existing_consumption_and_rejects_missing_ownership() {
+        use age_plugin_phone_core::protocol::{
+            DEFAULT_REPLAY_CAPACITY, FileReplayGuard, ReplayRole, ReplayScope, ReplayStore,
+        };
+        let (root, value) = macos_fixture();
+        COMMIT_FAILURE.with(|failure| failure.set(Some("after_replay")));
+        assert_eq!(
+            commit_confirmed(&root, &value, 100),
+            Err(SetupError::Storage)
+        );
+        let scope = ReplayScope::new(
+            ReplayRole::DesktopResponses,
+            value.desktop_id,
+            value.candidate.as_ref().unwrap().identity_id,
+        );
+        let mut replay =
+            FileReplayGuard::open(&value.replay_state, scope, DEFAULT_REPLAY_CAPACITY).unwrap();
+        replay
+            .consume_response(
+                value.desktop_id,
+                value.candidate.as_ref().unwrap().identity_id,
+                [9; 32],
+                110,
+                100,
+            )
+            .unwrap();
+        drop(replay);
+        commit_confirmed(&root, &value, 100).unwrap();
+        let mut replay =
+            FileReplayGuard::open(&value.replay_state, scope, DEFAULT_REPLAY_CAPACITY).unwrap();
+        assert!(
+            replay
+                .consume_response(
+                    value.desktop_id,
+                    value.candidate.as_ref().unwrap().identity_id,
+                    [9; 32],
+                    110,
+                    100
+                )
+                .is_err()
+        );
+        drop(replay);
+        // A caller-held copy of a journal cannot reconstruct ownership after commit.
+        assert_eq!(
+            commit_confirmed(&root, &value, 100),
+            Err(SetupError::Missing)
+        );
+        std::fs::remove_dir_all(root).unwrap();
     }
 }

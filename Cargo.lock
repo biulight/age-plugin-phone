@@ -50,7 +50,7 @@ dependencies = [
 
 [[package]]
 name = "age-plugin-phone"
-version = "0.1.0-alpha.4"
+version = "0.1.0-alpha.5"
 dependencies = [
  "age-core",
  "age-plugin",
@@ -68,6 +68,7 @@ dependencies = [
  "rqrr",
  "serde",
  "serde_json",
+ "sha2",
  "thiserror 2.0.20",
  "windows-sys 0.61.2",
  "zeroize",
@@ -75,7 +76,7 @@ dependencies = [
 
 [[package]]
 name = "age-plugin-phone-core"
-version = "0.1.0-alpha.4"
+version = "0.1.0-alpha.5"
 dependencies = [
  "age-plugin-phone-platform-storage",
  "base64 0.22.1",
@@ -94,7 +95,7 @@ dependencies = [
 
 [[package]]
 name = "age-plugin-phone-mobile"
-version = "0.1.0-alpha.4"
+version = "0.1.0-alpha.5"
 dependencies = [
  "age-plugin-phone-core",
  "serde",
@@ -105,11 +106,18 @@ dependencies = [
 
 [[package]]
 name = "age-plugin-phone-platform-keys"
-version = "0.1.0-alpha.4"
+version = "0.1.0-alpha.5"
 dependencies = [
  "age-plugin-phone-core",
+ "base64 0.22.1",
+ "core-foundation 0.10.1",
  "p256",
  "rand_core",
+ "security-framework",
+ "security-framework-sys",
+ "serde",
+ "serde_json",
+ "sha2",
  "thiserror 2.0.20",
  "windows-sys 0.61.2",
  "windows-version",
@@ -118,8 +126,9 @@ dependencies = [
 
 [[package]]
 name = "age-plugin-phone-platform-storage"
-version = "0.1.0-alpha.4"
+version = "0.1.0-alpha.5"
 dependencies = [
+ "libc",
  "rustix 1.1.4",
  "thiserror 2.0.20",
  "windows-sys 0.61.2",
@@ -3740,6 +3749,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "security-framework"
+version = "3.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b7f4bc775c73d9a02cde8bf7b2ec4c9d12743edf609006c7facc23998404cd1d"
+dependencies = [
+ "bitflags 2.13.1",
+ "core-foundation 0.10.1",
+ "core-foundation-sys 0.8.7",
+ "libc",
+ "security-framework-sys",
+]
+
+[[package]]
+name = "security-framework-sys"
+version = "2.17.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ce2691df843ecc5d231c0b14ece2acc3efb62c0a398c7e1d875f3983ce020e3"
+dependencies = [
+ "core-foundation-sys 0.8.7",
+ "libc",
+]
+
+[[package]]
 name = "selectors"
 version = "0.36.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4367,7 +4399,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-phone-identity"
-version = "0.1.0-alpha.4"
+version = "0.1.0-alpha.5"
 dependencies = [
  "serde",
  "tauri",

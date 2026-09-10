@@ -1,9 +1,9 @@
 [package]
 publish = ["crates-io"]
 readme = "README.md"
-include = ["src/**", "tests/**", "examples/**", "test-vectors/**", "Cargo.toml", "Cargo.lock", "README.md", "LICENSE"]
+include = ["build.rs", "native/**", "src/**", "tests/**", "examples/**", "test-vectors/**", "Cargo.toml", "Cargo.lock", "README.md", "LICENSE"]
 name = "age-plugin-phone-platform-keys"
-description = "Windows TPM-backed desktop key custody for age-plugin-phone"
+description = "Hardware-backed desktop key custody for age-plugin-phone"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -26,6 +26,24 @@ windows-sys = { workspace = true, features = [
 [lints.rust]
 unsafe_op_in_unsafe_fn = "deny"
 
+# Dependencies for the isolated M0 research examples only.
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+core-foundation = "0.10.1"
+security-framework = { version = "3.7.0", default-features = false, features = ["OSX_10_15", "sync-keychain"] }
+security-framework-sys = "2.17.0"
+p256.workspace = true
+sha2.workspace = true
+zeroize.workspace = true
+base64.workspace = true
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
+
 [lints.clippy]
 all = "warn"
 pedantic = "warn"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+age-plugin-phone-core.workspace = true
+p256.workspace = true
+zeroize.workspace = true
+thiserror.workspace = true

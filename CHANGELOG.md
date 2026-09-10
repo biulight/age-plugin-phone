@@ -6,9 +6,34 @@ recovery recipient.
 
 ## [Unreleased]
 
-## [0.1.0-alpha.4] - Unreleased candidate
+## [0.1.0-alpha.5] - 2026-09-10
 
-Fourth test-signed developer prerelease candidate. Exact signed-package acceptance is pending.
+Interim experimental release; additional macOS physical acceptance is deferred by the
+[user-approved scope decision](docs/macos-release-scope-decision.md), not marked passed.
+
+### Added
+
+- Four separately packaged desktop crates with exact internal dependency versions.
+- macOS Secure Enclave dual-key custody, protected native storage, managed/explicit
+  pairing journals, setup resume and normal/orphan cleanup, delivered through source installation.
+- macOS build, archive, state-continuity and native acceptance evidence and recovery guides.
+
+### Fixed
+
+- macOS compact IPv4 netmask parsing, interface-scoped Wi-Fi discovery and response polling.
+- Android foreground discovery reception ownership and payload-free discovery diagnostics.
+
+### Scope
+
+- Existing records cover exact earlier candidate artifacts; no new alpha.5 physical pass is claimed.
+- Valid desktop replay snapshot restoration remains an explicit Windows/macOS limitation.
+- Tagged recipients are the next implementation stage and are not included in this release.
+
+See the [release notes](docs/releases/v0.1.0-alpha.5.md) for platform and artifact boundaries.
+
+## [0.1.0-alpha.4] - 2026-09-07
+
+Fourth test-signed developer prerelease. Exact signed-package owner-only acceptance passed.
 
 ### Added
 
@@ -29,7 +54,11 @@ Fourth test-signed developer prerelease candidate. Exact signed-package acceptan
 ### Validation
 
 - Earlier alpha.3 signed-package and subsequent isolated debug UI/Wi-Fi evidence remain historical.
-  They do not certify the alpha.4 package pair; signing and physical acceptance are still pending.
+  They do not certify the alpha.4 package pair.
+- The exact alpha.4 Windows/Android pair passed minimum unwrap, manual pairing/discovery,
+  alpha.3 in-place upgrade, independent recovery and final cleanup. See the
+  [acceptance record](docs/windows-acceptance-2026-09-07.md). The complete public-Alpha matrix
+  remains deferred; firewall evidence is limited to current-host Inspect and `-WhatIf`.
 
 ## [0.1.0-alpha.3] - 2026-09-04
 
@@ -107,7 +136,8 @@ First test-signed developer prerelease.
 - This prerelease is for synthetic or disposable data with a separately verified independent
   recovery recipient. It is not a public-Alpha or production-secret claim.
 
-[Unreleased]: https://github.com/biulight/age-plugin-phone/compare/v0.1.0-alpha.4...HEAD
+[Unreleased]: https://github.com/biulight/age-plugin-phone/compare/v0.1.0-alpha.5...HEAD
+[0.1.0-alpha.5]: https://github.com/biulight/age-plugin-phone/compare/v0.1.0-alpha.4...v0.1.0-alpha.5
 [0.1.0-alpha.4]: https://github.com/biulight/age-plugin-phone/compare/v0.1.0-alpha.3...v0.1.0-alpha.4
 [0.1.0-alpha.3]: https://github.com/biulight/age-plugin-phone/compare/v0.1.0-alpha.2...v0.1.0-alpha.3
 [0.1.0-alpha.2]: https://github.com/biulight/age-plugin-phone/compare/v0.1.0-alpha.1...v0.1.0-alpha.2

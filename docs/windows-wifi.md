@@ -1,9 +1,9 @@
 # Windows Wi-Fi setup and diagnosis
 
 Use this with the [Windows quickstart](windows-alpha-quickstart.md). `wifi-doctor` and the
-firewall helper are source-candidate additions after alpha.3; the published alpha.3 binary does
-not contain that command. Use a matching newly built candidate for these checks, and keep its
-executable path fixed. Do not mix results from different APKs or EXEs.
+firewall helper are included in the published alpha.4 Windows package. Use the matching
+[accepted artifact pair](windows-acceptance-2026-09-07.md) and keep its executable path fixed.
+Do not mix results from different APKs or EXEs.
 
 ## Prepare the phone and network
 

@@ -11,6 +11,20 @@ has the same required-reviewer protection but **no signing secrets or variables*
 to promote a physically verified candidate. Configure both environments before dispatching a
 candidate. Only dispatch the workflow from an immutable commit selected for the release candidate.
 
+## Signed Android acceptance build
+
+For an in-place phone acceptance update, dispatch `alpha-release.yml` on the reviewed candidate
+ref with its full `expected_commit` and `acceptance_only=true`. This mode validates the checkout
+SHA and manifest versions, builds only Android using the existing `alpha-release` signing
+configuration, and uploads a 30-day `android-acceptance` Actions artifact. Windows and publication
+jobs are skipped; no tag or GitHub release is created. The default remains the existing release
+mode. Environment protection rules still apply.
+
+Verify the APK signature and compare its signer certificate with the installed APK before
+`adb install -r`. Do not uninstall or substitute a debug signature to bypass a mismatch: that
+would jeopardize the existing phone identity and pairings. Build success does not replace
+physical acceptance or fresh native verification. Signing secrets remain in the CI environment.
+
 ## Windows test signing certificate chain
 
 The pre-commercial RC workflow uses a private test root CA and one persistent code-signing leaf

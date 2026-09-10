@@ -2,10 +2,16 @@
 
 ## Supported versions
 
-No version is supported for production secrets. `0.1.0-alpha.3` is an experimental,
+No version is supported for production secrets. `0.1.0-alpha.5` retains experimental
+developer-preview scope; remaining macOS physical acceptance is deferred under the
+[release-scope decision](docs/macos-release-scope-decision.md), not marked passed.
+See the [release notes](docs/releases/v0.1.0-alpha.5.md) for the current boundaries.
+
+Historically, `0.1.0-alpha.4` is an experimental,
 test-signed developer prerelease for synthetic or disposable data with an independent recovery
-recipient. `0.1.0-alpha.4` is being prepared under the same boundary; candidate preparation
-does not establish signed-package or physical acceptance.
+recipient. Its exact Windows/Android package pair passed
+[owner-only physical acceptance](docs/windows-acceptance-2026-09-07.md) and was published on
+2026-09-07. The complete public-Alpha matrix remains deferred.
 
 ## Reporting a vulnerability
 

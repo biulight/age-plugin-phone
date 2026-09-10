@@ -119,6 +119,7 @@ pub fn create_pairing_locator_with_transport(
         replay_state: absolute_existing(replay_state)?,
         transport,
     };
+    validate_layout(&directory, &locator)?;
     let encoded = encode(stub, &locator)?;
     create_private_file(&path, &encoded)?;
     #[cfg(not(windows))]
@@ -133,7 +134,7 @@ pub fn open_pairing_locator(
     open_pairing_locator_record(root, stub).map(|(_, locator)| locator)
 }
 
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 pub(crate) fn existing_pairing_locator_path(
     root: &Path,
     stub: &PublicIdentityStub,
@@ -141,7 +142,7 @@ pub(crate) fn existing_pairing_locator_path(
     open_pairing_locator_record(root, stub).map(|(path, _)| path)
 }
 
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 pub(crate) fn open_pairing_locator_for_cleanup(
     root: &Path,
     supplied_path: &Path,
@@ -153,12 +154,54 @@ pub(crate) fn open_pairing_locator_for_cleanup(
         return Err(LocatorError::Invalid);
     }
     let record = decode_record(&read_locator_file(&path)?)?;
+    validate_layout(&directory, &record.locator)?;
     if path != locator_path_for_record(&directory, &record)
         && path != legacy_locator_path_for_record(&directory, &record)
     {
         return Err(LocatorError::Invalid);
     }
     Ok((path, record))
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn ensure_exclusive_cleanup_target(
+    root: &Path,
+    locator_path: &Path,
+    desktop_state: &Path,
+    replay_state: &Path,
+) -> Result<(), LocatorError> {
+    let directory = age_plugin_phone_platform_storage::macos::Directory::open(root)
+        .map_err(|_| LocatorError::Invalid)?;
+    for name in directory
+        .child_names(4096)
+        .map_err(|_| LocatorError::Invalid)?
+    {
+        let Some(stem) = name.to_str().and_then(|name| name.strip_suffix(".cbor")) else {
+            continue;
+        };
+        let parts: Vec<_> = stem.split('-').collect();
+        if !(parts.len() == 1 || parts.len() == 2)
+            || !parts.iter().all(|part| {
+                part.len() == 32
+                    && part
+                        .bytes()
+                        .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+            })
+        {
+            continue;
+        }
+        let path = root.join(&name);
+        if path == locator_path {
+            continue;
+        }
+        let (_, other) = open_pairing_locator_for_cleanup(root, &path)?;
+        if other.locator.desktop_state == desktop_state
+            || other.locator.replay_state == replay_state
+        {
+            return Err(LocatorError::Invalid);
+        }
+    }
+    directory.validate().map_err(|_| LocatorError::Invalid)
 }
 
 fn open_pairing_locator_record(
@@ -174,7 +217,11 @@ fn open_pairing_locator_record(
         legacy_pairing_locator_path(&directory, stub),
     ] {
         match read_locator_file(&path) {
-            Ok(bytes) => return decode(stub, &bytes).map(|locator| (path, locator)),
+            Ok(bytes) => {
+                let locator = decode(stub, &bytes)?;
+                validate_layout(&directory, &locator)?;
+                return Ok((path, locator));
+            }
             Err(LocatorError::Missing) => {}
             Err(error) => return Err(error),
         }
@@ -182,7 +229,7 @@ fn open_pairing_locator_record(
     Err(LocatorError::Missing)
 }
 
-#[cfg(windows)]
+#[cfg(any(windows, target_os = "macos"))]
 pub(crate) fn open_pairing_locator_for_setup(
     root: &Path,
     stub: &PublicIdentityStub,
@@ -194,7 +241,11 @@ pub(crate) fn open_pairing_locator_for_setup(
         legacy_pairing_locator_path(&directory, stub),
     ] {
         match read_locator_file(&path) {
-            Ok(bytes) => return decode(stub, &bytes),
+            Ok(bytes) => {
+                let locator = decode(stub, &bytes)?;
+                validate_layout(&directory, &locator)?;
+                return Ok(locator);
+            }
             Err(LocatorError::Missing) => {}
             Err(error) => return Err(error),
         }
@@ -202,7 +253,7 @@ pub(crate) fn open_pairing_locator_for_setup(
     Err(LocatorError::Missing)
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "macos")))]
 fn read_locator_file(path: &Path) -> Result<Vec<u8>, LocatorError> {
     age_plugin_phone_platform_storage::unix::private_file::read_private_file(
         path,
@@ -362,7 +413,7 @@ fn legacy_pairing_locator_path(root: &Path, stub: &PublicIdentityStub) -> PathBu
     root.join(format!("{}.cbor", hex(&stub.identity_id)))
 }
 
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 fn locator_path_for_record(root: &Path, record: &PairingLocatorRecord) -> PathBuf {
     root.join(format!(
         "{}-{}.cbor",
@@ -371,7 +422,7 @@ fn locator_path_for_record(root: &Path, record: &PairingLocatorRecord) -> PathBu
     ))
 }
 
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 fn legacy_locator_path_for_record(root: &Path, record: &PairingLocatorRecord) -> PathBuf {
     root.join(format!("{}.cbor", hex(&record.identity_id)))
 }
@@ -387,6 +438,7 @@ fn ensure_not_pending(root: &Path, stub: &PublicIdentityStub) -> Result<(), Loca
     })
 }
 
+#[cfg(not(target_os = "macos"))]
 fn absolute_existing(path: &Path) -> Result<PathBuf, LocatorError> {
     let absolute = if path.is_absolute() {
         path.to_path_buf()
@@ -398,7 +450,7 @@ fn absolute_existing(path: &Path) -> Result<PathBuf, LocatorError> {
     absolute.canonicalize().map_err(|_| LocatorError::Invalid)
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "macos")))]
 fn prepare_directory(root: &Path) -> Result<PathBuf, LocatorError> {
     age_plugin_phone_platform_storage::unix::private_file::prepare_directory(root)
         .map_err(LocatorError::from)
@@ -417,7 +469,7 @@ fn prepare_directory(root: &Path) -> Result<PathBuf, LocatorError> {
     checked_directory(root)
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "macos")))]
 fn checked_directory(root: &Path) -> Result<PathBuf, LocatorError> {
     age_plugin_phone_platform_storage::unix::private_file::checked_directory(root)
         .map_err(LocatorError::from)
@@ -436,7 +488,7 @@ fn checked_directory(root: &Path) -> Result<PathBuf, LocatorError> {
     Ok(root.to_path_buf())
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "macos")))]
 fn create_private_file(path: &Path, bytes: &[u8]) -> Result<(), LocatorError> {
     age_plugin_phone_platform_storage::unix::private_file::create_private_file(path, bytes)
         .map_err(LocatorError::from)
@@ -460,7 +512,7 @@ fn create_private_file(path: &Path, bytes: &[u8]) -> Result<(), LocatorError> {
     })
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "macos")))]
 fn sync_directory(path: &Path) -> Result<(), LocatorError> {
     age_plugin_phone_platform_storage::unix::private_file::sync_directory(path)
         .map_err(LocatorError::from)
@@ -508,11 +560,20 @@ mod tests {
             ),
             include_bytes!("../tests/fixtures/locator-v3.cbor").as_slice(),
         );
-        let root = std::env::temp_dir().join(format!("phone-old-locator-{}", std::process::id()));
+        let root = std::env::temp_dir()
+            .canonicalize()
+            .unwrap()
+            .join(format!("phone-old-locator-{}", std::process::id()));
         std::fs::create_dir(&root).unwrap();
+        #[cfg(unix)]
+        std::fs::set_permissions(
+            &root,
+            <std::fs::Permissions as std::os::unix::fs::PermissionsExt>::from_mode(0o700),
+        )
+        .unwrap();
         let root = root.canonicalize().unwrap();
         let (stub, desktop, replay) = fixture(&root);
-        let config = prepare_directory(&root.join("config")).unwrap();
+        let config = prepare_directory(&root).unwrap();
         let bytes = old_locator::encode(
             &stub.desktop_id,
             &stub.identity_id,
@@ -597,7 +658,7 @@ mod tests {
     fn locator_is_private_bound_and_never_overwritten() {
         use std::os::unix::fs::PermissionsExt as _;
 
-        let root = std::env::temp_dir().join(format!(
+        let root = std::env::temp_dir().canonicalize().unwrap().join(format!(
             "age-phone-locator-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
@@ -606,7 +667,13 @@ mod tests {
                 .as_nanos(),
         ));
         std::fs::create_dir(&root).unwrap();
-        let state = root.join("state");
+        #[cfg(unix)]
+        std::fs::set_permissions(
+            &root,
+            <std::fs::Permissions as std::os::unix::fs::PermissionsExt>::from_mode(0o700),
+        )
+        .unwrap();
+        let state = root.clone();
         let (stub, desktop, replay) = fixture(&root);
         let locator_path = create_pairing_locator_with_transport(
             &state,
@@ -648,6 +715,9 @@ mod tests {
         let other_replay = root.join("other-replay.cbor");
         std::fs::write(&other_desktop, b"other desktop").unwrap();
         std::fs::write(&other_replay, b"other replay").unwrap();
+        for path in [&other_desktop, &other_replay] {
+            std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        }
         let other_locator =
             create_pairing_locator(&state, &other, &other_desktop, &other_replay).unwrap();
         assert_ne!(locator_path, other_locator);
@@ -685,10 +755,55 @@ mod tests {
     }
 
     #[test]
+    #[cfg(target_os = "macos")]
+    fn macos_journals_and_external_state_fail_closed() {
+        use age_plugin_phone_platform_storage::macos::{Directory, remove_private_file};
+        let root = std::env::temp_dir()
+            .canonicalize()
+            .unwrap()
+            .join(format!("phone-m2-journal-{}", std::process::id()));
+        Directory::prepare(&root).unwrap();
+        let (stub, desktop, replay) = fixture(&root);
+        create_pairing_locator(&root, &stub, &desktop, &replay).unwrap();
+        let outside = root.join("outside");
+        Directory::prepare(&outside).unwrap();
+        assert!(create_pairing_locator(&outside, &stub, &desktop, &replay).is_err());
+        let journal = crate::cleanup_journal::CleanupJournal {
+            target: crate::cleanup_journal::CleanupTarget::Orphan {
+                desktop_id: stub.desktop_id,
+                identity_id: stub.identity_id,
+                transcript_fingerprint: stub.transcript_fingerprint,
+            },
+            locator_path: pairing_locator_path(&root, &stub),
+            desktop_state: desktop,
+            replay_state: replay,
+        };
+        crate::cleanup_journal::create(&root, &journal).unwrap();
+        assert_eq!(
+            open_pairing_locator(&root, &stub),
+            Err(LocatorError::CleanupPending)
+        );
+        remove_private_file(&crate::cleanup_journal::journal_path(&root)).unwrap();
+        let mut setup = crate::setup::SetupJournal::new(&root, [1; 16], stub.desktop_id);
+        setup.set_candidate(stub.clone()).unwrap();
+        crate::setup::create(&root, &setup).unwrap();
+        assert_eq!(
+            open_pairing_locator(&root, &stub),
+            Err(LocatorError::SetupPending)
+        );
+        std::fs::write(crate::setup::journal_path(&root), b"corrupt").unwrap();
+        assert_eq!(
+            open_pairing_locator(&root, &stub),
+            Err(LocatorError::SetupPending)
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
     fn cleanup_locator_requires_an_exact_private_canonical_path() {
         use std::os::unix::fs::PermissionsExt as _;
 
-        let root = std::env::temp_dir().join(format!(
+        let root = std::env::temp_dir().canonicalize().unwrap().join(format!(
             "age-phone-cleanup-locator-{}-{}",
             std::process::id(),
             std::time::SystemTime::now()
@@ -697,7 +812,13 @@ mod tests {
                 .as_nanos(),
         ));
         std::fs::create_dir(&root).unwrap();
-        let state = root.join("state");
+        #[cfg(unix)]
+        std::fs::set_permissions(
+            &root,
+            <std::fs::Permissions as std::os::unix::fs::PermissionsExt>::from_mode(0o700),
+        )
+        .unwrap();
+        let state = root.clone();
         let (stub, desktop, replay) = fixture(&root);
         let locator_path = create_pairing_locator(&state, &stub, &desktop, &replay).unwrap();
 
@@ -746,7 +867,7 @@ mod tests {
     }
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(target_os = "macos")))]
 impl From<age_plugin_phone_platform_storage::unix::private_file::Error> for LocatorError {
     fn from(error: age_plugin_phone_platform_storage::unix::private_file::Error) -> Self {
         use age_plugin_phone_platform_storage::unix::private_file::Error;
@@ -754,6 +875,66 @@ impl From<age_plugin_phone_platform_storage::unix::private_file::Error> for Loca
             Error::Config => Self::Config,
             Error::AlreadyExists => Self::AlreadyExists,
             Error::Missing => Self::Missing,
+            Error::Invalid => Self::Invalid,
+            Error::Storage => Self::Storage,
+        }
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn absolute_existing(path: &Path) -> Result<PathBuf, LocatorError> {
+    let path = std::path::absolute(path).map_err(|_| LocatorError::Invalid)?;
+    age_plugin_phone_platform_storage::macos::read_private_file(&path, 1_048_576)
+        .map_err(LocatorError::from)?;
+    Ok(path)
+}
+// Keep the fallible platform interface: macOS rejects layouts outside its private root.
+#[cfg_attr(not(target_os = "macos"), allow(clippy::unnecessary_wraps))]
+fn validate_layout(root: &Path, locator: &PairingLocator) -> Result<(), LocatorError> {
+    #[cfg(target_os = "macos")]
+    if locator.desktop_state.parent() != Some(root)
+        || locator.replay_state.parent() != Some(root)
+        || locator.desktop_state == locator.replay_state
+    {
+        return Err(LocatorError::Invalid);
+    }
+    #[cfg(not(target_os = "macos"))]
+    let _ = (root, locator);
+    Ok(())
+}
+#[cfg(target_os = "macos")]
+fn read_locator_file(path: &Path) -> Result<Vec<u8>, LocatorError> {
+    age_plugin_phone_platform_storage::macos::read_private_file(path, MAX_LOCATOR_BYTES)
+        .map_err(LocatorError::from)
+}
+#[cfg(target_os = "macos")]
+fn prepare_directory(root: &Path) -> Result<PathBuf, LocatorError> {
+    age_plugin_phone_platform_storage::macos::Directory::prepare(root)
+        .map_err(LocatorError::from)?;
+    Ok(root.to_path_buf())
+}
+#[cfg(target_os = "macos")]
+fn checked_directory(root: &Path) -> Result<PathBuf, LocatorError> {
+    age_plugin_phone_platform_storage::macos::Directory::open(root).map_err(LocatorError::from)?;
+    Ok(root.to_path_buf())
+}
+#[cfg(target_os = "macos")]
+fn create_private_file(path: &Path, bytes: &[u8]) -> Result<(), LocatorError> {
+    age_plugin_phone_platform_storage::macos::atomic_create(path, bytes).map_err(LocatorError::from)
+}
+#[cfg(target_os = "macos")]
+fn sync_directory(path: &Path) -> Result<(), LocatorError> {
+    age_plugin_phone_platform_storage::macos::Directory::open(path)
+        .and_then(|d| d.sync())
+        .map_err(LocatorError::from)
+}
+#[cfg(target_os = "macos")]
+impl From<age_plugin_phone_platform_storage::macos::Error> for LocatorError {
+    fn from(error: age_plugin_phone_platform_storage::macos::Error) -> Self {
+        use age_plugin_phone_platform_storage::macos::Error;
+        match error {
+            Error::Missing => Self::Missing,
+            Error::AlreadyExists => Self::AlreadyExists,
             Error::Invalid => Self::Invalid,
             Error::Storage => Self::Storage,
         }

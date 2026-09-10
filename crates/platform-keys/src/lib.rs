@@ -1,3 +1,5 @@
-//! Platform hardware key boundaries; macOS hardware keys are not implemented.
+//! Platform hardware key boundaries.
+#[cfg(target_os = "macos")]
+pub mod macos;
 #[cfg(windows)]
 pub mod windows;

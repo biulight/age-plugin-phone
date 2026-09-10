@@ -161,7 +161,7 @@ fn identity_route_options(
         ) {
             Ok(discovered) => wifi_address = Some(discovered),
             Err(WifiError::DiscoveryUnavailable) if transport == TransportChoice::Auto => {}
-            Err(_) => return Err(internal("phone Wi-Fi discovery failed or was ambiguous")),
+            Err(error) => return Err(internal(&format!("phone Wi-Fi discovery failed: {error}"))),
         }
     }
     resolve_transport(
@@ -695,7 +695,7 @@ mod tests {
         }
 
         fn with_identity_id(identity_id: [u8; 16]) -> Self {
-            let root = std::env::temp_dir().join(format!(
+            let root = std::env::temp_dir().canonicalize().unwrap().join(format!(
                 "age-phone-identity-v1-{}-{}-{}",
                 std::process::id(),
                 std::time::SystemTime::now()
@@ -705,6 +705,12 @@ mod tests {
                 rand_core::RngCore::next_u64(&mut OsRng),
             ));
             std::fs::create_dir(&root).unwrap();
+            #[cfg(unix)]
+            std::fs::set_permissions(
+                &root,
+                <std::fs::Permissions as std::os::unix::fs::PermissionsExt>::from_mode(0o700),
+            )
+            .unwrap();
             let desktop_path = root.join("desktop.key");
             let desktop = DesktopKeyState::open_or_create(&desktop_path, &mut OsRng).unwrap();
             let identity = SecretKey::random(&mut OsRng);
@@ -757,7 +763,7 @@ mod tests {
                 )
                 .unwrap(),
             );
-            let config = root.join("config");
+            let config = root.clone();
             create_pairing_locator(&config, &stub, &desktop_path, &replay_path).unwrap();
             Self {
                 root,
@@ -1002,13 +1008,12 @@ mod tests {
 
         let first = Fixture::new();
         let second = Fixture::with_identity_id([0x41; 16]);
-        create_pairing_locator(
-            &first.config,
-            &second.stub,
-            &second.root.join("desktop.key"),
-            &second.root.join("responses.cbor"),
-        )
-        .unwrap();
+        let second_desktop = first.config.join("second-desktop.key");
+        let second_replay = first.config.join("second-responses.cbor");
+        std::fs::copy(second.root.join("desktop.key"), &second_desktop).unwrap();
+        std::fs::copy(second.root.join("responses.cbor"), &second_replay).unwrap();
+        create_pairing_locator(&first.config, &second.stub, &second_desktop, &second_replay)
+            .unwrap();
         let identities = vec![(0, second.stub.clone()), (1, first.stub.clone())];
         let files = vec![vec![
             first.selectable_stanza([14; 16]),

@@ -51,7 +51,7 @@ pub enum WifiError {
     DiscoveryUnavailable,
     #[error("multiple matching foreground Wi-Fi listeners were discovered")]
     DiscoveryAmbiguous,
-    #[error("the Wi-Fi discovery socket was unavailable")]
+    #[error("local Wi-Fi discovery failed; check network permissions and active interfaces")]
     Discovery,
 }
 
@@ -100,7 +100,6 @@ pub fn discover_unwrap_endpoint(
         },
         Some(&verifying_key),
         timeout,
-        SocketAddr::from((Ipv4Addr::BROADCAST, WIFI_DISCOVERY_PORT)),
     )
 }
 
@@ -122,7 +121,6 @@ pub fn discover_pairing_endpoint(
         },
         None,
         timeout,
-        SocketAddr::from((Ipv4Addr::BROADCAST, WIFI_DISCOVERY_PORT)),
     )
 }
 
@@ -136,23 +134,110 @@ fn discover_endpoint(
     query: &DiscoveryQuery,
     verifying_key: Option<&VerifyingKey>,
     timeout: Duration,
-    target: SocketAddr,
 ) -> Result<SocketAddr, WifiError> {
-    let socket = UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)).map_err(|_| WifiError::Discovery)?;
-    socket
-        .set_broadcast(true)
-        .map_err(|_| WifiError::Discovery)?;
-    let mut targets = discovery_targets();
-    targets.insert(target);
-    discover_with_socket(&socket, query, verifying_key, timeout, &targets)
+    #[cfg(target_os = "macos")]
+    {
+        let interfaces = age_plugin_phone_platform_storage::macos::network::ipv4_interfaces()
+            .map_err(|_| WifiError::Discovery)?;
+        let mut channels = Vec::new();
+        for interface in interfaces {
+            let routes =
+                macos_discovery_routes([(interface.index, interface.address, interface.mask)]);
+            if routes.is_empty() {
+                continue;
+            }
+            // Keep reply destinations tied to their originating subnet instead of changing
+            // interface scope on a shared source socket.
+            let socket =
+                UdpSocket::bind((interface.address, 0)).map_err(|_| WifiError::Discovery)?;
+            socket
+                .set_broadcast(true)
+                .map_err(|_| WifiError::Discovery)?;
+            socket
+                .set_nonblocking(true)
+                .map_err(|_| WifiError::Discovery)?;
+            channels.push((socket, routes));
+        }
+        if channels.is_empty() {
+            return Err(WifiError::Discovery);
+        }
+        let mut next_receive = 0;
+        discover_with_io(
+            query,
+            verifying_key,
+            timeout,
+            |encoded| {
+                for (socket, routes) in &channels {
+                    for (index, target) in routes {
+                        if age_plugin_phone_platform_storage::macos::network::send_on_interface(
+                            socket, *index, encoded, target,
+                        )
+                        .map_err(|_| WifiError::Discovery)?
+                            != encoded.len()
+                        {
+                            return Err(WifiError::Discovery);
+                        }
+                    }
+                }
+                Ok(())
+            },
+            |buffer, wait| {
+                // Rotate after each packet so a busy first interface cannot starve the others.
+                for _ in 0..channels.len() {
+                    let (socket, _) = &channels[next_receive];
+                    next_receive = (next_receive + 1) % channels.len();
+                    match socket.recv_from(buffer) {
+                        Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {}
+                        result => return result,
+                    }
+                }
+                std::thread::sleep(wait.min(Duration::from_millis(5)));
+                Err(std::io::ErrorKind::WouldBlock.into())
+            },
+        )
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let socket =
+            UdpSocket::bind((Ipv4Addr::UNSPECIFIED, 0)).map_err(|_| WifiError::Discovery)?;
+        socket
+            .set_broadcast(true)
+            .map_err(|_| WifiError::Discovery)?;
+        let targets = discovery_targets()?;
+        discover_with_socket(&socket, query, verifying_key, timeout, &targets)
+    }
 }
 
+#[cfg(any(not(target_os = "macos"), test))]
 fn discover_with_socket(
     socket: &UdpSocket,
     query: &DiscoveryQuery,
     verifying_key: Option<&VerifyingKey>,
     timeout: Duration,
     targets: &BTreeSet<SocketAddr>,
+) -> Result<SocketAddr, WifiError> {
+    discover_with_io(
+        query,
+        verifying_key,
+        timeout,
+        |encoded| {
+            send_discovery_queries(targets, encoded, |bytes, target| {
+                socket.send_to(bytes, target)
+            })
+        },
+        |buffer, wait| {
+            socket.set_read_timeout(Some(wait.max(Duration::from_millis(1))))?;
+            socket.recv_from(buffer)
+        },
+    )
+}
+
+fn discover_with_io(
+    query: &DiscoveryQuery,
+    verifying_key: Option<&VerifyingKey>,
+    timeout: Duration,
+    mut send: impl FnMut(&[u8]) -> Result<(), WifiError>,
+    mut receive: impl FnMut(&mut [u8], Duration) -> std::io::Result<(usize, SocketAddr)>,
 ) -> Result<SocketAddr, WifiError> {
     let encoded = encode_discovery(query, DISCOVERY_QUERY);
     let deadline = Instant::now()
@@ -167,21 +252,12 @@ fn discover_with_socket(
             break;
         }
         if now >= next_send {
-            let mut sent = false;
-            for target in targets {
-                sent |= socket.send_to(&encoded, target).is_ok();
-            }
-            if !sent {
-                return Err(WifiError::Discovery);
-            }
+            send(&encoded)?;
             next_send = now + DISCOVERY_RETRY_INTERVAL;
         }
         let wait_until = deadline.min(next_send);
         let wait = wait_until.saturating_duration_since(Instant::now());
-        socket
-            .set_read_timeout(Some(wait.max(Duration::from_millis(1))))
-            .map_err(|_| WifiError::Discovery)?;
-        match socket.recv_from(&mut buffer) {
+        match receive(&mut buffer, wait) {
             Ok((length, source)) => {
                 let IpAddr::V4(source_ip) = source.ip() else {
                     continue;
@@ -212,13 +288,37 @@ fn discover_with_socket(
     }
 }
 
-#[cfg(not(windows))]
-fn discovery_targets() -> BTreeSet<SocketAddr> {
-    BTreeSet::from([SocketAddr::from((Ipv4Addr::BROADCAST, WIFI_DISCOVERY_PORT))])
+#[cfg(any(not(target_os = "macos"), test))]
+fn send_discovery_queries(
+    targets: &BTreeSet<SocketAddr>,
+    encoded: &[u8],
+    mut send: impl FnMut(&[u8], &SocketAddr) -> std::io::Result<usize>,
+) -> Result<(), WifiError> {
+    if targets.is_empty() {
+        return Err(WifiError::Discovery);
+    }
+    for target in targets {
+        // A successful send on one interface must not hide denial or a lost route on another.
+        // Such failures cannot establish that there is no matching listener.
+        if send(encoded, target).map_err(|_| WifiError::Discovery)? != encoded.len() {
+            return Err(WifiError::Discovery);
+        }
+    }
+    Ok(())
+}
+
+#[cfg(not(any(windows, target_os = "macos")))]
+#[allow(clippy::unnecessary_wraps)]
+fn discovery_targets() -> Result<BTreeSet<SocketAddr>, WifiError> {
+    Ok(BTreeSet::from([SocketAddr::from((
+        Ipv4Addr::BROADCAST,
+        WIFI_DISCOVERY_PORT,
+    ))]))
 }
 
 #[cfg(windows)]
-fn discovery_targets() -> BTreeSet<SocketAddr> {
+#[allow(clippy::unnecessary_wraps)]
+fn discovery_targets() -> Result<BTreeSet<SocketAddr>, WifiError> {
     let mut targets =
         BTreeSet::from([SocketAddr::from((Ipv4Addr::BROADCAST, WIFI_DISCOVERY_PORT))]);
     targets.extend(
@@ -226,16 +326,36 @@ fn discovery_targets() -> BTreeSet<SocketAddr> {
             .into_iter()
             .map(|address| SocketAddr::from((address, WIFI_DISCOVERY_PORT))),
     );
-    targets
+    Ok(targets)
 }
 
-#[cfg(any(windows, test))]
+/// Automatic discovery targets configured private LANs, not self-assigned link-local
+/// addresses. Explicit link-local routes remain supported by `validate_endpoint`.
+#[cfg(any(target_os = "macos", test))]
+fn macos_discovery_routes(
+    interfaces: impl IntoIterator<Item = (u32, Ipv4Addr, Ipv4Addr)>,
+) -> BTreeSet<(u32, SocketAddr)> {
+    let mut routes = BTreeSet::new();
+    for (index, address, mask) in interfaces {
+        if index == 0 || !address.is_private() {
+            continue;
+        }
+        if let Some(broadcast) = directed_broadcast(address, mask) {
+            for target in [broadcast, Ipv4Addr::BROADCAST] {
+                routes.insert((index, SocketAddr::from((target, WIFI_DISCOVERY_PORT))));
+            }
+        }
+    }
+    routes
+}
+
+#[cfg(any(windows, target_os = "macos", test))]
 fn directed_broadcast(address: Ipv4Addr, mask: Ipv4Addr) -> Option<Ipv4Addr> {
     if !private_route(address) {
         return None;
     }
     let mask = u32::from(mask);
-    if mask == 0 || mask == u32::MAX || (!mask).checked_add(1)?.count_ones() != 1 {
+    if mask == 0 || mask.count_ones() >= 31 || (!mask).checked_add(1)?.count_ones() != 1 {
         return None;
     }
     let broadcast = Ipv4Addr::from(u32::from(address) | !mask);
@@ -511,6 +631,57 @@ mod tests {
     }
 
     #[test]
+    fn discovery_io_rejects_ambiguity_and_ignores_malformed_or_wrong_nonce() {
+        let query = discovery_query(DiscoveryPurpose::Unwrap);
+        let prefix = encode_discovery(&query, DISCOVERY_RESPONSE);
+        let phone = SigningKey::random(&mut OsRng);
+        let mut message = DISCOVERY_SIGNATURE_DOMAIN.to_vec();
+        message.push(0);
+        message.extend_from_slice(&prefix);
+        let signature: Signature = phone.sign(&message);
+        let signature = signature.normalize_s().unwrap_or(signature);
+        let mut response = prefix.to_vec();
+        response.extend_from_slice(&signature.to_bytes());
+        let first = SocketAddr::from(([192, 168, 50, 8], WIFI_DISCOVERY_PORT));
+        let second = SocketAddr::from(([10, 2, 3, 8], WIFI_DISCOVERY_PORT));
+        for ambiguous in [false, true] {
+            let mut wrong_nonce = response.clone();
+            wrong_nonce[8] ^= 1;
+            let mut packets = std::collections::VecDeque::from([
+                (vec![0; 4], first),
+                (wrong_nonce, first),
+                (response.clone(), first),
+            ]);
+            if ambiguous {
+                packets.push_back((response.clone(), second));
+            }
+            let result = discover_with_io(
+                &query,
+                Some(phone.verifying_key()),
+                Duration::from_millis(20),
+                |_| Ok(()),
+                |buffer, wait| {
+                    if let Some((bytes, source)) = packets.pop_front() {
+                        buffer[..bytes.len()].copy_from_slice(&bytes);
+                        Ok((bytes.len(), source))
+                    } else {
+                        std::thread::sleep(wait.min(Duration::from_millis(1)));
+                        Err(std::io::ErrorKind::WouldBlock.into())
+                    }
+                },
+            );
+            assert_eq!(
+                result,
+                if ambiguous {
+                    Err(WifiError::DiscoveryAmbiguous)
+                } else {
+                    Ok(SocketAddr::from(([192, 168, 50, 8], WIFI_UNWRAP_PORT)))
+                }
+            );
+        }
+    }
+
+    #[test]
     fn unwrap_discovery_requires_the_paired_phone_signature() {
         let query = discovery_query(DiscoveryPurpose::Unwrap);
         let response = encode_discovery(&query, DISCOVERY_RESPONSE);
@@ -604,6 +775,79 @@ mod tests {
     }
 
     #[test]
+    fn local_send_failure_cannot_be_hidden_by_another_interface() {
+        let targets = BTreeSet::from([
+            SocketAddr::from(([10, 0, 0, 255], WIFI_DISCOVERY_PORT)),
+            SocketAddr::from(([192, 168, 1, 255], WIFI_DISCOVERY_PORT)),
+        ]);
+        for kind in [
+            std::io::ErrorKind::PermissionDenied,
+            std::io::ErrorKind::NetworkUnreachable,
+            std::io::ErrorKind::AddrNotAvailable,
+        ] {
+            let mut calls = 0;
+            assert_eq!(
+                send_discovery_queries(&targets, &[0; DISCOVERY_QUERY_BYTES], |bytes, _| {
+                    calls += 1;
+                    if calls == 1 {
+                        Ok(bytes.len())
+                    } else {
+                        Err(kind.into())
+                    }
+                }),
+                Err(WifiError::Discovery)
+            );
+            assert_eq!(calls, 2);
+        }
+        assert_eq!(
+            send_discovery_queries(&targets, &[0; 72], |_, _| Ok(71)),
+            Err(WifiError::Discovery)
+        );
+        assert_eq!(
+            send_discovery_queries(&BTreeSet::new(), &[0; 72], |_, _| unreachable!()),
+            Err(WifiError::Discovery)
+        );
+    }
+
+    #[test]
+    fn macos_broadcasts_retain_interface_scope_and_exclude_link_local() {
+        let mask = Ipv4Addr::new(255, 255, 255, 0);
+        let wifi = (4, Ipv4Addr::new(192, 168, 50, 3), mask);
+        let virtual_lan = (7, Ipv4Addr::new(10, 1, 2, 3), mask);
+        let routes = macos_discovery_routes([
+            wifi,
+            virtual_lan,
+            wifi,
+            (8, Ipv4Addr::new(169, 254, 5, 6), mask),
+            (9, Ipv4Addr::new(8, 8, 8, 8), mask),
+            (0, wifi.1, mask),
+        ]);
+        assert_eq!(
+            routes,
+            BTreeSet::from([
+                (
+                    4,
+                    SocketAddr::from(([192, 168, 50, 255], WIFI_DISCOVERY_PORT))
+                ),
+                (
+                    4,
+                    SocketAddr::from((Ipv4Addr::BROADCAST, WIFI_DISCOVERY_PORT))
+                ),
+                (7, SocketAddr::from(([10, 1, 2, 255], WIFI_DISCOVERY_PORT))),
+                (
+                    7,
+                    SocketAddr::from((Ipv4Addr::BROADCAST, WIFI_DISCOVERY_PORT))
+                ),
+            ])
+        );
+        assert!(macos_discovery_routes([]).is_empty());
+        assert_eq!(macos_discovery_routes([wifi]).len(), 2);
+        // Overlapping private subnets must not collapse two interface scopes.
+        assert_eq!(macos_discovery_routes([wifi, (7, wifi.1, mask)]).len(), 4);
+        assert!(validate_endpoint(SocketAddr::from(([169, 254, 5, 6], WIFI_UNWRAP_PORT))).is_ok());
+    }
+
+    #[test]
     fn derives_only_private_subnet_broadcasts() {
         assert_eq!(
             directed_broadcast(
@@ -622,6 +866,7 @@ mod tests {
         for (address, mask) in [
             ([8, 8, 8, 8], [255, 255, 255, 0]),
             ([192, 168, 50, 53], [255, 255, 255, 255]),
+            ([192, 168, 50, 52], [255, 255, 255, 254]),
             ([192, 168, 50, 53], [0, 0, 0, 0]),
             ([192, 168, 50, 53], [255, 0, 255, 0]),
         ] {

@@ -182,7 +182,7 @@ mod tests {
         TaggedStanza,
         [u8; 16],
     ) {
-        let root = std::env::temp_dir().join(format!(
+        let root = std::env::temp_dir().canonicalize().unwrap().join(format!(
             "age-phone-unwrap-test-{}-{}",
             std::process::id(),
             SystemTime::now()
@@ -191,6 +191,12 @@ mod tests {
                 .as_nanos(),
         ));
         std::fs::create_dir(&root).unwrap();
+        #[cfg(unix)]
+        std::fs::set_permissions(
+            &root,
+            <std::fs::Permissions as std::os::unix::fs::PermissionsExt>::from_mode(0o700),
+        )
+        .unwrap();
         let desktop =
             DesktopKeyState::open_or_create(&root.join("desktop.key"), &mut OsRng).unwrap();
         let identity = SecretKey::random(&mut OsRng);
@@ -321,5 +327,49 @@ mod tests {
         std::fs::remove_file(root.join("responses.cbor.lock")).unwrap();
         std::fs::remove_file(root.join("desktop.key")).unwrap();
         std::fs::remove_dir(root).unwrap();
+    }
+
+    #[test]
+    fn restored_response_store_does_not_bind_an_old_response_to_a_fresh_session() {
+        let (root, desktop, stub, identity, phone, stanza, expected) = fixture();
+        let now = 1_000_000;
+        let scope = ReplayScope::for_pairing(ReplayRole::DesktopResponses, &pairing(&stub));
+        let path = root.join("responses.cbor");
+        let mut replay = FileReplayGuard::create(&path, scope, 4, now).unwrap();
+        let old_store = std::fs::read(&path).unwrap();
+        let mut first =
+            DesktopUnwrapSession::begin(&stub, &desktop, stanza.clone(), None, now, &mut OsRng)
+                .unwrap();
+        let request = SignedUnwrapRequest::decode(&first.signed_request()).unwrap();
+        let verified = ReplayGuard::default()
+            .verify_request(request, &pairing(&stub), now)
+            .unwrap();
+        let file_key = unwrap_file_key(&identity, &verified.payload().recipient_stanza).unwrap();
+        let response = seal_response(&verified, &file_key, &phone, &mut OsRng)
+            .unwrap()
+            .encode();
+        assert_eq!(
+            *first.receive_response(&response, &mut replay, now).unwrap(),
+            expected
+        );
+        drop(replay);
+        // Deliberately restore only this synthetic fixture's pre-consumption bytes. This does
+        // not fix the store rollback counterexample: it tests the independent session binding.
+        std::fs::write(&path, old_store).unwrap();
+        let mut replay = FileReplayGuard::open(&path, scope, 4).unwrap();
+        let mut fresh =
+            DesktopUnwrapSession::begin(&stub, &desktop, stanza, None, now + 1, &mut OsRng)
+                .unwrap();
+        assert_ne!(first.signed_request(), fresh.signed_request());
+        assert_eq!(
+            fresh.receive_response(&response, &mut replay, now + 1),
+            Err(UnwrapError::InvalidResponse)
+        );
+        assert_eq!(
+            fresh.receive_response(&response, &mut replay, now + 1),
+            Err(UnwrapError::SessionClosed)
+        );
+        drop(replay);
+        std::fs::remove_dir_all(root).unwrap();
     }
 }

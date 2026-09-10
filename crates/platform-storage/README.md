@@ -1,7 +1,22 @@
 # age-plugin-phone-platform-storage
 
-Private Windows and Unix filesystem operations. windows::network separately provides IPv4 interface enumeration.
+Private Windows, macOS and other Unix filesystem operations. `windows::network`
+and `macos::network` separately provide IPv4 interface enumeration.
 
-Experimental alpha software, unsuitable for real secrets. Non-Windows desktop behavior remains a software prototype; this package does not add macOS hardware support.
+`macos::Directory` provides bounded descriptor-relative operations with no-follow
+path traversal, owner/mode/ACL/type/link checks, exclusive locks, and file/directory
+`F_FULLFSYNC`. Existing insecure permissions are rejected, not repaired. Preparing
+a root sets Time Machine exclusion through its descriptor. Business callers retain
+ownership of names, record encoding, replay policy and pending-write markers.
+
+Use an absolute path without symlink components and an owner-only private root.
+Only the final root can be created; ancestors must already exist and pass checks.
+The default desktop root is `~/Library/Application Support/age-plugin-phone`.
+Backup exclusion and hardware-key binding do not prevent same-Mac state rollback.
+Windows likewise has no independent replay freshness anchor. Stronger snapshot
+protection is deferred for cross-platform validation. Sudden-power-loss and
+expanded-platform evidence remain separate; successful local tests do not establish them.
+
+Experimental alpha software, unsuitable for real secrets. macOS has an initial Secure Enclave key backend; complete product support remains pending the macOS support plan. Other non-Windows desktop targets remain software prototypes.
 
 See https://github.com/biulight/age-plugin-phone for architecture and installation.

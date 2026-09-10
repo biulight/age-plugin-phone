@@ -1,0 +1,2428 @@
+{
+  "schema_version": 1,
+  "generated_utc": "2026-09-09T13:03:19.084768+00:00",
+  "status": "automated_and_synthetic_passed_physical_gates_open",
+  "candidate": {
+    "commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+    "version": "0.1.0-alpha.4",
+    "binary": "/private/tmp/age-phone-macos-final-registry-20260909/install/bin/age-plugin-phone",
+    "binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7"
+  },
+  "host": {
+    "model": "MacBookPro18,3",
+    "architecture": "arm64",
+    "macos": "26.6.2",
+    "build": "25G83"
+  },
+  "checks": {
+    "fmt": "passed",
+    "workspace_all_target_clippy_locked_deny_warnings": "passed",
+    "workspace_tests_locked": "passed",
+    "four_detached_archives_rust_1_88": "passed",
+    "native_synthetic_managed_and_explicit_journal": "passed",
+    "macos_x86_64_all_targets_check": "passed_compile_only",
+    "windows_x86_64_three_libraries_check": "passed_compile_only",
+    "windows_desktop_cross_compile": "blocked_mozjpeg_host_c_compiler",
+    "windows_native_regression": "passed_four_desktop_crates_after_platform_lint_annotations",
+    "snapshot_restore_store_freshness": "failed_counterexample_unresolved",
+    "old_response_against_fresh_session_after_restore": "synthetic_negative_passed"
+  },
+  "installation_lifecycle": {
+    "schema_version": 1,
+    "source_version": "0.1.0-alpha.4",
+    "architecture": "arm64",
+    "macos": "26.6.2",
+    "fixture_kind": "synthetic_only_no_phone",
+    "helper_sha256": "68d606e9bc69c9a0cfdb123f88f01119b33862f07e86ecb4ae37a31c3980d8ad",
+    "registry_evidence_sha256": "3c65393da5043a3ed75f2ef762992adff86f72f95964603fcb99d53e092f697d",
+    "state": {
+      "b6b6b6b6b6b6b6b6b6b6b6b6b6b6b6b6-a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5.cbor": {
+        "sha256": "35246d2c42998f007f0c500a8526067388a611bd2c02893b3bd8c07cfca2e8ad",
+        "mode": 384
+      },
+      "desktop-a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5.state": {
+        "sha256": "d6f567f88c6b4d76531f469b0227a19a499a037bc69ced5c36a614ee6e82816e",
+        "mode": 384
+      },
+      "identity-a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5.txt": {
+        "sha256": "40b12d9d9b975bebfeaf143bc0956d83ba26bf1d6d942774da441a1237d63ef7",
+        "mode": 384
+      },
+      "replay-a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5.state": {
+        "sha256": "c51dda25d6bf56788ea384fc8a948de2ba10106137ceabeb98edde82556c2e7d",
+        "mode": 384
+      },
+      "replay-a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5.state.lock": {
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "mode": 384
+      },
+      "synthetic-fixture": {
+        "sha256": "aeb1e6c7790c6297a84676d80a8a6dc4d4a382ad6b8063fb692b7a3c57182d13",
+        "mode": 384
+      }
+    },
+    "phases": [
+      {
+        "phase": "initial_install",
+        "binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+        "state_unchanged": true,
+        "hardware_reopened": true,
+        "consumed_response_rejected": true
+      },
+      {
+        "phase": "force_rebuild",
+        "binary_sha256": "1f2c82fee7c2dad1176f499635221d41d45c74c4c68ed2419931ebd57f565873",
+        "state_unchanged": true,
+        "hardware_reopened": true,
+        "consumed_response_rejected": true
+      },
+      {
+        "phase": "uninstall",
+        "binary_removed": true,
+        "state_unchanged": true
+      },
+      {
+        "phase": "reinstall",
+        "binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+        "state_unchanged": true,
+        "hardware_reopened": true,
+        "consumed_response_rejected": true
+      }
+    ],
+    "released_version_upgrade": "not_tested",
+    "real_phone_and_caller_matrix": "not_tested"
+  },
+  "prior_fixture_continuity": {
+    "source_pairing_commit": "5a75ee2",
+    "installed_commit": "cc7e120",
+    "installed_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+    "hardware_reopened": true,
+    "consumed_response_rejected": true,
+    "state_unchanged": true,
+    "fixture": "synthetic_only_no_phone",
+    "released_version_upgrade": "not_tested"
+  },
+  "archive_files": {
+    "age-plugin-phone-platform-storage": {
+      "Cargo.lock": "a38ebca4551149a3c338efdfdcc724a5cbb0dbb4e5ab9d5671a4b02559193602",
+      "Cargo.toml": "c2e21b52e6a0ea17a113a5a93c892e7fabdf9aa290b93598da7c8ad458b8eedc",
+      "Cargo.toml.orig": "5392049d07d6e438d2333d136ab99874e14f74249c91cd03bfa3537421ba0044",
+      "LICENSE": "88700e87477e6c807313eab757083fa8bcb8c75066b3fb0db6087dc2be042a11",
+      "README.md": "2f2f33920b37d36e59b58aa7fed0e26362a43904d6e6f14803bce185e568a648",
+      "src/lib.rs": "377012183532c54294064a4b98509b9949e2a4473870359314577316ad57853e",
+      "src/macos.rs": "ce8054b039397b65f621378608d459a688c406786be5270b07f4c1bb070757a3",
+      "src/macos_network.rs": "41847a083813ebe3585cda6932b45312056a0995bfe7933fae3fe9d2751fe2b4",
+      "src/unix/private_file.rs": "591a1b8bb6437f4e148f901810f719a4f8cd26455f7e9b7c9fa918fca010e424",
+      "src/unix.rs": "cc10c3838bdabd7f579d4aba52c9de2c704d31492381374ef7f28bebc766839c",
+      "src/windows.rs": "3ce845a3a320ab2a160b5ccfb100f360dc38325fabf813ed6737b68af52f792c",
+      "src/windows_network.rs": "bcc80f037db3729243a56e48693968a16db3e8d6464ac6b08f8084ce35fcff79"
+    },
+    "age-plugin-phone-core": {
+      "Cargo.lock": "1f877d7966fa14185728240b29f8abb686a68cbbc7bad0166e9842c441e10a36",
+      "Cargo.toml": "403dc8e6419222f8e03299e3318d2ea0b933dc6c9491192c63e0ffad7b690dcd",
+      "Cargo.toml.orig": "77384452317b5d7bdd4f6d4eeae2ff3554a468859ad0f5296601821fc2197c16",
+      "LICENSE": "88700e87477e6c807313eab757083fa8bcb8c75066b3fb0db6087dc2be042a11",
+      "README.md": "13e0634752c2bf040e8d9a30babd4758a37708a96748f70e5afe46a8c905872f",
+      "examples/macos-replay-acceptance.rs": "8c3f8ca0e716a0ef5cd66405bf9597809e006959a8e8cc7ee69c86601113bee4",
+      "examples/public_vector.rs": "30c785f4e8be0bc4406332c91d712db7f9519adbbce2e693e051ae4d2c87a9e3",
+      "examples/public_vector_v2.rs": "969cbcfd5270100c283c1c7f2533c238c821aaab3aa364557daffedc26120364",
+      "src/lib.rs": "5df568a1f441f7ce2b77029c9f4a8fac75d8d152c2b94092c33f356a5c101edc",
+      "src/protocol/mod.rs": "39b88b7e8013ec95b73681aee170f1f0b30fcac7d059be29234574d5f9a14b17",
+      "src/protocol/qr.rs": "318e95c7bedc741f1f1cfee47a6004c250f4ef0545e22331fe5f8115f71fdfdd",
+      "src/protocol/replay.rs": "1d37614a4c51c8071155d6922053ac023567a7fd5acc849017a4a5cbc68731ca",
+      "src/protocol/replay_macos.rs": "7bd12f8606a9e4e6baaaacd88aaa657a112d4ab3b30487f3189d390c64088047",
+      "src/recipient/mod.rs": "cf3bbd3c7e74a29517bb9d1b4a3185740d47381495fcb39ad641a7ca52144eae",
+      "src/recipient/plugin.rs": "292fb265107c2b8f341927c3a9eafcbcae7d8fb84e5aa0a964ee232d0c144db2",
+      "test-vectors/offline-envelope-v2.json": "5e1cca6da4f06ce1f1c0e3f19b42908871a3710e84fee6ff38af41e9da90699b",
+      "test-vectors/p256-recipient-v1.json": "6028deb7ae9122407214d1e8d6c3bdeb8d53c33f85340c499568ac1ac969d1e6",
+      "test-vectors/p256-recipient-v2.json": "3765db88b82b8f3ec9710a22090f09826502602d2be90611cbbadbc85ad3c48c",
+      "test-vectors/pairing-transcript-v2.json": "baaa4289a6ca0eb7f6c3876ff0a0eb1074cde98eb5b158b2ae870ca9a80e18bd",
+      "tests/fixtures/README.md": "d9931a2bb8c707b5bf7aaf578c09be8f6bf952ce3bd9fffe2b63d255d86739b6",
+      "tests/fixtures/generate-replay.rs": "8d52fcc5527deedb73ddf990c349b24b216af81b5d1f10bf1780aa0202449ad1",
+      "tests/fixtures/requests.cbor": "fe0695f735dbed899d1cdf1d289567ec25fcd9d0cd07d39696034a4dfa1aac48",
+      "tests/fixtures/responses.cbor": "2b5654243d1bf965ac1904ca8cf640fdcab22bdac6368e9f9a6aa03ad7b6ee8e",
+      "tests/public_vector.rs": "0ef97a73fac89c50b6415b4339ea4b40f568239f9b45c82af00ea396b583f654",
+      "tests/public_vector_v2.rs": "8b7c20f521a723e9373cb2c641139c99cef3522bb1f80429d24aad187e1f6fa9",
+      "tests/upgrade_replay.rs": "8f389d760bcd518b182e9bf6f49d3e032730ce1cbe01f6f1b12fcb83d5d2bbd7"
+    },
+    "age-plugin-phone-platform-keys": {
+      "Cargo.lock": "479665c2934f5d6f3b5fb021da1caa773584c722642e38154bd1fa33b51d5140",
+      "Cargo.toml": "530dac29cb4d9a50eae792ae242f600f5bc6dff936fdd228680f8c353dcb0d59",
+      "Cargo.toml.orig": "0eece3e8782d84f9ad180dedbeabef0e731d83ba14148663a04beb90ff2769bc",
+      "LICENSE": "88700e87477e6c807313eab757083fa8bcb8c75066b3fb0db6087dc2be042a11",
+      "README.md": "382e9ced80f2f5092830d0c31bc9af3dd8d080f9cf4743a2259f58e50588e1c7",
+      "build.rs": "11f36cbbf51e04eff73812a7f4d35599cba7c246a575a82afe9c5e10009c2bb1",
+      "examples/macos-cryptokit-verify.rs": "308e6e967a330600820a4e043cc33af9fecf06f3f66f680bfa5335b40385e4c8",
+      "examples/macos-key-probe.rs": "456ce937ef8daf320ed3787d2fc8a09797ebe2fbf81b17e82cbb960998935247",
+      "native/Keys.swift": "0b189cbda36e024f07f04c8569d7cf452d236eeabab2a39d48e1b992ef1f673a",
+      "src/lib.rs": "d27663b082731ce1eca2c91162ddd14a22a4fe59330c510ae12adace2d373de9",
+      "src/macos/mod.rs": "756e55bcce1c0e5d4b3fbc3cb751d30ba6fc812b2e55c9d06cfdd3bec172fa72",
+      "src/macos/probe.rs": "bc91d1df40950a2a7e188902327af39af89da32c17acdee2c8167e7579f662c5",
+      "src/windows.rs": "a0844383302452da6e5418190ed2504c4fcdfec28777a2916dd622971e4359e3"
+    },
+    "age-plugin-phone": {
+      "Cargo.lock": "8c0f45382950f072abd563be7d8ccebfa874f7ad70a55835308ed2375a9534f1",
+      "Cargo.toml": "6c19eea880c88daf99f21c20d798ff29d98f248b74ed90085d5cbeb528737c1e",
+      "Cargo.toml.orig": "6d00eb6417bbf36e413a031203bd0775b10d626b903f68695e89f7d8a36f3646",
+      "LICENSE": "88700e87477e6c807313eab757083fa8bcb8c75066b3fb0db6087dc2be042a11",
+      "README.md": "c7bf8eda90d028e06ce424f902d33491235592ec23d267c4863db6e3bd7586ed",
+      "examples/macos-install-acceptance.rs": "fcf3b6c3ce60434526f798660b74e3d543237ac083754e14bdc3e2aeaaff7d12",
+      "src/adb.rs": "be46df7073858beb11bc782ed8ca4f4872c3e65787c7171322ddc00d3e10fb8f",
+      "src/age_identity.rs": "f5a949814a02390e3429dc13d5d04dd4a6ac43504b974d28172142ecdacb7df2",
+      "src/age_recipient.rs": "b2864e65044859706d3de8baf6edcdd4af648f6a82e35a2deb3c5b8c468e1046",
+      "src/cleanup_journal.rs": "11f250685592e4ef4967da7cd9a9ec8518876983a6dc8d20ef28118edbd3c834",
+      "src/desktop_cleanup.rs": "e6cc6b5da6dc7e96599df2c8e9f414c3d630a51e925d01bdea7426013b816600",
+      "src/lib.rs": "ba219db97006b4631e924a5728413532f69588c538cef0d5ca2680f452b5018f",
+      "src/locator.rs": "6e4cc05bf915b659af3fd377d3157daa716062fd89673677f49179b81221629a",
+      "src/macos_state.rs": "e6ffab9c66f90e4a40f3e3ccd8ca6ded7775452fb48fc3789828574acc64d929",
+      "src/main.rs": "aff0ae6f9d11e0283e0403b3974600ed28fa712390a2f2bfa28b948e68b422ee",
+      "src/pairing.rs": "5d0b4da759176f55b31ee303e42134d2231370b8773334df7039d1d389caa8b6",
+      "src/qr_scanner.rs": "9eb52af1cad8d2dca3f4786e1c26236bcb89ae53d2bd7c2ce5b6780222b74644",
+      "src/qr_terminal.rs": "0827143d5d24303049639e190629958a0e438b392204ebe3cd7009cdc26f3c1a",
+      "src/setup.rs": "0f5e35c5df8abe13ef883f997c4ef6c796b561001cec23d5c66b63d06bf60cbb",
+      "src/transport.rs": "e1e2cdf59b8583e1ec4f0bcd760adf71e1dd8023360ad9a1153329d47da9cec3",
+      "src/transport_policy.rs": "18dae6b6d352d78a4fd3f1a1b333f88f1b7ea3567a5f0dff421133ebeccfada8",
+      "src/unwrap.rs": "5cc98b06f1a6dfed2f8e535280460faafdc9900482cba4f3b851f8110870e21c",
+      "src/wifi.rs": "32027926ad646a1be0a0a4f1f19b0913335c148598dac9aa50d0158f4a1c1b55",
+      "tests/fixtures/README.md": "150bf1ed04ef1792e5c6cfc96f3d64d96066d0439cd9b99c2683ac3db371b703",
+      "tests/fixtures/locator-v3.cbor": "347f48e34f87d7cb1c6d48c15e47b3deb412e4f1594567ff263c4cabd98ddb05",
+      "tests/fixtures/locator_v3.rs": "62e81500c0565efea8d3a1b2088802744e2599d740c6debc8ca4fd0d9af2b168",
+      "tests/macos_setup.rs": "ee4c460d9c6149856099e208e627980b95f06f74696f2101827f22e0b15e79f4"
+    }
+  },
+  "interoperability": {
+    "scope": "public_plugin_encryption_and_synthetic_independent_recovery_no_phone",
+    "recoveries": 12,
+    "malformed_recipient_rejections": 2,
+    "clients": [
+      {
+        "name": "age",
+        "version": "1.3.2",
+        "sha256": "5e5d756f6659ca8fe0a2f2e05f126529e5d36c5d65c961e6912966482f0f8de1"
+      },
+      {
+        "name": "rage",
+        "version": "0.12.1",
+        "sha256": "b56f0b764c429e4cd5abaed4ea10e5d1a9fd28bf953542d4c17c9dacf3e7ed3d"
+      }
+    ]
+  },
+  "android": {
+    "inspection": "read_only_artifact_inspection_followed_by_human_operated_adb_acceptance",
+    "model": "SM-F9660",
+    "os": "16",
+    "package": "io.github.biulight.age_plugin_phone",
+    "version": "0.1.0-alpha.4",
+    "version_code": 1000,
+    "apk_sha256": "6e77ada9917673f0a5a392bb9a4327dd2275f9ff403d15015a6280da190d4f62",
+    "matches_recorded_alpha4_apk": true,
+    "macos_adb_acceptance": {
+      "caller": "age 1.3.2",
+      "transport": "adb",
+      "synthetic_data_only": true,
+      "human_native_observation": "user_confirmed_fresh_native_biometric_verification_on_all_three_approvals",
+      "phases": [
+        {
+          "phase": "first_approval",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": "second_fresh_approval",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": "native_cancellation",
+          "exit_code": 1,
+          "passed": true
+        },
+        {
+          "phase": "approval_after_cancellation",
+          "exit_code": 0,
+          "passed": true
+        }
+      ],
+      "terminal": "Ghostty_user_operated",
+      "desktop_source_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+      "desktop_binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+      "pairing": "user_reported_success_and_setup_exit_zero_identity_reference_created",
+      "cancellation": "nonzero_client_exit_and_no_plaintext_output",
+      "adb_reverse_after_test": "empty",
+      "temporary_plaintext_directories_after_test": 0,
+      "harness_sha256": "e4ee27f69ff9d4df65b7fba1a4f904a7f15461bbefa884344a1d806758989716",
+      "raw_result_sha256": "ca28a9ee8e835460050673811c215205e3eaca3f7418e60c0a9b1b7bde09eb19"
+    },
+    "macos_adb_rage_acceptance": {
+      "caller": "rage 0.12.1",
+      "transport": "adb",
+      "synthetic_data_only": true,
+      "human_native_observation": "user_confirmed_three_new_native_verifications_and_deliberate_cancellation",
+      "phases": [
+        {
+          "phase": "first_approval",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": "second_fresh_approval",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": "native_cancellation",
+          "exit_code": 1,
+          "passed": true
+        },
+        {
+          "phase": "approval_after_cancellation",
+          "exit_code": 0,
+          "passed": true
+        }
+      ],
+      "terminal": "Ghostty_user_operated",
+      "desktop_source_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+      "desktop_binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+      "cancellation": "nonzero_client_exit_and_no_plaintext_output",
+      "temporary_plaintext_directories_after_test": 0,
+      "harness_sha256": "7046f843b21770cb7c34b9d569bea9d0b0087f5d048340f5f89a40a5341ea7be",
+      "raw_result_sha256": "bfcc3c422e6f917f2183066731f12281350cb42407f95317158fc6193f46dbbc"
+    },
+    "macos_wifi_initial_attempt": {
+      "pairing": "setup_exit_zero_distinct_from_retained_usb_pairing",
+      "runs": {
+        "age": {
+          "caller": "age 1.3.2",
+          "transport": "wifi",
+          "synthetic_data_only": true,
+          "human_native_observation": "user_could_not_recall",
+          "phases": [
+            {
+              "phase": "first_approval",
+              "exit_code": 0,
+              "passed": true
+            },
+            {
+              "phase": "second_fresh_approval",
+              "exit_code": 0,
+              "passed": true
+            },
+            {
+              "phase": "native_cancellation",
+              "exit_code": 1,
+              "passed": true
+            },
+            {
+              "phase": "approval_after_cancellation",
+              "exit_code": 0,
+              "passed": true
+            }
+          ],
+          "raw_result_sha256": "79f0a21c6c4c4291d06643ae7d367c33f42c63d8c702a88bb74a7397714f82b2"
+        },
+        "rage": {
+          "caller": "rage 0.12.1",
+          "transport": "wifi",
+          "synthetic_data_only": true,
+          "human_native_observation": "user_could_not_recall",
+          "phases": [
+            {
+              "phase": "first_approval",
+              "exit_code": 0,
+              "passed": true
+            },
+            {
+              "phase": "second_fresh_approval",
+              "exit_code": 1,
+              "passed": false
+            }
+          ],
+          "raw_result_sha256": "edf14e43080f0ea19c6f84b0366cbbf48a4068938db8f01549e8e23e08d82378"
+        }
+      },
+      "failure": "rage_second_request_failed_during_discovery_before_stream_exchange",
+      "root_cause": "undetermined_user_could_not_recall_foreground_listener_or_network_state",
+      "overall_acceptance": "incomplete"
+    },
+    "macos_wifi_rage_retry1": {
+      "caller": "rage 0.12.1",
+      "transport": "wifi",
+      "synthetic_data_only": true,
+      "human_native_observation": "user_reported_one_fingerprint_prompt_first_request_only",
+      "phases": [
+        {
+          "phase": "first_approval",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": "second_fresh_approval",
+          "exit_code": 1,
+          "passed": false
+        }
+      ],
+      "failure": "second_request_discovery_failure_before_unwrap",
+      "root_cause": "unresolved"
+    },
+    "macos_wifi_rage_diagnostic_run": {
+      "caller": "rage 0.12.1",
+      "transport": "wifi",
+      "synthetic_data_only": true,
+      "human_native_observation": "user_confirmed_two_new_native_fingerprint_verifications",
+      "phases": [
+        {
+          "phase": "first_approval",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": "second_fresh_approval",
+          "exit_code": 0,
+          "passed": true
+        }
+      ],
+      "build": {
+        "source_commit": "1b8041c",
+        "binary_sha256": "b24b3b224eee1082ffcce6bfd6bb4dfc1d8af75395b31dbd490670ec969163eb",
+        "scope": "diagnostic_build_not_original_installed_candidate"
+      },
+      "original_candidate_failure": "not_resolved_by_this_success",
+      "raw_result_sha256": "8643ce61ddfa63acd6b228fb8144eef2b1a0413f6aaa705d6576276b522d8cdb"
+    },
+    "macos_wifi_rage_original_comparison": {
+      "caller": "rage 0.12.1",
+      "transport": "wifi",
+      "synthetic_data_only": true,
+      "human_native_observation": "requires_user_report",
+      "phases": [
+        {
+          "phase": "first_approval",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": "second_fresh_approval",
+          "exit_code": 1,
+          "passed": false
+        }
+      ],
+      "followup_discovery": [
+        "no_matching_listener",
+        "no_matching_listener",
+        "one_authenticated_listener"
+      ],
+      "root_cause": "undetermined_transient_discovery_outage_observed"
+    },
+    "macos_wifi_rage_timeline_run": {
+      "caller": "rage 0.12.1",
+      "transport": "wifi",
+      "synthetic_data_only": true,
+      "human_native_observation": "requires_user_report",
+      "phases": [
+        {
+          "phase": "first_approval",
+          "exit_code": 0,
+          "passed": true,
+          "request_started_seconds": 1.33,
+          "request_finished_seconds": 6.806
+        },
+        {
+          "phase": "second_fresh_approval",
+          "exit_code": 0,
+          "passed": true,
+          "request_started_seconds": 9.059,
+          "request_finished_seconds": 15.781
+        }
+      ],
+      "foreground_samples": "all_14_samples_foreground",
+      "listener_reappearance_seconds_after_first_client_exit": 0.16,
+      "second_request_gap_seconds": 2.253,
+      "sampling_limit": "one_second_sampling_with_socket_permission_warning; not_a_failure_capture",
+      "timeline_sha256": "8e244f6fa76e910427c2e3b724eff951ecf6a54a810d4bab4cbd1b2e14c8be5d"
+    },
+    "macos_qr_initial_attempt": {
+      "transport": "qr",
+      "synthetic_data_only": true,
+      "human_native_observation": "user_could_not_recall",
+      "cases": [
+        {
+          "client": "age",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "client": "rage",
+          "exit_code": 0,
+          "passed": true
+        }
+      ],
+      "camera_selection": "not_confirmed",
+      "pairing": "user_reported_success_setup_exit_zero",
+      "desktop_source_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+      "desktop_binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+      "raw_result_sha256": "1fa9d98e1cd99a6866c753ae417da2f4cddf04159df25b3c23f2c47c556b2dd3",
+      "temporary_plaintext_directories_after_test": 0,
+      "overall_acceptance": "data_checks_passed_native_observation_open"
+    },
+    "macos_qr_observed_acceptance": {
+      "transport": "qr",
+      "synthetic_data_only": true,
+      "human_native_observation": "recorded_immediately_per_operation",
+      "cases": [
+        {
+          "client": "age",
+          "exit_code": 0,
+          "passed": true,
+          "native_observation": "user_confirmed_fresh_fingerprint"
+        },
+        {
+          "client": "rage",
+          "exit_code": 0,
+          "passed": true,
+          "native_observation": "user_confirmed_fresh_fingerprint"
+        }
+      ],
+      "desktop_source_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+      "desktop_binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+      "raw_result_sha256": "d2d9a43d12a788b3a42d74dcf010619f7b35f5939dfb084d8d647aaa52cb240e",
+      "camera_selection": "user_confirmed_mac_builtin_camera",
+      "negative_qr_cases": "not_tested"
+    },
+    "qr_pairing_revocation": {
+      "phone_revocation": "user_reported_completed",
+      "cases": [
+        {
+          "case": "revoked_pairing_rejected_over_adb",
+          "exit_code": 1,
+          "no_plaintext": true,
+          "user_reported_no_biometric_prompt": "y"
+        },
+        {
+          "case": "independent_recovery_after_revocation",
+          "passed": true
+        },
+        {
+          "case": "other_usb_pairing_retained",
+          "exit_code": 0,
+          "passed": true,
+          "user_reported_fresh_biometric": "y"
+        }
+      ],
+      "scope": "one_android_qr_pairing_revoked_by_user_native_ui",
+      "rejection_transport": "adb_explicitly_selected_to_test_revocation_independent_of_qr",
+      "raw_result_sha256": "2f2df6ed3d4a6e6aa14892d6a58c8d59bf01c8974b7aaf748361b325c6e302d8",
+      "desktop_cleanup": "passed"
+    },
+    "qr_pairing_desktop_cleanup": {
+      "exit_code": 0,
+      "target_identity_removed": true,
+      "other_file_hashes_unchanged": true,
+      "other_file_count": 21,
+      "remaining_target_named_file_count": 0,
+      "raw_result_sha256": "bd5fa1821f0151568bdb233930861369b71b0c053f0aac4043dff7a47ec4ee48",
+      "confirmation": "user_entered_exact_full_fingerprint_in_cli",
+      "temporary_recovery_fixture_removed": true
+    },
+    "macos_adb_unplug_acceptance": {
+      "transport": "adb",
+      "caller": "age 1.3.2",
+      "fixture": "disposable_data_only",
+      "cases": [
+        {
+          "case": "unplug_while_verification_pending",
+          "exit_code": 1,
+          "no_plaintext": true,
+          "disconnect_observed": true,
+          "connection_samples": [
+            {
+              "elapsed_seconds": 0.026,
+              "connected": true
+            },
+            {
+              "elapsed_seconds": 0.567,
+              "connected": true
+            },
+            {
+              "elapsed_seconds": 1.107,
+              "connected": true
+            },
+            {
+              "elapsed_seconds": 1.634,
+              "connected": true
+            },
+            {
+              "elapsed_seconds": 2.174,
+              "connected": true
+            },
+            {
+              "elapsed_seconds": 2.706,
+              "connected": true
+            },
+            {
+              "elapsed_seconds": 3.242,
+              "connected": false
+            }
+          ],
+          "human_observation": "y"
+        },
+        {
+          "case": "reverse_rules_after_reconnect",
+          "empty": true
+        },
+        {
+          "case": "fresh_approval_after_reconnect",
+          "exit_code": 0,
+          "passed": true,
+          "human_fresh_verification": "y",
+          "reverse_rules_empty": true
+        }
+      ],
+      "raw_result_sha256": "fefe8e6e9d6f171eeb88c1aa15567b165c23ca37f68ac704e70bb79e4e2baec1",
+      "temporary_plaintext_directories_after_test": 0
+    },
+    "macos_adb_timeout_acceptance": {
+      "transport": "adb",
+      "caller": "age 1.3.2",
+      "fixture": "disposable_data_only",
+      "cases": [
+        {
+          "case": "natural_verification_timeout",
+          "exit_code": 1,
+          "elapsed_seconds": 60.383,
+          "no_plaintext": true,
+          "human_observation": "y",
+          "reverse_rules_empty": true
+        },
+        {
+          "case": "fresh_approval_after_timeout",
+          "exit_code": 0,
+          "passed": true,
+          "human_fresh_verification": "y",
+          "reverse_rules_empty": true
+        }
+      ],
+      "raw_result_sha256": "1d2fada303c390ef30b73692ee141347932173a8cffc99b68ef995e712a1200c",
+      "temporary_plaintext_directories_after_test": 0
+    },
+    "macos_adb_process_kill_acceptance": {
+      "transport": "adb",
+      "caller": "age 1.3.2",
+      "fixture": "disposable_data_only",
+      "termination_scope": "only_harness_created_client_process_group",
+      "cases": [
+        {
+          "case": "caller_and_plugin_group_sigkill",
+          "exit_code": -9,
+          "pending_prompt_confirmed": "y",
+          "running_before_kill": true,
+          "no_plaintext": true,
+          "reverse_rules_empty": true,
+          "prompt_closed": "y",
+          "passed": true
+        },
+        {
+          "case": "fresh_approval_after_sigkill",
+          "exit_code": 0,
+          "passed": true,
+          "fresh_verification": "y",
+          "reverse_rules_empty": true
+        }
+      ],
+      "raw_result_sha256": "0e5e11e12cc7493ad5b6c297ac1d1136678f5d8ce0bdf0e38a2b80991c2f66ed",
+      "temporary_plaintext_directories_after_test": 0
+    },
+    "macos_adb_daemon_restart_initial_attempt": {
+      "transport": "adb",
+      "caller": "age 1.3.2",
+      "fixture": "disposable_data_only",
+      "interruption_scope": "local_adb_server_restart",
+      "cases": [
+        {
+          "case": "adb_service_restart",
+          "restart_exit_codes": [
+            0,
+            255
+          ],
+          "exit_code": 1,
+          "pending_prompt_confirmed": "y",
+          "running_before_kill": true,
+          "no_plaintext": true,
+          "reverse_rules_empty": true,
+          "prompt_closed": "y",
+          "passed": false
+        }
+      ],
+      "raw_result_sha256": "35b338d4a89089a6e66375ae22ac2fc97e217eabd00084ba5b7f94d6dbcfc2d3",
+      "overall_acceptance": "incomplete_start_server_exit_255_fresh_retry_not_reached",
+      "cause": "undetermined",
+      "followup_device_state": "device"
+    },
+    "macos_adb_daemon_restart_acceptance": {
+      "transport": "adb",
+      "caller": "age 1.3.2",
+      "fixture": "disposable_data_only",
+      "interruption_scope": "local_adb_server_restart",
+      "cases": [
+        {
+          "case": "adb_service_restart",
+          "restart_exit_codes": [
+            0,
+            0
+          ],
+          "exit_code": 1,
+          "pending_prompt_confirmed": "y",
+          "running_before_kill": true,
+          "no_plaintext": true,
+          "reverse_rules_empty": true,
+          "prompt_closed": "y",
+          "passed": true
+        },
+        {
+          "case": "fresh_approval_after_daemon_restart",
+          "exit_code": 0,
+          "passed": true,
+          "fresh_verification": "y",
+          "reverse_rules_empty": true
+        }
+      ],
+      "startup_error_categories": [],
+      "restart_order": "kill_server_then_wait_for_old_client_then_start_server",
+      "raw_result_sha256": "2ec3eee778b9dbd85898b929f3acf564a721aebe8f8350333306fc8e188e8eed",
+      "temporary_plaintext_directories_after_test": 0
+    },
+    "macos_qr_cancellation_acceptance": {
+      "desktop_source_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+      "desktop_binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+      "runs": {
+        "age_cancellation": {
+          "transport": "qr",
+          "caller": "age 1.3.2",
+          "fixture": "disposable_data_only",
+          "pairing_origin": "retained_android_usb_pairing_explicit_qr_transport",
+          "cases": [
+            {
+              "case": "native_cancel_then_desktop_scan_end",
+              "exit_code": 1,
+              "elapsed_seconds": 300.091,
+              "human_native_cancellation": "y",
+              "no_plaintext": true,
+              "harness_forced_termination": false,
+              "passed": true
+            }
+          ],
+          "raw_result_sha256": "e6c667b22d6dff8d0bad416697f8db78821d7ca2fd02110a5b7abf556fbf2f1c"
+        },
+        "age_recovery_separate_run": {
+          "transport": "qr",
+          "synthetic_data_only": true,
+          "human_native_observation": "recorded_immediately_per_operation",
+          "scope": "fresh_request_recovery_after_interrupted_test_new_disposable_ciphertext",
+          "pairing_origin": "retained_android_usb_pairing_explicit_qr_transport",
+          "cases": [
+            {
+              "client": "age",
+              "exit_code": 0,
+              "passed": true,
+              "native_observation": "user_confirmed_fresh_fingerprint"
+            }
+          ],
+          "raw_result_sha256": "1c90f777a7f41d6a3e2bb5ccfc3b6825231dfced4092f493e6c738c61987fe53"
+        },
+        "rage": {
+          "transport": "qr",
+          "caller": "rage 0.12.1",
+          "fixture": "disposable_data_only",
+          "pairing_origin": "retained_android_usb_pairing_explicit_qr_transport",
+          "cases": [
+            {
+              "case": "native_cancel_then_desktop_scan_end",
+              "exit_code": 1,
+              "elapsed_seconds": 300.096,
+              "human_native_cancellation": "y",
+              "no_plaintext": true,
+              "harness_forced_termination": false,
+              "passed": true
+            },
+            {
+              "case": "fresh_approval_after_qr_cancellation",
+              "exit_code": 0,
+              "data_matches": true,
+              "fresh_verification": "y",
+              "passed": true
+            }
+          ],
+          "raw_result_sha256": "0bc624cda23659d79cb59f93bea1fc1d71617657545ea07cf8a7c6743798e2d3"
+        }
+      },
+      "temporary_plaintext_directories_after_test": 0,
+      "age_recovery_scope": "separate_run_with_new_ciphertext_after_user_interrupted_harness",
+      "pairing_origin": "retained_android_usb_pairing_explicit_qr_transport"
+    }
+  },
+  "physical_phone_verification": "android_adb_and_iphone_wifi_each_three_fresh_native_approvals_user_confirmed",
+  "gui_network_camera_permissions": "not_tested",
+  "published_version_upgrade": "not_tested",
+  "support_claim": "experimental_incomplete",
+  "windows_native_regression": {
+    "source_base_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+    "archive_sha256": "1f75c8a352e31c88e6ff7188a3ac00ad32ded56404193c5fe9f43c3328a74308",
+    "source_changes": "two_platform_specific_lint_annotations_and_comments_no_runtime_behavior_change",
+    "modified_files_sha256": {
+      "crates/desktop/src/locator.rs": "fd27ca7ba14bcfafce662de80d33a77a72b8808b3c60340dbd80d2fc59159f35",
+      "crates/desktop/src/setup.rs": "3ad4c6bbbab9db1ddb93f96b2b99f44cc4e8c7d55bc219c593dab48defde1c6f"
+    },
+    "os": "Windows 11 build 22631",
+    "rust": "1.96.0",
+    "cargo": "1.96.0",
+    "fmt": "passed",
+    "clippy_four_desktop_crates_all_targets_locked_deny_warnings": "passed",
+    "tests": {
+      "passed": 96,
+      "failed": 0,
+      "ignored": 0,
+      "desktop": 60,
+      "core": 25,
+      "public_vectors": 2,
+      "platform_keys": 4,
+      "platform_storage": 5
+    },
+    "native_tpm_key_creation_and_reopen": "passed",
+    "read_only_status": "supported_tpm_2_0_and_microsoft_platform_crypto_provider",
+    "binary_sha256": "67e19d13f46f3b09f0c19a993c2b0da84c0c60506b0aadd958f83f562f6fe63c",
+    "log_sha256": {
+      "fmt": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "clippy": "324a1e9a46062f11720ece5e3844bb8595fbd5ca1a8835fca004901c66073c88",
+      "test": "68466ddf8c9ba1e1f2e41384a92e1b4a791169a5b46596697cbe1974afc94597"
+    },
+    "phone_integration": "not_tested"
+  },
+  "iphone": {
+    "model": "iPhone 15 Pro",
+    "os": "26.6.1",
+    "os_source": "user_report",
+    "device_detection": "paired_physical_device",
+    "bundle_identifier": "io.github.biulight.age-plugin-phone",
+    "prior_build": "0.1.0.3",
+    "installed_version": "0.1.0",
+    "installed_build": "0.1.0.4",
+    "source_commit": "7d02d74",
+    "build": "debug_arm64_local_apple_development_signing",
+    "ipa_sha256": "e74c0761839b4c2ed10afb8bca3ff839a00bed0d58b95080e561ebe7b50bf09c",
+    "executable_sha256": "2fe6e62c06b2c6ac24af9022f1910f8fe5fdc3aa4bec55ace2254e1c840083ea",
+    "codesign_deep_strict": "passed_with_host_trust_service",
+    "installation": "passed_in_place_no_uninstall",
+    "launch": "passed",
+    "physical_pairing_and_unwrap_acceptance": "wifi_four_checks_and_user_confirmed_fresh_face_id_passed",
+    "macos_wifi_acceptance": {
+      "caller": "age 1.3.2",
+      "transport": "wifi",
+      "synthetic_data_only": true,
+      "human_native_observation": "user_confirmed_three_new_face_id_verifications_and_deliberate_cancellation",
+      "phases": [
+        {
+          "phase": "first_approval",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": "second_fresh_approval",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": "native_cancellation",
+          "exit_code": 1,
+          "passed": true
+        },
+        {
+          "phase": "approval_after_cancellation",
+          "exit_code": 0,
+          "passed": true
+        }
+      ],
+      "terminal": "Ghostty_user_operated",
+      "desktop_source_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+      "desktop_binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+      "pairing": "user_reported_success_and_setup_exit_zero_identity_reference_created",
+      "cancellation": "nonzero_client_exit_and_no_plaintext_output",
+      "temporary_plaintext_directories_after_test": 0,
+      "harness_sha256": "bb9c57db84bffd1dbe38ddf28f71ca4084c79503c6d37d2de63617618a4c007a",
+      "raw_result_sha256": "79f0a21c6c4c4291d06643ae7d367c33f42c63d8c702a88bb74a7397714f82b2"
+    },
+    "macos_wifi_rage_acceptance": {
+      "caller": "rage 0.12.1",
+      "transport": "wifi",
+      "synthetic_data_only": true,
+      "human_native_observation": "user_confirmed_three_new_native_verifications_and_deliberate_cancellation",
+      "phases": [
+        {
+          "phase": "first_approval",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": "second_fresh_approval",
+          "exit_code": 0,
+          "passed": true
+        },
+        {
+          "phase": "native_cancellation",
+          "exit_code": 1,
+          "passed": true
+        },
+        {
+          "phase": "approval_after_cancellation",
+          "exit_code": 0,
+          "passed": true
+        }
+      ],
+      "terminal": "Ghostty_user_operated",
+      "desktop_source_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+      "desktop_binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+      "cancellation": "nonzero_client_exit_and_no_plaintext_output",
+      "temporary_plaintext_directories_after_test": 0,
+      "harness_sha256": "7e517f95fd90dad9a4926058ee313d5b84556130bed756fc35709130d718774a",
+      "raw_result_sha256": "7ebab1c54d22540a560c3ca0000822f0ab9f07cd9b4af9e87197b787411aa2ac"
+    },
+    "macos_qr_observed_acceptance": {
+      "transport": "qr",
+      "synthetic_data_only": true,
+      "human_native_observation": "recorded_immediately_per_operation",
+      "cases": [
+        {
+          "client": "age",
+          "exit_code": 0,
+          "passed": true,
+          "native_observation": "user_confirmed_fresh_face_id"
+        },
+        {
+          "client": "rage",
+          "exit_code": 0,
+          "passed": true,
+          "native_observation": "user_confirmed_fresh_face_id"
+        }
+      ],
+      "pairing": "setup_exit_zero_and_user_reported_complete",
+      "desktop_source_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+      "desktop_binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7",
+      "raw_result_sha256": "adb6c797981bcbb8c78aa37dfb6feb8098eacf8790e50b2b95eecdc2707358d5",
+      "temporary_plaintext_directories_after_test": 0,
+      "camera_selection": "instructed_mac_builtin_not_separately_confirmed",
+      "negative_qr_cases": "age_and_rage_native_cancellation_scan_timeout_and_fresh_recovery_passed_other_cases_open"
+    },
+    "macos_qr_cancellation_acceptance": {
+      "transport": "qr",
+      "caller": "age 1.3.2",
+      "fixture": "disposable_data_only",
+      "cases": [
+        {
+          "case": "native_cancel_then_desktop_scan_end",
+          "exit_code": 1,
+          "elapsed_seconds": 300.138,
+          "human_native_cancellation": "y",
+          "no_plaintext": true,
+          "harness_forced_termination": false,
+          "passed": true
+        },
+        {
+          "case": "fresh_approval_after_qr_cancellation",
+          "exit_code": 0,
+          "data_matches": true,
+          "fresh_verification": "y",
+          "passed": true
+        }
+      ],
+      "raw_result_sha256": "39469f0d12f579a3d9cf04ead575222a284d5c52a9b0184443a326c4f48a1a68",
+      "temporary_plaintext_directories_after_test": 0,
+      "desktop_source_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+      "desktop_binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7"
+    },
+    "macos_qr_rage_cancellation_acceptance": {
+      "transport": "qr",
+      "caller": "rage 0.12.1",
+      "fixture": "disposable_data_only",
+      "cases": [
+        {
+          "case": "native_cancel_then_desktop_scan_end",
+          "exit_code": 1,
+          "elapsed_seconds": 300.08,
+          "human_native_cancellation": "y",
+          "no_plaintext": true,
+          "harness_forced_termination": false,
+          "passed": true
+        },
+        {
+          "case": "fresh_approval_after_qr_cancellation",
+          "exit_code": 0,
+          "data_matches": true,
+          "fresh_verification": "y",
+          "passed": true
+        }
+      ],
+      "raw_result_sha256": "9a1fb4e28e84bceb5407dfae9e3ed44200893b406cbff2767f3d9f1fb4c055c7",
+      "temporary_plaintext_directories_after_test": 0,
+      "desktop_source_commit": "cc7e1208811c296d53921b22f755504716e6ab2f",
+      "desktop_binary_sha256": "cd45e6e6a45004ea7e4c298aed1aedd7578fdd45506408d2ad068c42e11560d7"
+    }
+  },
+  "wifi_discovery_followup": {
+    "scope": "three_authenticated_discovery_queries_per_phone_no_stream_or_unwrap",
+    "android_wifi": [
+      "one_authenticated_listener",
+      "one_authenticated_listener",
+      "one_authenticated_listener"
+    ],
+    "iphone_wifi": [
+      "one_authenticated_listener",
+      "one_authenticated_listener",
+      "one_authenticated_listener"
+    ],
+    "inference": "later_availability_does_not_explain_prior_failure"
+  },
+  "independent_recovery_drill": {
+    "scope": "disposable_independent_recovery_identity_only_no_phone_or_desktop_key_operation",
+    "phone_recipients": "existing_android_wifi_and_iphone_wifi_pairings",
+    "primary_plugin_unavailable": "guard_would_fail_and_mark_any_invocation",
+    "cases": [
+      {
+        "client": "age",
+        "input_bytes": 0,
+        "recipients": 3,
+        "recovery_passed": true,
+        "phone_plugin_invoked_for_recovery": false
+      },
+      {
+        "client": "age",
+        "input_bytes": 128,
+        "recipients": 3,
+        "recovery_passed": true,
+        "phone_plugin_invoked_for_recovery": false
+      },
+      {
+        "client": "age",
+        "input_bytes": 65537,
+        "recipients": 3,
+        "recovery_passed": true,
+        "phone_plugin_invoked_for_recovery": false
+      },
+      {
+        "client": "rage",
+        "input_bytes": 0,
+        "recipients": 3,
+        "recovery_passed": true,
+        "phone_plugin_invoked_for_recovery": false
+      },
+      {
+        "client": "rage",
+        "input_bytes": 128,
+        "recipients": 3,
+        "recovery_passed": true,
+        "phone_plugin_invoked_for_recovery": false
+      },
+      {
+        "client": "rage",
+        "input_bytes": 65537,
+        "recipients": 3,
+        "recovery_passed": true,
+        "phone_plugin_invoked_for_recovery": false
+      }
+    ],
+    "temporary_keys_plaintext_ciphertext_removed": true,
+    "output_capture": "stdout_to_temporary_file_including_empty_input"
+  },
+  "wifi_discovery_passive_followup_20260910": {
+    "scope": "no_stream_or_unwrap",
+    "initial_android_online_and_app_foreground": true,
+    "runs": {
+      "existing_rust_probe": {
+        "scope": "authenticated_discovery_only_no_stream_or_unwrap",
+        "runs": [
+          {
+            "run": 1,
+            "tcp_visible_before": true,
+            "udp_visible_before": true,
+            "socket_permission_warning": true,
+            "exit_code": 1,
+            "elapsed_seconds": 9.034,
+            "discovery": [
+              "attempt 1: no matching foreground Wi-Fi listener was discovered",
+              "attempt 2: no matching foreground Wi-Fi listener was discovered",
+              "attempt 3: one authenticated listener"
+            ]
+          },
+          {
+            "run": 2,
+            "tcp_visible_before": true,
+            "udp_visible_before": true,
+            "socket_permission_warning": true,
+            "exit_code": 0,
+            "elapsed_seconds": 9.018,
+            "discovery": [
+              "attempt 1: one authenticated listener",
+              "attempt 2: one authenticated listener",
+              "attempt 3: one authenticated listener"
+            ]
+          }
+        ],
+        "raw_result_sha256": "16fc8edeb6927be1fd018bdec02542ea5a12bb5b52f14a920590cce511f44c38"
+      },
+      "diagnostic_broadcast_unicast": {
+        "scope": "diagnostic_only_no_stream_or_unwrap_no_route_policy_change",
+        "deadline_seconds": 3,
+        "retry_interval_seconds": 0.2,
+        "runs": [
+          {
+            "mode": "broadcast",
+            "target_count": 4,
+            "first_authenticated_response_seconds": 0.534,
+            "valid_responses": 28,
+            "invalid_responses": 0,
+            "send_errors": 0
+          },
+          {
+            "mode": "unicast",
+            "target_count": 1,
+            "first_authenticated_response_seconds": 0.246,
+            "valid_responses": 15,
+            "invalid_responses": 0,
+            "send_errors": 0
+          },
+          {
+            "mode": "broadcast",
+            "target_count": 4,
+            "first_authenticated_response_seconds": 0.31,
+            "valid_responses": 29,
+            "invalid_responses": 0,
+            "send_errors": 11
+          },
+          {
+            "mode": "unicast",
+            "target_count": 1,
+            "first_authenticated_response_seconds": 0.272,
+            "valid_responses": 15,
+            "invalid_responses": 0,
+            "send_errors": 0
+          },
+          {
+            "mode": "broadcast",
+            "target_count": 4,
+            "first_authenticated_response_seconds": 0.202,
+            "valid_responses": 30,
+            "invalid_responses": 0,
+            "send_errors": 15
+          },
+          {
+            "mode": "unicast",
+            "target_count": 1,
+            "first_authenticated_response_seconds": 0.315,
+            "valid_responses": 15,
+            "invalid_responses": 0,
+            "send_errors": 0
+          }
+        ],
+        "raw_result_sha256": "5051a13d7aaef1bf3e0726ddcc4609d838d6d37caff407f74cd6f63908945f9a"
+      },
+      "diagnostic_active_interfaces": {
+        "scope": "diagnostic_only_no_stream_or_unwrap_no_route_policy_change",
+        "interface_filter": "UP_RUNNING_BROADCAST_without_LOOPBACK_POINTOPOINT",
+        "deadline_seconds": 3,
+        "retry_interval_seconds": 0.2,
+        "runs": [
+          {
+            "mode": "unicast",
+            "target_count": 1,
+            "first_authenticated_response_seconds": 0.178,
+            "valid_responses": 15,
+            "invalid_responses": 0,
+            "send_errors": 0,
+            "send_error_codes": {}
+          },
+          {
+            "mode": "broadcast",
+            "target_count": 4,
+            "first_authenticated_response_seconds": 0.262,
+            "valid_responses": 28,
+            "invalid_responses": 0,
+            "send_errors": 0,
+            "send_error_codes": {}
+          },
+          {
+            "mode": "unicast",
+            "target_count": 1,
+            "first_authenticated_response_seconds": 0.326,
+            "valid_responses": 15,
+            "invalid_responses": 0,
+            "send_errors": 0,
+            "send_error_codes": {}
+          },
+          {
+            "mode": "broadcast",
+            "target_count": 4,
+            "first_authenticated_response_seconds": 0.227,
+            "valid_responses": 30,
+            "invalid_responses": 0,
+            "send_errors": 13,
+            "send_error_codes": {
+              "65": 1,
+              "64": 12
+            }
+          }
+        ],
+        "raw_result_sha256": "c0ab2449cf07736a6ab6039493c30bda6e29a678519be3d6d23eb1b6dac0496a"
+      }
+    },
+    "root_cause": "unresolved",
+    "diagnostic_limit": "Python_comparison_is_separate_from_production_routing_and_continues_counting_send_errors; does_not_change_product_behavior"
+  },
+  "wifi_route_attribution_20260910": {
+    "routes": [
+      {
+        "target": "subnet_feth4032",
+        "route_exit": 0,
+        "interface": "feth4032"
+      },
+      {
+        "target": "subnet_en13",
+        "route_exit": 0,
+        "interface": "en0"
+      },
+      {
+        "target": "phone_unicast",
+        "route_exit": 0,
+        "interface": "en0"
+      },
+      {
+        "target": "subnet_en0",
+        "route_exit": 0,
+        "interface": "en0"
+      },
+      {
+        "target": "limited_broadcast",
+        "route_exit": 0,
+        "interface": "en0"
+      }
+    ],
+    "user_reported_mac_proxy": "Surge_system_proxy",
+    "scope": "diagnostic_only_no_stream_or_unwrap_no_route_policy_change",
+    "interface_filter": "UP_RUNNING_BROADCAST_without_LOOPBACK_POINTOPOINT",
+    "deadline_seconds": 3,
+    "retry_interval_seconds": 0.2,
+    "runs": [
+      {
+        "mode": "broadcast",
+        "target_count": 4,
+        "first_authenticated_response_seconds": null,
+        "valid_responses": 0,
+        "invalid_responses": 0,
+        "send_errors": 0,
+        "send_error_codes": {},
+        "target_errors": {}
+      },
+      {
+        "mode": "unicast",
+        "target_count": 1,
+        "first_authenticated_response_seconds": 0.32,
+        "valid_responses": 15,
+        "invalid_responses": 0,
+        "send_errors": 0,
+        "send_error_codes": {},
+        "target_errors": {}
+      },
+      {
+        "mode": "broadcast",
+        "target_count": 4,
+        "first_authenticated_response_seconds": 0.276,
+        "valid_responses": 29,
+        "invalid_responses": 0,
+        "send_errors": 4,
+        "send_error_codes": {
+          "65": 1,
+          "64": 3
+        },
+        "target_errors": {
+          "subnet_en13": {
+            "65": 1,
+            "64": 3
+          }
+        }
+      },
+      {
+        "mode": "unicast",
+        "target_count": 1,
+        "first_authenticated_response_seconds": 0.271,
+        "valid_responses": 15,
+        "invalid_responses": 0,
+        "send_errors": 0,
+        "send_error_codes": {},
+        "target_errors": {}
+      }
+    ],
+    "raw_result_sha256": "9ab86c7a12bda4babad431559cf38ea51131462515731cd6a9bf35e93de25618",
+    "user_reported_network_software": [
+      "Surge_system_proxy",
+      "ZeroTier_virtual_network"
+    ],
+    "observed_system_proxy_flags": {
+      "HTTPEnable": 1,
+      "HTTPSEnable": 1,
+      "SOCKSEnable": 1
+    },
+    "zerotier_interface_attribution": "not_confirmed_cli_listnetworks_exit_2",
+    "network_settings_changed": false
+  },
+  "wifi_unchanged_network_retry_20260910": {
+    "user_constraint": "keep_ZeroTier_and_Surge_enabled",
+    "network_settings_changed": false,
+    "runs": {
+      "route_diagnostic": {
+        "routes": [
+          {
+            "target": "subnet_feth4032",
+            "route_exit": 0,
+            "interface": "feth4032"
+          },
+          {
+            "target": "subnet_en13",
+            "route_exit": 0,
+            "interface": "en0"
+          },
+          {
+            "target": "phone_unicast",
+            "route_exit": 0,
+            "interface": "en0"
+          },
+          {
+            "target": "subnet_en0",
+            "route_exit": 0,
+            "interface": "en0"
+          },
+          {
+            "target": "limited_broadcast",
+            "route_exit": 0,
+            "interface": "en0"
+          }
+        ],
+        "user_reported_mac_proxy": "Surge_system_proxy",
+        "zerotier": "left_enabled_per_user_request",
+        "scope": "diagnostic_only_no_stream_or_unwrap_no_route_policy_change",
+        "interface_filter": "UP_RUNNING_BROADCAST_without_LOOPBACK_POINTOPOINT",
+        "deadline_seconds": 3,
+        "retry_interval_seconds": 0.2,
+        "runs": [
+          {
+            "mode": "broadcast",
+            "target_count": 4,
+            "first_authenticated_response_seconds": null,
+            "valid_responses": 0,
+            "invalid_responses": 0,
+            "send_errors": 0,
+            "send_error_codes": {},
+            "target_errors": {}
+          },
+          {
+            "mode": "unicast",
+            "target_count": 1,
+            "first_authenticated_response_seconds": 0.285,
+            "valid_responses": 15,
+            "invalid_responses": 0,
+            "send_errors": 0,
+            "send_error_codes": {},
+            "target_errors": {}
+          },
+          {
+            "mode": "broadcast",
+            "target_count": 4,
+            "first_authenticated_response_seconds": 0.329,
+            "valid_responses": 28,
+            "invalid_responses": 0,
+            "send_errors": 14,
+            "send_error_codes": {
+              "65": 1,
+              "64": 13
+            },
+            "target_errors": {
+              "subnet_en13": {
+                "65": 1,
+                "64": 13
+              }
+            }
+          },
+          {
+            "mode": "unicast",
+            "target_count": 1,
+            "first_authenticated_response_seconds": 0.277,
+            "valid_responses": 15,
+            "invalid_responses": 0,
+            "send_errors": 0,
+            "send_error_codes": {},
+            "target_errors": {}
+          }
+        ],
+        "raw_result_sha256": "3f5db8fdb10418f1591f87b42b89b6ef87c4fe31208639b84283ddeba7b49f32"
+      },
+      "existing_rust_probe": {
+        "scope": "existing_rust_discovery_probe_no_stream_or_unwrap",
+        "network_settings": "unchanged_zeroTier_and_Surge_enabled",
+        "exit_code": 0,
+        "discovery": [
+          "attempt 1: one authenticated listener",
+          "attempt 2: one authenticated listener",
+          "attempt 3: one authenticated listener"
+        ],
+        "raw_result_sha256": "8263495cc90519938cec386876e44e2bec7429d18ee9288d7974e2ef8588071a"
+      }
+    },
+    "conclusion": "intermittent_broadcast_outage_and_cross_interface_send_errors_persist_later_rust_probe_passes"
+  },
+  "wifi_interface_address_classification_20260910": {
+    "user_reported_zerotier_address_class": "10/8",
+    "observed_interfaces": [
+      {
+        "interface": "feth4032",
+        "address_class": "10/8"
+      },
+      {
+        "interface": "en0",
+        "address_class": "192.168/16"
+      },
+      {
+        "interface": "en13",
+        "address_class": "IPv4_link_local_not_RFC1918"
+      }
+    ],
+    "send_error_target": "en13_derived_broadcast",
+    "conclusion": "observed_send_errors_were_not_on_the_user_identified_10_network",
+    "zerotier_process_ownership": "not_independently_confirmed",
+    "network_settings_changed": false
+  },
+  "macos_wifi_interface_fix": {
+    "scope": "final_scoped_source_sockets_round_robin_discovery_only",
+    "network_settings": "Surge_and_ZeroTier_retained",
+    "binary_sha256": "07dfa42fe05852f7f847e888684c8d247bdd899bc68a9c9849fabf265386c79a",
+    "probe_sha256": "bc6cf9e2ec6dc11cf71f9e3658d0463fba308e01247910876531105865267756",
+    "batches": [
+      {
+        "batch": 1,
+        "exit_code": 0,
+        "discovery": [
+          "attempt 1: one authenticated listener",
+          "attempt 2: one authenticated listener",
+          "attempt 3: one authenticated listener"
+        ]
+      },
+      {
+        "batch": 2,
+        "exit_code": 0,
+        "discovery": [
+          "attempt 1: one authenticated listener",
+          "attempt 2: one authenticated listener",
+          "attempt 3: one authenticated listener"
+        ]
+      }
+    ],
+    "raw_result_sha256": "6b9cc604357e74dcda8d8162537ff107a1858da3dd7ebb037e796c5097f1050c",
+    "source_base_commit": "9506563",
+    "source_files_sha256": {
+      "crates/desktop/src/wifi.rs": "9e23914a3af630935f7c9d55744217651446a8baac3d984dc9dce85ef2997874",
+      "crates/platform-storage/src/macos_network.rs": "c773afb36f9b288aa88c3d027862f28265e150925159ad3fe15e8788eb5f6e4d"
+    },
+    "checks": {
+      "fmt_all_check": "passed",
+      "clippy_workspace_all_targets_locked_deny_warnings": "passed",
+      "test_workspace_locked": "passed_native_hardware_ignored_as_declared",
+      "native_loopback_scoped_send_and_binding_cleanup": "passed",
+      "compact_mask_negative_tests": "passed",
+      "signed_response_malformed_wrong_nonce_and_ambiguity": "passed"
+    },
+    "real_phone_unwrap": "pending_user_operation",
+    "build_profile": "debug_local_candidate_distinct_from_original_installed_artifact"
+  },
+  "android_wifi_reception_candidate": {
+    "status": "same_signed_update_and_age_rage_native_roundtrips_passed_archive_install_revalidation_pending",
+    "mac_candidate_commit": "c9c2a3f",
+    "observations": {
+      "android-wifi-scoped-final-unwrap-results.json": {
+        "sha256": "da484b0eb76ca4e455b06841ad60583701c675b5acfe600578ec24beef214cd0",
+        "result": {
+          "scope": "final_scoped_wifi_candidate_real_phone",
+          "binary_sha256": "07dfa42fe05852f7f847e888684c8d247bdd899bc68a9c9849fabf265386c79a",
+          "network_settings": "Surge_and_ZeroTier_retained",
+          "synthetic_data_only": true,
+          "cases": [
+            {
+              "client": "age",
+              "phase": "first_approval",
+              "exit_code": 0,
+              "data_check": true,
+              "human_native_observation": "y",
+              "passed": true
+            },
+            {
+              "client": "age",
+              "phase": "second_fresh_approval",
+              "exit_code": 0,
+              "data_check": true,
+              "human_native_observation": "y",
+              "passed": true
+            },
+            {
+              "client": "age",
+              "phase": "native_cancellation",
+              "exit_code": 1,
+              "data_check": true,
+              "human_native_observation": "n",
+              "passed": false
+            }
+          ]
+        }
+      },
+      "android-wifi-scoped-after-unwrap-failure-20260910.json": {
+        "sha256": "5540db26a3a180e02a87a6f94ff604b254ef7ffa366eb2a8b9b444068fa2479f",
+        "result": {
+          "app_foreground": true,
+          "tcp_visible": true,
+          "udp_visible": true,
+          "socket_permission_warning": true,
+          "probe_exit": 0,
+          "discovery": [
+            "attempt 1: one authenticated listener",
+            "attempt 2: one authenticated listener",
+            "attempt 3: one authenticated listener"
+          ]
+        }
+      },
+      "android-wifi-apf-discovery-delta-20260910.json": {
+        "sha256": "ac5d579f8a32790b97685c598163a0c9017032ba3e5f434ccc63da3d49b31261",
+        "result": {
+          "scope": "apf_counters_around_discovery_only",
+          "before": {
+            "DROPPED_IPV4_BROADCAST_ADDR": 1820,
+            "DROPPED_IPV4_BROADCAST_NET": 7431,
+            "DROPPED_IPV4_MULTICAST": 3587,
+            "DROPPED_IPV6_MULTICAST_NA": 5
+          },
+          "after": {
+            "DROPPED_IPV4_BROADCAST_ADDR": 1820,
+            "DROPPED_IPV4_BROADCAST_NET": 7431,
+            "DROPPED_IPV4_MULTICAST": 3587,
+            "DROPPED_IPV6_MULTICAST_NA": 5
+          },
+          "delta": {
+            "DROPPED_IPV4_BROADCAST_ADDR": 0,
+            "DROPPED_IPV4_BROADCAST_NET": 0,
+            "DROPPED_IPV4_MULTICAST": 0,
+            "DROPPED_IPV6_MULTICAST_NA": 0
+          },
+          "probe_exit": 0,
+          "discovery": [
+            "attempt 1: one authenticated listener",
+            "attempt 2: one authenticated listener",
+            "attempt 3: one authenticated listener"
+          ],
+          "limit": "system_counters_include_unrelated_network_traffic"
+        }
+      }
+    },
+    "cancellation_interpretation": "discovery_failed_before_native_prompt_not_a_cancellation_pass",
+    "android_jvm_tests": {
+      "tests": 73,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "release_aar_build": "passed_JDK_17",
+    "root_cause_limit": "APF_counter_delta_zero_during_later_successful_queries_does_not_explain_failed_request",
+    "identity_preservation": "same_certificate_update_required_no_uninstall_or_reset_performed",
+    "signed_update": {
+      "run_id": 34384436759,
+      "candidate_commit": "6a0cf142258a25a73bbf10fa106a2aa7cac93cda",
+      "apk_sha256": "bab6b9cb3ca4b4faa513935ec1904cd01613bbb4990933bd92f5cfc774f72873",
+      "previous_apk_sha256": "6e77ada9917673f0a5a392bb9a4327dd2275f9ff403d15015a6280da190d4f62",
+      "signer_certificate_sha256": "9a3e5a00a0a363ca58bbe0abfa1bbc0e36cbdce58e314c0c0dbfa94baff1d58b",
+      "signature_verification": "both_passed_same_signer",
+      "checksum": "passed",
+      "package_matches": true,
+      "multicast_permission_present": true,
+      "installation": "adb_install_r_success",
+      "installed_apk_digest_matches": true
+    },
+    "post_update_discovery": {
+      "probe_sha256": "bc6cf9e2ec6dc11cf71f9e3658d0463fba308e01247910876531105865267756",
+      "apk_sha256": "bab6b9cb3ca4b4faa513935ec1904cd01613bbb4990933bd92f5cfc774f72873",
+      "exit_code": 0,
+      "discovery": [
+        "attempt 1: one authenticated listener",
+        "attempt 2: one authenticated listener",
+        "attempt 3: one authenticated listener"
+      ],
+      "existing_pairing_used": true,
+      "native_verification_requested": false
+    },
+    "human_unwrap": {
+      "result_sha256": "0acaa83ae659595c5da06ff98bc82a4e31a19a0a291d15bd9d4c3258e8c9a71e",
+      "harness_sha256": "5e661c1a6125674ed9bedc2953cff8d6635d011d4d8d14f4b49bd67cb616c1a1",
+      "result": {
+        "scope": "mac_scoped_candidate_and_android_reception_update_real_phone",
+        "binary_sha256": "07dfa42fe05852f7f847e888684c8d247bdd899bc68a9c9849fabf265386c79a",
+        "network_settings": "Surge_and_ZeroTier_retained",
+        "synthetic_data_only": true,
+        "cases": [
+          {
+            "client": "age",
+            "phase": "first_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "age",
+            "phase": "second_fresh_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "age",
+            "phase": "native_cancellation",
+            "exit_code": 1,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "age",
+            "phase": "approval_after_cancellation",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "first_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "second_fresh_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "native_cancellation",
+            "exit_code": 1,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "approval_after_cancellation",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          }
+        ],
+        "android_update": {
+          "run_id": 34384436759,
+          "candidate_commit": "6a0cf142258a25a73bbf10fa106a2aa7cac93cda",
+          "apk_sha256": "bab6b9cb3ca4b4faa513935ec1904cd01613bbb4990933bd92f5cfc774f72873",
+          "previous_apk_sha256": "6e77ada9917673f0a5a392bb9a4327dd2275f9ff403d15015a6280da190d4f62",
+          "signer_certificate_sha256": "9a3e5a00a0a363ca58bbe0abfa1bbc0e36cbdce58e314c0c0dbfa94baff1d58b",
+          "signature_verification": "both_passed_same_signer",
+          "checksum": "passed",
+          "package_matches": true,
+          "multicast_permission_present": true,
+          "installation": "adb_install_r_success",
+          "installed_apk_digest_matches": true
+        }
+      },
+      "temporary_plaintext_directories_remaining": 0
+    }
+  },
+  "macos_wifi_archive_revalidation": {
+    "status": "archive_install_continuity_and_both_phone_wifi_native_matrices_passed_other_gates_open",
+    "source_provenance": {
+      "source_commit": "a78a8cd5ae0e78e574cee19ba0380e7fdf033618",
+      "crates_unchanged_since": "c9c2a3f",
+      "note": "documentation commit occurred after rehearsal copy; all crate non-manifest bytes verified equal",
+      "source_hashes": {
+        "Cargo.toml": "c18177eba5b6e1c8b61357880c945e1d79e62c773c0269a7901d9d1ccbc8b218",
+        "Cargo.lock": "24766f1caa8e1f96e883d2757f61e083bdfee831899a49933fb0b8bc930da2f9",
+        "crates/platform-storage/Cargo.toml": "456796b6c190ea09544f1700f0b8294e0162a3e0c3309be5f8ad740a77694e74",
+        "crates/platform-storage/LICENSE": "88700e87477e6c807313eab757083fa8bcb8c75066b3fb0db6087dc2be042a11",
+        "crates/platform-storage/README.md": "2f2f33920b37d36e59b58aa7fed0e26362a43904d6e6f14803bce185e568a648",
+        "crates/platform-storage/src/unix.rs": "cc10c3838bdabd7f579d4aba52c9de2c704d31492381374ef7f28bebc766839c",
+        "crates/platform-storage/src/macos.rs": "ce8054b039397b65f621378608d459a688c406786be5270b07f4c1bb070757a3",
+        "crates/platform-storage/src/lib.rs": "377012183532c54294064a4b98509b9949e2a4473870359314577316ad57853e",
+        "crates/platform-storage/src/windows.rs": "3ce845a3a320ab2a160b5ccfb100f360dc38325fabf813ed6737b68af52f792c",
+        "crates/platform-storage/src/windows_network.rs": "bcc80f037db3729243a56e48693968a16db3e8d6464ac6b08f8084ce35fcff79",
+        "crates/platform-storage/src/macos_network.rs": "c773afb36f9b288aa88c3d027862f28265e150925159ad3fe15e8788eb5f6e4d",
+        "crates/platform-storage/src/unix/private_file.rs": "591a1b8bb6437f4e148f901810f719a4f8cd26455f7e9b7c9fa918fca010e424",
+        "crates/core/Cargo.toml": "eb51f8a919b63ab65d93f5c7ba91fd43cbbcec524e1dd7bb1e9b9ccfe96b9db9",
+        "crates/core/LICENSE": "88700e87477e6c807313eab757083fa8bcb8c75066b3fb0db6087dc2be042a11",
+        "crates/core/README.md": "13e0634752c2bf040e8d9a30babd4758a37708a96748f70e5afe46a8c905872f",
+        "crates/core/test-vectors/pairing-transcript-v2.json": "baaa4289a6ca0eb7f6c3876ff0a0eb1074cde98eb5b158b2ae870ca9a80e18bd",
+        "crates/core/test-vectors/p256-recipient-v2.json": "3765db88b82b8f3ec9710a22090f09826502602d2be90611cbbadbc85ad3c48c",
+        "crates/core/test-vectors/offline-envelope-v2.json": "5e1cca6da4f06ce1f1c0e3f19b42908871a3710e84fee6ff38af41e9da90699b",
+        "crates/core/test-vectors/p256-recipient-v1.json": "6028deb7ae9122407214d1e8d6c3bdeb8d53c33f85340c499568ac1ac969d1e6",
+        "crates/core/tests/public_vector.rs": "0ef97a73fac89c50b6415b4339ea4b40f568239f9b45c82af00ea396b583f654",
+        "crates/core/tests/upgrade_replay.rs": "8f389d760bcd518b182e9bf6f49d3e032730ce1cbe01f6f1b12fcb83d5d2bbd7",
+        "crates/core/tests/public_vector_v2.rs": "8b7c20f521a723e9373cb2c641139c99cef3522bb1f80429d24aad187e1f6fa9",
+        "crates/core/tests/fixtures/responses.cbor": "2b5654243d1bf965ac1904ca8cf640fdcab22bdac6368e9f9a6aa03ad7b6ee8e",
+        "crates/core/tests/fixtures/requests.cbor": "fe0695f735dbed899d1cdf1d289567ec25fcd9d0cd07d39696034a4dfa1aac48",
+        "crates/core/tests/fixtures/README.md": "d9931a2bb8c707b5bf7aaf578c09be8f6bf952ce3bd9fffe2b63d255d86739b6",
+        "crates/core/tests/fixtures/generate-replay.rs": "8d52fcc5527deedb73ddf990c349b24b216af81b5d1f10bf1780aa0202449ad1",
+        "crates/core/examples/public_vector.rs": "30c785f4e8be0bc4406332c91d712db7f9519adbbce2e693e051ae4d2c87a9e3",
+        "crates/core/examples/macos-replay-acceptance.rs": "8c3f8ca0e716a0ef5cd66405bf9597809e006959a8e8cc7ee69c86601113bee4",
+        "crates/core/examples/public_vector_v2.rs": "969cbcfd5270100c283c1c7f2533c238c821aaab3aa364557daffedc26120364",
+        "crates/core/src/lib.rs": "5df568a1f441f7ce2b77029c9f4a8fac75d8d152c2b94092c33f356a5c101edc",
+        "crates/core/src/recipient/mod.rs": "cf3bbd3c7e74a29517bb9d1b4a3185740d47381495fcb39ad641a7ca52144eae",
+        "crates/core/src/recipient/plugin.rs": "292fb265107c2b8f341927c3a9eafcbcae7d8fb84e5aa0a964ee232d0c144db2",
+        "crates/core/src/protocol/replay_macos.rs": "7bd12f8606a9e4e6baaaacd88aaa657a112d4ab3b30487f3189d390c64088047",
+        "crates/core/src/protocol/mod.rs": "39b88b7e8013ec95b73681aee170f1f0b30fcac7d059be29234574d5f9a14b17",
+        "crates/core/src/protocol/replay.rs": "1d37614a4c51c8071155d6922053ac023567a7fd5acc849017a4a5cbc68731ca",
+        "crates/core/src/protocol/qr.rs": "318e95c7bedc741f1f1cfee47a6004c250f4ef0545e22331fe5f8115f71fdfdd",
+        "crates/platform-keys/Cargo.toml": "6d0c35696813cbbfdb83ae48dd30885affdba45f8593f670f898e002c25dd53b",
+        "crates/platform-keys/LICENSE": "88700e87477e6c807313eab757083fa8bcb8c75066b3fb0db6087dc2be042a11",
+        "crates/platform-keys/build.rs": "11f36cbbf51e04eff73812a7f4d35599cba7c246a575a82afe9c5e10009c2bb1",
+        "crates/platform-keys/README.md": "382e9ced80f2f5092830d0c31bc9af3dd8d080f9cf4743a2259f58e50588e1c7",
+        "crates/platform-keys/native/Keys.swift": "0b189cbda36e024f07f04c8569d7cf452d236eeabab2a39d48e1b992ef1f673a",
+        "crates/platform-keys/examples/macos-cryptokit-verify.rs": "308e6e967a330600820a4e043cc33af9fecf06f3f66f680bfa5335b40385e4c8",
+        "crates/platform-keys/examples/macos-key-probe.rs": "456ce937ef8daf320ed3787d2fc8a09797ebe2fbf81b17e82cbb960998935247",
+        "crates/platform-keys/src/lib.rs": "d27663b082731ce1eca2c91162ddd14a22a4fe59330c510ae12adace2d373de9",
+        "crates/platform-keys/src/windows.rs": "a0844383302452da6e5418190ed2504c4fcdfec28777a2916dd622971e4359e3",
+        "crates/platform-keys/src/macos/mod.rs": "756e55bcce1c0e5d4b3fbc3cb751d30ba6fc812b2e55c9d06cfdd3bec172fa72",
+        "crates/platform-keys/src/macos/probe.rs": "bc91d1df40950a2a7e188902327af39af89da32c17acdee2c8167e7579f662c5",
+        "crates/desktop/Cargo.toml": "9a48c7c8a667712ba11b163db0aa3a5b472ce879375faef75d15142e3d453378",
+        "crates/desktop/LICENSE": "88700e87477e6c807313eab757083fa8bcb8c75066b3fb0db6087dc2be042a11",
+        "crates/desktop/README.md": "c7bf8eda90d028e06ce424f902d33491235592ec23d267c4863db6e3bd7586ed",
+        "crates/desktop/tests/macos_setup.rs": "ee4c460d9c6149856099e208e627980b95f06f74696f2101827f22e0b15e79f4",
+        "crates/desktop/tests/fixtures/locator_v3.rs": "62e81500c0565efea8d3a1b2088802744e2599d740c6debc8ca4fd0d9af2b168",
+        "crates/desktop/tests/fixtures/README.md": "150bf1ed04ef1792e5c6cfc96f3d64d96066d0439cd9b99c2683ac3db371b703",
+        "crates/desktop/tests/fixtures/locator-v3.cbor": "347f48e34f87d7cb1c6d48c15e47b3deb412e4f1594567ff263c4cabd98ddb05",
+        "crates/desktop/examples/macos-install-acceptance.rs": "fcf3b6c3ce60434526f798660b74e3d543237ac083754e14bdc3e2aeaaff7d12",
+        "crates/desktop/examples/wifi-discovery-probe.rs": "6a9c30f23369fc6418d18b86263e1a68c46a33feb63eb9a4ec0d2c8414495eb3",
+        "crates/desktop/src/qr_scanner.rs": "9eb52af1cad8d2dca3f4786e1c26236bcb89ae53d2bd7c2ce5b6780222b74644",
+        "crates/desktop/src/unwrap.rs": "5cc98b06f1a6dfed2f8e535280460faafdc9900482cba4f3b851f8110870e21c",
+        "crates/desktop/src/locator.rs": "fd27ca7ba14bcfafce662de80d33a77a72b8808b3c60340dbd80d2fc59159f35",
+        "crates/desktop/src/cleanup_journal.rs": "11f250685592e4ef4967da7cd9a9ec8518876983a6dc8d20ef28118edbd3c834",
+        "crates/desktop/src/transport.rs": "e1e2cdf59b8583e1ec4f0bcd760adf71e1dd8023360ad9a1153329d47da9cec3",
+        "crates/desktop/src/lib.rs": "ba219db97006b4631e924a5728413532f69588c538cef0d5ca2680f452b5018f",
+        "crates/desktop/src/wifi.rs": "9e23914a3af630935f7c9d55744217651446a8baac3d984dc9dce85ef2997874",
+        "crates/desktop/src/qr_terminal.rs": "0827143d5d24303049639e190629958a0e438b392204ebe3cd7009cdc26f3c1a",
+        "crates/desktop/src/adb.rs": "be46df7073858beb11bc782ed8ca4f4872c3e65787c7171322ddc00d3e10fb8f",
+        "crates/desktop/src/transport_policy.rs": "18dae6b6d352d78a4fd3f1a1b333f88f1b7ea3567a5f0dff421133ebeccfada8",
+        "crates/desktop/src/pairing.rs": "5d0b4da759176f55b31ee303e42134d2231370b8773334df7039d1d389caa8b6",
+        "crates/desktop/src/main.rs": "aff0ae6f9d11e0283e0403b3974600ed28fa712390a2f2bfa28b948e68b422ee",
+        "crates/desktop/src/age_recipient.rs": "b2864e65044859706d3de8baf6edcdd4af648f6a82e35a2deb3c5b8c468e1046",
+        "crates/desktop/src/age_identity.rs": "519e3b04b2c32f033638b75adb1bb596e9b5b23bfec375d47ed448fb5846536a",
+        "crates/desktop/src/macos_state.rs": "e6ffab9c66f90e4a40f3e3ccd8ca6ded7775452fb48fc3789828574acc64d929",
+        "crates/desktop/src/desktop_cleanup.rs": "e6cc6b5da6dc7e96599df2c8e9f414c3d630a51e925d01bdea7426013b816600",
+        "crates/desktop/src/setup.rs": "3ad4c6bbbab9db1ddb93f96b2b99f44cc4e8c7d55bc219c593dab48defde1c6f"
+      }
+    },
+    "archive_evidence_sha256": "1618e6b41c80c82a8c4ae9b83f19d337dfce1d8f1f51d4182ab9dfab0a2e6adc",
+    "archive_tests": "four_detached_crates_passed_Rust_1_88_locked",
+    "install": "isolated_sparse_registry_cargo_install_locked_passed",
+    "continuity": {
+      "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+      "helper_sha256": "8c2333baffcaacfd40fd958b655c15b1e225c2cbe0bc002fb004de629dd5afb4",
+      "synthetic_only": true,
+      "existing_fixture_continuity": [
+        {
+          "fixture_generation": "M5",
+          "hardware_reopened": true,
+          "consumed_replay_rejected": true,
+          "state_unchanged": true
+        },
+        {
+          "fixture_generation": "previous_final",
+          "hardware_reopened": true,
+          "consumed_replay_rejected": true,
+          "state_unchanged": true
+        }
+      ]
+    },
+    "synthetic_interop": {
+      "recoveries": 12,
+      "expected_rejections": 2,
+      "status": "passed"
+    },
+    "limit": "not_published_version_upgrade_or_full_lifecycle_rerun",
+    "android_human_unwrap": {
+      "result": {
+        "scope": "cargo_installed_mac_and_android_reception_update_real_phone",
+        "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+        "network_settings": "Surge_and_ZeroTier_retained",
+        "synthetic_data_only": true,
+        "cases": [
+          {
+            "client": "age",
+            "phase": "first_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "age",
+            "phase": "second_fresh_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "age",
+            "phase": "native_cancellation",
+            "exit_code": 1,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "age",
+            "phase": "approval_after_cancellation",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "first_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "second_fresh_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "native_cancellation",
+            "exit_code": 1,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "approval_after_cancellation",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          }
+        ],
+        "android_update": {
+          "run_id": 34384436759,
+          "candidate_commit": "6a0cf142258a25a73bbf10fa106a2aa7cac93cda",
+          "apk_sha256": "bab6b9cb3ca4b4faa513935ec1904cd01613bbb4990933bd92f5cfc774f72873",
+          "previous_apk_sha256": "6e77ada9917673f0a5a392bb9a4327dd2275f9ff403d15015a6280da190d4f62",
+          "signer_certificate_sha256": "9a3e5a00a0a363ca58bbe0abfa1bbc0e36cbdce58e314c0c0dbfa94baff1d58b",
+          "signature_verification": "both_passed_same_signer",
+          "checksum": "passed",
+          "package_matches": true,
+          "multicast_permission_present": true,
+          "installation": "adb_install_r_success",
+          "installed_apk_digest_matches": true
+        }
+      },
+      "result_sha256": "8c3f17e2d5a63f17fc311262aac6da295aa9eefc8d531a94e24074331e8a0752",
+      "harness_sha256": "6fac0cd8c482b60c85ac16f90f0fa19b2fca808351232d1051608b6107125a47",
+      "temporary_plaintext_directories_remaining": 0
+    },
+    "iphone_human_unwrap": {
+      "result": {
+        "scope": "cargo_installed_mac_and_iphone_wifi_real_phone",
+        "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+        "network_settings": "Surge_and_ZeroTier_retained",
+        "synthetic_data_only": true,
+        "cases": [
+          {
+            "client": "age",
+            "phase": "first_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "age",
+            "phase": "second_fresh_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "age",
+            "phase": "native_cancellation",
+            "exit_code": 1,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "age",
+            "phase": "approval_after_cancellation",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "first_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "second_fresh_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "native_cancellation",
+            "exit_code": 1,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "approval_after_cancellation",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          }
+        ]
+      },
+      "result_sha256": "243db4a7d5027e4f3a26881974343d2c52d58ea3f14061a85744407045755b7a",
+      "harness_sha256": "6ec2e5585fb69e41f72697809aa1f1da4358f27646a46017252dd107643ab883",
+      "temporary_plaintext_directories_remaining": 0
+    },
+    "android_usb_human_unwrap": {
+      "result": {
+        "scope": "cargo_installed_mac_and_android_reception_update_usb_real_phone",
+        "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+        "network_settings": "Surge_and_ZeroTier_retained",
+        "synthetic_data_only": true,
+        "cases": [
+          {
+            "client": "age",
+            "phase": "first_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "reverse_rules_empty": true,
+            "passed": true
+          },
+          {
+            "client": "age",
+            "phase": "second_fresh_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "reverse_rules_empty": true,
+            "passed": true
+          },
+          {
+            "client": "age",
+            "phase": "native_cancellation",
+            "exit_code": 1,
+            "data_check": true,
+            "human_native_observation": "y",
+            "reverse_rules_empty": true,
+            "passed": true
+          },
+          {
+            "client": "age",
+            "phase": "approval_after_cancellation",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "reverse_rules_empty": true,
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "first_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "reverse_rules_empty": true,
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "second_fresh_approval",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "reverse_rules_empty": true,
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "native_cancellation",
+            "exit_code": 1,
+            "data_check": true,
+            "human_native_observation": "y",
+            "reverse_rules_empty": true,
+            "passed": true
+          },
+          {
+            "client": "rage",
+            "phase": "approval_after_cancellation",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "reverse_rules_empty": true,
+            "passed": true
+          }
+        ],
+        "android_update": {
+          "run_id": 34384436759,
+          "candidate_commit": "6a0cf142258a25a73bbf10fa106a2aa7cac93cda",
+          "apk_sha256": "bab6b9cb3ca4b4faa513935ec1904cd01613bbb4990933bd92f5cfc774f72873",
+          "previous_apk_sha256": "6e77ada9917673f0a5a392bb9a4327dd2275f9ff403d15015a6280da190d4f62",
+          "signer_certificate_sha256": "9a3e5a00a0a363ca58bbe0abfa1bbc0e36cbdce58e314c0c0dbfa94baff1d58b",
+          "signature_verification": "both_passed_same_signer",
+          "checksum": "passed",
+          "package_matches": true,
+          "multicast_permission_present": true,
+          "installation": "adb_install_r_success",
+          "installed_apk_digest_matches": true
+        },
+        "transport": "adb"
+      },
+      "result_sha256": "17401ba36e4fc542cd4732d3a156de210f8ff0097ab390ba963fedd4a7d100b6",
+      "harness_sha256": "53f9e286e20abd8c4fc4772254970edf3cddc448ed2b9862e4a0ebafe9997e71",
+      "temporary_plaintext_directories_remaining": 0
+    },
+    "both_phone_qr": {
+      "android": {
+        "result": {
+          "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+          "camera_observation": "b",
+          "transport": "qr",
+          "synthetic_data_only": true,
+          "human_native_observation": "recorded_immediately_per_operation",
+          "cases": [
+            {
+              "client": "age",
+              "exit_code": 0,
+              "passed": true,
+              "native_observation": "user_confirmed_fresh_fingerprint"
+            },
+            {
+              "client": "rage",
+              "exit_code": 0,
+              "passed": true,
+              "native_observation": "user_confirmed_fresh_fingerprint"
+            }
+          ]
+        },
+        "result_sha256": "17a67929f18be2b89ab7884a21345276e5725da38d489cce03a403d78d4b1aca",
+        "harness_sha256": "3068bd9138dcd354ea6663789e77656adc4014b73f6ab4c1f7a8e9dfb2695c34",
+        "temporary_plaintext_directories_remaining": 0
+      },
+      "iphone": {
+        "result": {
+          "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+          "camera_observation": "b",
+          "transport": "qr",
+          "synthetic_data_only": true,
+          "human_native_observation": "recorded_immediately_per_operation",
+          "cases": [
+            {
+              "client": "age",
+              "exit_code": 0,
+              "passed": true,
+              "native_observation": "user_confirmed_fresh_face_id"
+            },
+            {
+              "client": "rage",
+              "exit_code": 0,
+              "passed": true,
+              "native_observation": "user_confirmed_fresh_face_id"
+            }
+          ]
+        },
+        "result_sha256": "c7d60269e3d9368983cb9d0cb909722fed6690f9f61a3a8b17d034b90aa8b518",
+        "harness_sha256": "64849d3aa44aa4dea77c0cadd6bd49657f088b15e56b3040ac763a4fa7b437fb",
+        "temporary_plaintext_directories_remaining": 0
+      }
+    }
+  },
+  "scope_decisions": {
+    "gui_caller_acceptance": {
+      "date": "2026-09-10",
+      "status": "deferred_by_user_not_passed",
+      "reason": "no_current_GUI_use_case",
+      "scope": [
+        "GUI_network_permissions",
+        "GUI_camera_permissions",
+        "GUI_hardware_key_access"
+      ],
+      "blocks_current_terminal_cli_acceptance": false,
+      "supports_gui_claim": false,
+      "m2_rollback_requirement": "unchanged_by_GUI_decision_see_later_desktop_replay_restore_decision"
+    },
+    "desktop_replay_restore": {
+      "date": "2026-09-10",
+      "status": "user_approved_common_windows_macos_boundary",
+      "stronger_store_freshness": "deferred_future_poc_not_passed",
+      "blocks_current_macos_acceptance": false,
+      "poc": "desktop-replay-rollback-poc.md",
+      "macos_evidence": "store_level_counterexample_preserved",
+      "windows_evidence": "code_inspection_native_rollback_reproduction_pending",
+      "runtime_changed": false,
+      "preserved_requirements": [
+        "fresh_native_phone_verification_per_identity_operation",
+        "complete_response_session_binding",
+        "durable_consumption_on_cancellation_and_failure",
+        "reject_missing_corrupt_mismatched_full_or_uncertain_state",
+        "no_automatic_replay_reset"
+      ]
+    },
+    "camera_permission_negatives": {
+      "date": "2026-09-10",
+      "status": "deferred_by_user_for_current_version_not_passed",
+      "reason": "QR_not_primary_flow",
+      "scope": [
+        "camera_permission_denial",
+        "camera_permission_revocation"
+      ],
+      "permission_settings_changed": false,
+      "blocks_current_version_acceptance": false,
+      "other_QR_requirements": "not_implicitly_waived"
+    }
+  },
+  "installed_wifi_background_lifecycle": {
+    "status": "both_phones_passed_iphone_separate_retry_original_failure_retained",
+    "result": {
+      "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+      "transport": "wifi",
+      "client": "age 1.3.2",
+      "synthetic_only": true,
+      "network_settings": "Surge_and_ZeroTier_retained",
+      "cases": [
+        {
+          "phone": "Android",
+          "phase": "background_while_verification_pending",
+          "exit_code": 1,
+          "elapsed_seconds": 18.521,
+          "no_plaintext": true,
+          "human_background_observation": "y",
+          "passed": true
+        },
+        {
+          "phone": "Android",
+          "phase": "fresh_approval_after_foreground",
+          "exit_code": 0,
+          "data_check": true,
+          "human_fresh_verification": "y",
+          "passed": true
+        },
+        {
+          "phone": "iPhone",
+          "phase": "background_while_verification_pending",
+          "exit_code": 1,
+          "elapsed_seconds": 11.717,
+          "no_plaintext": true,
+          "human_background_observation": "y",
+          "passed": true
+        },
+        {
+          "phone": "iPhone",
+          "phase": "fresh_approval_after_foreground",
+          "exit_code": 1,
+          "data_check": false,
+          "human_fresh_verification": "not_reached",
+          "passed": false
+        }
+      ]
+    },
+    "result_sha256": "1c1e74cca046f7e22e2f6f9271836d84c85def25194237f47e0da638884d2df3",
+    "harness_sha256": "0918061952788d58539ccded3a826d45459dc629c7ea4e66adffa347f451cb7a",
+    "user_report": "Android_passed_iPhone_input_mistake_interrupted_run",
+    "iphone_interpretation": "original_rows_retained_not_complete_acceptance_due_to_failed_recovery_and_reported_input_error",
+    "temporary_plaintext_directories_remaining": 0,
+    "iphone_retry1": {
+      "result": {
+        "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+        "transport": "wifi",
+        "client": "age 1.3.2",
+        "synthetic_only": true,
+        "network_settings": "Surge_and_ZeroTier_retained",
+        "cases": [
+          {
+            "phone": "iPhone",
+            "phase": "background_while_verification_pending",
+            "exit_code": 1,
+            "elapsed_seconds": 10.702,
+            "no_plaintext": true,
+            "human_background_observation": "y",
+            "passed": true
+          },
+          {
+            "phone": "iPhone",
+            "phase": "fresh_approval_after_foreground",
+            "exit_code": 0,
+            "data_check": true,
+            "human_fresh_verification": "y",
+            "passed": true
+          }
+        ]
+      },
+      "result_sha256": "7c87dbc2febc154dcd5293b22f2c414821c2c8201df8676493e95ded4015d4ed",
+      "harness_sha256": "fa84854a31ed1a62f05a49495dd9c62f416b3fc207cad12db411cd4b6aaa7b23",
+      "temporary_plaintext_directories_remaining": 0
+    }
+  },
+  "installed_wifi_lock_lifecycle": {
+    "status": "both_phones_passed",
+    "result": {
+      "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+      "transport": "wifi",
+      "client": "age 1.3.2",
+      "synthetic_only": true,
+      "network_settings": "Surge_and_ZeroTier_retained",
+      "cases": [
+        {
+          "phone": "Android",
+          "phase": "lock_while_verification_pending",
+          "exit_code": 1,
+          "elapsed_seconds": 24.587,
+          "no_plaintext": true,
+          "human_lock_observation": "y",
+          "passed": true
+        },
+        {
+          "phone": "Android",
+          "phase": "fresh_approval_after_unlock",
+          "exit_code": 0,
+          "data_check": true,
+          "human_fresh_verification": "y",
+          "passed": true
+        },
+        {
+          "phone": "iPhone",
+          "phase": "lock_while_verification_pending",
+          "exit_code": 1,
+          "elapsed_seconds": 15.247,
+          "no_plaintext": true,
+          "human_lock_observation": "y",
+          "passed": true
+        },
+        {
+          "phone": "iPhone",
+          "phase": "fresh_approval_after_unlock",
+          "exit_code": 0,
+          "data_check": true,
+          "human_fresh_verification": "y",
+          "passed": true
+        }
+      ]
+    },
+    "result_sha256": "506941389d8133a927891e1da6fa7cd97a413e766e082c737b39e4a9bfbb2f9c",
+    "harness_sha256": "c5e41c3b10c27374437f40c6cf047b16ebf7227c8b8bd9b57482e124aea56913",
+    "temporary_plaintext_directories_remaining": 0
+  },
+  "installed_android_wifi_process_termination": {
+    "status": "passed",
+    "result": {
+      "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+      "transport": "wifi",
+      "client": "age 1.3.2",
+      "synthetic_only": true,
+      "cases": [
+        {
+          "phase": "force_stop_while_verification_pending",
+          "exit_code": 1,
+          "force_stop_exit": 0,
+          "process_absent": true,
+          "no_plaintext": true,
+          "human_pending": "y",
+          "human_prompt_closed": "y",
+          "seconds_after_stop": 5.335,
+          "passed": true
+        },
+        {
+          "phase": "fresh_approval_after_app_restart",
+          "exit_code": 0,
+          "data_check": true,
+          "human_fresh_verification": "y",
+          "passed": true
+        }
+      ]
+    },
+    "result_sha256": "73bc603593a37db1cde377090a9f0b4609dfc74d1579a0d4905d1d68c78873a2",
+    "harness_sha256": "c46bdc79e01a4891c0a835d4806e8768cfe0b7850503b73ac547e3d75c314553",
+    "temporary_plaintext_directories_remaining": 0
+  },
+  "installed_iphone_wifi_process_termination": {
+    "status": "termination_and_separate_manual_relaunch_recovery_passed_developer_launch_failure_retained",
+    "result": {
+      "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+      "transport": "wifi",
+      "client": "age 1.3.2",
+      "synthetic_only": true,
+      "cases": [
+        {
+          "phase": "sigkill_while_verification_pending",
+          "exit_code": 1,
+          "termination_command_succeeded": true,
+          "process_absent": true,
+          "no_plaintext": true,
+          "human_pending": "y",
+          "human_prompt_closed": "y",
+          "seconds_after_stop": 4.03,
+          "passed": true
+        }
+      ]
+    },
+    "result_sha256": "a906ac1a50bbbe230fb36a10fed3641fd066f1b47d0ceb1c1d53e81517487fea",
+    "harness_sha256": "7cca0f171a92cd017f440f30edeefade0bbd831172de78dd94e7b153baf9ee0a",
+    "interruption": "CoreDevice_launch_nonzero_before_recovery_request_user_reported_traceback",
+    "temporary_plaintext_directories_remaining": 0,
+    "recovery_retry1": {
+      "result": {
+        "scope": "iphone_manual_relaunch_after_process_kill_separate_recovery",
+        "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+        "network_settings": "Surge_and_ZeroTier_retained",
+        "synthetic_data_only": true,
+        "cases": [
+          {
+            "client": "age",
+            "phase": "fresh_approval_after_manual_app_restart",
+            "exit_code": 0,
+            "data_check": true,
+            "human_native_observation": "y",
+            "passed": true
+          }
+        ],
+        "recovery_scope": "separate_new_ciphertext_after_original_harness_cleanup"
+      },
+      "result_sha256": "83c11cd35b384ed1bc023db61ee323666e211316e1ad4575556a283aabb7afea",
+      "harness_sha256": "cc87df413aba38adbaf477ad926904bbf56d10005735e09ade01918010637bbb",
+      "temporary_plaintext_directories_remaining": 0
+    }
+  },
+  "installed_android_wifi_disconnect": {
+    "status": "no_plaintext_failure_and_fresh_recovery_passed_exact_disconnect_latency_not_measured",
+    "result": {
+      "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+      "transport": "wifi",
+      "client": "age 1.3.2",
+      "synthetic_only": true,
+      "mac_network_settings_unchanged": true,
+      "cases": [
+        {
+          "phase": "wifi_disabled_while_verification_pending",
+          "exit_code": 1,
+          "wifi_disabled_confirmed": true,
+          "same_app_process": true,
+          "no_plaintext": true,
+          "human_pending": "y",
+          "human_prompt_closed_foreground": "y",
+          "seconds_after_disconnect": 104.601,
+          "passed": true
+        },
+        {
+          "phase": "fresh_approval_after_wifi_reconnect",
+          "exit_code": 0,
+          "data_check": true,
+          "human_fresh_verification": "y",
+          "passed": true
+        }
+      ],
+      "wifi_restored": true
+    },
+    "result_sha256": "6d11b55ecab5901f6fbae5877484fd03182ed766e174091c171183322ab0d80c",
+    "harness_sha256": "f27d6983af1cefea88c0edf3996aa0d56e2d87c5f47cb21b39f7533f3fb58c5a",
+    "timing_caveat": "seconds_after_disconnect_includes_post_exit_PID_check_and_user_answer_not_pure_network_latency",
+    "user_report": "terminal_waited_after_wifi_disabled_before_returning_failure",
+    "configured_timeouts_seconds": {
+      "desktop_socket_read": 90,
+      "android_native_authentication": 60
+    },
+    "cause_assessment": "consistent_with_bounded_socket_timeout_no_exact_failure_cause_observed",
+    "temporary_plaintext_directories_remaining": 0
+  },
+  "installed_android_usb_cold_start": {
+    "status": "age_and_rage_passed",
+    "result": {
+      "scope": "cargo_installed_mac_android_usb_cold_start",
+      "binary_sha256": "078d3f1dbd040390bd83e0ea6a33aefd87c9f3e6ce833b7e95bb3ce9f42f12cd",
+      "network_settings": "Surge_and_ZeroTier_retained",
+      "synthetic_data_only": true,
+      "cases": [
+        {
+          "client": "age",
+          "phase": "cold_start_fresh_approval",
+          "exit_code": 0,
+          "data_check": true,
+          "human_native_observation": "y",
+          "reverse_rules_empty": true,
+          "process_absent_before_request": true,
+          "passed": true
+        },
+        {
+          "client": "rage",
+          "phase": "cold_start_fresh_approval",
+          "exit_code": 0,
+          "data_check": true,
+          "human_native_observation": "y",
+          "reverse_rules_empty": true,
+          "process_absent_before_request": true,
+          "passed": true
+        }
+      ],
+      "android_update": {
+        "run_id": 34384436759,
+        "candidate_commit": "6a0cf142258a25a73bbf10fa106a2aa7cac93cda",
+        "apk_sha256": "bab6b9cb3ca4b4faa513935ec1904cd01613bbb4990933bd92f5cfc774f72873",
+        "previous_apk_sha256": "6e77ada9917673f0a5a392bb9a4327dd2275f9ff403d15015a6280da190d4f62",
+        "signer_certificate_sha256": "9a3e5a00a0a363ca58bbe0abfa1bbc0e36cbdce58e314c0c0dbfa94baff1d58b",
+        "signature_verification": "both_passed_same_signer",
+        "checksum": "passed",
+        "package_matches": true,
+        "multicast_permission_present": true,
+        "installation": "adb_install_r_success",
+        "installed_apk_digest_matches": true
+      },
+      "transport": "adb"
+    },
+    "result_sha256": "91bcab95b0a7883daa1015f0d9677fa1dbd39c4d351e5ac9f6d4c5244a2c4177",
+    "harness_sha256": "e55b414eb81fa8189753bcbee3861b2da281ee57308c845bca9600fdc9ce2898",
+    "human_observation_meaning": "USB_request_automatically_opened_app_without_manual_launch_and_required_fresh_native_fingerprint",
+    "temporary_plaintext_directories_remaining": 0
+  }
+}

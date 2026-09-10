@@ -15,7 +15,8 @@ public-signing, or external-user gates.
 Use one exact RC artifact set throughout the guide. Do not mix a desktop executable, Android APK,
 or evidence file from another commit or workflow attempt.
 
-For alpha.4 preparation, follow the [candidate checklist](alpha.4-acceptance-checklist.md). Its
+The published alpha.4 pair passed [owner-only acceptance](windows-acceptance-2026-09-07.md).
+The [completed checklist](alpha.4-acceptance-checklist.md) records its exact artifact scope. Its
 [minimum Windows script](../scripts/windows-minimal-acceptance.ps1) automates synthetic unwrap and
 recovery checks after fresh setup, with explicit owner observations. The UI, upgrade, provenance
 and cleanup rows remain separate requirements; the script does not close the full matrix. Its
@@ -339,7 +340,7 @@ public stub when possible or identify the intended pairing by its full fingerpri
 
 For a new Windows Wi-Fi environment, use the [Wi-Fi setup and diagnosis guide](windows-wifi.md)
 for inspectable, reversible discovery-reply rules, foreground/listener checks and stage-specific
-next steps. The source-candidate `wifi-doctor` command is newer than the published alpha.3 binary.
+next steps. The `wifi-doctor` command is included in the published alpha.4 binary.
 Discovery timeout alone does not identify a firewall problem.
 
 - If PowerShell reports that `-o` is a command or that an age flag needs an argument, a pasted line

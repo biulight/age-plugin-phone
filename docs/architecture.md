@@ -79,7 +79,22 @@ path layout, replay policy and guard invalidation stay in their business layers.
 `platform-storage::windows::network` is a separately named IPv4 enumeration helper.
 The public vectors are packaged solely in `crates/core/test-vectors`. Desktop and
 core forbid unsafe code; platform FFI remains subject to `unsafe_op_in_unsafe_fn`.
-No macOS hardware-key backend is implemented by this refactor.
+The subsequent macOS PR 2 adds a CryptoKit Secure Enclave backend in platform keys:
+separate operation wrappers, a statically compiled Swift bridge, and signed `APSE2`
+metadata owned by desktop. Reopening verifies both references, public keys, desktop ID
+binding and private operations; `APDK2` software state is rejected on macOS. Unit fixtures
+use test-only software keys. No ordinary feature or environment variable enables a
+macOS software fallback. The subsequent M2 implementation adds descriptor-relative private storage and
+persistent replay pending markers. M3 now shares managed setup/resume, journals confirmed
+commits, and provides exact incomplete-setup, normal and orphan cleanup with native storage.
+macOS cleanup verifies metadata without requiring private hardware operations, refuses
+shared state, and validates exact journal paths and replay locks. Phone lifecycle acceptance
+and remaining M2 acceptance gates remain open; this is not a complete macOS support declaration.
+Desktop snapshot freshness is a shared Windows/macOS limitation deferred to a
+[later POC](desktop-replay-rollback-poc.md), not a Mac-only current gate.
+See [the M1 implementation record](macos-m1-evidence.md) and
+[the M2 implementation/remaining-gates record](macos-m2-evidence.md) and
+[the M3 setup record](macos-m3-evidence.md).
 
 ## Pairing and replay state
 
@@ -145,13 +160,24 @@ The owner-only foreground Wi-Fi experiment uses the same stream envelope
 ([ADR 0018](adr/0018-owner-only-foreground-wifi-poc.md)). After persistent user opt-in, Android
 keeps one unwrap-only listener while foregrounded, serializes sessions, and re-arms with bounded
 retry delays. Idle accept remains armed until its lifecycle owner closes it; leaving the foreground
-or pausing closes its exact resources. iOS uses Network framework for foreground Wi-Fi. Listener
+or pausing closes its exact resources. Each Android discovery responder owns a non-reference-counted
+Wi-Fi multicast reception lock, released on listener close or failed startup; the normal
+`CHANGE_WIFI_MULTICAST_STATE` permission permits reception only. iOS uses Network framework for foreground Wi-Fi. Listener
 availability, private IPv4 routing, and TCP success provide no authentication or approval; there is
 no Wi-Fi background wake.
 
 Discovery and explicit Wi-Fi pairing follow [ADR 0021](adr/0021-wifi-discovery-and-pairing.md).
-Bounded UDP queries target the limited broadcast address and, on multi-homed Windows hosts, each
-eligible private IPv4 subnet broadcast. Existing-pairing responses must authenticate under the
+Bounded UDP queries target the limited broadcast address and, on multi-homed Windows and macOS
+hosts, each eligible private IPv4 subnet broadcast. macOS refreshes active broadcast-capable
+interfaces per attempt, including Darwin compact zero-suffix netmasks, and excludes loopback
+and point-to-point tunnels. Its automatic discovery
+uses RFC1918 subnets and excludes self-assigned link-local addresses; explicit link-local Wi-Fi
+routes remain valid. Both limited and subnet broadcasts are scoped to their enumerated interface
+with `IP_BOUND_IF` on separate source-address sockets; the binding is cleared before receiving
+replies and sockets are polled in rotation. Overlapping subnets retain separate
+interface scopes. A missing eligible route, interface-binding failure or local send failure is
+terminal even if another interface sent successfully; it cannot establish absence of a listener.
+Existing-pairing responses must authenticate under the
 paired phone-signing key and bind the exact query, including its nonce. Retransmits reuse only the
 in-memory public signed response to that exact query, never identity authorization. The discovered
 address remains an untrusted route hint. Pairing discovery is unauthenticated and requires the phone

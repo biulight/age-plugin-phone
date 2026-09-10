@@ -14,14 +14,17 @@ Shine environments, or define a Shine-specific ciphertext format.
 > protocol v2 remains unfrozen and the complete lifecycle, replay, multi-phone, public-signing, and
 > external-user gates remain open. Do not use it to protect real secrets.
 
-The latest installable snapshot is
-[`v0.1.0-alpha.3`](docs/releases/v0.1.0-alpha.3.md), a test-signed developer prerelease for
+The alpha.5 release is described in
+[`v0.1.0-alpha.5`](docs/releases/v0.1.0-alpha.5.md), an experimental developer prerelease for
 synthetic or disposable data with a separately verified independent recovery recipient. Publishing
 that snapshot does not constitute a public-Alpha, stable-protocol, or production-secret claim.
+It adds macOS source installation; GitHub release binaries remain Windows and Android.
+The next implementation stage is [tagged recipients](docs/tagged-recipient-prd.md).
 
-The next candidate is [`v0.1.0-alpha.4`](docs/releases/v0.1.0-alpha.4.md); signing and exact-package
-acceptance are pending. Use the [candidate checklist](docs/alpha.4-acceptance-checklist.md) and
-[minimum Windows regression script](scripts/windows-minimal-acceptance.ps1) to record new evidence.
+The alpha.4 exact signed Windows/Android package pair passed owner-only physical acceptance and
+was published on 2026-09-07. See the [acceptance and publication record](docs/windows-acceptance-2026-09-07.md)
+and [completed checklist](docs/alpha.4-acceptance-checklist.md). The complete public-Alpha matrix
+remains deferred.
 
 The current deployment posture is an
 [owner-only technical preview](docs/owner-only-preview.md): one repository owner, one known
@@ -58,15 +61,21 @@ user. It must never export the long-term private key to the desktop.
 
 - `crates/desktop`: the CLI, age entry point and bounded one-shot transport module.
 - `crates/core`: separate public `recipient` and `protocol` modules and public test vectors.
-- `crates/platform-keys`: Windows TPM key custody; future macOS backends belong here.
-- `crates/platform-storage`: explicit Windows and Unix filesystem boundaries.
+- `crates/platform-keys`: Windows TPM and experimental macOS Secure Enclave key custody.
+- `crates/platform-storage`: explicit Windows, macOS and other Unix filesystem boundaries.
 - `apps/mobile`: Tauri 2 mobile application with a deliberately non-sensitive TypeScript UI.
 - `docs`: architecture, protocol, threat model, and roadmap.
 
 The [desktop four-crate PRD](docs/desktop-crates-refactor-prd.md) defines acceptance criteria.
 See [ADR 0024](docs/adr/0024-four-desktop-crates.md) for the package boundaries and
 [candidate evidence](docs/desktop-refactor-evidence.md) for completed validation.
-The refactor does not add macOS hardware-key support or upload packages.
+The original refactor did not add macOS hardware-key support or upload packages.
+The later [macOS implementation plan](docs/macos-support-plan.md) now includes dual
+Secure Enclave roles, native storage, setup and cleanup. Remaining physical acceptance
+is deferred for the interim experimental release by the
+[release-scope decision](docs/macos-release-scope-decision.md), not marked passed.
+Windows and macOS do not guarantee detection of older valid desktop replay
+snapshots; stronger protection is deferred. See the [macOS source quick start](docs/macos-quickstart.md).
 After a version is published, install it with
 `cargo install age-plugin-phone --version <published-version> --locked`;
 [build requirements and the manual release procedure](docs/crates-io-release.md) apply.
@@ -118,6 +127,11 @@ ID authorization.
 On Windows, `status` performs a read-only Alpha capability probe. It reports the actual Windows
 version, client/server edition, x64 architecture, TPM 2.0 availability, and Microsoft Platform
 Crypto Provider availability without creating or opening persisted keys.
+
+The experimental macOS path now implements Secure Enclave managed setup/resume and journaled
+normal/orphaned cleanup. Hardware, transport and lifecycle acceptance remains tracked in the
+[macOS plan](docs/macos-support-plan.md); this is not a complete platform support claim.
+See the [macOS recovery guide](docs/macos-recovery.md) before changing or deleting pairing state.
 
 On the supported Windows Alpha path, the normal identity entry point is
 `age-plugin-phone setup --label LABEL`. It preflights Windows and the selected transport before

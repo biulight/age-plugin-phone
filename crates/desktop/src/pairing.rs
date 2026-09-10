@@ -9,12 +9,12 @@ use age_plugin_phone_core::protocol::{
 use age_plugin_phone_core::recipient::{P256KeyAgreement, PLUGIN_NAME, PairedRecipient, Recipient};
 use bech32::{FromBase32 as _, ToBase32 as _, Variant};
 use minicbor::{Decoder, Encoder};
-#[cfg(not(windows))]
+#[cfg(all(not(windows), any(test, not(target_os = "macos"))))]
 use p256::ecdsa::SigningKey;
 use rand_core::{CryptoRng, RngCore};
-#[cfg(not(windows))]
+#[cfg(all(not(windows), any(test, not(target_os = "macos"))))]
 use std::fs::File;
-#[cfg(not(windows))]
+#[cfg(all(not(windows), any(test, not(target_os = "macos"))))]
 use std::io::Read as _;
 use std::{fs::OpenOptions, io::Write as _, path::Path};
 use thiserror::Error;
@@ -22,7 +22,7 @@ use thiserror::Error;
 /// Pairing sessions are deliberately short lived and never resume after a terminal action.
 pub const MAX_PAIRING_SESSION_AGE_MS: u64 = 5 * 60 * 1_000;
 const STUB_VERSION: u16 = 2;
-#[cfg(not(windows))]
+#[cfg(all(not(windows), any(test, not(target_os = "macos"))))]
 const DESKTOP_KEY_MAGIC: &[u8; 5] = b"APDK2";
 #[cfg(windows)]
 const DESKTOP_TPM_STATE_MAGIC: &[u8; 5] = b"APTM2";
@@ -176,15 +176,22 @@ pub struct PairingDisplay {
     pub transcript_fingerprint: String,
 }
 
+#[cfg(target_os = "macos")]
+#[path = "macos_state.rs"]
+mod macos_state;
+#[cfg(all(target_os = "macos", not(test)))]
+pub use macos_state::DesktopKeyState;
+
+// The software state below is confined to deterministic unit fixtures on macOS.
 /// Persistent desktop authentication state. This is role-separated from the phone age identity.
-#[cfg(not(windows))]
+#[cfg(all(not(windows), any(test, not(target_os = "macos"))))]
 pub struct DesktopKeyState {
     pub desktop_id: Id,
     signing_key: SigningKey,
     selection_key: SigningKey,
 }
 
-#[cfg(not(windows))]
+#[cfg(all(not(windows), any(test, not(target_os = "macos"))))]
 impl DesktopKeyState {
     pub fn open_or_create(
         path: &Path,
@@ -421,6 +428,25 @@ pub fn create_identity_stub_file(
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
+pub(crate) fn cleanup_desktop_binding(
+    path: &Path,
+) -> Result<(Id, EncodedPublicKey, EncodedPublicKey), PairingError> {
+    #[cfg(not(test))]
+    return macos_state::cleanup_binding(path);
+    #[cfg(test)]
+    {
+        // Ordinary cleanup fixtures use only software test operations. Product cleanup parses
+        // signed hardware metadata without requiring private operations on a locked/lost enclave.
+        let state = DesktopKeyState::open(path)?;
+        Ok((
+            state.desktop_id,
+            state.signing_public_key()?,
+            state.selection_public_key()?,
+        ))
+    }
+}
+
 pub fn read_identity_stub_file(path: &Path) -> Result<PublicIdentityStub, PairingError> {
     let text = std::fs::read_to_string(path).map_err(|_| PairingError::StubStorage)?;
     decode_identity_stub_text(&text)
@@ -605,7 +631,7 @@ fn hex(bytes: &[u8]) -> String {
         })
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, any(test, not(target_os = "macos"))))]
 fn create_private_file(path: &Path, bytes: &[u8]) -> Result<(), PairingError> {
     use std::os::unix::fs::OpenOptionsExt as _;
     let mut file = OpenOptions::new()
@@ -627,7 +653,7 @@ fn create_private_file(_path: &Path, _bytes: &[u8]) -> Result<(), PairingError> 
     Err(PairingError::State)
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, any(test, not(target_os = "macos"))))]
 fn validate_private_file(file: &File) -> Result<(), PairingError> {
     use std::os::unix::fs::{MetadataExt as _, PermissionsExt as _};
     let metadata = file.metadata().map_err(|_| PairingError::State)?;

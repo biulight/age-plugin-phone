@@ -27,7 +27,13 @@ The desktop sends a bounded IPv4 UDP broadcast to port `47141` before it creates
 unwrap request. It always targets `255.255.255.255`; on Windows it also derives and targets the
 directed broadcast for every active private or link-local IPv4 interface with a valid subnet mask.
 This prevents a VPN or virtual default route from swallowing discovery on a multi-homed desktop.
-Failure to enumerate interfaces retains the limited-broadcast target. It retransmits the same query
+On Windows, failure to enumerate interfaces retains the limited-broadcast target. On macOS,
+automatic discovery uses active RFC1918 interfaces, excluding link-local addresses and
+point-to-point tunnels. Limited and subnet broadcasts are sent with `IP_BOUND_IF` set to the
+corresponding interface on a separate source-address socket, then cleared before receiving.
+Sockets are polled in rotation so one busy interface cannot monopolize reception. No eligible interface, enumeration, binding
+or send failure is terminal; it does not fall back to an unscoped broadcast. Explicit link-local
+routes remain supported. It retransmits the same query
 every 200 milliseconds for a total three-second window and accepts only private or link-local IPv4
 response sources. The window covers observed StrongBox signing and Android scheduling latency; a
 900-millisecond production window succeeded only intermittently even though earlier three-second
@@ -197,3 +203,18 @@ session that returned no valid response, without exposing request or response by
 The remaining physical matrix includes discovery on Windows and Android, no listener, wrong and
 multiple phones, hostile first connection, backgrounding, network change, pairing cancellation,
 unwrap cancellation, timeout, replay, and a fresh user-initiated recovery attempt through ADB.
+
+### Android foreground discovery reception ownership
+
+Each Android pairing or unwrap discovery responder acquires a Wi-Fi multicast reception lock
+before opening UDP and releases it when its foreground owner closes the responder, including
+failed startup. Acquisition failure fails closed. Release is idempotent under concurrent closure;
+no lock spans completed sessions or keeps a background listener alive. The normal
+`CHANGE_WIFI_MULTICAST_STATE` permission changes packet reception, never identity authorization.
+Every unwrap still requires fresh native verification and the existing replay checks.
+
+Android documents the reception mechanism in
+[WifiManager.MulticastLock](https://developer.android.com/reference/android/net/wifi/WifiManager.MulticastLock).
+This addresses missing reception ownership, but does not establish the cause of every observed
+Wi-Fi discovery failure. The current candidate requires same-signed device update and physical
+acceptance; the observed APF counters did not increase during the later successful probes.

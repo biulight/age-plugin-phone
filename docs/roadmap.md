@@ -2,6 +2,11 @@
 
 ## Product sequencing principles
 
+2026-09-10 sequencing decision: stop additional macOS acceptance for an interim
+experimental release, retaining unverified rows and known limitations. Next implement
+the [tagged-recipient PRD](tagged-recipient-prd.md); its completion is the end of the
+current development stage. See the [scope decision](macos-release-scope-decision.md).
+
 Current deployment posture: this application is temporarily an owner-only technical preview as
 defined in [`owner-only-preview.md`](owner-only-preview.md). The UVC-camera QR/replay matrix,
 second capability-qualified StrongBox family, multi-phone interoperability, public Windows signing,
@@ -12,8 +17,9 @@ invariant.
 - Address the gap recorded by Shine decision 0032: Windows users need an independent fresh
   user-verification gesture for every age private-key operation without leaving a reusable age
   identity on the desktop. Windows 11 x64 is therefore the first desktop product target; macOS
-  remains an interoperability target because Secure Enclave and Touch ID age integrations already
-  exist there.
+  has a separate [source support plan](macos-support-plan.md). Its Secure Enclave backend,
+  storage and journaled lifecycle are implemented. Known limitations and deferred native
+  acceptance remain documented; the next release retains experimental status.
 - Keep this repository independent from Shine. The first Alpha integrates through ordinary age
   recipients, public identity stubs, and the external age process only; it requires no Shine code or
   ciphertext-format change.

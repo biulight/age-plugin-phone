@@ -88,3 +88,31 @@ An in-memory guard remains available only for deterministic tests. It does not s
   trust boundary.
 - The native Android storage and request-verification path adopt this state machine. The QR flow
   must use that lifecycle before the bidirectional prototype may handle real secrets.
+
+## macOS PR 3 implementation follow-up (2026-09-09)
+
+macOS now uses a separate descriptor-relative storage module. The replay guard
+holds its directory and lock handles, verifies the lock inode before committing,
+and durably creates a per-state `.pending` marker before replacement. An existing
+marker (including empty/corrupt content) blocks create/open. Only a successful
+state replacement and full sync permits removal; uncertainty never triggers an
+automatic marker cleanup or empty-state reset. Errors poison the live guard.
+File and directory commits additionally require `F_FULLFSYNC` on macOS.
+
+The marker covers interrupted/uncertain writes, not deliberate same-user marker
+removal or restoration of an earlier snapshot. The stronger M2 anti-rollback requirement
+was deferred by the user on 2026-09-10 to the [cross-platform POC](../desktop-replay-rollback-poc.md);
+it is not satisfied. See [the M2 record](../macos-m2-evidence.md)
+for tests and remaining acceptance gates. Other Unix and Windows implementations
+retain their previous semantics.
+
+## Common desktop scope decision (2026-09-10)
+
+Windows and macOS do not guarantee detection of an older valid desktop replay file
+restored on the same machine. This includes same-user file replacement without OS
+compromise; user-only permissions are not an independent freshness authority. The
+[threat model](../threat-model.md#desktop-replay-persistence-and-restore-boundary) now
+states this exception explicitly. Ordinary persistence, uncertain-state rejection,
+phone request replay protection, fresh native verification and response/session
+binding remain requirements. Earlier platform-specific evidence is retained;
+stronger desktop freshness is deferred, not fixed or silently marked passed.
