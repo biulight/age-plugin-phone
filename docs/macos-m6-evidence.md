@@ -33,12 +33,13 @@ The following findings were addressed during implementation:
 - A lost phone response could suppress the phone-revocation reminder. Attempts that
   reached Pairing now retain that reminder even without a persisted candidate.
 
-The [M2 rollback counterexample](macos-m2-evidence.md) remains unresolved. A new
+The [M2 rollback counterexample](macos-m2-evidence.md) remains unresolved. A
 synthetic regression restores pre-consumption response-store bytes and verifies
 that a previously successful response is rejected by a fresh session, then cannot
 be retried in that session. This tests an independent cryptographic binding; it
-does not establish store freshness or close the M2 gate. The
-[scope decision](macos-replay-decision.md) is pending, with no weakening approved.
+does not establish store freshness. At this original review snapshot the
+[scope decision](macos-replay-decision.md) was pending; the user subsequently
+approved the common Windows/macOS boundary recorded at the top of this document.
 This local review does not replace the project's independent external security review.
 
 ## Current host and artifact observations
@@ -86,6 +87,7 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Independent recovery drill | Six age/rage cases pass with the phone plugin and desktop state unavailable |
 | Revocation and normal cleanup | Android QR pairing revoked; old ciphertext rejected without biometrics, recovery and original USB pairing pass; desktop cleanup preserves 21 other file hashes |
 | Interrupted and orphan cleanup | Synthetic tests pass; physical lifecycle cases remain pending |
+| Focused storage/cleanup/replay review | Reviewed again at `e33d3db`; 29 selected automated tests pass, no new actionable finding in this bounded local review; not an independent security audit |
 | Published-version upgrade/downgrade | Not tested by same-source rebuild or commit-to-commit continuity |
 | iPhone | iPhone 15 Pro / iOS 26.6.1; debug build 0.1.0.4 Wi-Fi pairing and four data checks pass; Wi-Fi approvals/cancellation and age/rage QR approvals pass with fresh Face ID confirmed |
 | Wrong Mac, other OS, Intel/T2 | Deferred/unverified; not part of the current host/Android acceptance claim |
@@ -805,3 +807,52 @@ checks passed; reverse rules were empty after each operation and no temporary
 plaintext directory remains. This covers app-process cold start on an already
 USB-authorized, unlocked phone, not OS reboot, initial USB authorization or multiple
 Android-device selection.
+
+### Storage, cleanup and response consumption review (2026-09-10)
+
+Reviewed source snapshot `e33d3dbbd703d68b2fdaf4f9ec70f6ed282a3697`:
+`crates/platform-storage/src/macos.rs`, desktop `cleanup_journal.rs`,
+`desktop_cleanup.rs`, cleanup-related locator operations and `unwrap.rs`, plus
+core `protocol/replay_macos.rs` and `protocol/mod.rs::open_response`.
+This continuation checks existing implementation; it changes no runtime behavior.
+
+- Storage operations validate private ownership, ACLs, file type/link count and
+  directory identity, use descriptor-relative no-follow opens, and retain uncertain
+  replacement state on failure. Cleanup attributes replacement temporaries to the
+  exact target rather than deleting unrelated temporary files.
+- Cleanup journals bind paired/orphan targets and reject aliases, redirected paths
+  and noncanonical records. Cleanup rechecks shared state and held locks before
+  teardown. Replay, desktop metadata and locator are removed before the replay lock;
+  the cleanup journal remains until the public stub and target state are removed.
+  Deleting CryptoKit references is not irreversible destruction of a hardware key;
+  phone-side revocation remains a separate user operation.
+- A desktop session closes before response decoding. Response binding, signature
+  and authenticated decryption must succeed, then durable replay consumption must
+  succeed before a file key is returned. Failed storage commits poison the guard;
+  uncertain state is not reset to permit another operation.
+
+No new actionable defect was identified within this scope. This is a local review,
+not an independent audit, a proof against arbitrary same-user namespace mutation,
+or detection of restored valid replay snapshots. The approved future rollback POC
+remains unimplemented. Native mobile replay-after-restart and physical interrupted
+cleanup are not established by these synthetic tests. FFI key attributes, release
+signing and other permission boundaries retain their separately recorded evidence;
+they were not comprehensively re-audited in this continuation.
+
+Targeted checks on the recorded Mac host, using `RUSTC_WRAPPER=` and locked Cargo
+dependencies, passed with zero failures or ignored tests:
+
+| Cargo test package / filter | Passed |
+| --- | ---: |
+| `age-plugin-phone-platform-storage` (all tests) | 14 |
+| `age-plugin-phone` / `desktop_cleanup::tests` | 6 |
+| `age-plugin-phone` / `cleanup_journal::tests` | 2 |
+| `age-plugin-phone` / `unwrap::tests` | 3 |
+| `age-plugin-phone-core` / `protocol::replay::macos_file::tests` | 4 |
+
+The core process-lock test additionally runs child processes; those child invocations
+are not counted as extra tests. An initial `replay_macos` filename filter selected
+zero tests and is not acceptance evidence; the actual module filter above ran all
+four tests. Cargo still reports the existing future-compatibility warning for
+`block 0.1.6`. No dependency upgrade or whole-workspace requalification was performed
+for this documentation-only continuation.

@@ -22,7 +22,11 @@ PR 2 / M1 已实现双密钥后端与独立硬件 metadata，
 不扩大当前支持声明。见 [M0 验证记录](macos-m0-evidence.md) 和
 [ADR 0025](adr/0025-macos-secure-enclave-m0.md)。
 基线：`b4be976`，`0.1.0-alpha.4`。
-M6 的最终候选 `cc7e120` 已通过四 crate 归档安装、硬件重装延续与 age/rage 合成互操作；
+M6 的原候选 `cc7e120` 已通过四 crate 归档安装、硬件重装延续与 age/rage 合成互操作；
+网络修正后的当前安装制品摘要为 `078d3f1d…f42f12cd`，已通过 Android USB/Wi-Fi、
+iPhone Wi-Fi 的 age/rage 真机回归及两台手机的 QR 成功路径。
+在 `e33d3db` 上追加的存储、清理和响应消费复审未发现该范围内的新可执行问题，
+29 项针对性自动化通过；此记录不替代独立安全审计或尚未覆盖的真机行。
 复审发现、手机制品与 age/rage 真机记录、待完成矩阵见 [M6 记录](macos-m6-evidence.md)；
 源码使用步骤见 [macOS quick start](macos-quickstart.md)。M2 [范围决定](macos-replay-decision.md)
 已由用户批准统一 Windows/macOS 边界：旧有效快照检测不再单独阻塞本轮，转为[后续跨平台 POC](desktop-replay-rollback-poc.md)。反例保留、不标记通过，逐次手机验证、会话绑定和异常状态拒绝要求不变。
