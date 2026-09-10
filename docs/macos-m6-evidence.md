@@ -87,7 +87,7 @@ pairing revoked, phone verification automated or real plaintext processed.
 | Independent recovery drill | Six age/rage cases pass with the phone plugin and desktop state unavailable |
 | Revocation and normal cleanup | Android QR pairing revoked; old ciphertext rejected without biometrics, recovery and original USB pairing pass; desktop cleanup preserves 21 other file hashes |
 | Orphan cleanup | Current installed artifact: separate Android pairing, user revocation, unavailable original public stub and exact orphan teardown pass; 21 other pairing files unchanged |
-| Interrupted cleanup | Synthetic failure/resume tests pass; physical interrupted teardown remains pending |
+| Interrupted cleanup | Real Android pairing: controlled late public-file deletion failure retains journal after private teardown; a fresh CLI process resumes successfully, preserving 21 other pairing files; abrupt kill/OS restart/power loss not exercised |
 | Focused storage/cleanup/replay review | Reviewed again at `e33d3db`; 29 selected automated tests pass, no new actionable finding in this bounded local review; not an independent security audit |
 | Published-version upgrade/downgrade | Not tested by same-source rebuild or commit-to-commit continuity |
 | iPhone | iPhone 15 Pro / iOS 26.6.1; debug build 0.1.0.4 Wi-Fi pairing and four data checks pass; Wi-Fi approvals/cancellation and age/rage QR approvals pass with fresh Face ID confirmed |
@@ -879,3 +879,31 @@ This passes normal orphan teardown using a real, user-revoked phone pairing. It 
 not establish interrupted teardown/restart recovery, irreversible deletion of
 CryptoKit keys, or stronger replay snapshot freshness. No private state was restored
 and no phone verification or destructive confirmation was automated.
+
+### Real Android pairing: partial cleanup failure and process restart passed
+
+On the same installed binary (`078d3f1d…f42f12cd`), a new isolated Android USB
+pairing completed successfully. The user confirmed revoking this exact pairing on
+the phone and personally entered the complete transcript fingerprint for each of
+the two cleanup invocations.
+
+The harness temporarily applied the macOS user immutable flag to this pairing's
+public identity reference. The first `remove-desktop-state` process returned exit 1:
+the private locator, desktop metadata, replay state and replay sidecars had been
+removed, while the unchanged public reference and durable cleanup journal remained.
+This expected error establishes a late filesystem deletion failure, not a crash.
+
+After removing the temporary flag, the harness started a new CLI process with the
+same command. The user entered the fingerprint again; cleanup resumed from the
+journal and returned exit 0. All target files and the journal were absent. The
+unrelated local control and cleanup lock were unchanged, as were the hashes, modes
+and flags of all 21 files in the original configuration. A separate post-run check
+confirmed that the isolated root contained only the control and cleanup lock, with
+no immutable flags. No plaintext was processed or private state restored.
+
+The pasted terminal excerpt also contained an older Wi-Fi force-stop prompt. This
+acceptance is based on the dedicated cleanup-resume result and post-run state;
+the unrelated excerpt does not create another force-stop pass. The result closes
+controlled partial-deletion/new-process recovery for this real pairing. Abrupt
+process termination during teardown, an OS reboot and sudden power loss remain
+distinct untested events.
