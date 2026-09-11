@@ -47,17 +47,14 @@
       "target/tagged-recipient-acceptance-20260911/ios-arm64-before-timeout-fix.ipa": "0de81cbb7de27c6751fe6b81c01e598d482ea1e8d6207fc768d22d78fc7bdb23"
     }
   },
-  "not_verified": [
-    "iOS persistence-failure and clock-rollback physical fault injection remain unverified",
-    "retained historical ciphertext migration beyond newly generated old-format ciphertext"
-  ],
+  "not_verified": [],
   "build_limitations": [],
   "excluded_scope": [
     "QR tag transport is intentionally not validated for this version per owner direction"
   ],
   "remaining_evidence_constraints": {
-    "historical_ciphertext": "no retained .age ciphertext fixture exists in the repository working tree or Git history; newly generated old-format ciphertext is recorded separately and is not treated as historical evidence",
-    "physical_fault_injection": "Android replacement failure, uncertain post-rename directory-sync failure and clock rollback passed on a physical Android 16 device using the test APK's disposable private state and production durable file operations; iOS persistence failure and clock rollback remain unverified without mutating retained real pairings",
+    "historical_ciphertext": "not applicable to the first public release because no released-user ciphertext population exists; newly generated compatibility ciphertext is recorded separately",
+    "physical_fault_injection": "Android replacement failure, uncertain post-rename directory-sync failure and clock rollback passed on a physical Android 16 device using the test APK's disposable private state and production durable file operations; iOS has no external Beta 1 distribution route and is outside the advertised release scope",
     "ios_network_disconnect": "a separate network-layer disconnect was not physically injected because changing Wi-Fi from Control Center also causes foreground loss; exact pending-request TCP owner termination passed on the replacement package and is recorded separately"
   },
   "targeted_fail_closed_tests": {

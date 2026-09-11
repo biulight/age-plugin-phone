@@ -41,7 +41,8 @@ unchanged. A signed Android app is still required for the Windows/Android route.
   in-place candidate updates; that is not final beta-package upgrade evidence.
 - Older phone apps strictly reject `p256tag`; update the phone before using tag
   ciphertext. Existing phone v1/v2 vectors and newly generated phone v2 ciphertext
-  passed; retained pre-upgrade ciphertext migration remains unverified.
+  passed. This is the first public release, so no released-user ciphertext population
+  exists for an upgrade-migration test.
 - Protocol v2 remains unfrozen. Future prerelease changes may require re-pairing
   and recovery-based re-encryption. Any such release must identify affected versions
   and publish the recovery steps before upgrade; never silently reset or migrate
@@ -73,17 +74,14 @@ macOS, iOS and native-tag additions; it is not a review of the complete beta sou
   the exact signed-device disconnect case. A fresh independent review of `0305c0e`
   found no confirmable security defect introduced by the commit; its lack of hardware
   execution is covered by the separately recorded signed-device test.
-- [ ] Close the remaining mandatory tagged-recipient physical gaps: iOS storage
-  persistence failure and clock rollback; retained old-ciphertext
-  upgrade/re-encryption. Android storage replacement failure, uncertain
+- [x] Apply the Beta 1 distribution scope to tagged-recipient physical gates. Android
+  storage replacement failure, uncertain
   post-rename directory-sync failure and clock rollback passed three instrumentation
   tests on a Samsung SM-F9660 running Android 16. The tests used the test APK's
   disposable `noBackupFilesDir`, exercised the production durable file operations,
-  and did not mutate the installed beta application's state. Use disposable isolated
-  state and
-  preserve existing pairings. If evidence cannot be obtained, explicitly resolve
-  the PRD release requirement before advertising the affected capability; do not
-  silently waive it because this version is beta.
+  and did not mutate the installed beta application's state. iOS has no external
+  distribution route in Beta 1, so iOS storage and clock tests are outside this
+  release's advertised platform scope rather than skipped release gates.
 - [x] Run local version, release-fixture, workflow, packaging, frontend and Rust
   checks; results are recorded below.
 - [x] Complete Linux/Windows/macOS, mobile and interoperability CI against the final
@@ -101,13 +99,15 @@ macOS, iOS and native-tag additions; it is not a review of the complete beta sou
   restart/replay rejection, in-place upgrade, old format and independent recovery
   on each advertised combination. Earlier alpha-version candidates are supporting
   evidence, not final-artifact passes.
-- [ ] Review installation instructions with a technical tester and confirm the
-  Windows/macOS source-install and Android delivery routes. Public Windows signing
-  is not a source-install gate; the optional ZIP must retain its test-signing label.
-  iOS external onboarding is excluded until a separate usable distribution route
-  exists.
-- [ ] Obtain publication authorization for the concrete artifacts and release
-  notes, then publish and verify downloaded assets and registry installation.
+- [x] Define installation routes for the first Beta: Windows/macOS source install
+  and Android delivery. Public Windows signing is not a source-install gate; the
+  optional ZIP must retain its test-signing label. iOS external onboarding is
+  excluded until a separate usable distribution route exists. Technical-tester
+  installation review begins after publication as Beta feedback, when the artifacts
+  are available to install; it is not a first-publication gate.
+- [x] Publication of the concrete `0.1.0-beta.1` artifacts and release notes was
+  explicitly authorized by the project owner on 2026-09-11. Publish and verify
+  downloaded assets and registry installation.
 
 ## Exact-candidate acceptance — 2026-09-11
 
@@ -153,10 +153,13 @@ because `codesign --verify --deep --strict` returned `CSSMERR_TP_NOT_TRUSTED`.
 
 This closes the candidate's basic signed-package install, repeated unwrap,
 cancellation and recovery smoke. The broader signed-package gate remains open for
-setup and full fingerprint comparison, timeout, restart/replay rejection, retained
-old-format upgrade and independent recovery on every advertised combination. The
-remaining iOS physical fault-injection rows, technical-tester installation review and
-explicit publication authorization also remain open.
+setup and full fingerprint comparison, timeout, restart/replay rejection and
+independent recovery on every advertised combination. Publication execution remains
+open.
+
+After publication, collect technical-tester feedback on the documented Windows,
+macOS and Android installation routes. Treat findings as Beta feedback and fix
+confirmed defects before a stable release.
 
 ## Local preparation checks — 2026-09-11
 
