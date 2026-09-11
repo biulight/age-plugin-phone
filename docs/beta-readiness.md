@@ -93,8 +93,10 @@ macOS, iOS and native-tag additions; it is not a review of the complete beta sou
   Commit `444c6f6` passed
   [preflight run 34579595719](https://github.com/biulight/age-plugin-phone/actions/runs/34579595719)
   without publishing.
-- [ ] Build and verify final signed beta artifacts; record commit, workflow attempt,
-  package hashes and signer identities. Run a scoped exact-package smoke for
+- [x] Build and verify final signed beta artifacts; record commit, workflow attempt,
+  package hashes and signer identities. Release run `34589811005` published the
+  Windows test-signed ZIP and Android ARM64 APK from `c73b289`; its staging checks
+  verified their signatures, hashes and provenance. Run a scoped exact-package smoke for
   setup/full fingerprint comparison, fresh repeated unwrap, cancellation/timeout,
   restart/replay rejection, in-place upgrade, old format and independent recovery
   on each advertised combination. Earlier alpha-version candidates are supporting
@@ -106,8 +108,10 @@ macOS, iOS and native-tag additions; it is not a review of the complete beta sou
   installation review begins after publication as Beta feedback, when the artifacts
   are available to install; it is not a first-publication gate.
 - [x] Publication of the concrete `0.1.0-beta.1` artifacts and release notes was
-  explicitly authorized by the project owner on 2026-09-11. Publish and verify
-  downloaded assets and registry installation.
+  explicitly authorized by the project owner on 2026-09-11. Crates run `34589747627`
+  published and production-installed all four packages; release run `34589811005`
+  published the verified prerelease assets. Public downloads matched the published
+  SHA-256 records.
 
 ## Exact-candidate acceptance — 2026-09-11
 
@@ -154,8 +158,8 @@ because `codesign --verify --deep --strict` returned `CSSMERR_TP_NOT_TRUSTED`.
 This closes the candidate's basic signed-package install, repeated unwrap,
 cancellation and recovery smoke. The broader signed-package gate remains open for
 setup and full fingerprint comparison, timeout, restart/replay rejection and
-independent recovery on every advertised combination. Publication execution remains
-open.
+independent recovery on every advertised combination. These are Beta follow-up rows,
+not publication blockers for this first public release.
 
 After publication, collect technical-tester feedback on the documented Windows,
 macOS and Android installation routes. Treat findings as Beta feedback and fix
