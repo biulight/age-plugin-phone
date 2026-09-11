@@ -794,7 +794,7 @@ internal interface DurableFileOperations {
     fun syncDirectory(directory: File)
 }
 
-private object AndroidDurableFileOperations : DurableFileOperations {
+internal object AndroidDurableFileOperations : DurableFileOperations {
     override fun validatePrivateDirectory(directory: File) {
         val status = try {
             Os.lstat(directory.absolutePath)
