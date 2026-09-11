@@ -80,12 +80,13 @@ macOS, iOS and native-tag additions; it is not a review of the complete beta sou
 - [x] Run local version, release-fixture, workflow, packaging, frontend and Rust
   checks; results are recorded below.
 - [x] Complete Linux/Windows/macOS, mobile and interoperability CI against the final
-  candidate. CI skips are not hardware passes. Main commit `a41ba2e` passed
-  [CI run 34557406797](https://github.com/biulight/age-plugin-phone/actions/runs/34557406797).
+  code-bearing candidate. CI skips are not hardware passes. Merged main commit
+  `444c6f6` passed
+  [CI run 34579021899](https://github.com/biulight/age-plugin-phone/actions/runs/34579021899).
 - [x] Run the four-crate registry preflight against the final main commit using
   `crates-release.yml` in `preflight` mode; record the exact successful CI run.
-  Commit `a41ba2e` passed
-  [preflight run 34557911417](https://github.com/biulight/age-plugin-phone/actions/runs/34557911417)
+  Commit `444c6f6` passed
+  [preflight run 34579595719](https://github.com/biulight/age-plugin-phone/actions/runs/34579595719)
   without publishing.
 - [ ] Build and verify final signed beta artifacts; record commit, workflow attempt,
   package hashes and signer identities. Run a scoped exact-package smoke for
