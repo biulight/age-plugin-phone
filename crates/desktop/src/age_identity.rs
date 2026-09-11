@@ -416,6 +416,15 @@ where
             select_candidate(identities, candidates, &root, file_index)
         };
 
+        let selected = match selected {
+            Ok(Some(selected)) => selected,
+            Ok(None) => continue,
+            Err(selection_errors) => {
+                errors.extend(selection_errors);
+                results.insert(file_index, Err(errors));
+                continue;
+            }
+        };
         let SelectedCandidate {
             identity_index,
             stub,
@@ -423,14 +432,7 @@ where
             stanza,
             locator,
             desktop,
-        } = match selected {
-            Ok(selected) => selected,
-            Err(selection_errors) => {
-                errors.extend(selection_errors);
-                results.insert(file_index, Err(errors));
-                continue;
-            }
-        };
+        } = selected;
         let pairing = PairingRecord {
             desktop_id: stub.desktop_id,
             identity_id: stub.identity_id,
@@ -548,7 +550,7 @@ fn select_candidate<'a>(
     mut candidates: Vec<(usize, TaggedStanza)>,
     root: &std::path::Path,
     file_index: usize,
-) -> Result<SelectedCandidate<'a>, Vec<identity::Error>> {
+) -> Result<Option<SelectedCandidate<'a>>, Vec<identity::Error>> {
     if identities.is_empty() {
         return Err(vec![internal("no phone identity was provided")]);
     }
@@ -583,17 +585,17 @@ fn select_candidate<'a>(
             )]
         })?;
         let (stanza_index, stanza) = candidates.remove(0);
-        return Ok(SelectedCandidate {
+        return Ok(Some(SelectedCandidate {
             identity_index: *identity_index,
             stub,
             stanza_index,
             stanza,
             locator,
             desktop,
-        });
+        }));
     }
 
-    let (mut opened, mut errors) = open_identities(identities, root);
+    let (mut opened, errors) = open_identities(identities, root);
     let mut selected = None;
     'identities: for (opened_position, identity) in opened.iter().enumerate() {
         for (candidate_position, (_, stanza)) in candidates.iter().enumerate() {
@@ -613,23 +615,23 @@ fn select_candidate<'a>(
         let identity = opened.swap_remove(opened_position);
         let (identity_index, stub) = &identities[identity.position];
         let (stanza_index, stanza) = candidates.swap_remove(candidate_position);
-        return Ok(SelectedCandidate {
+        return Ok(Some(SelectedCandidate {
             identity_index: *identity_index,
             stub,
             stanza_index,
             stanza,
             locator: identity.locator,
             desktop: identity.desktop,
-        });
+        }));
     }
-    errors.extend(candidates.iter().map(|(stanza_index, _)| {
-        stanza_error(
-            file_index,
-            *stanza_index,
-            "phone stanza did not match an available paired identity",
-        )
-    }));
-    Err(errors)
+    if errors.is_empty() {
+        // A valid stanza for another pairing is an ordinary identity miss. Returning no
+        // result lets the age client classify this invocation as ErrIncorrectIdentity and
+        // continue with the next configured plugin identity.
+        Ok(None)
+    } else {
+        Err(errors)
+    }
 }
 
 fn open_identities(
@@ -876,6 +878,23 @@ mod tests {
         assert!(!results.contains_key(&0));
         assert!(results[&1].is_err());
         assert!(!missing.exists());
+    }
+
+    #[test]
+    fn unmatched_v2_stanza_is_an_ordinary_identity_miss() {
+        let configured = Fixture::new();
+        let target = Fixture::new();
+        let results = unwrap_with_exchange(
+            &[(0, configured.stub.clone())],
+            vec![vec![target.selectable_stanza([2; 16])]],
+            &configured.config,
+            |_, _| panic!("an unmatched identity must not contact the phone"),
+        )
+        .unwrap();
+
+        // The identity-v1 framework turns an absent result into a normal no-match so the
+        // reference age client can continue with the next configured plugin identity.
+        assert!(results.is_empty());
     }
 
     #[test]

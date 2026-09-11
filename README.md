@@ -8,23 +8,20 @@ It is intended to work with any compatible age client. It does not depend on Shi
 Shine environments, or define a Shine-specific ciphertext format.
 
 > [!WARNING]
-> Beta 1 is in closeout, not published. The source candidate has recorded hardware-backed tag
-> unwrap, cancellation, timeout, restart/replay and independent-recovery evidence, including
-> Shine integration. The final signed Android and development-device iOS candidates have passed
-> installation, repeated fresh unwrap, cancellation and post-cancellation recovery checks on the
-> recorded devices. The remaining exact-package checks and mandatory physical gaps remain open.
+> Beta 2 is an unpublished maintenance candidate fixing multi-identity continuation in the desktop
+> `identity-v1` adapter. Beta 1 is published for limited technical testing on the recorded scope.
 > Protocol v2 is unfrozen. Do not use this experimental software to protect real secrets.
 
-See the [Beta 1 closeout checklist](docs/beta-readiness.md) and
-[candidate release notes](docs/releases/v0.1.0-beta.1.md). The target is a limited technical-user
+See the [Beta release checklist](docs/beta-readiness.md) and
+[Beta 2 candidate notes](docs/releases/v0.1.0-beta.2.md). The target remains a limited technical-user
 beta on recorded hardware, with Windows and macOS source installation, an optional test-signed
 Windows ZIP and a signed Android APK. iOS remains an existing development-device cohort;
-external iOS distribution is outside this candidate's scope. Current deployment remains owner-only
-until launch gates are closed. Unverified device combinations and deferred rows are not passes.
+external iOS distribution is outside this candidate's scope. Unverified device combinations and
+deferred rows are not passes.
 
 Windows source installation requires the MSVC Rust toolchain and Visual Studio C++ Build Tools /
-Windows SDK; macOS requires Xcode Command Line Tools. After publication, either desktop can use
-`cargo install age-plugin-phone --version 0.1.0-beta.1 --locked`. See the
+Windows SDK; macOS requires Xcode Command Line Tools. After Beta 2 is published, either desktop can use
+`cargo install age-plugin-phone --version 0.1.0-beta.2 --locked`. See the
 [build requirements](docs/crates-io-release.md). Windows still requires Windows 11 x64, TPM 2.0
 and Microsoft Platform Crypto Provider at runtime. Source installation does not require trusting
 the private Windows test-signing root.

@@ -14,12 +14,12 @@ edition = "2024"
 license = "MIT"
 repository = "https://github.com/biulight/age-plugin-phone"
 rust-version = "1.88"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 
 [workspace.dependencies]
-age-plugin-phone-core = { path = "crates/core", version = "=0.1.0-beta.1" }
-age-plugin-phone-platform-keys = { path = "crates/platform-keys", version = "=0.1.0-beta.1" }
-age-plugin-phone-platform-storage = { path = "crates/platform-storage", version = "=0.1.0-beta.1" }
+age-plugin-phone-core = { path = "crates/core", version = "=0.1.0-beta.2" }
+age-plugin-phone-platform-keys = { path = "crates/platform-keys", version = "=0.1.0-beta.2" }
+age-plugin-phone-platform-storage = { path = "crates/platform-storage", version = "=0.1.0-beta.2" }
 age-core = { version = "0.11.0", features = ["plugin"] }
 age-plugin = "0.6.1"
 base64 = "0.22.1"

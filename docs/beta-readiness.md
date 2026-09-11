@@ -1,9 +1,47 @@
-# Beta 1 closeout
+# Beta release readiness
 
-Date: 2026-09-11. Target: `0.1.0-beta.1`. Status: **preparing; not approved for
-publication or external onboarding**. The owner authorized beta closeout. This
-document records the proposed limited technical-user scope and remaining work;
-it does not mark deferred Alpha or tagged-recipient gates as passed.
+## Beta 2 maintenance candidate
+
+Date: 2026-09-11. Target: `0.1.0-beta.2`. Status: **preparing; not approved for publication**.
+
+Beta 2 is limited to the desktop multi-identity continuation fix described in the
+[candidate notes](releases/v0.1.0-beta.2.md). It does not change protocol v2, public identity stubs,
+pairing or replay formats, recipient encodings, key custody, transport behavior, or native phone
+authentication. Beta 1's technical-test scope and all recorded limitations remain in force.
+
+- [x] Preserve malformed-stanza and unavailable-state failures while treating a valid nonmatch as
+  an ordinary identity miss.
+- [x] Add a negative regression proving a nonmatch does not contact the phone.
+- [x] Bump workspace, internal dependency, mobile, Tauri, and lockfile versions to beta.2.
+- [x] Prepare Beta 2 release notes and release-validator coverage.
+- [x] Pass local Rust format, locked workspace Clippy, and locked workspace tests on the exact tree.
+- [x] Pass local release-version and validator fixtures, four-package archive checks, frontend
+  production build, Android unit tests, Swift core tests, and iOS stream lifecycle test.
+- [ ] Pass the complete Linux/Windows/macOS, mobile, iOS, and released-client CI matrix on the
+  accepted commit; local checks do not replace hosted or physical evidence.
+- [ ] Merge the accepted source commit and record exact CI and four-crate registry preflight runs.
+- [x] Complete the scoped physical multi-identity acceptance through a source-installed desktop
+  build. The project owner confirmed the real-device scenario passed on 2026-09-11; this is source
+  acceptance and does not certify a later signed package.
+- [ ] Build and verify Windows/Android candidate artifacts from the same accepted commit. Retain an
+  independent recovery recipient and repeat the scoped multi-identity smoke if the packaged bits
+  differ from the source-tested candidate.
+- [ ] Obtain explicit publication authorization, then publish crates and signed artifacts without
+  changing the accepted commit.
+
+### Beta 2 physical acceptance — 2026-09-11
+
+The project owner confirmed that the multi-identity scenario passed on a real phone using a
+source-installed desktop build. This closes the candidate's source-level physical regression gate:
+the configured identity set continued past a nonmatching phone identity and successfully reached
+the matching identity. No signed Beta 2 Windows or Android artifact is claimed by this record;
+artifact provenance and exact-package verification remain separate publication gates above.
+
+## Beta 1 closeout
+
+Date: 2026-09-11. Target: `0.1.0-beta.1`. Status: **published for limited technical testing**.
+The owner authorized beta closeout. This document records the limited technical-user scope and
+retained limitations; it does not mark deferred Alpha or tagged-recipient gates as passed.
 
 ## Scope
 

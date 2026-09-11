@@ -1,6 +1,6 @@
 # Windows Beta quick start
 
-This guide covers the proposed `0.1.0-beta.1` Windows 11 x64 source-install
+This guide covers the proposed `0.1.0-beta.2` Windows 11 x64 source-install
 path with an Android StrongBox phone. The beta is still experimental: use only
 synthetic or disposable data, always add and test an independent recovery
 recipient, and confirm every full pairing fingerprint and phone verification
@@ -22,7 +22,7 @@ from source through the CLI package:
 
 ```powershell
 rustup default stable-x86_64-pc-windows-msvc
-cargo install age-plugin-phone --version 0.1.0-beta.1 --locked
+cargo install age-plugin-phone --version 0.1.0-beta.2 --locked
 age-plugin-phone status
 ```
 

@@ -60,7 +60,9 @@ New encryption through a public identity stub derives the pairing-specific v2 re
 by [`ADR 0012`](0012-private-stanza-selection.md). Its encrypted selector lets the desktop
 authenticate a stanza-to-pairing match locally. With multiple v2 identities and stanzas, the plugin
 chooses the first cryptographically matching pair in age identity/stanza order and prompts only
-that phone.
+that phone. Reference age invokes plugin identities separately; a valid v2 stanza that does not
+match the current invocation returns no file key and no plugin error, allowing age to continue to
+the next configured identity. Malformed supported stanzas and unavailable state remain errors.
 
 ## Consequences
 
