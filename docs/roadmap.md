@@ -1,11 +1,20 @@
 # Roadmap
 
+## Beta closeout — 2026-09-11
+
+The owner authorized preparation of `0.1.0-beta.1`. Stop feature expansion and follow
+[the closeout checklist](beta-readiness.md): scope and compatibility, final-source
+verification, remaining mandatory tag evidence, exact artifacts and limited-user
+installation. Windows and macOS source installation are both intended beta routes.
+This sequencing update does not publish a version or mark older unchecked gates
+as passed. The owner-only deployment remains until the launch gates are resolved.
+
 ## Product sequencing principles
 
 2026-09-10 sequencing decision: stop additional macOS acceptance for an interim
-experimental release, retaining unverified rows and known limitations. Next implement
-the [tagged-recipient PRD](tagged-recipient-prd.md); its completion is the end of the
-current development stage. See the [scope decision](macos-release-scope-decision.md).
+experimental release, retaining unverified rows and known limitations. The
+[tagged-recipient PRD](tagged-recipient-prd.md) now has a source implementation candidate;
+[evidence and remaining gates](tagged-recipient-evidence.md) define its completion status. See the [scope decision](macos-release-scope-decision.md).
 
 Current deployment posture: this application is temporarily an owner-only technical preview as
 defined in [`owner-only-preview.md`](owner-only-preview.md). The UVC-camera QR/replay matrix,
@@ -318,3 +327,18 @@ release gate, not an open question about whether the ADB transport can carry the
   Windows x64 Alpha; platform expansion must not add a weaker key-custody fallback.
 - [ ] Define signed update, vulnerability reporting, protocol migration, support lifetime, and
   deprecation policies before general availability.
+
+## Explicit native tagged recipients (2026-09-10 source candidate)
+
+- [x] Preserve default phone and add explicit tag/phone CLI and read-only public export.
+- [x] Add strict standard stanza parsing, public prefilter, real collision and input-order tests.
+- [x] Add native Android/iOS HPKE Open through existing fresh hardware authorization paths.
+- [x] Cross-check shared vectors in Rust/Kotlin/Swift and independently in Apple CryptoKit HPKE.
+- [x] Verify age v1.3.2 and rage 0.12.1 plugin-free encryption and authenticated payload recovery.
+- [ ] Complete exact-candidate Android StrongBox and iOS Secure Enclave physical matrix.
+- [ ] Record candidate-specific mixed phone/SE identities and Shine integration acceptance.
+- [ ] Complete separate signing/publication authorization and remaining tag release gates.
+
+[ADR 0026](adr/0026-native-tagged-recipients.md), [workflow](tagged-recipient-quickstart.md),
+and [evidence](tagged-recipient-evidence.md) define the scope. Historical uses of “tagged” above
+refer to experimental phone stanzas, not evidence for standard p256tag.

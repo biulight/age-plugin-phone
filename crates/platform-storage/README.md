@@ -17,6 +17,6 @@ Windows likewise has no independent replay freshness anchor. Stronger snapshot
 protection is deferred for cross-platform validation. Sudden-power-loss and
 expanded-platform evidence remain separate; successful local tests do not establish them.
 
-Experimental alpha software, unsuitable for real secrets. macOS has an initial Secure Enclave key backend; complete product support remains pending the macOS support plan. Other non-Windows desktop targets remain software prototypes.
+Experimental prerelease software, unsuitable for real secrets. macOS has an initial Secure Enclave key backend; complete product support remains pending the macOS support plan. Other non-Windows desktop targets remain software prototypes.
 
 See https://github.com/biulight/age-plugin-phone for architecture and installation.

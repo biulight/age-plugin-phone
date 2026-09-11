@@ -25,6 +25,46 @@ class TaggedRecipientCryptoTest {
     )
 
     @Test
+    fun realTagCollisionStillRequiresHpkeAuthentication() {
+        val v = ObjectMapper().readTree(requireNotNull(javaClass.classLoader?.getResourceAsStream("p256tag-collision.json")))
+        val first = keyPair(v["first_scalar_hex"].asText())
+        val second = keyPair(v["second_scalar_hex"].asText())
+        val stanza = TaggedRecipientCrypto.Stanza("p256tag", listOf(v["tag_base64"].asText(), v["enc_base64"].asText()), Base64.getDecoder().decode(v["body_base64"].asText()))
+        TaggedRecipientCrypto.requireMatchingTag(first.public, stanza)
+        TaggedRecipientCrypto.requireMatchingTag(second.public, stanza)
+        assertArrayEquals(hex(v["file_key_hex"].asText()), TaggedRecipientCrypto.unwrap(first.private, first.public, stanza))
+        assertThrows(TaggedRecipientCrypto.AuthenticationException::class.java) { TaggedRecipientCrypto.unwrap(second.private, second.public, stanza) }
+    }
+
+    @Test
+    fun standardP256TagVectorAndFailures() {
+        val v = ObjectMapper().readTree(requireNotNull(javaClass.classLoader?.getResourceAsStream("p256tag.json")))
+        val identity = keyPair(v["identity_scalar_hex"].asText())
+        val node = v["stanza"]
+        val stanza = TaggedRecipientCrypto.Stanza("p256tag", node["args"].map { it.asText() }, Base64.getDecoder().decode(node["body_base64"].asText()))
+        assertArrayEquals(hex(v["file_key_hex"].asText()), TaggedRecipientCrypto.unwrap(identity.private, identity.public, stanza))
+        val parsed = TaggedRecipientCrypto.parse(stanza)
+        val agreement = javax.crypto.KeyAgreement.getInstance("ECDH")
+        agreement.init(identity.private)
+        agreement.doPhase(parsed.ephemeralPublic, true)
+        val dh = agreement.generateSecret()
+        try {
+            assertArrayEquals(hex(v["file_key_hex"].asText()), TaggedRecipientCrypto.unwrapWithSharedSecret(identity.public, stanza, dh))
+        } finally { dh.fill(0) }
+        for (args in listOf(emptyList(), stanza.args.take(1), stanza.args + "extra", listOf(stanza.args[0] + "=", stanza.args[1]), listOf(stanza.args[0], stanza.args[1] + "="), listOf("AAAA", stanza.args[1]), listOf(stanza.args[0], Base64.getEncoder().withoutPadding().encodeToString(ByteArray(65))))) {
+            assertThrows(TaggedRecipientCrypto.InvalidStanzaException::class.java) { TaggedRecipientCrypto.parse(stanza.copy(args = args)) }
+        }
+        for (size in listOf(0, 15, 31, 33)) {
+            assertThrows(TaggedRecipientCrypto.InvalidStanzaException::class.java) { TaggedRecipientCrypto.parse(stanza.copy(body = stanza.body.copyOf(size))) }
+        }
+        val modified = stanza.body.copyOf().also { it[0] = (it[0].toInt() xor 1).toByte() }
+        assertThrows(TaggedRecipientCrypto.AuthenticationException::class.java) { TaggedRecipientCrypto.unwrap(identity.private, identity.public, stanza.copy(body = modified)) }
+        val wrong = keyPair("0000000000000000000000000000000000000000000000000000000000000003")
+        assertThrows(TaggedRecipientCrypto.AuthenticationException::class.java) { TaggedRecipientCrypto.unwrap(wrong.private, wrong.public, stanza) }
+        assertThrows(TaggedRecipientCrypto.AuthenticationException::class.java) { TaggedRecipientCrypto.unwrap(identity.private, identity.public, stanza.copy(args = listOf("AAAAAA", stanza.args[1]))) }
+    }
+
+    @Test
     fun matchesSharedRustVector() {
         val identity = keyPair(vector["identity_scalar_hex"].asText())
         val ephemeral = keyPair(vector["ephemeral_scalar_hex"].asText())

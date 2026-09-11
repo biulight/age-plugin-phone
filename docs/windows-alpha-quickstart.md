@@ -365,3 +365,14 @@ Discovery timeout alone does not identify a firewall problem.
   one state file.
 - Use `AGE_PLUGIN_PHONE_TRANSPORT=qr` only for the camera fallback. QR changes transport, not the
   pairing, authorization, replay, or response-binding requirements.
+
+## Source candidate: optional native tag recipients
+
+The source candidate adds `--recipient-type tag` to `setup` and `pair`, and
+`age-plugin-phone recipients -i phone-identity.txt --recipient-type tag` for existing pairings.
+Default or explicit `phone` remains unchanged. Tag needs age 1.3+ for plugin-free encryption
+and has a publicly testable selector; phone v2 keeps private paired-desktop selection.
+Upgrade both desktop and mobile software; no re-pairing is required. Setup JSON stays schema 1.
+Follow the [generic workflow](tagged-recipient-quickstart.md) and consult
+[candidate platform evidence](tagged-recipient-evidence.md). Historical releases and acceptance
+records above do not establish tag support. Failures never switch modes or pairings.

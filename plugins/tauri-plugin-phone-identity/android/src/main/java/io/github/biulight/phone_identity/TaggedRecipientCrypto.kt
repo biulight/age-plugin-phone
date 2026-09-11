@@ -22,6 +22,7 @@ import javax.crypto.spec.SecretKeySpec
 internal object TaggedRecipientCrypto {
     const val STANZA_TAG = "phone-p256-v1"
     const val STANZA_TAG_V2 = "phone-p256-v2"
+    const val STANDARD_TAG = "p256tag"
     const val FILE_KEY_BYTES = 16
     private const val POINT_BYTES = 33
     private const val BODY_BYTES = 32
@@ -118,6 +119,7 @@ internal object TaggedRecipientCrypto {
         stanza: Stanza,
     ): ByteArray {
         val parsed = parse(stanza)
+        requireMatchingTag(identityPublic, stanza)
         val secret = agree(identityPrivate, parsed.ephemeralPublic)
         return try {
             open(
@@ -138,6 +140,7 @@ internal object TaggedRecipientCrypto {
         sharedSecret: ByteArray,
     ): ByteArray {
         val parsed = parse(stanza)
+        requireMatchingTag(identityPublic, stanza)
         return open(
             parsed.version,
             sharedSecret,
@@ -149,6 +152,7 @@ internal object TaggedRecipientCrypto {
 
     fun parse(stanza: Stanza): ParsedStanza {
         val version = when {
+            stanza.tag == STANDARD_TAG && stanza.args.size == 2 -> 3
             stanza.tag == STANZA_TAG && stanza.args.size == 1 -> 1
             stanza.tag == STANZA_TAG_V2 && stanza.args.size == 2 -> 2
             stanza.tag == STANZA_TAG || stanza.tag == STANZA_TAG_V2 ->
@@ -156,7 +160,8 @@ internal object TaggedRecipientCrypto {
             else -> throw InvalidStanzaException()
         }
         if (stanza.body.size != BODY_BYTES) throw InvalidStanzaException()
-        val encoded = stanza.args[0]
+        val encoded = stanza.args[if (version == 3) 1 else 0]
+        if (version == 3) canonicalBase64(stanza.args[0], 4)
         val ephemeral = try {
             base64Decoder.decode(encoded)
         } catch (_: IllegalArgumentException) {
@@ -177,7 +182,7 @@ internal object TaggedRecipientCrypto {
             }
             selection.fill(0)
         }
-        val publicKey = decodeCompressed(ephemeral)
+        val publicKey = if (version == 3) decodeUncompressed(ephemeral) else decodeCompressed(ephemeral)
         return ParsedStanza(version, publicKey, ephemeral, stanza.body.copyOf())
     }
 
@@ -256,6 +261,75 @@ internal object TaggedRecipientCrypto {
         val body: ByteArray,
     )
 
+    private val HPKE_INFO = "age-encryption.org/p256tag".toByteArray(Charsets.US_ASCII)
+    private val HPKE_KEM = byteArrayOf(75, 69, 77, 0, 16)
+    private val HPKE_SUITE = byteArrayOf(72, 80, 75, 69, 0, 16, 0, 1, 0, 3)
+
+    private fun canonicalBase64(value: String, size: Int): ByteArray {
+        val decoded = try { base64Decoder.decode(value) } catch (_: IllegalArgumentException) { throw InvalidStanzaException() }
+        if (decoded.size != size || base64Encoder.encodeToString(decoded) != value) throw InvalidStanzaException()
+        return decoded
+    }
+
+    fun encodeUncompressed(key: PublicKey): ByteArray {
+        val ec = key as? ECPublicKey ?: throw InvalidStanzaException()
+        return byteArrayOf(4) + fixedWidth(ec.w.affineX, 32) + fixedWidth(ec.w.affineY, 32)
+    }
+
+    private fun decodeUncompressed(encoded: ByteArray): PublicKey {
+        if (encoded.size != 65 || encoded[0] != 4.toByte()) throw InvalidStanzaException()
+        val compact = byteArrayOf(if ((encoded[64].toInt() and 1) == 0) 2 else 3) + encoded.copyOfRange(1, 33)
+        val key = decodeCompressed(compact)
+        if (!MessageDigest.isEqual(encodeUncompressed(key), encoded)) throw InvalidStanzaException()
+        return key
+    }
+
+    fun requireMatchingTag(key: PublicKey, stanza: Stanza) {
+        if (stanza.tag != STANDARD_TAG) return
+        val parsed = parse(stanza)
+        val hash = MessageDigest.getInstance("SHA-256").digest(encodeCompressed(key))
+        val tag = hmac(HPKE_INFO, parsed.ephemeralBytes + hash.copyOfRange(0, 4))
+        if (!MessageDigest.isEqual(tag.copyOfRange(0, 4), canonicalBase64(stanza.args[0], 4))) throw AuthenticationException()
+    }
+
+    private fun hmac(key: ByteArray, input: ByteArray): ByteArray = Mac.getInstance("HmacSHA256").run {
+        init(SecretKeySpec(if (key.isEmpty()) ByteArray(32) else key, "HmacSHA256"))
+        doFinal(input)
+    }
+
+    private fun hpkeExtract(suite: ByteArray, salt: ByteArray, label: String, input: ByteArray): ByteArray {
+        val labeled = "HPKE-v1".toByteArray(Charsets.US_ASCII) + suite + label.toByteArray(Charsets.US_ASCII) + input
+        return try { hmac(salt, labeled) } finally { labeled.fill(0) }
+    }
+
+    private fun hpkeExpand(suite: ByteArray, key: ByteArray, label: String, info: ByteArray, size: Int): ByteArray {
+        require(size in 1..32)
+        val input = byteArrayOf(0, size.toByte()) + "HPKE-v1".toByteArray(Charsets.US_ASCII) + suite + label.toByteArray(Charsets.US_ASCII) + info + byteArrayOf(1)
+        val full = hmac(key, input)
+        return try { full.copyOf(size) } finally { full.fill(0); input.fill(0) }
+    }
+
+    private fun hpkeOpen(dh: ByteArray, enc: ByteArray, recipient: ByteArray, body: ByteArray): ByteArray {
+        if (dh.size != 32) throw InvalidStanzaException()
+        val secrets = ArrayList<ByteArray>()
+        fun keep(value: ByteArray): ByteArray = value.also { secrets.add(it) }
+        try {
+            val eae = keep(hpkeExtract(HPKE_KEM, byteArrayOf(), "eae_prk", dh))
+            val shared = keep(hpkeExpand(HPKE_KEM, eae, "shared_secret", enc + encodeUncompressed(decodeCompressed(recipient)), 32))
+            val psk = keep(hpkeExtract(HPKE_SUITE, byteArrayOf(), "psk_id_hash", byteArrayOf()))
+            val info = keep(hpkeExtract(HPKE_SUITE, byteArrayOf(), "info_hash", HPKE_INFO))
+            val context = keep(byteArrayOf(0) + psk + info)
+            val secret = keep(hpkeExtract(HPKE_SUITE, shared, "secret", byteArrayOf()))
+            val key = keep(hpkeExpand(HPKE_SUITE, secret, "key", context, 32))
+            val nonce = keep(hpkeExpand(HPKE_SUITE, secret, "base_nonce", context, 12))
+            val cipher = Cipher.getInstance("ChaCha20-Poly1305")
+            cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(key, "ChaCha20"), IvParameterSpec(nonce))
+            val plaintext = try { cipher.doFinal(body) } catch (_: GeneralSecurityException) { throw AuthenticationException() }
+            if (plaintext.size != FILE_KEY_BYTES) { plaintext.fill(0); throw AuthenticationException() }
+            return plaintext
+        } finally { secrets.forEach { it.fill(0) } }
+    }
+
     private fun bech32HrpExpand(value: String): List<Int> =
         value.map { it.code ushr 5 } + listOf(0) + value.map { it.code and 31 }
 
@@ -329,6 +403,7 @@ internal object TaggedRecipientCrypto {
         recipientPublic: ByteArray,
         body: ByteArray,
     ): ByteArray {
+        if (version == 3) return hpkeOpen(sharedSecret, ephemeralPublic, recipientPublic, body)
         val info = if (version == 2) FILE_KEY_KDF_INFO_V2 else KDF_INFO
         val key = deriveKey(sharedSecret, ephemeralPublic, recipientPublic, info)
         return try {

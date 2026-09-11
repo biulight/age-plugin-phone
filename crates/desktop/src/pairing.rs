@@ -39,6 +39,34 @@ pub struct PublicIdentityStub {
     pub transcript_fingerprint: ProtocolDigest,
 }
 
+/// Explicit public recipient output; phone retains private paired-desktop selection.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum RecipientType {
+    #[default]
+    Phone,
+    Tag,
+}
+
+impl std::str::FromStr for RecipientType {
+    type Err = &'static str;
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value {
+            "phone" => Ok(Self::Phone),
+            "tag" => Ok(Self::Tag),
+            _ => Err("expected phone or tag"),
+        }
+    }
+}
+
+impl std::fmt::Display for RecipientType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Phone => "phone",
+            Self::Tag => "tag",
+        })
+    }
+}
+
 impl PublicIdentityStub {
     #[must_use]
     pub fn encode(&self) -> Vec<u8> {
@@ -142,11 +170,31 @@ impl PublicIdentityStub {
         .map_err(|_| PairingError::MalformedStub)
     }
 
-    /// Canonical v2 public recipient for new encryption.
+    /// Compatibility API: always returns the canonical v2 phone recipient.
     pub fn selectable_recipient(&self) -> Result<String, PairingError> {
         self.paired_recipient()?
             .to_string()
             .map_err(|_| PairingError::StubEncoding)
+    }
+
+    /// Canonical paired phone recipient; identical to the compatibility selectable API.
+    pub fn phone_recipient(&self) -> Result<String, PairingError> {
+        self.selectable_recipient()
+    }
+
+    /// Native age 1.3+ recipient derived without opening any private state.
+    pub fn tag_recipient(&self) -> Result<String, PairingError> {
+        let phone = Recipient::parse(&self.recipient).map_err(|_| PairingError::MalformedStub)?;
+        age_plugin_phone_core::recipient::tag::recipient(&phone)
+            .map_err(|_| PairingError::StubEncoding)
+    }
+
+    /// Select a public encoding without changing identity or pairing state.
+    pub fn recipient_for(&self, kind: RecipientType) -> Result<String, PairingError> {
+        match kind {
+            RecipientType::Phone => self.phone_recipient(),
+            RecipientType::Tag => self.tag_recipient(),
+        }
     }
 
     /// Public age-plugin identity stub. It contains no desktop or phone private key.
@@ -162,9 +210,14 @@ impl PublicIdentityStub {
 
     /// Human-readable age identity file containing only public pairing material.
     pub fn identity_file(&self) -> Result<String, PairingError> {
+        self.identity_file_for(RecipientType::Phone)
+    }
+
+    /// Public identity file with the explicitly selected recipient comment.
+    pub fn identity_file_for(&self, kind: RecipientType) -> Result<String, PairingError> {
         Ok(format!(
-            "# public age-plugin-phone identity stub\n# recipient: {}\n{}\n",
-            self.selectable_recipient()?,
+            "# recipient: {}\n# public age-plugin-phone identity stub\n{}\n",
+            self.recipient_for(kind)?,
             self.plugin_identity()?,
         ))
     }
@@ -414,7 +467,15 @@ pub fn create_identity_stub_file(
     path: &Path,
     stub: &PublicIdentityStub,
 ) -> Result<(), PairingError> {
-    let text = stub.identity_file()?;
+    create_identity_stub_file_for(path, stub, RecipientType::Phone)
+}
+
+pub fn create_identity_stub_file_for(
+    path: &Path,
+    stub: &PublicIdentityStub,
+    kind: RecipientType,
+) -> Result<(), PairingError> {
+    let text = stub.identity_file_for(kind)?;
     let mut file = OpenOptions::new()
         .write(true)
         .create_new(true)
@@ -453,18 +514,25 @@ pub fn read_identity_stub_file(path: &Path) -> Result<PublicIdentityStub, Pairin
 }
 
 pub(crate) fn decode_identity_stub_text(text: &str) -> Result<PublicIdentityStub, PairingError> {
-    let identity = text
+    let mut identities = text
         .lines()
         .map(str::trim)
-        .find(|line| !line.is_empty() && !line.starts_with('#'))
-        .ok_or(PairingError::MalformedStub)?;
+        .filter(|line| !line.is_empty() && !line.starts_with('#'));
+    let identity = identities.next().ok_or(PairingError::MalformedStub)?;
+    if identities.next().is_some() {
+        return Err(PairingError::MalformedStub);
+    }
     let (hrp, data, variant) =
         bech32::decode(&identity.to_ascii_lowercase()).map_err(|_| PairingError::MalformedStub)?;
     if hrp != "age-plugin-phone-" || variant != Variant::Bech32 {
         return Err(PairingError::MalformedStub);
     }
     let bytes = Vec::<u8>::from_base32(&data).map_err(|_| PairingError::MalformedStub)?;
-    PublicIdentityStub::decode(&bytes)
+    let stub = PublicIdentityStub::decode(&bytes)?;
+    if stub.plugin_identity()? != identity {
+        return Err(PairingError::MalformedStub);
+    }
+    Ok(stub)
 }
 
 enum State {
@@ -747,6 +815,33 @@ mod tests {
         let identity_file = stub.identity_file().unwrap();
         assert!(identity_file.contains(&stub.selectable_recipient().unwrap()));
         assert!(identity_file.contains(&stub.plugin_identity().unwrap()));
+        let encoded = stub.encode();
+        assert_eq!(
+            stub.recipient_for(RecipientType::Phone).unwrap(),
+            stub.selectable_recipient().unwrap()
+        );
+        let tagged = stub.identity_file_for(RecipientType::Tag).unwrap();
+        assert!(tagged.contains(&stub.tag_recipient().unwrap()));
+        assert_eq!(
+            decode_identity_stub_text(&tagged).unwrap().encode(),
+            encoded
+        );
+        assert_eq!(
+            age_plugin_phone_core::recipient::tag::parse_recipient(&stub.tag_recipient().unwrap())
+                .unwrap()
+                .public_key_bytes(),
+            Recipient::parse(stub.recipient())
+                .unwrap()
+                .public_key_bytes()
+        );
+        for bad in [
+            format!("{tagged}garbage\n"),
+            tagged.to_lowercase(),
+            format!("{tagged}{tagged}"),
+        ] {
+            assert!(decode_identity_stub_text(&bad).is_err());
+        }
+
         assert_eq!(
             session.confirm(&display.transcript_fingerprint, 103),
             Err(PairingError::SessionClosed)

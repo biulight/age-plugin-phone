@@ -13,7 +13,8 @@ use age_plugin_phone_core::protocol::{
     fragment_qr_message,
 };
 use age_plugin_phone_core::recipient::{
-    PairedRecipient, STANZA_TAG, STANZA_TAG_V2, TaggedStanza, matches_stanza_v2, validate_stanza,
+    PairedRecipient, Recipient, STANZA_TAG, STANZA_TAG_V2, TaggedStanza, matches_stanza_v2, tag,
+    validate_stanza,
 };
 use rand_core::OsRng;
 use zeroize::Zeroizing;
@@ -83,22 +84,14 @@ impl IdentityPluginV1 for PhoneIdentityPlugin {
         files: Vec<Vec<Stanza>>,
         mut callbacks: impl Callbacks<identity::Error>,
     ) -> io::Result<HashMap<usize, Result<FileKey, Vec<identity::Error>>>> {
-        let root = match self.config_root() {
-            Ok(root) => root,
-            Err(error) => return Ok(all_supported_files_error(&files, error)),
-        };
-        let Ok(transport_override) = identity_transport_override() else {
-            return Ok(all_supported_files_error(
-                &files,
-                internal("unsupported phone transport selection"),
-            ));
-        };
         let messages_enabled = identity_messages_enabled();
         unwrap_with_prepared_exchange(
             &self.identities,
             files,
-            &root,
+            || self.config_root(),
             |stub, locator| {
+                let transport_override = identity_transport_override()
+                    .map_err(|()| internal("unsupported phone transport selection"))?;
                 identity_route_options(transport_override.unwrap_or(locator.transport), stub)
             },
             |route, request, display| {
@@ -322,7 +315,7 @@ where
     unwrap_with_prepared_exchange(
         identities,
         files,
-        root,
+        || Ok(root.to_path_buf()),
         |_, _| Ok(()),
         |(), request, display| exchange(request, display),
     )
@@ -332,7 +325,7 @@ where
 fn unwrap_with_prepared_exchange<R, P, F>(
     identities: &[(usize, PublicIdentityStub)],
     files: Vec<Vec<Stanza>>,
-    root: &std::path::Path,
+    mut resolve_root: impl FnMut() -> Result<PathBuf, identity::Error>,
     mut prepare: P,
     mut exchange: F,
 ) -> io::Result<HashMap<usize, Result<FileKey, Vec<identity::Error>>>>
@@ -345,7 +338,10 @@ where
         let mut errors = Vec::new();
         let mut candidates = Vec::new();
         for (stanza_index, stanza) in stanzas.into_iter().enumerate() {
-            if stanza.tag != STANZA_TAG && stanza.tag != STANZA_TAG_V2 {
+            if stanza.tag != STANZA_TAG
+                && stanza.tag != STANZA_TAG_V2
+                && stanza.tag != tag::STANZA_TAG
+            {
                 continue;
             }
             let tagged = TaggedStanza {
@@ -363,12 +359,62 @@ where
                 candidates.push((stanza_index, tagged));
             }
         }
-        if candidates.is_empty() {
+        if candidates.is_empty() || !errors.is_empty() {
             if !errors.is_empty() {
                 results.insert(file_index, Err(errors));
             }
             continue;
         }
+
+        let mut public_match = None;
+        for (position, (_, stanza)) in candidates.iter().enumerate() {
+            if stanza.tag != tag::STANZA_TAG {
+                continue;
+            }
+            let mut matched_key = None;
+            for (identity_position, (_, stub)) in identities.iter().enumerate() {
+                let recipient = Recipient::parse(stub.recipient()).expect("validated stub");
+                if tag::matches(&recipient, stanza).expect("validated stanza") {
+                    let key = recipient.public_key_bytes();
+                    if matched_key.is_some_and(|previous| previous != key) {
+                        errors.push(internal("ambiguous p256tag recipient"));
+                    }
+                    if matched_key.is_none() {
+                        matched_key = Some(key);
+                        if public_match.is_none() {
+                            public_match = Some((identity_position, position));
+                        }
+                    }
+                }
+            }
+        }
+        if !errors.is_empty() {
+            results.insert(file_index, Err(errors));
+            continue;
+        }
+        if public_match.is_none() {
+            candidates.retain(|(_, stanza)| stanza.tag != tag::STANZA_TAG);
+            if candidates.is_empty() {
+                continue;
+            }
+        }
+        let root = match resolve_root() {
+            Ok(root) => root,
+            Err(error) => {
+                results.insert(file_index, Err(vec![error]));
+                continue;
+            }
+        };
+        let selected = if let Some((identity_position, position)) = public_match {
+            select_candidate(
+                &identities[identity_position..=identity_position],
+                vec![candidates.remove(position)],
+                &root,
+                file_index,
+            )
+        } else {
+            select_candidate(identities, candidates, &root, file_index)
+        };
 
         let SelectedCandidate {
             identity_index,
@@ -377,7 +423,7 @@ where
             stanza,
             locator,
             desktop,
-        } = match select_candidate(identities, candidates, root, file_index) {
+        } = match selected {
             Ok(selected) => selected,
             Err(selection_errors) => {
                 errors.extend(selection_errors);
@@ -509,7 +555,7 @@ fn select_candidate<'a>(
 
     if candidates
         .iter()
-        .any(|(_, stanza)| stanza.tag == STANZA_TAG)
+        .any(|(_, stanza)| stanza.tag == STANZA_TAG || stanza.tag == tag::STANZA_TAG)
     {
         if identities.len() != 1 || candidates.len() != 1 {
             return Err(candidates
@@ -622,28 +668,6 @@ fn open_identities(
         });
     }
     (opened, errors)
-}
-
-fn all_supported_files_error(
-    files: &[Vec<Stanza>],
-    error: identity::Error,
-) -> HashMap<usize, Result<FileKey, Vec<identity::Error>>> {
-    let mut error = Some(error);
-    files
-        .iter()
-        .enumerate()
-        .filter(|(_, stanzas)| {
-            stanzas
-                .iter()
-                .any(|stanza| stanza.tag == STANZA_TAG || stanza.tag == STANZA_TAG_V2)
-        })
-        .map(|(index, _)| {
-            let value = error
-                .take()
-                .unwrap_or_else(|| internal("configuration unavailable"));
-            (index, Err(vec![value]))
-        })
-        .collect()
 }
 
 fn identity_error(index: usize, message: &str) -> identity::Error {
@@ -799,6 +823,18 @@ mod tests {
             }
         }
 
+        fn tag_stanza(&self, file_key: [u8; 16]) -> Stanza {
+            let recipient = Recipient::parse(self.stub.recipient()).unwrap();
+            let stanza =
+                tag::wrap_with_ephemeral(&recipient, &file_key, &SecretKey::random(&mut OsRng))
+                    .unwrap();
+            Stanza {
+                tag: stanza.tag,
+                args: stanza.args,
+                body: stanza.body,
+            }
+        }
+
         fn respond(&self, encoded: &[u8], now: u64) -> Vec<u8> {
             let request = SignedUnwrapRequest::decode(encoded).unwrap();
             let verified = ReplayGuard::default()
@@ -816,6 +852,151 @@ mod tests {
         fn drop(&mut self) {
             std::fs::remove_dir_all(&self.root).unwrap();
         }
+    }
+
+    #[test]
+    fn tag_unmatched_and_malformed_never_prepare_or_exchange() {
+        let fixture = Fixture::new();
+        let other = Fixture::new();
+        let missing = fixture.root.join("unavailable-private-state");
+        let identities = [(0, fixture.stub.clone())];
+        let mut malformed = fixture.tag_stanza([1; 16]);
+        malformed.args.push("extra".into());
+        let results = unwrap_with_prepared_exchange(
+            &identities,
+            vec![
+                vec![other.tag_stanza([2; 16])],
+                vec![fixture.tag_stanza([3; 16]), malformed],
+            ],
+            || panic!("must not resolve private configuration"),
+            |_, _| -> Result<(), identity::Error> { panic!("must not prepare transport") },
+            |(), _, _| panic!("must not contact phone"),
+        )
+        .unwrap();
+        assert!(!results.contains_key(&0));
+        assert!(results[&1].is_err());
+        assert!(!missing.exists());
+    }
+
+    #[test]
+    fn tag_first_pairing_is_final_even_when_private_state_or_exchange_fails() {
+        let fixture = Fixture::new();
+        let mut missing = fixture.stub.clone();
+        missing.desktop_id[0] ^= 1;
+        let results = unwrap_with_exchange(
+            &[(1, missing.clone()), (0, fixture.stub.clone())],
+            vec![vec![fixture.tag_stanza([7; 16])]],
+            &fixture.config,
+            |_, _| panic!("missing first pairing must not fall through"),
+        )
+        .unwrap();
+        assert!(results[&0].is_err());
+        for error in [
+            ExchangeError::Cancelled,
+            ExchangeError::Failed,
+            ExchangeError::ConnectionFailed,
+            ExchangeError::InvalidResponse,
+        ] {
+            let mut calls = 0;
+            let results = unwrap_with_exchange(
+                &[(0, fixture.stub.clone()), (1, missing.clone())],
+                vec![vec![
+                    fixture.tag_stanza([7; 16]),
+                    fixture.selectable_stanza([7; 16]),
+                ]],
+                &fixture.config,
+                |_, _| {
+                    calls += 1;
+                    Ok(Err(error))
+                },
+            )
+            .unwrap();
+            assert!(results[&0].is_err());
+            assert_eq!(calls, 1);
+        }
+    }
+
+    #[test]
+    fn tag_and_old_phone_use_same_signed_response_boundary() {
+        let fixture = Fixture::new();
+        let files = vec![
+            vec![fixture.tag_stanza([1; 16])],
+            vec![fixture.selectable_stanza([2; 16])],
+            vec![fixture.stanza([3; 16])],
+        ];
+        let mut calls = 0;
+        let results = unwrap_with_exchange(
+            &[(0, fixture.stub.clone())],
+            files,
+            &fixture.config,
+            |request, _| {
+                calls += 1;
+                Ok(Ok(Zeroizing::new(
+                    fixture.respond(request, now_unix().unwrap()),
+                )))
+            },
+        )
+        .unwrap();
+        assert_eq!(calls, 3);
+        for (index, key) in [[1; 16], [2; 16], [3; 16]].iter().enumerate() {
+            use age_core::secrecy::ExposeSecret as _;
+            let Ok(opened) = &results[&index] else {
+                panic!("expected authenticated file key")
+            };
+            assert_eq!(opened.expose_secret(), key);
+        }
+    }
+
+    #[test]
+    fn real_tag_collision_fails_before_private_state() {
+        use base64::{Engine as _, engine::general_purpose::STANDARD_NO_PAD as B64};
+        // Public-only bytes from core/test-vectors/p256tag-collision.json. Keep the desktop
+        // package test independent of another package's filesystem layout and private scalars.
+        let fixture = Fixture::new();
+        let mut identities = Vec::new();
+        for (index, encoded) in [
+            "0393c9db8de26d0c2e47f25721f68f53c58d4afc153d222769e591f9a0b1c61b05",
+            "0216a58b99bc15d7d705c667fb22eb07c29ae7875c768ae7260c086fd7d662a7db",
+        ]
+        .iter()
+        .enumerate()
+        {
+            let bytes: Vec<u8> = (0..encoded.len())
+                .step_by(2)
+                .map(|i| u8::from_str_radix(&encoded[i..i + 2], 16).unwrap())
+                .collect();
+            let mut stub = fixture.stub.clone();
+            stub.recipient = Recipient::from_public_key_bytes(&bytes)
+                .unwrap()
+                .to_string()
+                .unwrap();
+            identities.push((index, stub));
+        }
+        let stanza = TaggedStanza {
+            tag: "p256tag".into(),
+            args: vec!["3/obTQ".into(), "BHzyexiNA09+ilI4AwS1GsPAiWnid/IbNaYLSPxHZpl4B3dVENuO0EApPZrGn3Qw27p9reY86YIpngS3nSJ4c9E".into()],
+            body: B64.decode("NfMzIBYZv9oCrYcadr2EsJj2eap9I3Lv8lq8tR1xtZA").unwrap(),
+        };
+        for (_, stub) in &identities {
+            assert!(tag::matches(&Recipient::parse(stub.recipient()).unwrap(), &stanza).unwrap());
+        }
+        let stanza = Stanza {
+            tag: stanza.tag,
+            args: stanza.args,
+            body: stanza.body,
+        };
+        let results = unwrap_with_prepared_exchange(
+            &identities,
+            vec![vec![stanza]],
+            || panic!("ambiguity must not resolve private configuration"),
+            |_, _| -> Result<(), identity::Error> { panic!("ambiguous tag must not prepare") },
+            |(), _, _| panic!("ambiguous tag must not exchange"),
+        )
+        .unwrap();
+        let errors = results[&0].as_ref().err().unwrap();
+        assert!(
+            matches!(&errors[0], identity::Error::Internal { message } if message == "ambiguous p256tag recipient")
+        );
     }
 
     #[test]

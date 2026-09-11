@@ -1,6 +1,8 @@
 # crates.io release pipeline
 
-These packages remain experimental alpha software, unsuitable for real secrets.
+These packages remain experimental prerelease software, unsuitable for real secrets.
+Windows and macOS source installation are both planned Beta 1 delivery routes;
+see the [current closeout](beta-readiness.md).
 This procedure does not claim that any version has been uploaded. Consult
 [candidate evidence](desktop-refactor-evidence.md) for actual validation status.
 
@@ -76,7 +78,8 @@ The new `.github/workflows/crates-release.yml` adds an explicitly dispatched
 publication capability after the four-crate refactor. The PRD's original “no
 automatic upload workflow” scope and the historical refactor/hardware evidence
 remain historical facts; this document defines the later release capability.
-`alpha-release.yml` continues to publish its existing Alpha binary artifacts.
+`alpha-release.yml` retains its historical filename and publishes the supported
+numbered Alpha or Beta binary prerelease artifacts.
 This pipeline never increments a version, creates a tag or GitHub Release, or
 changes protocol, custody, phone authentication, CLI behavior or platform support.
 
@@ -344,3 +347,16 @@ accepted uploads followed by client timeouts, partial completion, matching and
 mismatching existing versions, no duplicate upload, downstream stopping, and
 credential-free diagnostics/artifacts. Local fixtures cannot establish remote
 Environment rules, OIDC exchange or real crates.io upload success.
+
+## Native tag candidate gate
+
+The optional tag implementation is tracked in [candidate evidence](tagged-recipient-evidence.md)
+and [ADR 0026](adr/0026-native-tagged-recipients.md). Desktop, Android and iOS must support
+p256tag in the same compatible release batch. Preserve protocol v2 pairing and replay state;
+phone remains the default. Age v1.3.2/rage 0.12.1 software interoperability does not satisfy
+StrongBox/Secure Enclave physical authorization, cancellation, timeout, lifecycle, wrong-device,
+upgrade, independent recovery or mixed phone/SE prompt tests. Run those on exact candidate
+artifacts and record hashes before advertising tag support. Unrun hardware rows are unverified.
+Shine acceptance is separate and does not authorize a plugin-specific application interface.
+Signing, uploading and publication require their own authorization; this implementation does not
+perform them or expand production support.

@@ -240,6 +240,8 @@ class OfflineEnvelopeCryptoTest {
 
     @Test
     fun verifiesAndDecryptsSharedRustVector() {
+        for (resource in listOf("offline-envelope-v2.json", "p256tag-envelope-v2.json")) {
+        val vector = ObjectMapper().readTree(requireNotNull(javaClass.classLoader?.getResourceAsStream(resource)))
         val desktopSigning = keyPair(vector["desktop_signing_scalar"].asInt())
         val phoneSigning = keyPair(vector["phone_signing_scalar"].asInt())
         val desktopSession = keyPair(vector["desktop_session_scalar"].asInt())
@@ -261,6 +263,7 @@ class OfflineEnvelopeCryptoTest {
                 desktopSession.private,
             ),
         )
+        }
     }
 
     @Test
@@ -303,6 +306,8 @@ class OfflineEnvelopeCryptoTest {
 
     @Test
     fun rejectsTamperingWrongDeviceAndExpiry() {
+        for (resource in listOf("offline-envelope-v2.json", "p256tag-envelope-v2.json")) {
+        val vector = ObjectMapper().readTree(requireNotNull(javaClass.classLoader?.getResourceAsStream(resource)))
         val desktopSigning = keyPair(vector["desktop_signing_scalar"].asInt())
         val request = base64(vector["signed_request_base64"].asText())
         assertThrows(OfflineEnvelopeCrypto.ProtocolException::class.java) {
@@ -332,6 +337,7 @@ class OfflineEnvelopeCryptoTest {
                 desktopSigning.public,
                 vector["now_unix"].asLong(),
             )
+        }
         }
     }
 

@@ -2,7 +2,7 @@
 
 Windows TPM and macOS CryptoKit Secure Enclave desktop key custody.
 
-Experimental alpha software, unsuitable for real secrets. The macOS backend is
+Experimental prerelease software, unsuitable for real secrets. The macOS backend is
 part of the macOS support plan. Native storage, journaled setup/cleanup and source
 installation are implemented; the transport/caller matrix and complete security
 acceptance still prevent a full macOS support claim. TPM/Secure Enclave key custody

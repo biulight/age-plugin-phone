@@ -18,8 +18,7 @@ use age_plugin_phone::age_recipient::PhoneRecipientPlugin;
 #[cfg(not(target_os = "macos"))]
 use age_plugin_phone::locator::create_pairing_locator_with_transport;
 use age_plugin_phone::locator::{default_config_root, prepare_config_root};
-#[cfg(not(target_os = "macos"))]
-use age_plugin_phone::pairing::create_identity_stub_file;
+use age_plugin_phone::pairing::RecipientType;
 use age_plugin_phone::pairing::{
     DesktopKeyState, DesktopPairingSession, MAX_PAIRING_SESSION_AGE_MS, read_identity_stub_file,
 };
@@ -81,6 +80,9 @@ enum Command {
     },
     /// Create one phone-backed identity using managed hardware desktop paths.
     Setup {
+        /// phone: plugin required, private selection (default); tag: age 1.3+, public testable tag, no encryption plugin.
+        #[arg(long, default_value_t = RecipientType::Phone)]
+        recipient_type: RecipientType,
         /// Untrusted desktop label shown on both endpoints.
         #[arg(
             long,
@@ -112,6 +114,9 @@ enum Command {
     },
     /// Complete an authenticated pairing over Developer USB or QR.
     Pair {
+        /// phone: plugin required, private selection (default); tag: age 1.3+, public testable tag, no encryption plugin.
+        #[arg(long, default_value_t = RecipientType::Phone)]
+        recipient_type: RecipientType,
         /// Untrusted desktop label shown on both endpoints.
         #[arg(long)]
         label: String,
@@ -130,6 +135,14 @@ enum Command {
         /// Explicit ADB device serial. Required when multiple devices are listed by ADB.
         #[arg(long)]
         adb_serial: Option<String>,
+    },
+    /// Export one public recipient without private state or phone access.
+    Recipients {
+        #[arg(short = 'i', long = "identity")]
+        identity_stub: PathBuf,
+        /// phone: plugin required, private selection (default); tag: age 1.3+, public testable tag, no encryption plugin.
+        #[arg(long, default_value_t = RecipientType::Phone)]
+        recipient_type: RecipientType,
     },
     /// Exercise one real paired unwrap over Developer USB, foreground Wi-Fi, or QR.
     Unwrap {
@@ -201,6 +214,7 @@ impl PluginHandler for Handler {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn main() -> io::Result<()> {
     let options = Options::parse();
 
@@ -226,6 +240,9 @@ fn main() -> io::Result<()> {
             println!("mobile_identity: android_strongbox_or_ios_secure_enclave");
             println!("age_recipient_v1: available");
             println!(
+                "tagged_recipient: p256tag; encryption requires age 1.3+; public testable tag; phone remains default"
+            );
+            println!(
                 "age_identity_v1: implemented_requires_paired_hardware_and_fresh_phone_verification"
             );
             #[cfg(windows)]
@@ -234,7 +251,20 @@ fn main() -> io::Result<()> {
             print_macos_platform_status();
             Ok(())
         }
+        Command::Recipients {
+            identity_stub,
+            recipient_type,
+        } => {
+            let stub = read_identity_stub_file(&identity_stub)
+                .map_err(|_| io::Error::other("invalid public identity stub"))?;
+            let recipient = stub
+                .recipient_for(recipient_type)
+                .map_err(|_| io::Error::other("invalid recipient"))?;
+            println!("{recipient}");
+            Ok(())
+        }
         Command::Setup {
+            recipient_type,
             label,
             resume,
             cleanup,
@@ -248,8 +278,10 @@ fn main() -> io::Result<()> {
             transport,
             adb_serial.as_deref(),
             json,
+            recipient_type,
         ),
         Command::Pair {
+            recipient_type,
             label,
             desktop_state,
             identity_output,
@@ -263,6 +295,7 @@ fn main() -> io::Result<()> {
             &replay_state,
             transport,
             adb_serial.as_deref(),
+            recipient_type,
         ),
         Command::Unwrap {
             identity_stub,
@@ -370,6 +403,7 @@ fn run_pair(
     replay_state: &std::path::Path,
     transport: TransportChoice,
     adb_serial: Option<&str>,
+    recipient_type: RecipientType,
 ) -> io::Result<()> {
     run_setup_impl(
         Some(label),
@@ -379,6 +413,7 @@ fn run_pair(
         adb_serial,
         false,
         Some([desktop_state, replay_state, identity_output]),
+        recipient_type,
     )
 }
 
@@ -391,6 +426,7 @@ fn run_pair(
     replay_state: &std::path::Path,
     transport: TransportChoice,
     adb_serial: Option<&str>,
+    recipient_type: RecipientType,
 ) -> io::Result<()> {
     validate_setup_label(&label)?;
     ensure_desktop_platform_supported()?;
@@ -520,8 +556,9 @@ fn run_pair(
         replay_state,
         !desktop_state_existed,
         transport,
+        recipient_type,
     )?;
-    print_pairing_outputs(identity_output, &stub)
+    print_pairing_outputs(identity_output, &stub, recipient_type)
 }
 
 #[cfg(not(target_os = "macos"))]
@@ -655,6 +692,7 @@ fn complete_pairing_interaction(
 fn print_pairing_outputs(
     identity_output: &std::path::Path,
     stub: &age_plugin_phone::pairing::PublicIdentityStub,
+    recipient_type: RecipientType,
 ) -> io::Result<()> {
     println!(
         "Public identity stub created: {}",
@@ -662,7 +700,7 @@ fn print_pairing_outputs(
     );
     println!(
         "Recipient: {}",
-        stub.selectable_recipient()
+        stub.recipient_for(recipient_type)
             .map_err(|_| io::Error::other("failed to encode selectable recipient"))?
     );
     Ok(())
@@ -742,12 +780,22 @@ fn run_setup(
     transport: TransportChoice,
     adb_serial: Option<&str>,
     json: bool,
+    recipient_type: RecipientType,
 ) -> io::Result<()> {
-    run_setup_impl(label, resume, cleanup, transport, adb_serial, json, None)
+    run_setup_impl(
+        label,
+        resume,
+        cleanup,
+        transport,
+        adb_serial,
+        json,
+        None,
+        recipient_type,
+    )
 }
 
 #[cfg(any(windows, target_os = "macos"))]
-#[allow(clippy::too_many_lines)]
+#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
 fn run_setup_impl(
     label: Option<String>,
     resume: bool,
@@ -756,6 +804,7 @@ fn run_setup_impl(
     adb_serial: Option<&str>,
     json: bool,
     explicit_paths: Option<[&std::path::Path; 3]>,
+    recipient_type: RecipientType,
 ) -> io::Result<()> {
     if resume || cleanup {
         if label.is_some() || transport != TransportChoice::Auto || adb_serial.is_some() {
@@ -766,7 +815,7 @@ fn run_setup_impl(
         }
         ensure_desktop_platform_supported()?;
         return if resume {
-            resume_setup(json)
+            resume_setup(json, recipient_type)
         } else {
             cleanup_setup()
         };
@@ -925,17 +974,24 @@ fn run_setup_impl(
     }
     drop(session);
     drop(state);
-    setup::commit_confirmed(
+    setup::commit_confirmed_for(
         &root,
         &journal,
         now_unix().map_err(|_| io::Error::other("system clock is unavailable"))?,
+        recipient_type,
     )
     .map_err(|_| {
         io::Error::other(
             "confirmed setup commit is incomplete; use setup --resume or setup --cleanup",
         )
     })?;
-    print_setup_outputs(&journal.identity_stub, &stub, json, &mut interaction)
+    print_setup_outputs(
+        &journal.identity_stub,
+        &stub,
+        json,
+        recipient_type,
+        &mut interaction,
+    )
 }
 
 #[cfg(not(any(windows, target_os = "macos")))]
@@ -946,6 +1002,7 @@ fn run_setup(
     _transport: TransportChoice,
     _adb_serial: Option<&str>,
     _json: bool,
+    _recipient_type: RecipientType,
 ) -> io::Result<()> {
     Err(io::Error::new(
         io::ErrorKind::Unsupported,
@@ -954,7 +1011,7 @@ fn run_setup(
 }
 
 #[cfg(any(windows, target_os = "macos"))]
-fn resume_setup(json: bool) -> io::Result<()> {
+fn resume_setup(json: bool, recipient_type: RecipientType) -> io::Result<()> {
     let root = default_config_root()
         .map_err(|_| io::Error::other("phone plugin configuration is unavailable"))?;
     let _lifecycle_lock = setup::acquire_lifecycle_lock(&root)
@@ -986,10 +1043,11 @@ fn resume_setup(json: bool) -> io::Result<()> {
             "setup resume confirmation did not match",
         ));
     }
-    setup::commit_confirmed(
+    setup::commit_confirmed_for(
         &root,
         &journal,
         now_unix().map_err(|_| io::Error::other("system clock is unavailable"))?,
+        recipient_type,
     )
     .map_err(|_| io::Error::other("confirmed setup remains incomplete"))?;
     print_setup_outputs(
@@ -999,6 +1057,7 @@ fn resume_setup(json: bool) -> io::Result<()> {
             .as_ref()
             .expect("confirmed journal candidate"),
         json,
+        recipient_type,
         &mut interaction,
     )
 }
@@ -1107,10 +1166,11 @@ fn print_setup_outputs(
     identity_output: &std::path::Path,
     stub: &age_plugin_phone::pairing::PublicIdentityStub,
     json: bool,
+    recipient_type: RecipientType,
     interaction: &mut impl io::Write,
 ) -> io::Result<()> {
     let recipient = stub
-        .selectable_recipient()
+        .recipient_for(recipient_type)
         .map_err(|_| io::Error::other("failed to encode selectable recipient"))?;
     if json {
         writeln!(
@@ -1165,6 +1225,7 @@ fn ensure_pairing_outputs_available(
 }
 
 #[cfg(not(target_os = "macos"))]
+#[allow(clippy::too_many_arguments)]
 fn commit_pairing_state(
     config_root: &std::path::Path,
     stub: &age_plugin_phone::pairing::PublicIdentityStub,
@@ -1173,6 +1234,7 @@ fn commit_pairing_state(
     replay_state: &std::path::Path,
     desktop_state_created: bool,
     transport: TransportChoice,
+    recipient_type: RecipientType,
 ) -> io::Result<()> {
     let pairing = age_plugin_phone_core::protocol::PairingRecord {
         desktop_id: stub.desktop_id,
@@ -1219,7 +1281,13 @@ fn commit_pairing_state(
             rolled_back,
         ));
     };
-    if create_identity_stub_file(identity_output, stub).is_err() {
+    if age_plugin_phone::pairing::create_identity_stub_file_for(
+        identity_output,
+        stub,
+        recipient_type,
+    )
+    .is_err()
+    {
         let rolled_back = rollback_failed_pairing(
             desktop_state,
             replay_state,
@@ -1894,6 +1962,7 @@ mod tests {
             transport,
             adb_serial,
             json,
+            recipient_type,
         }) = options.command
         else {
             panic!("setup command must parse");
@@ -1902,6 +1971,7 @@ mod tests {
         assert!(!resume && !cleanup);
         assert_eq!(transport, TransportChoice::Auto);
         assert_eq!(adb_serial.as_deref(), Some("phone-a"));
+        assert_eq!(recipient_type, RecipientType::Phone);
         assert!(!json);
 
         assert!(
@@ -1948,6 +2018,7 @@ mod tests {
             TransportChoice::Auto,
             None,
             false,
+            RecipientType::Phone,
         )
         .unwrap_err();
         assert_eq!(error.kind(), io::ErrorKind::Unsupported);
@@ -1985,6 +2056,7 @@ mod tests {
                     &root.join("replay.state"),
                     TransportChoice::Ble,
                     None,
+                    RecipientType::Phone,
                 )
                 .is_err()
             );
@@ -1994,22 +2066,24 @@ mod tests {
 
     #[test]
     fn setup_json_contains_only_versioned_public_fields() {
-        let mut output = Vec::new();
-        write_setup_result_json(
-            &mut output,
-            std::path::Path::new("C:/Users/example/identity.txt"),
-            "age1phone1example",
-        )
-        .unwrap();
-        let value: serde_json::Value = serde_json::from_slice(&output).unwrap();
-        assert_eq!(
-            value,
-            serde_json::json!({
-                "schema_version": 1,
-                "identity_path": "C:/Users/example/identity.txt",
-                "recipient": "age1phone1example",
-            })
-        );
+        for recipient in ["age1phone1example", "age1tag1example"] {
+            let mut output = Vec::new();
+            write_setup_result_json(
+                &mut output,
+                std::path::Path::new("C:/Users/example/identity.txt"),
+                recipient,
+            )
+            .unwrap();
+            let value: serde_json::Value = serde_json::from_slice(&output).unwrap();
+            assert_eq!(
+                value,
+                serde_json::json!({
+                    "schema_version": 1,
+                    "identity_path": "C:/Users/example/identity.txt",
+                    "recipient": recipient,
+                })
+            );
+        }
     }
 
     #[test]

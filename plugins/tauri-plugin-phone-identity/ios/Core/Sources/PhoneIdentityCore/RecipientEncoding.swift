@@ -16,8 +16,9 @@ package enum RecipientEncoding {
         return Data([x963[64] & 1 == 0 ? 2 : 3]) + x963[1..<33]
     }
 
-    package static func encode(_ key: P256.KeyAgreement.PublicKey) throws -> String {
-        let payload = Data([1]) + (try compressed(key))
+    package static func encode(_ key: P256.KeyAgreement.PublicKey, tagged: Bool = false) throws -> String {
+        let hrp = tagged ? "age1tag" : self.hrp
+        let payload = (tagged ? Data() : Data([1])) + (try compressed(key))
         let words = try convertBits(Array(payload), from: 8, to: 5, pad: true)
         let checksumValue = polymod(hrpExpand(hrp) + words + Array(repeating: 0, count: 6)) ^ 1
         let checksum = (0..<6).map { UInt8((checksumValue >> UInt32(5 * (5 - $0))) & 31) }

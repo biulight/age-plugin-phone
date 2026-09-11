@@ -6,6 +6,19 @@ recovery recipient.
 
 ## [Unreleased]
 
+### 0.1.0-beta.1 candidate
+
+- Explicit native tagged recipients on desktop, Android and iOS; public-only export
+  and encryption without the phone plugin using age 1.3+. Default remains `phone`.
+- iOS per-operation authentication deadline closes expired prompts and rejects late
+  completion without resetting replay consumption.
+- Recorded signed-candidate hardware, mixed-recipient, recovery and Shine 2.0.3
+  evidence; final beta artifacts and remaining physical gates are still pending.
+- Alpha/Beta release-channel validation and a limited technical-user
+  [closeout plan](docs/beta-readiness.md), with Windows/macOS source installation.
+
+See the [candidate notes](docs/releases/v0.1.0-beta.1.md). Not yet published.
+
 ## [0.1.0-alpha.5] - 2026-09-10
 
 Interim experimental release; additional macOS physical acceptance is deferred by the

@@ -974,6 +974,9 @@ mod tests {
         .unwrap()
     }
     fn fixture() -> (SignedUnwrapRequest, PairingRecord, SecretKey, SigningKey) {
+        fixture_for(false)
+    }
+    fn fixture_for(tagged: bool) -> (SignedUnwrapRequest, PairingRecord, SecretKey, SigningKey) {
         let ds = sig(1);
         let ps = sig(2);
         let identity = sk(3);
@@ -981,7 +984,11 @@ mod tests {
             identity.public_key().to_encoded_point(true).as_bytes(),
         )
         .unwrap();
-        let stanza = wrap_file_key_with_ephemeral(&recipient, &F, &sk(4)).unwrap();
+        let stanza = if tagged {
+            crate::recipient::tag::wrap_with_ephemeral(&recipient, &F, &sk(4)).unwrap()
+        } else {
+            wrap_file_key_with_ephemeral(&recipient, &F, &sk(4)).unwrap()
+        };
         let session = sk(5);
         let request = SignedUnwrapRequest::sign(
             UnwrapRequest {
@@ -1175,107 +1182,113 @@ mod tests {
     }
     #[test]
     fn rejects_wrong_expired_replay_and_tamper() {
-        let (r, p, s, ps) = fixture();
-        let mut g = ReplayGuard::default();
-        let mut wrong = p.clone();
-        wrong.desktop_id[0] ^= 1;
-        assert_eq!(
-            g.verify_request(r.clone(), &wrong, 1_000_000).unwrap_err(),
-            Error::WrongDesktop
-        );
-        wrong = p.clone();
-        wrong.identity_id[0] ^= 1;
-        assert_eq!(
-            g.verify_request(r.clone(), &wrong, 1_000_000).unwrap_err(),
-            Error::WrongIdentity
-        );
-        assert_eq!(
-            g.verify_request(r.clone(), &p, 1_000_301).unwrap_err(),
-            Error::Expired
-        );
-        let verified = g.verify_request(r.clone(), &p, 1_000_000).unwrap();
-        assert_eq!(
-            g.verify_request(r, &p, 1_000_000).unwrap_err(),
-            Error::Replay
-        );
-        let mut response =
-            seal_response_with_ephemeral(&verified, &F, &ps, &sk(6), [0x66; 32]).unwrap();
-        assert_eq!(
-            open_response(
-                &response,
-                &verified,
-                &p,
-                &s,
-                &mut ReplayGuard::default(),
-                1_000_301,
-            )
-            .unwrap_err(),
-            Error::Expired
-        );
-        response.payload.request_digest[0] ^= 1;
-        assert_eq!(
-            open_response(
-                &response,
-                &verified,
-                &p,
-                &s,
-                &mut ReplayGuard::default(),
-                1_000_000,
-            )
-            .unwrap_err(),
-            Error::BindingMismatch
-        );
+        for tagged in [false, true] {
+            let (r, p, s, ps) = fixture_for(tagged);
+            let mut g = ReplayGuard::default();
+            let mut wrong = p.clone();
+            wrong.desktop_id[0] ^= 1;
+            assert_eq!(
+                g.verify_request(r.clone(), &wrong, 1_000_000).unwrap_err(),
+                Error::WrongDesktop
+            );
+            wrong = p.clone();
+            wrong.identity_id[0] ^= 1;
+            assert_eq!(
+                g.verify_request(r.clone(), &wrong, 1_000_000).unwrap_err(),
+                Error::WrongIdentity
+            );
+            assert_eq!(
+                g.verify_request(r.clone(), &p, 1_000_301).unwrap_err(),
+                Error::Expired
+            );
+            let verified = g.verify_request(r.clone(), &p, 1_000_000).unwrap();
+            assert_eq!(
+                g.verify_request(r, &p, 1_000_000).unwrap_err(),
+                Error::Replay
+            );
+            let mut response =
+                seal_response_with_ephemeral(&verified, &F, &ps, &sk(6), [0x66; 32]).unwrap();
+            assert_eq!(
+                open_response(
+                    &response,
+                    &verified,
+                    &p,
+                    &s,
+                    &mut ReplayGuard::default(),
+                    1_000_301,
+                )
+                .unwrap_err(),
+                Error::Expired
+            );
+            response.payload.request_digest[0] ^= 1;
+            assert_eq!(
+                open_response(
+                    &response,
+                    &verified,
+                    &p,
+                    &s,
+                    &mut ReplayGuard::default(),
+                    1_000_000,
+                )
+                .unwrap_err(),
+                Error::BindingMismatch
+            );
+        }
     }
     #[test]
     fn replay_storage_failure_never_falls_back() {
-        let (request, pairing, desktop_session, phone_signing) = fixture();
-        assert_eq!(
-            verify_request_with_replay(
-                request.clone(),
-                &pairing,
-                1_000_000,
-                &mut FailingReplayStore,
-            )
-            .unwrap_err(),
-            Error::ReplayState
-        );
+        for tagged in [false, true] {
+            let (request, pairing, desktop_session, phone_signing) = fixture_for(tagged);
+            assert_eq!(
+                verify_request_with_replay(
+                    request.clone(),
+                    &pairing,
+                    1_000_000,
+                    &mut FailingReplayStore,
+                )
+                .unwrap_err(),
+                Error::ReplayState
+            );
 
-        let verified = ReplayGuard::default()
-            .verify_request(request, &pairing, 1_000_000)
-            .unwrap();
-        let response =
-            seal_response_with_ephemeral(&verified, &F, &phone_signing, &sk(6), [0x66; 32])
+            let verified = ReplayGuard::default()
+                .verify_request(request, &pairing, 1_000_000)
                 .unwrap();
-        assert_eq!(
-            open_response(
-                &response,
-                &verified,
-                &pairing,
-                &desktop_session,
-                &mut FailingReplayStore,
-                1_000_000,
-            )
-            .unwrap_err(),
-            Error::ReplayState
-        );
+            let response =
+                seal_response_with_ephemeral(&verified, &F, &phone_signing, &sk(6), [0x66; 32])
+                    .unwrap();
+            assert_eq!(
+                open_response(
+                    &response,
+                    &verified,
+                    &pairing,
+                    &desktop_session,
+                    &mut FailingReplayStore,
+                    1_000_000,
+                )
+                .unwrap_err(),
+                Error::ReplayState
+            );
+        }
     }
     #[test]
     fn rejects_noncanonical_and_bad_signature() {
-        let (mut r, p, _, _) = fixture();
-        r.signature[0] ^= 1;
-        assert_eq!(
-            ReplayGuard::default()
-                .verify_request(r, &p, 1_000_000)
-                .unwrap_err(),
-            Error::InvalidSignature
-        );
-        let (r, _, _, _) = fixture();
-        let mut b = r.encode();
-        b.push(0);
-        assert_eq!(
-            SignedUnwrapRequest::decode(&b).unwrap_err(),
-            Error::Malformed
-        );
+        for tagged in [false, true] {
+            let (mut r, p, _, _) = fixture_for(tagged);
+            r.signature[0] ^= 1;
+            assert_eq!(
+                ReplayGuard::default()
+                    .verify_request(r, &p, 1_000_000)
+                    .unwrap_err(),
+                Error::InvalidSignature
+            );
+            let (r, _, _, _) = fixture_for(tagged);
+            let mut b = r.encode();
+            b.push(0);
+            assert_eq!(
+                SignedUnwrapRequest::decode(&b).unwrap_err(),
+                Error::Malformed
+            );
+        }
     }
     #[test]
     fn pairing_transcript() {

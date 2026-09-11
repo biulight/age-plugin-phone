@@ -1,0 +1,21 @@
+{
+  "desktop_id_hex": "11111111111111111111111111111111",
+  "desktop_session_scalar": 5,
+  "desktop_signing_scalar": 1,
+  "expires_at_unix": 1000300,
+  "file_key_hex": "55555555555555555555555555555555",
+  "identity_id_hex": "22222222222222222222222222222222",
+  "identity_scalar": 3,
+  "now_unix": 1000000,
+  "phone_session_scalar": 6,
+  "phone_signing_scalar": 2,
+  "request_digest_base64": "u31Fkl1iH3Vat9TLhLgeFi1ZZcgVCysQ2uy4qCEb1fY",
+  "request_id_hex": "33333333333333333333333333333333",
+  "request_nonce_hex": "4444444444444444444444444444444444444444444444444444444444444444",
+  "response_nonce_hex": "6666666666666666666666666666666666666666666666666666666666666666",
+  "schema": "age-plugin-phone/p256tag-envelope-test-vector/v2",
+  "signed_request_base64": "glkBGYsCAwFQMzMzMzMzMzMzMzMzMzMzM1AiIiIiIiIiIiIiIiIiIiIiUBERERERERERERERERERERFYIQJRWQt6UVFA0teEyFYIZo/f74yC/R9b5SQhVUoNw9Az7YNncDI1NnRhZ4JmT2s4OHJ3eFdCT0pUU2pVeTBJKzdvQzNlWlo3bUs5QURIK0xiZUZXVzcxQ1RBa1JyQXdoUzRQRlhXa3hqUE1jWjMrNWYyb1l0ZGs3OGxzUHpEdUFGWEVMQ1B4aE8yTVlYIPIqjlzxX6ZnQyRPUd8r5AjoMPt2GPDKWdzZebZSIdOGWCBERERERERERERERERERERERERERERERERERERERERERBoAD0Nsa3Rlc3QgY2FsbGVyWECmuw0XAh1DPf0Z+syo1IZUwONWWlzTzaM7jPr6DHV5tVw4nQWATaVHK8KWeUXeiovJ55EmrGl5xr9PpdmOdjQ9",
+  "signed_response_base64": "gljAigIEAVAzMzMzMzMzMzMzMzMzMzMzWCC7fUWSXWIfdVq31MuEuB4WLVllyBULKxDa7LioIRvV9lAiIiIiIiIiIiIiIiIiIiIiUBERERERERERERERERERERFYIQKwGhcqdqRgLJLTJCy4l93jAkx0DeuyFbTGsKrpPCKRqVggZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZYIGfPCW8pK1CCBvBbc1d08R/yFm1byJBTyfjr+lVKpvnBWECqv7ehFzN4CHJT6FVsfe/Liyq5908Eb/AD7e/WcvlNsgIV3GZ3dG2vjEY/Ys2IR8fzQPodFZCLCOu7tmTa1SOf",
+  "stanza_ephemeral_scalar": 4,
+  "warning": "All values are public deterministic test data and must never be used for real keys or requests."
+}

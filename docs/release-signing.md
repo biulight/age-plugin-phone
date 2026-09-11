@@ -1,4 +1,4 @@
-# Alpha release signing setup
+# Prerelease signing setup
 
 This runbook configures the credentials consumed by
 `.github/workflows/alpha-release.yml`. Distribution signing is separate from the protocol key
@@ -213,7 +213,7 @@ reported as passed by the minimum regression.
 
 1. Commit the Alpha candidate. Its full 40-character commit SHA, all three application manifests,
    and `docs/releases/vVERSION.md` must agree on one `X.Y.Z-alpha.N` version.
-2. From that exact commit, manually dispatch `Publish test-signed Alpha prerelease`, supplying the
+2. From that exact commit, manually dispatch `Publish test-signed prerelease`, supplying the
    same full SHA in `expected_commit`. The preflight rejects a branch snapshot that is not that SHA,
    inconsistent manifests, a missing release note, or an existing tag or GitHub release.
 3. Approve the `alpha-release` signing jobs only after reviewing the candidate and workflow.
@@ -240,3 +240,16 @@ Each job records the immutable commit, workflow run and attempt, signing certifi
 artifact hashes, and verification output. Release evidence must not contain private keys, passwords,
 keystore contents, key aliases, raw protocol messages, QR contents, stanza bodies, file keys,
 plaintext, device serials, or private state paths.
+
+## Native tag candidate gate
+
+The optional tag implementation is tracked in [candidate evidence](tagged-recipient-evidence.md)
+and [ADR 0026](adr/0026-native-tagged-recipients.md). Desktop, Android and iOS must support
+p256tag in the same compatible release batch. Preserve protocol v2 pairing and replay state;
+phone remains the default. Age v1.3.2/rage 0.12.1 software interoperability does not satisfy
+StrongBox/Secure Enclave physical authorization, cancellation, timeout, lifecycle, wrong-device,
+upgrade, independent recovery or mixed phone/SE prompt tests. Run those on exact candidate
+artifacts and record hashes before advertising tag support. Unrun hardware rows are unverified.
+Shine acceptance is separate and does not authorize a plugin-specific application interface.
+Signing, uploading and publication require their own authorization; this implementation does not
+perform them or expand production support.
