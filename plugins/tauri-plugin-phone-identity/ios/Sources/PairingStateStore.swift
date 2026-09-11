@@ -192,7 +192,11 @@ final class PairingStateStore {
 
     private func decode(_ data: Data) throws -> PairingState {
         guard data.count <= 1_048_576 else { throw PairingStoreError.capacity }
-        let n = try StrictCBOR.decode(data, maximumBytes: 1_048_576).exactArray(14)
+        let n = try StrictCBOR.decode(
+            data,
+            maximumBytes: 1_048_576,
+            maximumArrayElements: 16_384
+        ).exactArray(14)
         guard try n[0].exactUnsigned() == 2 else { throw PairingStoreError.malformed }
         let record = PairingRecord(
             desktopId: try n[1].exactBytes(16), identityId: try n[2].exactBytes(16),

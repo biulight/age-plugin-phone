@@ -21,6 +21,8 @@ final class PhoneIdentityPlugin: Plugin {
     private var wifiListener: ForegroundStreamListener?
     private var wifiDiscovery: WifiDiscoveryResponder?
     private var wifiSession: PhoneStreamSession?
+    private var wifiPairingToken: UUID?
+    private var wifiPairingInvoke: Invoke?
     private var activeAuthenticationContext: LAContext?
     private var doctorProbeRepresentation: Data?
 
@@ -58,7 +60,9 @@ final class PhoneIdentityPlugin: Plugin {
         }
         context?.invalidate()
         stateQueue.sync { wifiForeground = false }
-        stopWifiResources(nextState: wifiEnabled ? "waiting_for_prerequisites" : "disabled", error: nil)
+        if !cancelWifiPairingForLifecycle() {
+            stopWifiResources(nextState: wifiEnabled ? "waiting_for_prerequisites" : "disabled", error: nil)
+        }
         DispatchQueue.main.async { [weak self] in self?.manager.viewController?.presentedViewController?.dismiss(animated: false) }
     }
 
@@ -128,7 +132,9 @@ final class PhoneIdentityPlugin: Plugin {
             invoke.resolve(LifecycleReport(completed: false, state: "ready", errorCategory: "operation_active"))
             return
         }
-        guard case .success = identity.status() else {
+        switch identity.status() {
+        case .success, .failure(.deletionPending): break
+        case .failure:
             endOperationAndResume()
             invoke.resolve(LifecycleReport(completed: false, state: "unavailable", errorCategory: "identity_unavailable"))
             return
@@ -223,31 +229,50 @@ final class PhoneIdentityPlugin: Plugin {
         }
     }
     @objc func pairPhoneWifi(_ invoke: Invoke) {
-        guard beginOperation() else {
+        guard let token = beginWifiPairing(invoke) else {
             invoke.resolve(PhonePairingReport(paired: false, desktopLabel: nil, transcriptFingerprint: nil, errorCategory: "operation_active")); return
         }
-        stopWifiResources(nextState: wifiEnabled ? "suspended" : "disabled", error: nil)
-        guard case .success(let metadata) = identity.status() else { finishPairing(invoke, error: "identity_unavailable"); return }
+        guard case .success(let metadata) = identity.status() else {
+            finishWifiPairing(token, error: "identity_unavailable")
+            return
+        }
         do {
             let listener = try ForegroundStreamListener(purpose: .pairing) { [weak self] accepted in
                 guard let self else { return }
+                guard self.wifiPairingIsActive(token) else {
+                    if case .success(let session) = accepted { session.close() }
+                    return
+                }
                 self.stopDiscoveryOnly()
                 switch accepted {
-                case .failure(let error): self.finishPairing(invoke, error: self.errorCategory(error))
+                case .failure(let error): self.finishWifiPairing(token, error: self.errorCategory(error))
                 case .success(let session):
-                    self.stateQueue.sync { self.wifiSession = session }
+                    let installed = self.stateQueue.sync { () -> Bool in
+                        guard self.wifiPairingToken == token else { return false }
+                        self.wifiSession = session
+                        return true
+                    }
+                    guard installed else { session.close(); return }
+                    session.watchPeerDisconnect { [weak self] in
+                        self?.finishWifiPairing(token, error: "wifi_transport_failure")
+                    }
                     session.start { result in
                         switch result {
-                        case .failure(let error): self.finishPairing(invoke, error: self.errorCategory(error))
-                        case .success(let message): self.handleWifiPairingMessage(message, metadata: metadata, session: session, invoke: invoke)
+                        case .failure(let error): self.finishWifiPairing(token, error: self.errorCategory(error))
+                        case .success(let message): self.handleWifiPairingMessage(message, metadata: metadata, session: session, token: token)
                         }
                     }
                 }
             }
             let discovery = try WifiDiscoveryResponder(purpose: .pairing) { query in WifiDiscoveryCodec.responsePrefix(query) }
-            stateQueue.sync { wifiListener = listener; wifiDiscovery = discovery; wifiState = "handling_request"; wifiError = nil }
+            let installed = stateQueue.sync { () -> Bool in
+                guard wifiPairingToken == token else { return false }
+                wifiListener = listener; wifiDiscovery = discovery; wifiState = "handling_request"; wifiError = nil
+                return true
+            }
+            guard installed else { listener.cancel(); discovery.cancel(); return }
             listener.start(); discovery.start()
-        } catch { finishPairing(invoke, error: errorCategory(error)) }
+        } catch { finishWifiPairing(token, error: errorCategory(error)) }
     }
 
     @objc func unwrapPhone(_ invoke: Invoke) {
@@ -455,6 +480,20 @@ final class PhoneIdentityPlugin: Plugin {
         return began
     }
 
+    private func beginWifiPairing(_ invoke: Invoke) -> UUID? {
+        let token = UUID()
+        let began = stateQueue.sync { () -> Bool in
+            guard !operationActive else { return false }
+            operationActive = true
+            wifiPairingToken = token
+            wifiPairingInvoke = invoke
+            return true
+        }
+        guard began else { return nil }
+        stopWifiResources(nextState: wifiEnabled ? "suspended" : "disabled", error: nil)
+        return token
+    }
+
     private func endOperation() { stateQueue.sync { operationActive = false } }
 
     private func endOperationAndResume() {
@@ -462,32 +501,84 @@ final class PhoneIdentityPlugin: Plugin {
         evaluateWifiAutoListener()
     }
 
-    private func handleWifiPairingMessage(_ raw: Data, metadata: IdentityPublicMetadata, session: PhoneStreamSession, invoke: Invoke) {
+    private func handleWifiPairingMessage(
+        _ raw: Data,
+        metadata: IdentityPublicMetadata,
+        session: PhoneStreamSession,
+        token: UUID
+    ) {
         cryptoQueue.async {
             var message = raw; defer { message.resetBytes(in: 0..<message.count) }
             do {
+                guard self.wifiPairingIsActive(token) else { session.close(); return }
                 let offer = try OfflineEnvelopeCrypto.verifyPairingOffer(message)
                 let response = try OfflineEnvelopeCrypto.createPairingResponse(offer: offer, identity: metadata, signingKey: self.identity.signingKey())
                 let fingerprint = OfflineEnvelopeCrypto.pairingFingerprint(offer, response).hex
                 session.sendResponse(response.encoded) { result in
                     switch result {
-                    case .failure(let error): self.finishPairing(invoke, error: self.errorCategory(error))
+                    case .failure(let error): self.finishWifiPairing(token, error: self.errorCategory(error))
                     case .success:
+                        guard self.wifiPairingIsActive(token) else { return }
                         self.confirm(
                             title: "Compare pairing fingerprint",
                             message: "Untrusted label: \(offer.desktopLabel)\n\n\(fingerprint)\n\nSave only if the desktop shows the same full fingerprint.",
                             destructive: "Fingerprint matches · Save"
                         ) { accepted in
-                            guard accepted else { self.finishPairing(invoke, label: offer.desktopLabel, fingerprint: fingerprint, error: "user_cancelled"); return }
+                            guard accepted else {
+                                self.finishWifiPairing(token, label: offer.desktopLabel, fingerprint: fingerprint, error: "user_cancelled")
+                                return
+                            }
+                            guard self.wifiPairingIsActive(token) else { return }
                             do {
                                 _ = try self.pairings.create(offer: offer, response: response, nowUnix: UInt64(Date().timeIntervalSince1970))
-                                self.finishPairing(invoke, label: offer.desktopLabel, fingerprint: fingerprint, error: nil)
-                            } catch { self.finishPairing(invoke, error: self.errorCategory(error)) }
+                                self.finishWifiPairing(token, label: offer.desktopLabel, fingerprint: fingerprint, error: nil)
+                            } catch { self.finishWifiPairing(token, error: self.errorCategory(error)) }
                         }
                     }
                 }
-            } catch { self.finishPairing(invoke, error: self.errorCategory(error)) }
+            } catch { self.finishWifiPairing(token, error: self.errorCategory(error)) }
         }
+    }
+
+    private func wifiPairingIsActive(_ token: UUID) -> Bool {
+        stateQueue.sync { wifiPairingToken == token }
+    }
+
+    private func finishWifiPairing(
+        _ token: UUID,
+        label: String? = nil,
+        fingerprint: String? = nil,
+        error: String?
+    ) {
+        let invoke = stateQueue.sync { () -> Invoke? in
+            guard wifiPairingToken == token else { return nil }
+            wifiPairingToken = nil
+            let value = wifiPairingInvoke
+            wifiPairingInvoke = nil
+            return value
+        }
+        guard let invoke else { return }
+        finishPairing(invoke, label: label, fingerprint: fingerprint, error: error)
+    }
+
+    private func cancelWifiPairingForLifecycle() -> Bool {
+        let invoke = stateQueue.sync { () -> Invoke? in
+            guard wifiPairingToken != nil else { return nil }
+            wifiPairingToken = nil
+            let value = wifiPairingInvoke
+            wifiPairingInvoke = nil
+            return value
+        }
+        guard let invoke else { return false }
+        stopWifiResources(nextState: wifiEnabled ? "waiting_for_prerequisites" : "disabled", error: nil)
+        endOperation()
+        invoke.resolve(PhonePairingReport(
+            paired: false,
+            desktopLabel: nil,
+            transcriptFingerprint: nil,
+            errorCategory: "lifecycle_cancelled"
+        ))
+        return true
     }
 
     private func evaluateWifiAutoListener() {
@@ -526,6 +617,10 @@ final class PhoneIdentityPlugin: Plugin {
             stopWifiResources(nextState: "waiting_for_prerequisites", error: "wifi_transport_failure"); scheduleWifiRetry()
         case .success(let session):
             stateQueue.sync { wifiListener = nil; wifiSession = session; wifiState = "handling_request" }
+            session.watchPeerDisconnect { [weak self, weak session] in
+                guard let self, let session else { return }
+                self.automaticWifiDisconnected(session)
+            }
             session.start { [weak self] request in
                 guard let self else { return }
                 switch request {
@@ -537,14 +632,47 @@ final class PhoneIdentityPlugin: Plugin {
         }
     }
 
+    private func automaticWifiDisconnected(_ session: PhoneStreamSession) {
+        let result = stateQueue.sync { () -> (Bool, LAContext?) in
+            guard wifiSession === session else { return (false, nil) }
+            wifiSession = nil
+            wifiState = "waiting_for_prerequisites"
+            wifiError = "wifi_transport_failure"
+            let value = activeAuthenticationContext
+            activeAuthenticationContext = nil
+            return (true, value)
+        }
+        guard result.0 else { return }
+        result.1?.invalidate()
+        session.close()
+        scheduleWifiRetry()
+    }
+
     // Request verification and durable replay consumption precede this method on every path.
     // Transport receive timers stop protecting us once the request has been delivered.
-    private func openAuthenticatedFileKey(_ request: VerifiedUnwrapRequest) throws -> Data {
+    private func openAuthenticatedFileKey(
+        _ request: VerifiedUnwrapRequest,
+        ownerSession: PhoneStreamSession? = nil
+    ) throws -> Data {
         guard UInt64(Date().timeIntervalSince1970) <= request.expiresAtUnix else {
             throw NativeQRFlowError.timeout
         }
+        guard stateQueue.sync(execute: {
+            guard let ownerSession else { return true }
+            return wifiSession === ownerSession
+        }) else {
+            throw NativeQRFlowError.lifecycle
+        }
         let (key, context) = try identity.freshIdentityKey(reason: "Approve one age unwrap: \(request.digest.hex.prefix(16))")
-        stateQueue.sync { activeAuthenticationContext = context }
+        let installed = stateQueue.sync { () -> Bool in
+            if let ownerSession, wifiSession !== ownerSession { return false }
+            activeAuthenticationContext = context
+            return true
+        }
+        guard installed else {
+            context.invalidate()
+            throw NativeQRFlowError.lifecycle
+        }
         let remaining = Double(request.expiresAtUnix) + 1 - Date().timeIntervalSince1970
         guard remaining > 0 else {
             context.invalidate()
@@ -579,9 +707,17 @@ final class PhoneIdentityPlugin: Plugin {
             var message = raw; defer { message.resetBytes(in: 0..<message.count) }
             do {
                 let request = try self.pairings.verifyAndConsume(message, nowUnix: UInt64(Date().timeIntervalSince1970))
-                var fileKey = try self.openAuthenticatedFileKey(request)
+                var fileKey = try self.openAuthenticatedFileKey(request, ownerSession: session)
                 defer { fileKey.resetBytes(in: 0..<fileKey.count) }
-                let response = try OfflineEnvelopeCrypto.sealResponse(request: request, fileKey: fileKey, signingKey: self.identity.signingKey())
+                let signingKey = try self.identity.signingKey()
+                let response = try self.stateQueue.sync { () -> Data in
+                    guard self.wifiSession === session else { throw NativeQRFlowError.lifecycle }
+                    return try OfflineEnvelopeCrypto.sealResponse(
+                        request: request,
+                        fileKey: fileKey,
+                        signingKey: signingKey
+                    )
+                }
                 session.sendResponse(response) { result in
                     self.stopWifiResources(nextState: "waiting_for_prerequisites", error: result.failureCategory)
                     self.scheduleWifiRetry()
@@ -602,11 +738,14 @@ final class PhoneIdentityPlugin: Plugin {
     }
 
     private func stopWifiResources(nextState: String, error: String?) {
-        let resources = stateQueue.sync { () -> (ForegroundStreamListener?, WifiDiscoveryResponder?, PhoneStreamSession?) in
+        let resources = stateQueue.sync { () -> (ForegroundStreamListener?, WifiDiscoveryResponder?, PhoneStreamSession?, LAContext?) in
             let values = (wifiListener, wifiDiscovery, wifiSession)
+            let context = wifiSession == nil ? nil : activeAuthenticationContext
             wifiListener = nil; wifiDiscovery = nil; wifiSession = nil; wifiState = nextState; wifiError = error
-            return values
+            if context != nil { activeAuthenticationContext = nil }
+            return (values.0, values.1, values.2, context)
         }
+        resources.3?.invalidate()
         resources.0?.cancel(); resources.1?.cancel(); resources.2?.close()
     }
 
