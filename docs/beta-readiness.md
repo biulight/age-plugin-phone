@@ -75,10 +75,14 @@ macOS, iOS and native-tag additions; it is not a review of the complete beta sou
   silently waive it because this version is beta.
 - [x] Run local version, release-fixture, workflow, packaging, frontend and Rust
   checks; results are recorded below.
-- [ ] Complete Linux/Windows/macOS, mobile and interoperability CI against the final
-  candidate. CI skips are not hardware passes.
-- [ ] Run the four-crate registry preflight against the final main commit using
+- [x] Complete Linux/Windows/macOS, mobile and interoperability CI against the final
+  candidate. CI skips are not hardware passes. Main commit `a41ba2e` passed
+  [CI run 34557406797](https://github.com/biulight/age-plugin-phone/actions/runs/34557406797).
+- [x] Run the four-crate registry preflight against the final main commit using
   `crates-release.yml` in `preflight` mode; record the exact successful CI run.
+  Commit `a41ba2e` passed
+  [preflight run 34557911417](https://github.com/biulight/age-plugin-phone/actions/runs/34557911417)
+  without publishing.
 - [ ] Build and verify final signed beta artifacts; record commit, workflow attempt,
   package hashes and signer identities. Run a scoped exact-package smoke for
   setup/full fingerprint comparison, fresh repeated unwrap, cancellation/timeout,
@@ -92,6 +96,34 @@ macOS, iOS and native-tag additions; it is not a review of the complete beta sou
   exists.
 - [ ] Obtain publication authorization for the concrete artifacts and release
   notes, then publish and verify downloaded assets and registry installation.
+
+## Exact-candidate acceptance — 2026-09-11
+
+The signed Android ARM64 candidate from commit `a41ba2e` was produced by
+[`acceptance_only` run 34558637700](https://github.com/biulight/age-plugin-phone/actions/runs/34558637700).
+Its SHA-256 is
+`04b18d3182a3b4137f0be91fa98cd52a1c2bfb6c63d655f6d5ee003df4a71f57`;
+the device reported version `0.1.0-beta.1`, version code `1000`, ARM64 and APK
+Signature Scheme v2. On the recorded Android device, two independent Developer
+USB tag unwraps passed with fresh native verification. Native-prompt cancellation
+failed without output, and the next freshly verified request succeeded.
+
+The development-device iOS candidate has SHA-256
+`c66a95580a20ddddcd1a003f8c47810a0ccf14b1e36629577ad386a5b5e2e6f3`.
+The recorded iPhone accepted the in-place installation and reported short version
+`0.1.0`, bundle version `0.1.0.6`. Three independent foreground-Wi-Fi tag unwraps
+passed, native-prompt cancellation failed without output, and the next freshly
+verified request succeeded. An earlier unobserved request failure is retained and
+is not counted as a pass. Host `codesign --verify --deep --strict` returned
+`CSSMERR_TP_NOT_TRUSTED`; device installation succeeded, but host trust verification
+is not classified as passed.
+
+This closes the candidate's basic signed-package install, repeated unwrap,
+cancellation and recovery smoke. The broader signed-package gate remains open for
+setup and full fingerprint comparison, timeout, restart/replay rejection, retained
+old-format upgrade and independent recovery on every advertised combination. The
+independent security review, mandatory physical fault-injection rows, technical-tester
+installation review and explicit publication authorization also remain open.
 
 ## Local preparation checks — 2026-09-11
 

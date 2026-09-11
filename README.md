@@ -10,7 +10,9 @@ Shine environments, or define a Shine-specific ciphertext format.
 > [!WARNING]
 > Beta 1 is in closeout, not published. The source candidate has recorded hardware-backed tag
 > unwrap, cancellation, timeout, restart/replay and independent-recovery evidence, including
-> Shine integration. Final beta-package checks and mandatory physical gaps remain open.
+> Shine integration. The final signed Android and development-device iOS candidates have passed
+> installation, repeated fresh unwrap, cancellation and post-cancellation recovery checks on the
+> recorded devices. The remaining exact-package checks and mandatory physical gaps remain open.
 > Protocol v2 is unfrozen. Do not use this experimental software to protect real secrets.
 
 See the [Beta 1 closeout checklist](docs/beta-readiness.md) and
