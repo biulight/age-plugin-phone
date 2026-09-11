@@ -1,34 +1,34 @@
 # age-plugin-phone
 
-`age-plugin-phone` is an experimental, standalone [age] identity plugin that will keep long-term
-decryption keys on a phone and authorize individual file-key unwrap operations over QR, BLE, USB,
-or an experimental local Wi-Fi channel.
+`age-plugin-phone` is an experimental, standalone [age] identity plugin that keeps long-term
+decryption keys on a phone and authorizes individual file-key unwrap operations over QR, Developer
+USB, or an experimental local Wi-Fi channel. BLE is reserved but not implemented.
 
 It is intended to work with any compatible age client. It does not depend on Shine, understand
 Shine environments, or define a Shine-specific ciphertext format.
 
 > [!WARNING]
-> Beta 2 is an unpublished maintenance candidate fixing multi-identity continuation in the desktop
-> `identity-v1` adapter. Beta 1 is published for limited technical testing on the recorded scope.
+> Beta 2 is a published limited technical beta. It fixes multi-identity continuation in the desktop
+> `identity-v1` adapter while retaining Beta 1's recorded test scope and known limitations.
 > Protocol v2 is unfrozen. Do not use this experimental software to protect real secrets.
 
 See the [Beta release checklist](docs/beta-readiness.md) and
-[Beta 2 candidate notes](docs/releases/v0.1.0-beta.2.md). The target remains a limited technical-user
-beta on recorded hardware, with Windows and macOS source installation, an optional test-signed
-Windows ZIP and a signed Android APK. iOS remains an existing development-device cohort;
-external iOS distribution is outside this candidate's scope. Unverified device combinations and
+[Beta 2 release](https://github.com/biulight/age-plugin-phone/releases/tag/v0.1.0-beta.2). Beta 2 is
+limited to technical users and recorded hardware, with Windows and macOS source installation, a
+test-signed Windows ZIP, and a signed Android APK. iOS remains an existing development-device cohort;
+external iOS distribution is outside the release scope. Unverified device combinations and
 deferred rows are not passes.
 
 Windows source installation requires the MSVC Rust toolchain and Visual Studio C++ Build Tools /
-Windows SDK; macOS requires Xcode Command Line Tools. After Beta 2 is published, either desktop can use
+Windows SDK; macOS requires Xcode Command Line Tools. Either desktop can install Beta 2 with
 `cargo install age-plugin-phone --version 0.1.0-beta.2 --locked`. See the
 [build requirements](docs/crates-io-release.md). Windows still requires Windows 11 x64, TPM 2.0
 and Microsoft Platform Crypto Provider at runtime. Source installation does not require trusting
 the private Windows test-signing root.
 
 The published [alpha.5 snapshot](docs/releases/v0.1.0-alpha.5.md) predates explicit
-[tagged recipients](docs/tagged-recipient-quickstart.md); the current candidate adds them while
-keeping `phone` as the default. [Tag evidence](docs/tagged-recipient-evidence.md) records the
+[tagged recipients](docs/tagged-recipient-quickstart.md); Beta 1 introduced them and Beta 2 retains
+them while keeping `phone` as the default. [Tag evidence](docs/tagged-recipient-evidence.md) records the
 exact software, signed artifacts and physical observations. The historical
 [alpha.4 acceptance record](docs/windows-acceptance-2026-09-07.md) and
 [owner-only preview](docs/owner-only-preview.md) remain historical scope references.
@@ -138,7 +138,7 @@ Team IDs, certificates, provisioning profiles, archives, and TestFlight/App Stor
 must not be committed. The simulator cannot validate Secure Enclave custody or fresh Face ID/Touch
 ID authorization.
 
-On Windows, `status` performs a read-only Alpha capability probe. It reports the actual Windows
+On Windows, `status` performs a read-only capability probe. It reports the actual Windows
 version, client/server edition, x64 architecture, TPM 2.0 availability, and Microsoft Platform
 Crypto Provider availability without creating or opening persisted keys.
 
@@ -147,7 +147,7 @@ normal/orphaned cleanup. Hardware, transport and lifecycle acceptance remains tr
 [macOS plan](docs/macos-support-plan.md); this is not a complete platform support claim.
 See the [macOS recovery guide](docs/macos-recovery.md) before changing or deleting pairing state.
 
-On the supported Windows Alpha path, the normal identity entry point is
+On the supported Windows Beta path, the normal identity entry point is
 `age-plugin-phone setup --label LABEL`. It preflights Windows and the selected transport before
 creating state, allocates create-only TPM metadata, replay, locator, and public-stub paths under
 `%LOCALAPPDATA%\age-plugin-phone`, and retains complete transcript-fingerprint comparison.
@@ -162,7 +162,7 @@ public `identity_path` and `recipient`. Failed setup emits no success object, an
 has no JSON mode. This interface exposes no TPM identifiers, replay paths, locators, device serials,
 or protocol payloads.
 
-The Android Alpha UI shows the StrongBox identity status and public recipient, offers explicit
+The Android Beta UI shows the StrongBox identity status and public recipient, offers explicit
 Developer USB or QR pairing, a QR approval fallback, and an owner-only foreground Wi-Fi
 auto-listen toggle. It also lists paired desktops and provides native-confirmed revocation and identity
 deletion. A normal Developer USB unwrap launches the app automatically and enters the same native
@@ -220,7 +220,7 @@ stub-based command whenever the public stub still exists.
 
 The unified `auto` transport policy performs a bounded Wi-Fi discovery before pairing or unwrap.
 Exactly one matching foreground listener selects Wi-Fi; with no listener, it defaults to the
-Developer USB ADB Alpha on Windows and QR on other desktop platforms. It resolves one route before
+Developer USB ADB path on Windows and QR on other desktop platforms. It resolves one route before
 creating the protocol session and never races, switches, or silently retries after sending begins.
 ADB pairing is desktop-first: start `setup --transport adb`, then, while that command is waiting,
 choose **Pair via Developer USB** on the phone. The phone makes one immediate connection attempt, so
@@ -260,13 +260,13 @@ and must not be installed over it.
 > cable are not trusted by the protocol and do not replace the fresh phone biometric operation.
 
 Doctor diagnostics are visible only in debug builds and return non-sensitive reports. Release
-builds keep the product identity plugin enabled but reject Doctor commands. Signed Alpha artifact
-creation is defined in [the Milestone 6 Alpha release guide](docs/milestone-6-alpha.md), with
+builds keep the product identity plugin enabled but reject Doctor commands. Signed prerelease artifact
+creation follows [the Milestone 6 Alpha release guide](docs/milestone-6-alpha.md), with
 credential provisioning and RC0 dispatch in [the signing runbook](docs/release-signing.md). The
 workflow intentionally fails when signing configuration is absent or does not match the registered
 certificate identity.
 
-For the proposed beta's Windows source install, pairing, reference-age round trip,
+For Beta 2's Windows source install, pairing, reference-age round trip,
 recovery and tagged-recipient checks, use the
 [Windows Beta quick start](docs/windows-beta-quickstart.md). The longer historical
 [Alpha guide](docs/windows-alpha-quickstart.md) retains detailed Shine, cleanup and
@@ -329,5 +329,5 @@ The independent [crates.io release pipeline](docs/crates-io-release.md) supports
 manual-dispatch preflight (default) and protected OIDC publishing of the four
 crates in dependency order. First crate creation needs a separately authorized
 manual bootstrap. See that guide for exact-SHA CI gates, Environment configuration
-and partial-release recovery. Alpha binary releases keep their existing workflow;
+and partial-release recovery. Signed binary prereleases keep their existing workflow;
 registry installation checks do not expand platform or real-device support.
