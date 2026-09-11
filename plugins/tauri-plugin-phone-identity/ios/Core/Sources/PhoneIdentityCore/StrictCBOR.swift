@@ -17,10 +17,20 @@ package enum StrictCBOR {
         return output
     }
 
-    package static func decode(_ data: Data, maximumBytes: Int = 65_536) throws -> CBORValue {
-        guard !data.isEmpty, data.count <= maximumBytes else { throw StrictCBORError.limit }
+    package static func decode(
+        _ data: Data,
+        maximumBytes: Int = 65_536,
+        maximumArrayElements: Int = 128
+    ) throws -> CBORValue {
+        guard !data.isEmpty, data.count <= maximumBytes,
+              maximumArrayElements > 0 else { throw StrictCBORError.limit }
         var offset = 0
-        let value = try parse(data, offset: &offset, depth: 0)
+        let value = try parse(
+            data,
+            offset: &offset,
+            depth: 0,
+            maximumArrayElements: maximumArrayElements
+        )
         guard offset == data.count, try encode(value) == data else {
             throw StrictCBORError.nonCanonical
         }
@@ -64,7 +74,12 @@ package enum StrictCBOR {
         withUnsafeBytes(of: &big) { output.append(contentsOf: $0) }
     }
 
-    private static func parse(_ data: Data, offset: inout Int, depth: Int) throws -> CBORValue {
+    private static func parse(
+        _ data: Data,
+        offset: inout Int,
+        depth: Int,
+        maximumArrayElements: Int
+    ) throws -> CBORValue {
         guard depth <= 16, offset < data.count else { throw StrictCBORError.limit }
         let initial = data[offset]; offset += 1
         let major = initial >> 5
@@ -88,10 +103,17 @@ package enum StrictCBOR {
             }
             return .text(value)
         case 4:
-            guard length <= 128 else { throw StrictCBORError.limit }
+            guard length <= UInt64(maximumArrayElements) else { throw StrictCBORError.limit }
             var values: [CBORValue] = []
             values.reserveCapacity(Int(length))
-            for _ in 0..<length { values.append(try parse(data, offset: &offset, depth: depth + 1)) }
+            for _ in 0..<length {
+                values.append(try parse(
+                    data,
+                    offset: &offset,
+                    depth: depth + 1,
+                    maximumArrayElements: maximumArrayElements
+                ))
+            }
             return .array(values)
         default: throw StrictCBORError.unsupported
         }

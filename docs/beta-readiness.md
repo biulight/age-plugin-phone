@@ -64,9 +64,12 @@ macOS, iOS and native-tag additions; it is not a review of the complete beta sou
   weakening commit, signature, checksum or existing-release checks.
 - [x] Prepare an exact [security review brief](beta-security-review-brief.md) for
   the post-2026-08-29 source delta; this is review input, not independent approval.
-- [ ] Review security-sensitive changes since the independent review, especially
+- [x] Review security-sensitive changes since the independent review, especially
   native HPKE/tag selection and the iOS authentication deadline. Record scope,
-  reviewer, exact source and findings; local tests are not independent review.
+  reviewer, exact source and findings; local tests are not independent review. The
+  [independent review](independent-security-review-2026-09-11.md) covered candidate
+  `a41ba2e`, found four iOS issues, and independently closed their source remediation
+  at `9db0eb1`; affected signed-package physical retests remain open below.
 - [ ] Close the mandatory tagged-recipient physical gaps: Android/iOS storage
   persistence failure and clock rollback; isolated iOS transport disconnect;
   retained old-ciphertext upgrade/re-encryption. Use disposable isolated state and

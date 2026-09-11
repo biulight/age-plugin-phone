@@ -150,6 +150,8 @@ jobs:
         run: bun run build
       - name: Swift protocol vectors and framing tests
         run: swift test --package-path plugins/tauri-plugin-phone-identity/ios/Core
+      - name: Swift stream disconnect lifecycle test
+        run: python3 scripts/test-ios-stream-lifecycle.py
       - name: Generate iOS project
         working-directory: apps/mobile
         run: bun run tauri ios init --ci --skip-targets-install

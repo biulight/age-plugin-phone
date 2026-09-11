@@ -64,6 +64,32 @@ final class PhoneIdentityTests: XCTestCase {
         XCTAssertThrowsError(try StrictCBOR.decode(Data([0x18, 0x01])))
     }
 
+    func testPersistentReplayArrayLimitIsExplicitAndRoundTripsAcceptedState() throws {
+        let protocolMaximum = CBORValue.array((0..<128).map { .unsigned(UInt64($0)) })
+        XCTAssertEqual(try StrictCBOR.decode(StrictCBOR.encode(protocolMaximum)), protocolMaximum)
+
+        for count in [129, 1_024] {
+            let entries = CBORValue.array((0..<count).map { .unsigned(UInt64($0)) })
+            let encoded = try StrictCBOR.encode(entries)
+            XCTAssertThrowsError(try StrictCBOR.decode(encoded, maximumBytes: 1_048_576))
+            XCTAssertEqual(
+                try StrictCBOR.decode(
+                    encoded,
+                    maximumBytes: 1_048_576,
+                    maximumArrayElements: 1_024
+                ),
+                entries
+            )
+        }
+
+        let overflow = CBORValue.array((0...1_024).map { .unsigned(UInt64($0)) })
+        XCTAssertThrowsError(try StrictCBOR.decode(
+            StrictCBOR.encode(overflow),
+            maximumBytes: 1_048_576,
+            maximumArrayElements: 1_024
+        ))
+    }
+
     func testQRFramesReassembleOutOfOrderAndRejectConflict() throws {
         let message = Data((0..<1_300).map { UInt8($0 % 251) })
         let frames = try QRFraming.fragment(message, chunkBytes: 400)

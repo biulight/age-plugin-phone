@@ -35,18 +35,53 @@ final class PhoneStreamSession {
     private let connection: NWConnection
     private let purpose: StreamPurpose
     private let queue = DispatchQueue(label: "io.github.biulight.phone-identity.stream")
+    private let stateLock = NSLock()
     private var sessionId: Data?
     private var terminal = false
     private var requestDelivered = false
+    private var remoteDisconnectedAfterDelivery = false
+    private var disconnectHandler: (() -> Void)?
 
     init(connection: NWConnection, purpose: StreamPurpose) { self.connection = connection; self.purpose = purpose }
 
     func start(completion: @escaping (Result<Data, Error>) -> Void) {
         func finish(_ result: Result<Data, Error>, close: Bool) {
-            guard !self.requestDelivered, !self.terminal else { return }
+            self.stateLock.lock()
+            guard !self.requestDelivered, !self.terminal else {
+                self.stateLock.unlock()
+                return
+            }
             self.requestDelivered = true
-            if close { self.close() }
+            if close {
+                self.terminal = true
+                self.sessionId = nil
+            }
+            self.stateLock.unlock()
+            if close { self.connection.cancel() }
             completion(result)
+        }
+        func disconnected(_ error: Error) {
+            var initialFailure = false
+            var handler: (() -> Void)?
+            self.stateLock.lock()
+            guard !self.terminal else {
+                self.stateLock.unlock()
+                return
+            }
+            self.terminal = true
+            self.sessionId = nil
+            if self.requestDelivered {
+                self.remoteDisconnectedAfterDelivery = true
+                handler = self.disconnectHandler
+                self.disconnectHandler = nil
+            } else {
+                self.requestDelivered = true
+                initialFailure = true
+            }
+            self.stateLock.unlock()
+            self.connection.cancel()
+            if initialFailure { completion(.failure(error)) }
+            handler?()
         }
         connection.stateUpdateHandler = { [weak self] state in
             guard let self else { return }
@@ -59,7 +94,13 @@ final class PhoneStreamSession {
                     case .success(let header):
                         do {
                             let (id, length) = try StreamTransportCodec.decodeHeader(header, purpose: self.purpose, direction: 1)
+                            self.stateLock.lock()
+                            guard !self.terminal else {
+                                self.stateLock.unlock()
+                                return
+                            }
                             self.sessionId = id
+                            self.stateLock.unlock()
                             self.receiveExactly(length) { body in
                                 switch body {
                                 case .success(let data): finish(.success(data), close: false)
@@ -72,9 +113,9 @@ final class PhoneStreamSession {
                     }
                 }
             case .failed(let error):
-                finish(.failure(error), close: true)
+                disconnected(error)
             case .cancelled:
-                finish(.failure(StreamTransportError.disconnected), close: false)
+                disconnected(StreamTransportError.disconnected)
             default: break
             }
         }
@@ -85,17 +126,43 @@ final class PhoneStreamSession {
         }
     }
 
+    func watchPeerDisconnect(_ handler: @escaping () -> Void) {
+        var callImmediately = false
+        stateLock.lock()
+        if remoteDisconnectedAfterDelivery {
+            callImmediately = true
+        } else if !terminal {
+            disconnectHandler = handler
+        }
+        stateLock.unlock()
+        if callImmediately { handler() }
+    }
+
     func sendResponse(_ body: Data, completion: @escaping (Result<Void, Error>) -> Void) {
         do {
-            guard let sessionId, !terminal else { throw StreamTransportError.disconnected }
-            let message = try StreamTransportCodec.encode(purpose: purpose, direction: 2, sessionId: sessionId, body: body)
+            stateLock.lock()
+            let activeSessionId = terminal ? nil : sessionId
+            stateLock.unlock()
+            guard let activeSessionId else { throw StreamTransportError.disconnected }
+            let message = try StreamTransportCodec.encode(purpose: purpose, direction: 2, sessionId: activeSessionId, body: body)
             connection.send(content: message, contentContext: .finalMessage, isComplete: true, completion: .contentProcessed { [weak self] error in
                 self?.close(); error == nil ? completion(.success(())) : completion(.failure(error!))
             })
         } catch { close(); completion(.failure(error)) }
     }
 
-    func close() { guard !terminal else { return }; terminal = true; sessionId = nil; connection.cancel() }
+    func close() {
+        stateLock.lock()
+        guard !terminal else {
+            stateLock.unlock()
+            return
+        }
+        terminal = true
+        sessionId = nil
+        disconnectHandler = nil
+        stateLock.unlock()
+        connection.cancel()
+    }
 
     private func receiveExactly(_ count: Int, completion: @escaping (Result<Data, Error>) -> Void) {
         if count == 0 { completion(.success(Data())); return }
