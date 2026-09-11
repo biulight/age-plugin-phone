@@ -64,13 +64,15 @@ macOS, iOS and native-tag additions; it is not a review of the complete beta sou
   weakening commit, signature, checksum or existing-release checks.
 - [x] Prepare an exact [security review brief](beta-security-review-brief.md) for
   the post-2026-08-29 source delta; this is review input, not independent approval.
-- [ ] Review security-sensitive changes since the independent review, especially
+- [x] Review security-sensitive changes since the independent review, especially
   native HPKE/tag selection and the iOS authentication deadline. Record scope,
   reviewer, exact source and findings; local tests are not independent review. The
   [independent review](independent-security-review-2026-09-11.md) covered candidate
   `a41ba2e` and found four iOS issues. F2–F4 were independently closed at `9db0eb1`.
   Physical testing found the F1 remediation incomplete; follow-up `0305c0e` passed
-  the exact signed-device disconnect case but still needs independent source re-review.
+  the exact signed-device disconnect case. A fresh independent review of `0305c0e`
+  found no confirmable security defect introduced by the commit; its lack of hardware
+  execution is covered by the separately recorded signed-device test.
 - [ ] Close the mandatory tagged-recipient physical gaps: Android/iOS storage
   persistence failure and clock rollback; retained old-ciphertext
   upgrade/re-encryption. Use disposable isolated state and
@@ -138,8 +140,8 @@ This closes the candidate's basic signed-package install, repeated unwrap,
 cancellation and recovery smoke. The broader signed-package gate remains open for
 setup and full fingerprint comparison, timeout, restart/replay rejection, retained
 old-format upgrade and independent recovery on every advertised combination. The
-follow-up independent source review, remaining physical fault-injection rows, technical-tester
-installation review and explicit publication authorization also remain open.
+remaining physical fault-injection rows, technical-tester installation review and
+explicit publication authorization also remain open.
 
 ## Local preparation checks — 2026-09-11
 

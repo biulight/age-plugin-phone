@@ -1,15 +1,34 @@
 # Independent Beta source review — 2026-09-11
 
-Decision: **do not yet approve Beta publication**. The original review found four
+Decision: **the source-review gate is complete; do not yet approve Beta publication**.
+The original review found four
 iOS defects in candidate `a41ba2e`. Independent inspection at `9db0eb1` closed F2–F4
 in source, but post-merge physical testing showed that F1 remained incomplete when
 TCP FIN arrived during Secure Enclave authentication. Follow-up commit `0305c0e`
 observes EOF after request delivery, preserves a FIN delivered with the last body
 bytes, and registers the fresh `LAContext` before protected-key restoration. Its
 signed development-device build passed the affected physical cancellation path.
-Because the reviewer implemented this follow-up, `0305c0e` still requires a fresh
-independent source re-review. This report does not demonstrate private-key
+A later independent source re-review found no confirmable security defect introduced
+by `0305c0e`. This report does not demonstrate private-key
 extraction, a biometric bypass, or plaintext delivery to an unpaired endpoint.
+
+## Follow-up independent review of `0305c0e`
+
+- Candidate: `0305c0e9bace45159d601e62471a721cebac3a43`.
+- Provenance: independent review result supplied by the project owner on 2026-09-11;
+  the supplied result did not include the reviewer's name or task identifier.
+- Result: no confirmable security defect introduced by this commit.
+- Scope: EOF monitoring after request delivery, connection-failure session teardown,
+  authentication-context invalidation, `LAContext` registration before protected-key
+  loading, timeout coverage of key loading, fresh context per unwrap, and durable
+  replay consumption before authentication without failure rollback.
+- Verification: stream lifecycle test, all 12 Swift Core tests, and commit-difference
+  formatting check passed. The review made no code changes.
+- Limitation: the stream test uses an `NWConnection` substitute, and this reviewer did
+  not independently run the Face ID/Secure Enclave disconnect path on hardware.
+  Separately recorded signed-device testing covers that exact path: terminating the
+  established desktop socket owner while Face ID was pending dismissed the prompt,
+  returned EOF without output, and a fresh request required Face ID and succeeded.
 
 ## Exact scope and method
 
@@ -42,7 +61,7 @@ extraction, a biometric bypass, or plaintext delivery to an unpaired endpoint.
 
 | Finding | Source disposition | Remaining package/physical evidence |
 | --- | --- | --- |
-| F1 | The `9db0eb1` source fix was incomplete: after delivering a complete request it relied on connection state changes, and it registered the authentication context only after protected-key restoration. Follow-up `0305c0e` keeps a receive pending for EOF, preserves a coalesced body-plus-FIN indication, and registers the fresh context before any protected-key access. | A signed `0305c0e` development-device build received a valid request, then the exact desktop process holding the established TCP socket was terminated while Face ID was pending. The prompt disappeared automatically, the desktop returned EOF with no output, and a fresh request after returning the app to the foreground required Face ID and succeeded. Fresh independent source re-review remains open. |
+| F1 | The `9db0eb1` source fix was incomplete: after delivering a complete request it relied on connection state changes, and it registered the authentication context only after protected-key restoration. Follow-up `0305c0e` keeps a receive pending for EOF, preserves a coalesced body-plus-FIN indication, and registers the fresh context before any protected-key access. A fresh independent review found no confirmable security defect introduced by that follow-up. | A signed `0305c0e` development-device build received a valid request, then the exact desktop process holding the established TCP socket was terminated while Face ID was pending. The prompt disappeared automatically, the desktop returned EOF with no output, and a fresh request after returning the app to the foreground required Face ID and succeeded. This physical result complements the independent review's stated lack of hardware execution. |
 | F2 | Resolved. Protocol messages retain the 128-element default, while protected pairing-state decoding has an explicit bounded storage limit and separately rejects entry counts above the persisted capacity. The 128, 129, 1,024 and overflow tests pass. | Exercise reopen and management after a high live-entry count on disposable state if the physical fault-injection setup supports it. |
 | F3 | Resolved in the inspected state transitions. A token owns the one-shot pairing invocation; lifecycle cancellation clears the token and invocation, stops exact resources, ends the operation once and rejects stale callbacks. | On the rebuilt signed candidate, background an idle pairing listener, return to foreground and confirm a fresh pairing operation can start. |
 | F4 | Resolved in the inspected state transitions. `deletionPending` now enters the same native-confirmed deletion flow, and `beginDeletion` idempotently returns the durable deleting metadata without reopening a deleted hardware role. | Interrupt deletion at disposable-state steps, restart and confirm native-confirmed completion; never use a retained recovery-critical identity. |
@@ -55,9 +74,9 @@ Local remediation verification passed:
 - PR CI run `34572078665`: Linux, Windows, macOS, mobile, iOS, release automation,
   reproducible inputs and released-client interoperability all passed.
 
-The independent review closes F2–F4 at `9db0eb1`. F1 physical cancellation is closed
-by the signed `0305c0e` test above, but the follow-up source change has not been
-independently re-reviewed. This does not promote the old `a41ba2e` APK or IPA, or
+The independent reviews close F2–F4 at `9db0eb1` and the `0305c0e` F1 follow-up in
+source. F1 physical cancellation is closed by the signed-device test above. This
+does not promote the old `a41ba2e` APK or IPA, or
 replace the remaining physical fault-injection, technical-tester and
 publication-authorization gates.
 
@@ -235,7 +254,6 @@ The original `a41ba2e` candidate claim was therefore **not validated** for
 macOS+iPhone Wi-Fi (both default phone and explicit tag). No new blocking finding was
 established in the inspected Windows+Android or macOS+Android source paths, but the
 excluded native tests prevent this review from certifying those device combinations.
-F2–F4 are independently rechecked and closed in source at `9db0eb1`. The signed
-follow-up build closes the observed F1 physical cancellation case at `0305c0e`, but
-that follow-up must receive a fresh independent source review before this report is
-used as part of release approval.
+F2–F4 are independently rechecked and closed in source at `9db0eb1`. The fresh
+independent review of `0305c0e`, together with the separately recorded signed-device
+disconnect test, closes the observed F1 source-review and physical cancellation case.
