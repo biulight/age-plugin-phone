@@ -12,6 +12,8 @@ recovery recipient.
   and encryption without the phone plugin using age 1.3+. Default remains `phone`.
 - iOS per-operation authentication deadline closes expired prompts and rejects late
   completion without resetting replay consumption.
+- Valid nonmatching phone stanzas now return an ordinary identity miss, allowing reference age to
+  continue to later configured phone identities while preserving fatal state and structure errors.
 - Recorded signed-candidate hardware, mixed-recipient, recovery and Shine 2.0.3
   evidence; final beta artifacts and remaining physical gates are still pending.
 - Alpha/Beta release-channel validation and a limited technical-user

@@ -60,6 +60,12 @@ order never substitutes for cryptographic matching and cannot select a stanza fo
 No match fails before camera capture or phone authorization. Version 1 remains readable only when
 there is exactly one identity and one stanza; it is never guessed by order.
 
+At the reference-age boundary, a valid v2 stanza for another pairing is an ordinary identity miss,
+not a plugin error. The plugin returns no file key so age can try the next `-i`; state or structure
+failures remain terminal. This distinction is required because reference age starts one plugin
+identity invocation per configured identity rather than combining every same-plugin identity into
+one invocation.
+
 The phone validates the two-argument v2 structure before prompting, ignores the selection
 ciphertext for key custody, and unwraps the file-key body with the v2 file-key domain. Request
 signature, pairing identifiers, user verification, response encryption, and replay handling remain
@@ -82,5 +88,5 @@ unchanged.
 selector, and file-key ciphertext. Rust and Kotlin independently reproduce the vector and unwrap the
 file-key body. Negative tests cover wrong desktop key, wrong identity ID, modified selector,
 modified file-key body, missing or padded selector arguments, v1 ambiguity, no matching pairing,
-and ordered selection across multiple identities and stanzas. The vector contains no production
-secret and must never be imported into a platform keystore.
+ordinary no-match continuation, and ordered selection across multiple identities and stanzas. The
+vector contains no production secret and must never be imported into a platform keystore.
