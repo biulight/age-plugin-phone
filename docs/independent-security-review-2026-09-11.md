@@ -1,10 +1,11 @@
 # Independent Beta source review — 2026-09-11
 
-Decision: **do not approve the complete Beta candidate claim**. Four new iOS defects
-remain open. The transport-cancellation and replay-storage findings affect boundaries
-that the candidate review brief requires to be resolved before publication. This
-review does not demonstrate private-key extraction, a biometric bypass, or plaintext
-delivery to an unpaired endpoint.
+Decision: **approve the source remediation at `9db0eb1`; do not yet approve Beta
+publication**. The original review found four iOS defects in candidate `a41ba2e`.
+Independent remediation inspection and targeted tests close F1–F4 in source. The
+affected signed-package and physical lifecycle cases must still be repeated against
+the post-merge candidate. This review does not demonstrate private-key extraction,
+a biometric bypass, or plaintext delivery to an unpaired endpoint.
 
 ## Exact scope and method
 
@@ -24,6 +25,35 @@ delivery to an unpaired endpoint.
 - Used synthetic Swift probes against candidate source to test the newly identified
   codec and callback boundaries. No production pairing, QR payload, private key,
   file key, or plaintext was accessed.
+
+## Remediation review
+
+- Remediation commit: `9db0eb162034508e836bac58717b761807f14d96`.
+- Comparison: `1e8aaf9..9db0eb1`; the fix was authored separately from this review.
+- Reviewer: Codex inspection in this task; no delegated reviewer or implementation
+  changes were used to produce the disposition.
+- Re-read the architecture, protocol and threat model, traced every changed call site,
+  and checked terminal ownership, authorization-context invalidation, replay-state
+  decoding and deletion resumption against the original findings.
+
+| Finding | Source disposition | Remaining package/physical evidence |
+| --- | --- | --- |
+| F1 | Resolved. Request delivery and peer termination are separate serialized states; disconnect invalidates the exact pending Wi-Fi authentication owner, clears the session and rejects a later send. The callback harness passes. | Repeat disconnect before/during authentication on the rebuilt signed iOS candidate and confirm no response or cached authorization. |
+| F2 | Resolved. Protocol messages retain the 128-element default, while protected pairing-state decoding has an explicit bounded storage limit and separately rejects entry counts above the persisted capacity. The 128, 129, 1,024 and overflow tests pass. | Exercise reopen and management after a high live-entry count on disposable state if the physical fault-injection setup supports it. |
+| F3 | Resolved in the inspected state transitions. A token owns the one-shot pairing invocation; lifecycle cancellation clears the token and invocation, stops exact resources, ends the operation once and rejects stale callbacks. | On the rebuilt signed candidate, background an idle pairing listener, return to foreground and confirm a fresh pairing operation can start. |
+| F4 | Resolved in the inspected state transitions. `deletionPending` now enters the same native-confirmed deletion flow, and `beginDeletion` idempotently returns the durable deleting metadata without reopening a deleted hardware role. | Interrupt deletion at disposable-state steps, restart and confirm native-confirmed completion; never use a retained recovery-critical identity. |
+
+Local remediation verification passed:
+
+- `python3 scripts/test-ios-stream-lifecycle.py`;
+- `swift test --package-path plugins/tauri-plugin-phone-identity/ios/Core`: 12 tests;
+- `git diff --check main...dev`;
+- PR CI run `34572078665`: Linux, Windows, macOS, mobile, iOS, release automation,
+  reproducible inputs and released-client interoperability all passed.
+
+The source remediation review closes the independent source-review finding gate.
+It does not promote the old `a41ba2e` APK or IPA, or replace the mandatory physical
+fault-injection, technical-tester and publication-authorization gates.
 
 This is a source review with targeted executable verification, not a proof of all
 possible interleavings or a fresh certification of every platform/package. Findings
@@ -195,9 +225,10 @@ The package-layout check is not a detached-package build. Existing CI and physic
 acceptance claims were not promoted to fresh results. No production keys were
 created or removed. Python 3.13 was not used for the Python checks.
 
-The complete candidate claim is therefore **not validated** for macOS+iPhone Wi-Fi
-(both default phone and explicit tag). No new blocking finding was established in
-the inspected Windows+Android or macOS+Android source paths, but the excluded native
-tests prevent this review from certifying those device combinations. Resolve and
-independently recheck F1–F4, then repeat the affected iOS physical cases before using
-this report as release approval.
+The original `a41ba2e` candidate claim was therefore **not validated** for
+macOS+iPhone Wi-Fi (both default phone and explicit tag). No new blocking finding was
+established in the inspected Windows+Android or macOS+Android source paths, but the
+excluded native tests prevent this review from certifying those device combinations.
+F1–F4 are independently rechecked and closed in source at `9db0eb1`; repeat the
+affected iOS physical cases on the rebuilt signed candidate before using this report
+as part of release approval.
