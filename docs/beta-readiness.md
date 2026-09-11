@@ -73,9 +73,14 @@ macOS, iOS and native-tag additions; it is not a review of the complete beta sou
   the exact signed-device disconnect case. A fresh independent review of `0305c0e`
   found no confirmable security defect introduced by the commit; its lack of hardware
   execution is covered by the separately recorded signed-device test.
-- [ ] Close the mandatory tagged-recipient physical gaps: Android/iOS storage
+- [ ] Close the remaining mandatory tagged-recipient physical gaps: iOS storage
   persistence failure and clock rollback; retained old-ciphertext
-  upgrade/re-encryption. Use disposable isolated state and
+  upgrade/re-encryption. Android storage replacement failure, uncertain
+  post-rename directory-sync failure and clock rollback passed three instrumentation
+  tests on a Samsung SM-F9660 running Android 16. The tests used the test APK's
+  disposable `noBackupFilesDir`, exercised the production durable file operations,
+  and did not mutate the installed beta application's state. Use disposable isolated
+  state and
   preserve existing pairings. If evidence cannot be obtained, explicitly resolve
   the PRD release requirement before advertising the affected capability; do not
   silently waive it because this version is beta.
@@ -83,8 +88,8 @@ macOS, iOS and native-tag additions; it is not a review of the complete beta sou
   checks; results are recorded below.
 - [x] Complete Linux/Windows/macOS, mobile and interoperability CI against the final
   code-bearing candidate. CI skips are not hardware passes. Merged main commit
-  `444c6f6` passed
-  [CI run 34579021899](https://github.com/biulight/age-plugin-phone/actions/runs/34579021899).
+  `48f79b0` passed
+  [CI run 34586353580](https://github.com/biulight/age-plugin-phone/actions/runs/34586353580).
 - [x] Run the four-crate registry preflight against the final main commit using
   `crates-release.yml` in `preflight` mode; record the exact successful CI run.
   Commit `444c6f6` passed
@@ -115,6 +120,16 @@ Signature Scheme v2. On the recorded Android device, two independent Developer
 USB tag unwraps passed with fresh native verification. Native-prompt cancellation
 failed without output, and the next freshly verified request succeeded.
 
+PR [#13](https://github.com/biulight/age-plugin-phone/pull/13) added isolated Android
+device tests for the remaining pairing-state durability boundaries. All three tests
+passed on the connected Samsung SM-F9660 running Android 16: failure before atomic
+replacement did not consume the request after reopening; directory-sync failure
+after replacement preserved uncertain replay consumption after reopening; and a
+clock rollback was rejected without changing the pairing or blocking a later request
+at the durable clock. The tests used production Android file operations inside the
+test APK's disposable private state. Merged main commit `48f79b0` passed
+[CI run 34586353580](https://github.com/biulight/age-plugin-phone/actions/runs/34586353580).
+
 The development-device iOS candidate has SHA-256
 `c66a95580a20ddddcd1a003f8c47810a0ccf14b1e36629577ad386a5b5e2e6f3`.
 The recorded iPhone accepted the in-place installation and reported short version
@@ -140,7 +155,7 @@ This closes the candidate's basic signed-package install, repeated unwrap,
 cancellation and recovery smoke. The broader signed-package gate remains open for
 setup and full fingerprint comparison, timeout, restart/replay rejection, retained
 old-format upgrade and independent recovery on every advertised combination. The
-remaining physical fault-injection rows, technical-tester installation review and
+remaining iOS physical fault-injection rows, technical-tester installation review and
 explicit publication authorization also remain open.
 
 ## Local preparation checks — 2026-09-11

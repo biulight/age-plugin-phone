@@ -48,8 +48,7 @@
     }
   },
   "not_verified": [
-    "Android persistence-failure and clock-rollback physical fault injection remain unverified",
-    "Replacement iOS disconnect, persistence-failure and clock-rollback physical fault injection remain unverified",
+    "iOS persistence-failure and clock-rollback physical fault injection remain unverified",
     "retained historical ciphertext migration beyond newly generated old-format ciphertext"
   ],
   "build_limitations": [],
@@ -58,13 +57,13 @@
   ],
   "remaining_evidence_constraints": {
     "historical_ciphertext": "no retained .age ciphertext fixture exists in the repository working tree or Git history; newly generated old-format ciphertext is recorded separately and is not treated as historical evidence",
-    "physical_fault_injection": "mobile replay-store corruption/write failure and device clock rollback were not injected into retained real pairings because that would mutate trusted device state; software fail-closed coverage is recorded separately",
-    "ios_disconnect": "not physically injected; changing Wi-Fi from Control Center also causes foreground loss and would not isolate transport disconnect from the already-passed lifecycle test"
+    "physical_fault_injection": "Android replacement failure, uncertain post-rename directory-sync failure and clock rollback passed on a physical Android 16 device using the test APK's disposable private state and production durable file operations; iOS persistence failure and clock rollback remain unverified without mutating retained real pairings",
+    "ios_network_disconnect": "a separate network-layer disconnect was not physically injected because changing Wi-Fi from Control Center also causes foreground loss; exact pending-request TCP owner termination passed on the replacement package and is recorded separately"
   },
   "targeted_fail_closed_tests": {
     "rust_replay_filter": "14 passed, 0 failed; includes missing/corrupt/non-private state, write-failure poisoning, uncertain/post-replacement commits, replay and clock monotonicity",
     "rust_upgrade_replay": "1 passed, 0 failed; pre-refactor states preserve consumption, clock checks and later commits",
-    "android_pairing_state_store": "Gradle PairingStateStoreTest passed; includes durable replay after restart, capacity, clock rollback, corruption, scope and storage behavior",
+    "android_pairing_state_store": "Gradle PairingStateStoreTest passed; includes durable replay after restart, capacity, clock rollback, corruption, scope and storage behavior. Three connected-device instrumentation tests also passed on Samsung SM-F9660 / Android 16 at PR #13 and merge commit 48f79b0: pre-replacement failure remained unconsumed after reopen, post-replacement directory-sync failure remained consumed after reopen, and clock rollback rejected without corrupting pairing state",
     "ios_authentication_deadline": "included in the previously recorded 11 passing Swift core tests; clock rollback and nonfinite monotonic values fail closed"
   },
   "windows": {
