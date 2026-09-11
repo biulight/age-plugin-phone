@@ -100,12 +100,9 @@ final class IdentityKeyStore {
         }
     }
 
-    func freshIdentityKey(reason: String) throws -> (SecureEnclave.P256.KeyAgreement.PrivateKey, LAContext) {
+    func identityKey(authenticationContext context: LAContext) throws -> SecureEnclave.P256.KeyAgreement.PrivateKey {
         try queue.sync {
             let metadata = try openLocked()
-            let context = LAContext()
-            context.localizedReason = reason
-            context.touchIDAuthenticationAllowableReuseDuration = 0
             let representation = try readKey(account: identityAccount(metadata.identityId))
             do {
                 let key = try SecureEnclave.P256.KeyAgreement.PrivateKey(
@@ -116,7 +113,7 @@ final class IdentityKeyStore {
                     context.invalidate()
                     throw IdentityStoreError.malformed
                 }
-                return (key, context)
+                return key
             } catch {
                 context.invalidate()
                 throw error
