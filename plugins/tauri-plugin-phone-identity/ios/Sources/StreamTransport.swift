@@ -45,7 +45,7 @@ final class PhoneStreamSession {
     init(connection: NWConnection, purpose: StreamPurpose) { self.connection = connection; self.purpose = purpose }
 
     func start(completion: @escaping (Result<Data, Error>) -> Void) {
-        func finish(_ result: Result<Data, Error>, close: Bool) {
+        func finish(_ result: Result<Data, Error>, close: Bool, peerClosed: Bool = false) {
             self.stateLock.lock()
             guard !self.requestDelivered, !self.terminal else {
                 self.stateLock.unlock()
@@ -57,7 +57,13 @@ final class PhoneStreamSession {
                 self.sessionId = nil
             }
             self.stateLock.unlock()
-            if close { self.connection.cancel() }
+            if close {
+                self.connection.cancel()
+            } else if peerClosed {
+                self.handlePeerDisconnectAfterDelivery()
+            } else {
+                self.monitorPeerDisconnect()
+            }
             completion(result)
         }
         func disconnected(_ error: Error) {
@@ -87,7 +93,7 @@ final class PhoneStreamSession {
             guard let self else { return }
             switch state {
             case .ready:
-                self.receiveExactly(28) { result in
+                self.receiveExactly(28) { result, peerClosed in
                     switch result {
                     case .failure(let error):
                         finish(.failure(error), close: true)
@@ -101,9 +107,13 @@ final class PhoneStreamSession {
                             }
                             self.sessionId = id
                             self.stateLock.unlock()
-                            self.receiveExactly(length) { body in
+                            if peerClosed, length > 0 {
+                                finish(.failure(StreamTransportError.disconnected), close: true)
+                                return
+                            }
+                            self.receiveExactly(length) { body, bodyPeerClosed in
                                 switch body {
-                                case .success(let data): finish(.success(data), close: false)
+                                case .success(let data): finish(.success(data), close: false, peerClosed: peerClosed || bodyPeerClosed)
                                 case .failure(let error): finish(.failure(error), close: true)
                                 }
                             }
@@ -164,15 +174,41 @@ final class PhoneStreamSession {
         connection.cancel()
     }
 
-    private func receiveExactly(_ count: Int, completion: @escaping (Result<Data, Error>) -> Void) {
-        if count == 0 { completion(.success(Data())); return }
+    private func monitorPeerDisconnect() {
+        connection.receive(minimumIncompleteLength: 1, maximumLength: 1) { [weak self] data, _, complete, error in
+            guard let self else { return }
+            if error != nil || complete || !(data?.isEmpty ?? true) {
+                self.handlePeerDisconnectAfterDelivery()
+                return
+            }
+            self.monitorPeerDisconnect()
+        }
+    }
+
+    private func handlePeerDisconnectAfterDelivery() {
+        var handler: (() -> Void)?
+        stateLock.lock()
+        if !terminal, requestDelivered {
+            terminal = true
+            sessionId = nil
+            remoteDisconnectedAfterDelivery = true
+            handler = disconnectHandler
+            disconnectHandler = nil
+        }
+        stateLock.unlock()
+        connection.cancel()
+        handler?()
+    }
+
+    private func receiveExactly(_ count: Int, completion: @escaping (Result<Data, Error>, Bool) -> Void) {
+        if count == 0 { completion(.success(Data()), false); return }
         var accumulated = Data()
         func receive() {
             connection.receive(minimumIncompleteLength: 1, maximumLength: count - accumulated.count) { data, _, complete, error in
                 if let data { accumulated.append(data) }
-                if let error { completion(.failure(error)); return }
-                if accumulated.count == count { completion(.success(accumulated)); return }
-                if complete { completion(.failure(StreamTransportError.disconnected)); return }
+                if let error { completion(.failure(error), false); return }
+                if accumulated.count == count { completion(.success(accumulated), complete); return }
+                if complete { completion(.failure(StreamTransportError.disconnected), false); return }
                 receive()
             }
         }

@@ -64,15 +64,16 @@ macOS, iOS and native-tag additions; it is not a review of the complete beta sou
   weakening commit, signature, checksum or existing-release checks.
 - [x] Prepare an exact [security review brief](beta-security-review-brief.md) for
   the post-2026-08-29 source delta; this is review input, not independent approval.
-- [x] Review security-sensitive changes since the independent review, especially
+- [ ] Review security-sensitive changes since the independent review, especially
   native HPKE/tag selection and the iOS authentication deadline. Record scope,
   reviewer, exact source and findings; local tests are not independent review. The
   [independent review](independent-security-review-2026-09-11.md) covered candidate
-  `a41ba2e`, found four iOS issues, and independently closed their source remediation
-  at `9db0eb1`; affected signed-package physical retests remain open below.
+  `a41ba2e` and found four iOS issues. F2–F4 were independently closed at `9db0eb1`.
+  Physical testing found the F1 remediation incomplete; follow-up `0305c0e` passed
+  the exact signed-device disconnect case but still needs independent source re-review.
 - [ ] Close the mandatory tagged-recipient physical gaps: Android/iOS storage
-  persistence failure and clock rollback; isolated iOS transport disconnect;
-  retained old-ciphertext upgrade/re-encryption. Use disposable isolated state and
+  persistence failure and clock rollback; retained old-ciphertext
+  upgrade/re-encryption. Use disposable isolated state and
   preserve existing pairings. If evidence cannot be obtained, explicitly resolve
   the PRD release requirement before advertising the affected capability; do not
   silently waive it because this version is beta.
@@ -121,11 +122,22 @@ is not counted as a pass. Host `codesign --verify --deep --strict` returned
 `CSSMERR_TP_NOT_TRUSTED`; device installation succeeded, but host trust verification
 is not classified as passed.
 
+Post-review testing against main commit `013a075` reproduced the F1 transport defect:
+terminating the desktop process that owned the established TCP socket while Face ID
+was pending left the prompt active. Follow-up `0305c0e` corrected EOF observation and
+authentication-context ownership. Its signed development-device IPA has SHA-256
+`891c605474d6e6b4aa143b0a63d672e1ff67d4e9014a8ddc1132dedb91b9d110`, short version
+`0.1.0` and bundle version `0.1.0.5`. On the recorded iPhone, the same exact socket
+termination made the Face ID prompt disappear automatically and produced no output.
+After the app returned to the foreground, a new request required Face ID and matched
+the 128-byte synthetic reference. Host certificate-chain trust remains unclassified
+because `codesign --verify --deep --strict` returned `CSSMERR_TP_NOT_TRUSTED`.
+
 This closes the candidate's basic signed-package install, repeated unwrap,
 cancellation and recovery smoke. The broader signed-package gate remains open for
 setup and full fingerprint comparison, timeout, restart/replay rejection, retained
 old-format upgrade and independent recovery on every advertised combination. The
-independent security review, mandatory physical fault-injection rows, technical-tester
+follow-up independent source review, remaining physical fault-injection rows, technical-tester
 installation review and explicit publication authorization also remain open.
 
 ## Local preparation checks — 2026-09-11

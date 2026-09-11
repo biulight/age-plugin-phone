@@ -663,7 +663,9 @@ final class PhoneIdentityPlugin: Plugin {
         }) else {
             throw NativeQRFlowError.lifecycle
         }
-        let (key, context) = try identity.freshIdentityKey(reason: "Approve one age unwrap: \(request.digest.hex.prefix(16))")
+        let context = LAContext()
+        context.localizedReason = "Approve one age unwrap: \(request.digest.hex.prefix(16))"
+        context.touchIDAuthenticationAllowableReuseDuration = 0
         let installed = stateQueue.sync { () -> Bool in
             if let ownerSession, wifiSession !== ownerSession { return false }
             activeAuthenticationContext = context
@@ -688,8 +690,10 @@ final class PhoneIdentityPlugin: Plugin {
             }
         }
         var fileKey: Data
-        do { fileKey = try TaggedRecipientCrypto.unwrap(stanza: request.stanza, identity: key) }
-        catch {
+        do {
+            let key = try identity.identityKey(authenticationContext: context)
+            fileKey = try TaggedRecipientCrypto.unwrap(stanza: request.stanza, identity: key)
+        } catch {
             guard deadline.complete() else { throw NativeQRFlowError.timeout }
             throw error
         }

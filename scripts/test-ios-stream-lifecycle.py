@@ -19,11 +19,17 @@ final class NWConnection {
     var sends = 0
     var cancels = 0
     var stateOnStart: State = .ready
+    var pendingReceive: ((Data?, ContentContext?, Bool, Error?) -> Void)?
+    var completeWithLastBytes = false
     func start(queue: DispatchQueue) { stateUpdateHandler?(stateOnStart) }
     func receive(minimumIncompleteLength: Int, maximumLength: Int,
-                 completion: (Data?, ContentContext?, Bool, Error?) -> Void) {
+                 completion: @escaping (Data?, ContentContext?, Bool, Error?) -> Void) {
+        guard !bytes.isEmpty else {
+            pendingReceive = completion
+            return
+        }
         let data = Data(bytes.prefix(maximumLength)); bytes.removeFirst(data.count)
-        completion(data, nil, false, nil)
+        completion(data, nil, completeWithLastBytes && bytes.isEmpty, nil)
     }
     func send(content: Data, contentContext: ContentContext, isComplete: Bool,
               completion: SendCompletion) {
@@ -31,6 +37,11 @@ final class NWConnection {
         if case .contentProcessed(let callback) = completion { callback(nil) }
     }
     func cancel() { cancels += 1; stateUpdateHandler?(.cancelled) }
+    func peerCloses() {
+        let callback = pendingReceive
+        pendingReceive = nil
+        callback?(nil, nil, true, nil)
+    }
 }
 
 @main struct Harness {
@@ -42,9 +53,9 @@ final class NWConnection {
         let session = PhoneStreamSession(connection: connection, purpose: .unwrap)
         var requestCallbacks = 0
         var disconnectCallbacks = 0
-        session.start { _ in requestCallbacks += 1 }
-        connection.stateUpdateHandler?(.failed(TestError.disconnected))
         session.watchPeerDisconnect { disconnectCallbacks += 1 }
+        session.start { _ in requestCallbacks += 1 }
+        connection.peerCloses()
         var lateSendFailed = false
         session.sendResponse(Data([43])) { result in
             if case .failure = result { lateSendFailed = true }
@@ -53,6 +64,30 @@ final class NWConnection {
         precondition(disconnectCallbacks == 1)
         precondition(lateSendFailed)
         precondition(connection.sends == 0)
+
+        let lateWatch = NWConnection()
+        lateWatch.bytes = try StreamTransportCodec.encode(
+            purpose: .unwrap, direction: 1,
+            sessionId: Data(repeating: 3, count: 16), body: Data([45]))
+        let lateWatchSession = PhoneStreamSession(connection: lateWatch, purpose: .unwrap)
+        var lateWatchCallbacks = 0
+        lateWatchSession.start { _ in }
+        lateWatch.peerCloses()
+        lateWatchSession.watchPeerDisconnect { lateWatchCallbacks += 1 }
+        precondition(lateWatchCallbacks == 1)
+
+        let coalescedClose = NWConnection()
+        coalescedClose.bytes = try StreamTransportCodec.encode(
+            purpose: .unwrap, direction: 1,
+            sessionId: Data(repeating: 4, count: 16), body: Data([46]))
+        coalescedClose.completeWithLastBytes = true
+        let coalescedSession = PhoneStreamSession(connection: coalescedClose, purpose: .unwrap)
+        var coalescedRequestCallbacks = 0
+        var coalescedDisconnectCallbacks = 0
+        coalescedSession.watchPeerDisconnect { coalescedDisconnectCallbacks += 1 }
+        coalescedSession.start { _ in coalescedRequestCallbacks += 1 }
+        precondition(coalescedRequestCallbacks == 1)
+        precondition(coalescedDisconnectCallbacks == 1)
 
         let initialFailure = NWConnection()
         initialFailure.stateOnStart = .failed(TestError.disconnected)
