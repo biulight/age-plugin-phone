@@ -2,12 +2,12 @@
 
 ## Supported versions
 
-No version is supported for production secrets. `0.1.0-beta.1` is an unpublished
-candidate for limited technical testing. The [beta closeout](docs/beta-readiness.md)
-tracks unresolved launch gates and compatibility limits. Existing hardware evidence
-does not establish support for every device or certify the final beta artifacts.
+No version is supported for production secrets. `0.1.0-beta.1` is published for limited
+technical testing, and `0.1.0-beta.2` is an unpublished maintenance candidate. The
+[beta checklist](docs/beta-readiness.md) tracks the candidate and compatibility limits.
+Existing hardware evidence does not establish support for every device or certify Beta 2 artifacts.
 Protocol v2 remains unfrozen; independent recovery is required.
-See the [candidate notes](docs/releases/v0.1.0-beta.1.md). The published alpha.5
+See the [Beta 2 candidate notes](docs/releases/v0.1.0-beta.2.md). The published alpha.5
 snapshot retains its [experimental scope](docs/releases/v0.1.0-alpha.5.md).
 
 Historically, `0.1.0-alpha.4` is an experimental,

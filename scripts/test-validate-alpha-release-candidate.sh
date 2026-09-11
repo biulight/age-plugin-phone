@@ -27,7 +27,7 @@ trap 'rm -rf "$fixture"' EXIT
 mkdir -p "$fixture/scripts" "$fixture/apps/mobile/src-tauri" "$fixture/docs/releases"
 cp scripts/check-release-version.sh "$fixture/scripts/"
 validator="$repo_root/scripts/validate-alpha-release-candidate.sh"
-for candidate in 0.1.0-alpha.5 0.1.0-beta.1 0.1.0 0.1.0-rc.1 0.1.0-beta 0.1.0-beta.1.extra; do
+for candidate in 0.1.0-alpha.5 0.1.0-beta.2 0.1.0 0.1.0-rc.1 0.1.0-beta 0.1.0-beta.2.extra; do
   cat > "$fixture/Cargo.toml" <<EOF
 [workspace.package]
 version = "$candidate"
@@ -40,7 +40,7 @@ EOF
   cp "$fixture/apps/mobile/package.json" "$fixture/apps/mobile/src-tauri/tauri.conf.json"
   touch "$fixture/docs/releases/v$candidate.md"
   case "$candidate" in
-    0.1.0-alpha.5|0.1.0-beta.1)
+    0.1.0-alpha.5|0.1.0-beta.2)
       (cd "$fixture" && "$validator" "$commit" "$commit" "$candidate" false false)
       rm "$fixture/docs/releases/v$candidate.md"
       (cd "$fixture" && expect_failure "$validator" "$commit" "$commit" "$candidate" false false)

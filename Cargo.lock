@@ -50,7 +50,7 @@ dependencies = [
 
 [[package]]
 name = "age-plugin-phone"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 dependencies = [
  "age-core",
  "age-plugin",
@@ -76,7 +76,7 @@ dependencies = [
 
 [[package]]
 name = "age-plugin-phone-core"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 dependencies = [
  "age-plugin-phone-platform-storage",
  "base64 0.22.1",
@@ -95,7 +95,7 @@ dependencies = [
 
 [[package]]
 name = "age-plugin-phone-mobile"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 dependencies = [
  "age-plugin-phone-core",
  "serde",
@@ -106,7 +106,7 @@ dependencies = [
 
 [[package]]
 name = "age-plugin-phone-platform-keys"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 dependencies = [
  "age-plugin-phone-core",
  "base64 0.22.1",
@@ -126,7 +126,7 @@ dependencies = [
 
 [[package]]
 name = "age-plugin-phone-platform-storage"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 dependencies = [
  "libc",
  "rustix 1.1.4",
@@ -4399,7 +4399,7 @@ dependencies = [
 
 [[package]]
 name = "tauri-plugin-phone-identity"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 dependencies = [
  "serde",
  "tauri",

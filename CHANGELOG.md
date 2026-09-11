@@ -6,20 +6,35 @@ recovery recipient.
 
 ## [Unreleased]
 
-### 0.1.0-beta.1 candidate
+## [0.1.0-beta.2] - Unreleased
+
+Maintenance candidate based on the published Beta 1 release. Protocol v2, public identity stubs,
+pairing state, recipient formats, key custody, and mobile authorization behavior are unchanged.
+
+### Fixed
+
+- Valid nonmatching v2 phone stanzas now return an ordinary identity miss, allowing reference age
+  to continue to later configured plugin identities. Malformed stanzas and unavailable or corrupt
+  state remain fatal, and a miss does not contact the phone or consume replay state.
+
+See the [candidate notes](docs/releases/v0.1.0-beta.2.md). Not yet published.
+
+## [0.1.0-beta.1] - 2026-09-11
+
+First limited technical Beta release.
+
+### Added
 
 - Explicit native tagged recipients on desktop, Android and iOS; public-only export
   and encryption without the phone plugin using age 1.3+. Default remains `phone`.
 - iOS per-operation authentication deadline closes expired prompts and rejects late
   completion without resetting replay consumption.
-- Valid nonmatching phone stanzas now return an ordinary identity miss, allowing reference age to
-  continue to later configured phone identities while preserving fatal state and structure errors.
 - Recorded signed-candidate hardware, mixed-recipient, recovery and Shine 2.0.3
-  evidence; final beta artifacts and remaining physical gates are still pending.
+  evidence.
 - Alpha/Beta release-channel validation and a limited technical-user
   [closeout plan](docs/beta-readiness.md), with Windows/macOS source installation.
 
-See the [candidate notes](docs/releases/v0.1.0-beta.1.md). Not yet published.
+See the [release notes](docs/releases/v0.1.0-beta.1.md).
 
 ## [0.1.0-alpha.5] - 2026-09-10
 
