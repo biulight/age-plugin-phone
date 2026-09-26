@@ -46,7 +46,7 @@ const config = {
       style: 'dark',
       links: [{title: 'Project', items: [
         {label: 'Releases', href: 'https://github.com/biulight/age-plugin-phone/releases'},
-        {label: 'Biulight', href: 'https://blog.biulight.top/products'},
+        {label: 'Biulight', href: 'https://blog.biulight.top/timeline/products'},
       ]}],
     },
     prism: {theme: themes.github, darkTheme: themes.dracula, additionalLanguages: ['powershell', 'toml']},
