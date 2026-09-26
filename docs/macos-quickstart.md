@@ -1,5 +1,10 @@
 # macOS source quick start — experimental acceptance
 
+> **Source acceptance guide.** For current Beta 2 user instructions, use the
+> [English manual](manual/installation/macos.md) or
+> [简体中文手册](../website/i18n/zh-Hans/docusaurus-plugin-content-docs/current/installation/macos.md).
+> This page is retained for existing links and its original evidence scope.
+
 Use disposable data. The [macOS plan](macos-support-plan.md) is not fully accepted:
 the remaining matrix is deferred for the interim experimental release by the
 [user's scope decision](macos-release-scope-decision.md), not marked passed.

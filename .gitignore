@@ -16,3 +16,8 @@
 
 # Local protocol captures may contain sensitive metadata.
 /captures/
+
+# Public documentation build products
+/website/node_modules/
+/website/.docusaurus/
+/website/build/

@@ -1,0 +1,18 @@
+{
+  "version.label": {
+    "message": "当前版本",
+    "description": "The label for version current"
+  },
+  "sidebar.manual.category.Installation": {
+    "message": "安装",
+    "description": "The label for category 'Installation' in sidebar 'manual'"
+  },
+  "sidebar.manual.category.Task guides": {
+    "message": "任务指南",
+    "description": "The label for category 'Task guides' in sidebar 'manual'"
+  },
+  "sidebar.manual.category.Reference": {
+    "message": "参考",
+    "description": "The label for category 'Reference' in sidebar 'manual'"
+  }
+}
