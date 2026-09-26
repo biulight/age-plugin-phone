@@ -1,5 +1,10 @@
 # Explicit tagged-recipient workflow
 
+> **Earlier recipient workflow entry.** For current Beta 2 user instructions, use the
+> [English manual](manual/guides/recipients.md) or
+> [简体中文手册](../website/i18n/zh-Hans/docusaurus-plugin-content-docs/current/guides/recipients.md).
+> This page is retained for existing links and its original evidence scope.
+
 This workflow applies to the source candidate implementing [ADR 0026](adr/0026-native-tagged-recipients.md),
 not the published alpha.5 snapshot. It remains experimental and is for synthetic data only.
 Upgrade both desktop and phone software to a compatible candidate before testing tag decryption.

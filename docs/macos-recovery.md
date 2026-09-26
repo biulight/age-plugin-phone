@@ -1,5 +1,10 @@
 # macOS state removal and recovery
 
+> **Detailed platform recovery record.** For current Beta 2 user instructions, use the
+> [English manual](manual/guides/recovery.md) or
+> [简体中文手册](../website/i18n/zh-Hans/docusaurus-plugin-content-docs/current/guides/recovery.md).
+> This page is retained for existing links and its original evidence scope.
+
 macOS remains experimental while the [support plan](macos-support-plan.md) has
 open acceptance gates, including same-Mac snapshot rollback. Use disposable test
 data for acceptance. The commands below do not expand that support declaration.

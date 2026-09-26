@@ -1,5 +1,10 @@
 # Windows Alpha quick start
 
+> **Historical Alpha guide.** For current Beta 2 user instructions, use the
+> [English manual](manual/installation/windows.md) or
+> [简体中文手册](../website/i18n/zh-Hans/docusaurus-plugin-content-docs/current/installation/windows.md).
+> This page is retained for existing links and its original evidence scope.
+
 This guide validates one exact signed Windows/Android developer-prerelease pair with synthetic data
 before using the phone identity for retained data. It does not close the full Alpha matrix and is
 not approval to protect real secrets. The independent source review is complete, but protocol v2
