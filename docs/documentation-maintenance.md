@@ -40,6 +40,33 @@ Keep existing quickstart/recovery Markdown paths and their section anchors;
 each now has a notice directing current users to the new manual. Do not rewrite
 historical acceptance claims or immutable release bodies to appear current.
 
+## Optional server deployment
+
+Like Shine, the workflow can deploy the same build to GitHub Pages and an SSH
+server. Pages remains enabled. Server deployment runs only for `main` when the
+repository variable `SERVER_DEPLOY_ENABLED` is exactly `true`.
+
+Configure the `docs-server` GitHub environment before enabling this variable:
+
+| Kind | Name | Purpose |
+| --- | --- | --- |
+| Variable | `SERVER_HOST` | SSH hostname or IP address |
+| Variable | `SERVER_USER` | SSH login user |
+| Variable | `SERVER_PORT` | SSH port; defaults to `22` |
+| Variable | `SERVER_PATH` | Dedicated absolute directory for this site's build |
+| Variable | `SERVER_URL` | Optional public URL shown in the deployment record |
+| Secret | `SERVER_SSH_KEY` | SSH private key authorized for this deployment |
+| Secret | `SERVER_KNOWN_HOSTS` | Previously verified server host-key entries |
+
+The server must serve this directory under `/age-plugin-phone/`; the Chinese
+manual uses `/age-plugin-phone/zh-Hans/`. GitHub Pages remains the canonical
+site. Verify both locales at the server URL after deployment.
+
+Deployment uses `rsync --delete-delay`: files absent from the build are removed
+from `SERVER_PATH`. Use a dedicated directory and a restricted SSH account;
+never point it at the shared web root or another product's directory. Keep
+private hostnames, credentials and server paths in GitHub configuration.
+
 ## Initial manual fact review
 
 Baseline: `v0.1.0-beta.2` (`e08d631b33bd0c16948ca26275bc851b0bf56c15`).
