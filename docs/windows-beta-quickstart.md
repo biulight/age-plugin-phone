@@ -1,8 +1,8 @@
 # Windows Beta quick start
 
 > **Earlier Beta quick-start entry.** For current Beta 2 user instructions, use the
-> [English manual](manual/quick-start.md) or
-> [简体中文手册](../website/i18n/zh-Hans/docusaurus-plugin-content-docs/current/quick-start.md).
+> [English manual](https://biulight.github.io/age-plugin-phone/quick-start) or
+> [简体中文手册](https://biulight.github.io/age-plugin-phone/zh-Hans/quick-start).
 > This page is retained for existing links and its original evidence scope.
 
 This guide covers the proposed `0.1.0-beta.2` Windows 11 x64 source-install

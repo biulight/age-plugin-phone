@@ -1,8 +1,8 @@
 # macOS source quick start — experimental acceptance
 
 > **Source acceptance guide.** For current Beta 2 user instructions, use the
-> [English manual](manual/installation/macos.md) or
-> [简体中文手册](../website/i18n/zh-Hans/docusaurus-plugin-content-docs/current/installation/macos.md).
+> [English manual](https://biulight.github.io/age-plugin-phone/installation/macos) or
+> [简体中文手册](https://biulight.github.io/age-plugin-phone/zh-Hans/installation/macos).
 > This page is retained for existing links and its original evidence scope.
 
 Use disposable data. The [macOS plan](macos-support-plan.md) is not fully accepted:

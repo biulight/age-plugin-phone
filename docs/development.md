@@ -1,8 +1,8 @@
 # Development entry points
 
 User installation, daily operation and recovery are documented in the
-[English manual](manual/index.md) and
-[Simplified Chinese manual](../website/i18n/zh-Hans/docusaurus-plugin-content-docs/current/index.md).
+[English manual](https://biulight.github.io/age-plugin-phone/) and
+[Simplified Chinese manual](https://biulight.github.io/age-plugin-phone/zh-Hans/).
 Read `AGENTS.md` before changing security behavior. Architecture, protocol, threat
 model, ADRs and acceptance evidence stay outside the published user manual.
 

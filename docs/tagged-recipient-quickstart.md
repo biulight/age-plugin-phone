@@ -1,8 +1,8 @@
 # Explicit tagged-recipient workflow
 
 > **Earlier recipient workflow entry.** For current Beta 2 user instructions, use the
-> [English manual](manual/guides/recipients.md) or
-> [简体中文手册](../website/i18n/zh-Hans/docusaurus-plugin-content-docs/current/guides/recipients.md).
+> [English manual](https://biulight.github.io/age-plugin-phone/guides/recipients) or
+> [简体中文手册](https://biulight.github.io/age-plugin-phone/zh-Hans/guides/recipients).
 > This page is retained for existing links and its original evidence scope.
 
 This workflow applies to the source candidate implementing [ADR 0026](adr/0026-native-tagged-recipients.md),
