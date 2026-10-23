@@ -1,10 +1,13 @@
 # Native tagged recipient implementation evidence
 
-Date: 2026-09-10. Status: source implementation candidate; experimental, not a tag release or
-production-support declaration. The [PRD](tagged-recipient-prd.md),
+Date: 2026-09-10, with release follow-up through 2026-09-11. Status: the implementation entered the
+limited Beta 1 release and is retained in Beta 2; it remains experimental and is not a production
+support declaration. The [PRD](tagged-recipient-prd.md),
 [ADR 0026](adr/0026-native-tagged-recipients.md) and [quick start](tagged-recipient-quickstart.md)
 describe the intended behavior. [Machine-readable digests](tagged-recipient-evidence.json)
-identify the modified source/tests and local build artifacts. See the dated signing follow-up below; these are acceptance candidates, not published releases.
+identify the modified source/tests and local build artifacts. The dated signing results below are
+candidate-specific evidence and do not transfer to a later package merely because the feature was
+subsequently published.
 
 ## Implemented behavior
 
@@ -87,8 +90,9 @@ provisioned into StrongBox or Secure Enclave.
 At the initial 2026-09-10 checkpoint, an Android device and an iPhone were visible to read-only device inventory. No new signed app had been
 installed and no person had completed fresh biometric verification for this candidate. Device visibility,
 software vectors, unsigned packages and old acceptance records cannot close those rows.
-Complete the PRD physical matrix and record exact signed artifact hashes before advertising explicit
-tag release support. Shine acceptance remains separate from the standard plugin implementation.
+Complete the remaining PRD physical matrix against one exact signed artifact pair before expanding
+explicit tag support beyond the recorded limited Beta scope. Shine acceptance remains separate from
+the standard plugin implementation.
 QR tag transport is explicitly outside this version's validation scope by owner direction.
 
 ## Build follow-up

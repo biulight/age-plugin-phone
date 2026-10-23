@@ -10,8 +10,8 @@ secrets.
 - One capability-qualified Android StrongBox phone with fresh auth-per-use biometric authorization.
 - Developer USB remains the independently exercised recovery and diagnostics transport.
 - Foreground Wi-Fi discovery, unwrap, and explicit one-shot pairing are implemented in source.
-  They still require exact-candidate physical validation and make no background-wake or production
-  transport claim.
+  Recorded single-device passes support continued owner testing, but the remaining adverse-condition
+  matrix prevents a production transport claim and no background-wake support is claimed.
 - One independently verified private-root test-signed Windows/Android artifact pair at a time.
 - Synthetic or otherwise disposable data with a separately verified independent recovery recipient.
 
@@ -20,6 +20,12 @@ the recorded single-device setup: fresh exact-package pairing, Developer USB unw
 recovery, foreground Wi-Fi unwrap, foreground/background listener lifecycle, final listener pause,
 and zero ADB reverse residue. This supports publication of the developer prerelease only; it does
 not mark any deferred public-Alpha gate as passed.
+
+The latest published release is `v0.1.0-beta.2` from commit `e08d631`. Its exact-commit CI,
+four-crate publication, and Windows/Android signing workflows passed. The multi-identity regression
+passed with a source-installed desktop before publication, but has not been repeated with the
+published Windows/Android package pair. Beta 2 therefore does not inherit alpha.1's exact-package
+physical evidence and does not expand this owner-only operating profile.
 
 QR framing, native camera transport, private multi-phone stanza selection, lifecycle controls, and
 strict wrong-device/replay rejection remain implemented capabilities. Their presence does not mean
