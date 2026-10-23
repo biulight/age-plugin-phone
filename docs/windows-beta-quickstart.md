@@ -1,11 +1,16 @@
 # Windows Beta quick start
 
-This guide covers the proposed `0.1.0-beta.2` Windows 11 x64 source-install
-path with an Android StrongBox phone. The beta is still experimental: use only
+> **Earlier Beta quick-start entry.** For current Beta 2 user instructions, use the
+> [English manual](https://biulight.github.io/age-plugin-phone/quick-start) or
+> [简体中文手册](https://biulight.github.io/age-plugin-phone/zh-Hans/quick-start).
+> This page is retained for existing links and its original evidence scope.
+
+This guide covers the published `0.1.0-beta.2` Windows 11 x64 source-install
+path with an Android StrongBox phone. The beta remains experimental: use only
 synthetic or disposable data, always add and test an independent recovery
 recipient, and confirm every full pairing fingerprint and phone verification
-yourself. See the [closeout checklist](beta-readiness.md) before treating a
-candidate as published or accepted.
+yourself. See the [release record](beta-readiness.md) for the exact commit,
+workflows, artifact hashes, and remaining acceptance boundaries.
 
 ## Prerequisites
 
@@ -17,8 +22,7 @@ candidate as published or accepted.
 - Android platform-tools when using Developer USB. USB debugging and ADB
   authorization are transport prerequisites, never protocol authorization.
 
-After the version is published on crates.io, install the four locked packages
-from source through the CLI package:
+Install the four locked packages from crates.io through the CLI package:
 
 ```powershell
 rustup default stable-x86_64-pc-windows-msvc
@@ -32,8 +36,9 @@ Windows test-signing root. An optional prebuilt ZIP remains explicitly
 test-signed; verify its checksums and signing evidence and do not install its
 private root into a system trust store.
 
-Install the signed Android APK from the same accepted beta candidate. Do not mix
-desktop and phone artifacts from different commits or workflow attempts.
+Install the signed Android APK from the same Beta 2 release. If using the optional
+Windows ZIP, use the Beta 2 ZIP from that release as well. Do not mix desktop and
+phone artifacts from different commits or workflow attempts.
 
 ## Pair
 

@@ -1,11 +1,11 @@
 # Beta release readiness
 
-## Beta 2 maintenance candidate
+## Beta 2 maintenance release
 
-Date: 2026-09-11. Target: `0.1.0-beta.2`. Status: **preparing; not approved for publication**.
+Date: 2026-09-11. Version: `0.1.0-beta.2`. Status: **published for limited technical testing**.
 
 Beta 2 is limited to the desktop multi-identity continuation fix described in the
-[candidate notes](releases/v0.1.0-beta.2.md). It does not change protocol v2, public identity stubs,
+[release notes](releases/v0.1.0-beta.2.md). It does not change protocol v2, public identity stubs,
 pairing or replay formats, recipient encodings, key custody, transport behavior, or native phone
 authentication. Beta 1's technical-test scope and all recorded limitations remain in force.
 
@@ -17,25 +17,48 @@ authentication. Beta 1's technical-test scope and all recorded limitations remai
 - [x] Pass local Rust format, locked workspace Clippy, and locked workspace tests on the exact tree.
 - [x] Pass local release-version and validator fixtures, four-package archive checks, frontend
   production build, Android unit tests, Swift core tests, and iOS stream lifecycle test.
-- [ ] Pass the complete Linux/Windows/macOS, mobile, iOS, and released-client CI matrix on the
-  accepted commit; local checks do not replace hosted or physical evidence.
-- [ ] Merge the accepted source commit and record exact CI and four-crate registry preflight runs.
+- [x] Pass the complete Linux/Windows/macOS, mobile, iOS, and released-client CI matrix on the
+  accepted commit. Immutable commit `e08d631b33bd0c16948ca26275bc851b0bf56c15` passed
+  [CI run 34611758225](https://github.com/biulight/age-plugin-phone/actions/runs/34611758225).
+- [x] Merge the accepted source commit and complete the four-crate registry rehearsal and
+  publication flow. The preflight and publish jobs in
+  [run 34612479475](https://github.com/biulight/age-plugin-phone/actions/runs/34612479475)
+  completed against the exact accepted commit; all four packages became visible and the exact
+  production CLI installation plus independent age/rage recovery check passed.
 - [x] Complete the scoped physical multi-identity acceptance through a source-installed desktop
   build. The project owner confirmed the real-device scenario passed on 2026-09-11; this is source
   acceptance and does not certify a later signed package.
-- [ ] Build and verify Windows/Android candidate artifacts from the same accepted commit. Retain an
-  independent recovery recipient and repeat the scoped multi-identity smoke if the packaged bits
-  differ from the source-tested candidate.
-- [ ] Obtain explicit publication authorization, then publish crates and signed artifacts without
-  changing the accepted commit.
+- [x] Build and verify the Windows/Android artifacts from the same accepted commit. Release
+  [run 34612479284](https://github.com/biulight/age-plugin-phone/actions/runs/34612479284),
+  attempt 1, verified signatures, checksums, and provenance before publishing the Windows x64
+  test-signed ZIP and Android ARM64 APK.
+- [x] Publish the four crates and signed artifacts without changing the accepted commit. The
+  protected `crates-io-publish` and `alpha-release` environments admitted the manually dispatched
+  workflows, and GitHub published `v0.1.0-beta.2` as a prerelease at 2026-09-11 15:01:56 UTC.
+- [ ] Repeat the scoped multi-identity regression with the exact published Windows/Android package
+  pair. The source-installed physical pass below does not certify those packaged bits.
 
-### Beta 2 physical acceptance — 2026-09-11
+### Beta 2 source physical acceptance — 2026-09-11
 
 The project owner confirmed that the multi-identity scenario passed on a real phone using a
 source-installed desktop build. This closes the candidate's source-level physical regression gate:
 the configured identity set continued past a nonmatching phone identity and successfully reached
-the matching identity. No signed Beta 2 Windows or Android artifact is claimed by this record;
-artifact provenance and exact-package verification remain separate publication gates above.
+the matching identity. This record does not claim that the later published Windows/Android package
+pair passed the same physical regression; that post-publication repeat remains open above.
+
+### Beta 2 publication evidence — 2026-09-11
+
+The immutable release commit is `e08d631b33bd0c16948ca26275bc851b0bf56c15`.
+The published Windows ZIP SHA-256 is
+`b245990706547b2e66937b2198cdcf1fc854c38737cb8efac4e6617e3184d324`; the Android APK
+SHA-256 is `b8c3011739914249f50d81fed4727f438a93b0b5839eed8188e645d5637f1b16`.
+The release workflow also published matching checksum and signature-verification records. The
+Windows package remains private-root test-signed and ordinary installations do not trust that root.
+Publication preserves Beta 1's owner-only, synthetic-or-disposable-data scope and does not close
+the post-publication package regression, public signing, multi-device, or technical-user gates.
+The immutable GitHub release body was generated from the accepted pre-publication note and retains
+its candidate wording. Repository release policy forbids modifying a public release; this checklist,
+the current release note, changelog, security policy, and README record the post-publication state.
 
 ## Beta 1 closeout
 

@@ -1,5 +1,10 @@
 # Windows Wi-Fi setup and diagnosis
 
+> **Detailed Windows diagnostic record.** For current Beta 2 user instructions, use the
+> [English manual](https://biulight.github.io/age-plugin-phone/troubleshooting#wi-fi) or
+> [简体中文手册](https://biulight.github.io/age-plugin-phone/zh-Hans/troubleshooting#wi-fi).
+> This page is retained for existing links and its original evidence scope.
+
 Use this with the [Windows quickstart](windows-alpha-quickstart.md). `wifi-doctor` and the
 firewall helper are included in the published alpha.4 Windows package. Use the matching
 [accepted artifact pair](windows-acceptance-2026-09-07.md) and keep its executable path fixed.

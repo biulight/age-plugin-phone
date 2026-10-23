@@ -1,5 +1,10 @@
 # macOS source quick start — experimental acceptance
 
+> **Source acceptance guide.** For current Beta 2 user instructions, use the
+> [English manual](https://biulight.github.io/age-plugin-phone/installation/macos) or
+> [简体中文手册](https://biulight.github.io/age-plugin-phone/zh-Hans/installation/macos).
+> This page is retained for existing links and its original evidence scope.
+
 Use disposable data. The [macOS plan](macos-support-plan.md) is not fully accepted:
 the remaining matrix is deferred for the interim experimental release by the
 [user's scope decision](macos-release-scope-decision.md), not marked passed.
