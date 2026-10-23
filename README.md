@@ -10,11 +10,11 @@ through the standard age plugin interface and is independent of Shine.
 
 ## User manual
 
-- [English](docs/manual/index.md)
-- [简体中文](website/i18n/zh-Hans/docusaurus-plugin-content-docs/current/index.md)
-- [Support and prerequisites](docs/manual/support.md)
-- [First encryption and decryption](docs/manual/quick-start.md)
-- [Upgrade, revocation, and recovery](docs/manual/guides/recovery.md)
+- [English](https://biulight.github.io/age-plugin-phone/)
+- [简体中文](https://biulight.github.io/age-plugin-phone/zh-Hans/)
+- [Support and prerequisites](https://biulight.github.io/age-plugin-phone/support)
+- [First encryption and decryption](https://biulight.github.io/age-plugin-phone/quick-start)
+- [Upgrade, revocation, and recovery](https://biulight.github.io/age-plugin-phone/guides/recovery)
 
 The beta provides Windows/macOS source installation, a test-signed Windows x64
 ZIP, and a signed Android ARM64 APK. macOS remains experimental and iOS remains
@@ -22,7 +22,7 @@ an existing development-device cohort, without external distribution. BLE is
 not implemented. Published packages do not certify every hardware combination.
 
 See the [Beta 2 release](https://github.com/biulight/age-plugin-phone/releases/tag/v0.1.0-beta.2)
-for artifacts and the [version guide](docs/manual/reference/releases.md) for known
+for artifacts and the [version guide](https://biulight.github.io/age-plugin-phone/reference/releases) for known
 limitations, including the pending exact-package regression repeat.
 
 ## Development and security

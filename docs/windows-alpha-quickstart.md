@@ -1,8 +1,8 @@
 # Windows Alpha quick start
 
 > **Historical Alpha guide.** For current Beta 2 user instructions, use the
-> [English manual](manual/installation/windows.md) or
-> [简体中文手册](../website/i18n/zh-Hans/docusaurus-plugin-content-docs/current/installation/windows.md).
+> [English manual](https://biulight.github.io/age-plugin-phone/installation/windows) or
+> [简体中文手册](https://biulight.github.io/age-plugin-phone/zh-Hans/installation/windows).
 > This page is retained for existing links and its original evidence scope.
 
 This guide validates one exact signed Windows/Android developer-prerelease pair with synthetic data
