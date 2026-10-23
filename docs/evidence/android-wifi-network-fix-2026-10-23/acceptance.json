@@ -1,0 +1,241 @@
+{
+  "status": "scoped-candidate-physical-regression-passed",
+  "installed_apk_sha256": "87a9262a724aaf2d3fad191fca8ba697e03ea39b34608a22eca09458c9caa95f",
+  "windows_exe_sha256": "62d8f3836598dd1ab287c3b2ac432539870bfb0cbe7bdfd547d08cf3be373e2b",
+  "observed_attempts": [
+    {
+      "case": "wifi-approve",
+      "result": "passed",
+      "transport": "wifi",
+      "route_mode": "authenticated-discovery",
+      "phone_observation": "Owner confirmed a fresh native prompt and completed verification on the installed same-signer candidate.",
+      "started_utc": "2026-10-23T15:43:37.1130865Z",
+      "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103",
+      "provenance": {
+        "common_sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab",
+        "base_helper_sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9",
+        "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103"
+      },
+      "exit_code": 0,
+      "diagnostic_category": "other-error",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T15:43:43.9596854Z"
+    },
+    {
+      "case": "wifi-network",
+      "result": "passed",
+      "transport": "wifi",
+      "route_mode": "authenticated-discovery",
+      "phone_observation": "Owner confirmed prompt awaiting verification, then automatic dismissal on checked Wi-Fi cycle without interaction.",
+      "started_utc": "2026-10-23T15:44:01.2505738Z",
+      "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103",
+      "provenance": {
+        "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103",
+        "base_helper_sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9",
+        "common_sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab"
+      },
+      "exit_code": 1,
+      "diagnostic_category": "phone-response-unavailable",
+      "output_check": "no-output",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T15:45:34.7948940Z"
+    },
+    {
+      "case": "wifi-after-network",
+      "result": "passed",
+      "transport": "wifi",
+      "route_mode": "authenticated-discovery",
+      "phone_observation": "Owner confirmed fresh native verification on first automatic discovery after restoration; no listener toggle or direct-address request.",
+      "started_utc": "2026-10-23T15:45:49.2443980Z",
+      "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103",
+      "provenance": {
+        "common_sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab",
+        "base_helper_sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9",
+        "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103"
+      },
+      "exit_code": 0,
+      "diagnostic_category": "other-error",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T15:45:58.0784990Z"
+    },
+    {
+      "case": "wifi-after-network",
+      "result": "passed",
+      "transport": "wifi",
+      "route_mode": "authenticated-discovery",
+      "phone_observation": "Owner confirmed no prompt during idle network cycle, then fresh prompt and verification on first automatic discovery, without listener operation.",
+      "started_utc": "2026-10-23T15:46:52.2114444Z",
+      "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103",
+      "provenance": {
+        "base_helper_sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9",
+        "common_sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab",
+        "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103"
+      },
+      "exit_code": 0,
+      "diagnostic_category": "other-error",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T15:47:03.4248920Z"
+    },
+    {
+      "case": "wifi-cancel",
+      "result": "passed",
+      "transport": "wifi",
+      "route_mode": "authenticated-discovery",
+      "phone_observation": "Owner confirmed a fresh native prompt and explicitly clicked Cancel.",
+      "started_utc": "2026-10-23T15:47:28.3915270Z",
+      "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103",
+      "provenance": {
+        "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103",
+        "base_helper_sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9",
+        "common_sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab"
+      },
+      "exit_code": 1,
+      "diagnostic_category": "phone-response-unavailable",
+      "output_check": "no-output",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T15:47:37.6379937Z"
+    },
+    {
+      "case": "wifi-after-cancel",
+      "result": "passed",
+      "transport": "wifi",
+      "route_mode": "authenticated-discovery",
+      "phone_observation": "Owner confirmed a fresh native prompt and completed verification after cancellation.",
+      "started_utc": "2026-10-23T15:48:00.1216599Z",
+      "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103",
+      "provenance": {
+        "base_helper_sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9",
+        "common_sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab",
+        "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103"
+      },
+      "exit_code": 0,
+      "diagnostic_category": "other-error",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T15:48:08.3283908Z"
+    },
+    {
+      "case": "wifi-background",
+      "result": "passed",
+      "transport": "wifi",
+      "route_mode": "authenticated-discovery",
+      "phone_observation": "Owner confirmed prompt dismissed on Home, then returned to foreground with listening restored.",
+      "started_utc": "2026-10-23T15:48:33.3771902Z",
+      "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103",
+      "provenance": {
+        "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103",
+        "common_sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab",
+        "base_helper_sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9"
+      },
+      "exit_code": 1,
+      "diagnostic_category": "phone-response-unavailable",
+      "output_check": "no-output",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T15:48:45.4311869Z"
+    },
+    {
+      "case": "wifi-after-background",
+      "result": "passed",
+      "transport": "wifi",
+      "route_mode": "authenticated-discovery",
+      "phone_observation": "Owner confirmed fresh native prompt and completed verification after foreground restoration.",
+      "started_utc": "2026-10-23T15:49:15.2603313Z",
+      "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103",
+      "provenance": {
+        "base_helper_sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9",
+        "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103",
+        "common_sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab"
+      },
+      "exit_code": 0,
+      "diagnostic_category": "other-error",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T15:49:22.3297568Z"
+    },
+    {
+      "case": "wifi-exact-request-replay",
+      "result": "passed",
+      "phone_observation": "Owner confirmed first fresh prompt verified, followed by no additional prompts during both exact signed-request replays.",
+      "started_utc": "2026-10-23T15:49:41.715813+00:00",
+      "driver_sha256": "9122808126dc8c9bede4c9ba531f36fb8394b64dbcb2b22b031e3661e7c0fdc8",
+      "original_exit_code": 0,
+      "original_output_check": "byte-identical",
+      "replays": [
+        {
+          "mode": "identical-frame",
+          "signed_request_byte_identical": true,
+          "expiry_remaining_seconds_at_send": 291,
+          "peer_result": "closed-without-response",
+          "elapsed_seconds": 0.016
+        },
+        {
+          "mode": "fresh-outer-session-same-signed-request",
+          "signed_request_byte_identical": true,
+          "expiry_remaining_seconds_at_send": 290,
+          "peer_result": "closed-without-response",
+          "elapsed_seconds": 0.016
+        }
+      ],
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T15:49:57.784199+00:00"
+    },
+    {
+      "case": "wifi-after-replay",
+      "result": "passed",
+      "transport": "wifi",
+      "route_mode": "authenticated-discovery",
+      "phone_observation": "Owner confirmed a fresh native prompt and completed verification for the new request after both replay rejections.",
+      "started_utc": "2026-10-23T15:51:06.8618874Z",
+      "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103",
+      "provenance": {
+        "common_sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab",
+        "base_helper_sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9",
+        "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103"
+      },
+      "exit_code": 0,
+      "diagnostic_category": "other-error",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T15:51:17.7400568Z"
+    }
+  ],
+  "interface_cycles": [
+    {
+      "case": "wifi-interface-cycle",
+      "started_utc": "2026-10-23T15:46:23.1137809Z",
+      "result": "passed",
+      "provenance": {
+        "base_helper_sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9",
+        "driver_sha256": "6779082c293f8bb53692adde65e07c5e80e19aaee113ae55e3cd8d89d50553e1",
+        "common_sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab"
+      },
+      "disabled_utc": "2026-10-23T15:46:28.5182648Z",
+      "disabled_and_ipv4_removed": true,
+      "wifi_ipv4_restored": true,
+      "finished_utc": "2026-10-23T15:46:37.3458397Z"
+    },
+    {
+      "case": "wifi-interface-cycle",
+      "started_utc": "2026-10-23T15:44:18.5554891Z",
+      "result": "passed",
+      "provenance": {
+        "base_helper_sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9",
+        "common_sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab",
+        "driver_sha256": "6779082c293f8bb53692adde65e07c5e80e19aaee113ae55e3cd8d89d50553e1"
+      },
+      "disabled_utc": "2026-10-23T15:44:18.7926699Z",
+      "disabled_and_ipv4_removed": true,
+      "wifi_ipv4_restored": true,
+      "finished_utc": "2026-10-23T15:44:27.4172084Z"
+    }
+  ],
+  "limits": [
+    "one Windows host and one Android device",
+    "same-network reconnection; not roaming to another AP or subnet",
+    "replay after success in one app session; not reboot persistence",
+    "not a published Beta 2 retest or release"
+  ]
+}

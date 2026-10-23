@@ -1,0 +1,260 @@
+{
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "ede69c415081c65d614f7cd196fc9a9c693d633d3bc744415db261ff44e4c1b2"
+    },
+    {
+      "path": "accepted-summary.json",
+      "sha256": "6c8ba87ffbdcc5888e0e9a728a2793d4be97266a4101660e46d5ada5e020de87"
+    },
+    {
+      "path": "attempts/wifi-after-background-7565ce16ff6f44129f645be655d06ae6.json",
+      "sha256": "0944e49e6c6ecfa2b0c5fe3f2ea28f353dc983531cf492459fe570197dac464b"
+    },
+    {
+      "path": "attempts/wifi-after-replay-88b92b420f144617b698bdba45321dbd.json",
+      "sha256": "6562ca5c1fe45108a88e6ade5dc88abb24a6889cd2588b86bad09f65796fad00"
+    },
+    {
+      "path": "attempts/wifi-approve-7a386215c93a4e44877e0067e6fd6666.json",
+      "sha256": "a924d243dc6e6516cb21982539c594d9162d07e1142ee336f846e87be6769da6"
+    },
+    {
+      "path": "attempts/wifi-background-8ff09f8d1b1d49abb47d80776d6564c8.json",
+      "sha256": "24d8f69957cbf2c5d84a4267080bb364706fcf73387cceaf4bd452550734c860"
+    },
+    {
+      "path": "attempts/wifi-interface-cycle-438812d875204e2b94684b7325dd23f5.json",
+      "sha256": "fe83d7ffd3b7d76d73cb74bfb5ce53447d75f259278767823490f049bfd48df3"
+    },
+    {
+      "path": "attempts/wifi-network-cancel-exact-replay-8602b61f63e3424481f52e5c763d644d.json",
+      "sha256": "c4df992b73472be9003239909f3bd937c352ef0ef1fdc893472d6c05ad0376fc"
+    },
+    {
+      "path": "attempts/wifi-network-cancel-exact-replay-d9851ddf254c42758776fd26678d3c15.json",
+      "sha256": "ff0d98ae216f82ce88720d1cbfd8e8cacbe7eb2080a52a2efd0e7c9a199dee29"
+    },
+    {
+      "path": "build/build-result.json",
+      "sha256": "b0f661952dc11f23ecd958961911ed024a4163a142efbc0c0b15589957672375"
+    },
+    {
+      "path": "build/build-source.json",
+      "sha256": "e91011d95d7275afad4df40958396dba9579fd4b0f42fe8ab03d7b62dbcb38a9"
+    },
+    {
+      "path": "build/delta/plugins/tauri-plugin-phone-identity/android/src/main/AndroidManifest.xml",
+      "sha256": "0b0ce1448bcb9d0c8276bf8ab5be2d01d04ccafe8174d6e9f645ff4285ed75b8"
+    },
+    {
+      "path": "build/delta/plugins/tauri-plugin-phone-identity/android/src/main/java/io/github/biulight/phone_identity/PhoneIdentityPlugin.kt",
+      "sha256": "ba35c70b9f8269d32bbd8418635f2c3d86f00a81e7784ddde87043f887d5afd9"
+    },
+    {
+      "path": "build/delta/plugins/tauri-plugin-phone-identity/android/src/main/java/io/github/biulight/phone_identity/UnwrapOperationState.kt",
+      "sha256": "8b7bac6c93b0ab86b66b7d7bec75784a42e30f95a1dbd4192923cdc540100c01"
+    },
+    {
+      "path": "build/delta/plugins/tauri-plugin-phone-identity/android/src/main/java/io/github/biulight/phone_identity/WifiNetworkMonitor.kt",
+      "sha256": "d92da81772d6bf908ace732d7201997fb3f8f73ae51056450895520f43159e5a"
+    },
+    {
+      "path": "build/delta/plugins/tauri-plugin-phone-identity/android/src/test/java/io/github/biulight/phone_identity/PairingStateStoreTest.kt",
+      "sha256": "28d52dca1de4665f3226c38a4649ab83fe7b3eab450552929cab917ff1a88640"
+    },
+    {
+      "path": "build/delta/plugins/tauri-plugin-phone-identity/android/src/test/java/io/github/biulight/phone_identity/UnwrapOperationStateTest.kt",
+      "sha256": "ac610348270cab650d11a33468c9c590d99fc4cd1b11b3b8f66d8a9010c600a2"
+    },
+    {
+      "path": "build/delta/plugins/tauri-plugin-phone-identity/android/src/test/java/io/github/biulight/phone_identity/WifiNetworkMonitorTest.kt",
+      "sha256": "66ef59e34e4310de5135d061d16527cb84de0a68bee0a6d6fd4681a97984ce04"
+    },
+    {
+      "path": "build/toolchain.json",
+      "sha256": "fefc64259b317bc61d4d621288ee48ae3f10f83c6728845e2ee3b6e416750a0c"
+    },
+    {
+      "path": "final-audit.json",
+      "sha256": "b1cbb07eb81db1900fb29c9d05896d891e7f3828348f6da14251caba5ca55f48"
+    },
+    {
+      "path": "harness-tests.json",
+      "sha256": "be69435d2618b2043a9849174ad1349eae79b27e6617a9f1876dfb26acb9a338"
+    },
+    {
+      "path": "installation.json",
+      "sha256": "1c63dcbaf65b30b2e18474eb85c05f4b167ed1ef6943154eed29e009732179b9"
+    },
+    {
+      "path": "jvm-tests.json",
+      "sha256": "c711da2598ba6b2d986bd16af3eb5ea944ec72fc0cd5350681be20f3bec325f1"
+    },
+    {
+      "path": "p2-review/scripts/check-p1-evidence.py",
+      "sha256": "37f14492de1762992823c4dc6dd25e1f09ece617a47566e163e907eca17bddd2"
+    },
+    {
+      "path": "p2-review/scripts/p1/replay-probe.py",
+      "sha256": "c6159dc1b1248fc23636e160d22084188e2507bd9210116203504aade336b53d"
+    },
+    {
+      "path": "p2-review/scripts/p1/replay_checks.py",
+      "sha256": "6919ce9b2623a0f99d96a8bf59a86bf6d4a23249eb3fc428fc7f87279f7b23cb"
+    },
+    {
+      "path": "p2-review/scripts/p1/replay_driver_fixture.py",
+      "sha256": "5e637b9660e97bd099e7219dfb422d544f61752b4b7ca014b8fca6717d0644df"
+    },
+    {
+      "path": "p2-review/scripts/test-p1-evidence.py",
+      "sha256": "1d8feb7280f3fd066361b395d2baa39e0f7dc74db88de3644e13a3f9694f6a70"
+    },
+    {
+      "path": "p2-review/scripts/test-p1-replay.py",
+      "sha256": "78773f08939e153e737084f49bc189821e31a3ee23dc77cdf5b77609c3f6ce52"
+    },
+    {
+      "path": "p2-review/validation.json",
+      "sha256": "eff167061b8c6e8b3bb5a573d51f9c43e8ef41daff159f7114a84b95a1b93288"
+    },
+    {
+      "path": "p2-time-review/README.md",
+      "sha256": "038c05fb1434a023a7f6e9615019878ee1e49b2cd4481b64aa2fa5f2bea94c02"
+    },
+    {
+      "path": "p2-time-review/runs/darwin-086b98868720493eb1e5664a8d0acb75.json",
+      "sha256": "3e69e6101275c649ab27eb4c802f9f182e5a2860381ed852068febab1aa26db1"
+    },
+    {
+      "path": "p2-time-review/runs/darwin-3748fb3763f7404a813d0f1278d63a77.json",
+      "sha256": "b92271e3d408cb3286c434d4f762f30f831b10beacfb08b92f79cf889ed164bc"
+    },
+    {
+      "path": "p2-time-review/runs/darwin-4f4f9c0635f24b87b4ed9f7183bf2c13.json",
+      "sha256": "24ad8e572e7016c1aa66cbf636af557468a9d55e2fd99aa2d44d7845eebe07e5"
+    },
+    {
+      "path": "p2-time-review/runs/windows-12ce3fe586994ba9b80042c28333c350.json",
+      "sha256": "b7197f51ce6b5ecc292cd9d8a19f8bd72a3a38132702a762abffe6c2443a04fc"
+    },
+    {
+      "path": "p2-time-review/runs/windows-69b091ea40df4146b723e8e81602a6f6.json",
+      "sha256": "341673df00533b2ff116c8947157104d416fd7d691ddea504c7bb11d8fb068d1"
+    },
+    {
+      "path": "p2-time-review/runs/windows-ca859cc8eae54f55a69532fe2fc3196d.json",
+      "sha256": "4d371070ea790d2a41aefc9942922d02b55ed3745362d8385aa607c9b100ec4a"
+    },
+    {
+      "path": "p2-time-review/scripts/check-p1-evidence.py",
+      "sha256": "3792cb3ba5dead0c85481b24023268f9254d68f9a2650b09b3fa25538b5d18c5"
+    },
+    {
+      "path": "p2-time-review/scripts/p1/common.ps1",
+      "sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab"
+    },
+    {
+      "path": "p2-time-review/scripts/p1/record-tool-validation.py",
+      "sha256": "ea0a8c8cc01366a20161dc2582d383949e6e79ea7f2c43c991fe6106f73ac1d3"
+    },
+    {
+      "path": "p2-time-review/scripts/p1/replay-probe.py",
+      "sha256": "902c625c2f12999614db89dae7879967734b0b1feff674e2b810c3e9c4ec084b"
+    },
+    {
+      "path": "p2-time-review/scripts/p1/replay_checks.py",
+      "sha256": "d1be8e0954ed48ee0fde7a71d0833d218932b8f104c93d9789655d144de84456"
+    },
+    {
+      "path": "p2-time-review/scripts/p1/replay_driver_fixture.py",
+      "sha256": "573ab802e40f5d06a6115bc4690de626ec49f31a6f6c7286ed2f3a6250a82757"
+    },
+    {
+      "path": "p2-time-review/scripts/p1/switch-wifi.ps1",
+      "sha256": "6779082c293f8bb53692adde65e07c5e80e19aaee113ae55e3cd8d89d50553e1"
+    },
+    {
+      "path": "p2-time-review/scripts/test-p1-evidence.py",
+      "sha256": "97d63054631c076606ed034a5063cd9bfb076bdabbc0ae1df7e9de67669cdb92"
+    },
+    {
+      "path": "p2-time-review/scripts/test-p1-replay.py",
+      "sha256": "892575e9a042c6f203186bd6d93c5394b24b0989edef721a2f6ca97e97d385cc"
+    },
+    {
+      "path": "p2-time-review/scripts/windows-minimal-acceptance.ps1",
+      "sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9"
+    },
+    {
+      "path": "p2-time-review/summary.json",
+      "sha256": "87a8eaf00e98b2312be17283866ed1e6a2d806cdf8a35b4948357d6b1dc2b0f4"
+    },
+    {
+      "path": "review-followup.json",
+      "sha256": "8649940349251383fc41935d9cb8e940180804dcace582e9e7e4d6e0c82bed79"
+    },
+    {
+      "path": "signing.json",
+      "sha256": "6c0c132145f321266c914c3816d4f95eb83d4f1fdcf4ced3ab77eea98b043c52"
+    },
+    {
+      "path": "sources/build-provenance.py",
+      "sha256": "6f2f13769a909971680d6c2b55e0e9c082d07d47cf806830324022a96c58faca"
+    },
+    {
+      "path": "sources/check-p1-evidence.py",
+      "sha256": "d39c9793082f72bef920b1ba5d4c59814f138cffa841bbc36fe5063e72d173d7"
+    },
+    {
+      "path": "sources/common.ps1",
+      "sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab"
+    },
+    {
+      "path": "sources/disconnect-current.ps1",
+      "sha256": "100d8f754cf6a40f79f509b524b2836d52adeb9c54a2568e614671868106c509"
+    },
+    {
+      "path": "sources/hostile-first.ps1",
+      "sha256": "64c840b483e5567883eef188aa97c3c896f228b37a584e0a8330787d90b57cf4"
+    },
+    {
+      "path": "sources/replay-probe-45f5fed664be.py",
+      "sha256": "45f5fed664bed76318e46b9a9bcde24ba2437cf51091ac9e8bbc1c3017b31fc5"
+    },
+    {
+      "path": "sources/replay-probe.py",
+      "sha256": "e851a6ba8f0bb809286c72f1c5c11203d4c0542664b48df617bc7c56bf2928de"
+    },
+    {
+      "path": "sources/replay_checks.py",
+      "sha256": "dcabba4960d462944bc6d40502b185deb0c95a32d7b10470ac3d85f3c3930040"
+    },
+    {
+      "path": "sources/step-regression.ps1",
+      "sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103"
+    },
+    {
+      "path": "sources/switch-wifi.ps1",
+      "sha256": "6779082c293f8bb53692adde65e07c5e80e19aaee113ae55e3cd8d89d50553e1"
+    },
+    {
+      "path": "sources/test-p1-acceptance.ps1",
+      "sha256": "f8863ec4ad7e7b19c0e41bdc5015b7c66aa9edf93d1f9ca317e9dd5c50492e25"
+    },
+    {
+      "path": "sources/test-p1-evidence.py",
+      "sha256": "ba6540b784dbc320e533e5ac633e7ae4a1909729225087c9f9e97c49d68b1044"
+    },
+    {
+      "path": "sources/test-p1-replay.py",
+      "sha256": "ddbda9578f4426c5f08ecbf06535d2d9b4b38349713612ea6856049701bd8c69"
+    },
+    {
+      "path": "sources/windows-minimal-acceptance.ps1",
+      "sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9"
+    }
+  ]
+}

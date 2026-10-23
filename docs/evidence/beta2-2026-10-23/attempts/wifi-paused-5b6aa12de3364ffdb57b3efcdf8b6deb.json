@@ -1,0 +1,13 @@
+{
+  "case": "wifi-paused",
+  "result": "automated-checks-passed-awaiting-observation",
+  "transport": "wifi",
+  "phone_observation": "pending",
+  "started_utc": "2026-10-23T14:10:08.0878581Z",
+  "driver_sha256": "0cb6980265071dae6da8e28fbad8d0bf23d387c229eaa2b83880b8b9edb1ad80",
+  "exit_code": 1,
+  "diagnostic_category": "other-error",
+  "output_check": "no-output",
+  "adb_reverse_count": 0,
+  "finished_utc": "2026-10-23T14:10:11.4220494Z"
+}

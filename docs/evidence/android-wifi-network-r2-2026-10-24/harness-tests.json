@@ -1,0 +1,13 @@
+{
+  "macOS": {
+    "checked_adb_scenarios": 8,
+    "replay_assertions": 3,
+    "evidence_integrity_tests": 4
+  },
+  "Windows": {
+    "checked_adb_scenarios": 8,
+    "replay_assertions": 3,
+    "evidence_integrity_tests": 4
+  },
+  "result": "passed"
+}

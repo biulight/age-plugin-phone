@@ -1,0 +1,13 @@
+{
+  "case": "wifi-timeout",
+  "result": "automated-checks-passed-awaiting-observation",
+  "transport": "wifi",
+  "phone_observation": "pending",
+  "started_utc": "2026-10-23T14:00:55.4972252Z",
+  "driver_sha256": "f06be86ea46750f2daf5233171dd15d73c86c6bbd414381731e0a63251745d7e",
+  "exit_code": 1,
+  "diagnostic_category": "other-error",
+  "output_check": "no-output",
+  "adb_reverse_count": 0,
+  "finished_utc": "2026-10-23T14:01:59.2777999Z"
+}

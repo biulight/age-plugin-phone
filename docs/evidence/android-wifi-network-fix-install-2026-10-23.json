@@ -1,0 +1,7 @@
+{
+  "case": "network-fix-in-place-install",
+  "baseline_apk_sha256": "b8c3011739914249f50d81fed4727f438a93b0b5839eed8188e645d5637f1b16",
+  "uninstall_or_data_clear": false,
+  "result": "passed",
+  "installed_apk_sha256": "87a9262a724aaf2d3fad191fca8ba697e03ea39b34608a22eca09458c9caa95f"
+}

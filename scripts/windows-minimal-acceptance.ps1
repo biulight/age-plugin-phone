@@ -6,7 +6,7 @@ Owner-assisted synthetic-data regression for one verified Windows/Android candid
 Run after independent signature verification and fresh, full-fingerprint managed setup.
 Never run under Start-Transcript. Only the JSON report is intended for shared evidence.
 The script never confirms pairing, performs phone authentication, edits replay state,
-installs an APK, changes firewall rules, or deletes a pairing. See the alpha.4 checklist.
+installs an APK, changes firewall rules, or deletes a pairing. See docs/beta2-harness.md.
 #>
 [CmdletBinding()]
 param(
@@ -25,11 +25,25 @@ param(
     [string]$AdbSerial,
     [string]$AgeExe = 'age.exe',
     [string]$AgeKeygenExe = 'age-keygen.exe',
-    [string]$AdbExe = 'adb.exe'
+    [string]$AdbExe = 'adb.exe',
+    [string]$NonmatchingIdentityStub,
+    [ValidateSet('phone', 'tag')][string]$RecipientMode = 'phone'
 )
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+function Get-AcceptanceDiagnostic {
+    param([string]$Diagnostic)
+    # Only an exact ordinary age miss is accepted as no-match. Never expose raw stderr.
+    $lines = @($Diagnostic -split '\r?\n' | Where-Object { $_ -ne '' })
+    if ($lines.Count -eq 2 -and $lines[0] -ceq 'age: error: no identity matched any of the recipients' -and
+        $lines[1] -ceq 'age: report unexpected or unhelpful errors at https://filippo.io/age/report') {
+        return 'identity-miss'
+    }
+    if ([string]::IsNullOrEmpty($Diagnostic)) { return 'none' }
+    return 'other-error'
+}
 
 function Invoke-AcceptanceProcess {
     param([string]$File, [string[]]$Arguments, [int]$TimeoutSeconds = 120)
@@ -53,15 +67,17 @@ function Invoke-AcceptanceProcess {
             throw 'harness_timeout' # Never count a killed process as an expected negative.
         }
         $output = $stdout.GetAwaiter().GetResult()
-        $null = $stderr.GetAwaiter().GetResult() # Do not print or save native diagnostics.
-        return [pscustomobject]@{ ExitCode = $process.ExitCode; Output = $output }
+        $category = Get-AcceptanceDiagnostic ($stderr.GetAwaiter().GetResult())
+        return [pscustomobject]@{ ExitCode = $process.ExitCode; Output = $output; DiagnosticCategory = $category }
     } finally {
         $process.Dispose()
     }
 }
 
 function Assert-AcceptanceOutput {
-    param([int]$ExitCode, [string]$OutputPath, [string]$Digest, [bool]$ExpectSuccess)
+    param([int]$ExitCode, [string]$OutputPath, [string]$Digest, [bool]$ExpectSuccess,
+        [string]$StandardOutput = '', [string]$DiagnosticCategory = 'none', [bool]$RequireIdentityMiss = $false)
+    if ($StandardOutput.Length -ne 0) { throw 'unexpected_stdout' }
     $exists = Test-Path -LiteralPath $OutputPath -PathType Leaf
     if ($ExpectSuccess) {
         if ($ExitCode -ne 0 -or -not $exists) { throw 'decrypt_failed' }
@@ -70,7 +86,20 @@ function Assert-AcceptanceOutput {
         }
     } elseif ($ExitCode -eq 0 -or ($exists -and (Get-Item -LiteralPath $OutputPath).Length -ne 0)) {
         throw 'negative_case_released_output'
+    } elseif ($ExitCode -ne 1) {
+        throw 'unexpected_exit_code' # A crashed tool is not an expected age rejection.
     }
+    if ($RequireIdentityMiss -and $DiagnosticCategory -cne 'identity-miss') { throw 'unexpected_identity_failure' }
+}
+
+function Assert-AcceptanceIdentity {
+    param([string]$File, [string]$ExpectedRecipient, [bool]$Matching)
+    # Use the verified product's strict public-stub decoder, not a second parser here.
+    # This command never opens private state, connects to a phone or asks for authentication.
+    $result = Invoke-AcceptanceProcess $PluginExe @('recipients', '--identity', $File, '--recipient-type', $RecipientMode)
+    if ($result.ExitCode -ne 0 -or $result.DiagnosticCategory -cne 'none' -or
+        $result.Output.Trim() -cnotmatch "^age1${RecipientMode}[0-9a-z]+$") { throw 'invalid_identity_stub' }
+    if (($result.Output.Trim() -ceq $ExpectedRecipient) -ne $Matching) { throw 'identity_recipient_mismatch' }
 }
 
 function Request-AcceptanceConfirmation {
@@ -81,7 +110,7 @@ function Request-AcceptanceConfirmation {
         $message = "$Instruction`n`nSelect Yes only to confirm $Confirmation."
         $result = [System.Windows.MessageBox]::Show(
             $message,
-            "age-plugin-phone alpha acceptance — $Confirmation",
+            "age-plugin-phone acceptance — $Confirmation",
             [System.Windows.MessageBoxButton]::YesNo,
             [System.Windows.MessageBoxImage]::Warning,
             [System.Windows.MessageBoxResult]::No
@@ -106,16 +135,26 @@ function Invoke-MinimalAcceptance {
         if ($hash -cnotmatch '^[0-9a-f]{64}$') { throw 'Invalid expected artifact SHA-256.' }
     }
     if ($Commit -cnotmatch '^[0-9a-f]{40}$' -or $WorkflowRun -notmatch '^[1-9][0-9]*$' -or
-        $WorkflowAttempt -notmatch '^[1-9][0-9]*$' -or $Version -notmatch '^\d+\.\d+\.\d+-alpha\.\d+$') {
+        $WorkflowAttempt -notmatch '^[1-9][0-9]*$' -or $Version -cnotmatch '^\d+\.\d+\.\d+-(alpha|beta)\.[1-9][0-9]*$') {
         throw 'Missing or invalid candidate provenance.'
     }
-    foreach ($path in @($PluginExe, $Apk, $IdentityStub)) {
+    if ($Version -cmatch '-beta\.' -and -not $NonmatchingIdentityStub) {
+        throw 'Beta acceptance requires a nonmatching identity stub.'
+    }
+    $stubPaths = @($IdentityStub)
+    if ($NonmatchingIdentityStub) {
+        $stubPaths += $NonmatchingIdentityStub
+        if ([IO.Path]::GetFullPath($IdentityStub) -ieq [IO.Path]::GetFullPath($NonmatchingIdentityStub)) {
+            throw 'Matching and nonmatching stubs must be distinct.'
+        }
+    }
+    foreach ($path in (@($PluginExe, $Apk) + $stubPaths)) {
         if (-not [IO.Path]::IsPathFullyQualified($path) -or -not (Test-Path -LiteralPath $path -PathType Leaf)) {
             throw 'Candidate and public stub paths must be absolute existing files.'
         }
     }
     if ([IO.Path]::GetFileName($PluginExe) -cne 'age-plugin-phone.exe' -or
-        $PhoneRecipient -cnotmatch '^age1phone[0-9a-z]+$') { throw 'Invalid plugin name or phone recipient.' }
+        $PhoneRecipient -cnotmatch "^age1${RecipientMode}[0-9a-z]+$") { throw 'Invalid plugin name or recipient mode.' }
     if ((Get-FileHash -LiteralPath $PluginExe).Hash.ToLowerInvariant() -cne $ExpectedExeSha256 -or
         (Get-FileHash -LiteralPath $Apk).Hash.ToLowerInvariant() -cne $ExpectedApkSha256) {
         throw 'Candidate artifact digest mismatch.'
@@ -125,7 +164,7 @@ function Invoke-MinimalAcceptance {
         throw 'Configuration root must be absolute and match the fresh setup.'
     }
     foreach ($name in @('AgeExe', 'AgeKeygenExe', 'AdbExe')) {
-        $resolved = (Get-Command (Get-Variable $name -ValueOnly) -CommandType Application -ErrorAction Stop).Source
+        $resolved = (Get-Command (Get-Variable $name -ValueOnly) -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
         Set-Variable $name $resolved
     }
     if ([IO.Path]::GetFileName($AdbExe) -ine 'adb.exe') { throw 'ADB must retain its executable name.' }
@@ -133,7 +172,8 @@ function Invoke-MinimalAcceptance {
     # Reserve a new report before creating synthetic files or invoking any phone operation.
     $reportStream = [IO.File]::Open($ReportPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::Read)
     $report = [ordered]@{
-        schema_version = 1; scope = 'owner-only-minimal-unwrap'; status = 'incomplete'
+        schema_version = 2; scope = 'owner-only-minimal-unwrap'; status = 'incomplete'
+        recipient_mode = $RecipientMode; multi_identity = [bool]$NonmatchingIdentityStub
         version = $Version; commit = $Commit; workflow_run = $WorkflowRun; workflow_attempt = $WorkflowAttempt
         exe_sha256 = $ExpectedExeSha256; apk_sha256 = $ExpectedApkSha256
         started_utc = [DateTime]::UtcNow.ToString('o'); rows = [Collections.Generic.List[object]]::new()
@@ -144,6 +184,10 @@ function Invoke-MinimalAcceptance {
     foreach ($name in $environmentNames) { $savedEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, 'Process') }
     $fixture = $null
     $stage = 'preflight'
+    $multiCases = @('nonmatch-only', 'nonmatch-then-match', 'nonmatch-then-cancel')
+    $plannedCases = @('preflight', 'encrypt', 'independent-recovery') + $multiCases + @(
+        'usb-approve-1', 'usb-approve-2', 'usb-cancel', 'usb-after-cancel',
+        'wifi-approve', 'wifi-background', 'wifi-after-background', 'wifi-paused', 'final-audit')
     try {
         $env:PATH = "$(Split-Path -Parent $PluginExe);$(Split-Path -Parent $AdbExe);$env:PATH"
         # A current-directory executable can precede PATH on Windows.
@@ -163,6 +207,8 @@ function Invoke-MinimalAcceptance {
         $env:AGE_PLUGIN_PHONE_TRANSPORT = 'adb'
         $result = Invoke-AcceptanceProcess $PluginExe @('--version')
         if ($result.ExitCode -ne 0 -or $result.Output.Trim() -cne "age-plugin-phone $Version") { throw 'wrong_plugin_version' }
+        Assert-AcceptanceIdentity $IdentityStub $PhoneRecipient $true
+        if ($NonmatchingIdentityStub) { Assert-AcceptanceIdentity $NonmatchingIdentityStub $PhoneRecipient $false }
         $result = Invoke-AcceptanceProcess $PluginExe @('status')
         if ($result.ExitCode -ne 0 -or $result.Output -notmatch '(?m)^windows_alpha_support: supported\r?$') {
             throw 'capability_probe_failed'
@@ -178,6 +224,9 @@ function Invoke-MinimalAcceptance {
         }
         Assert-NoReverseRules
         Confirm-AcceptanceObservation 'Verified signatures/provenance; this exact normal APK is installed; status supports TPM/StrongBox; fresh setup compared the complete fingerprint on both endpoints.'
+        if ($NonmatchingIdentityStub) {
+            Confirm-AcceptanceObservation 'The extra stub is a valid configured phone identity that does not match this recipient (for tag, a different phone identity key, not another pairing to the same key). Its private state is available. Observe the phone during the next attempts.'
+        }
         $report.rows.Add(@{ case = 'preflight'; result = 'passed'; observer = $true })
         $fixture = Join-Path ([IO.Path]::GetTempPath()) ('age-phone-minimal-' + [Guid]::NewGuid().ToString('N'))
         $null = New-Item -ItemType Directory -Path $fixture
@@ -193,13 +242,22 @@ function Invoke-MinimalAcceptance {
         if ($result.ExitCode -ne 0 -or $result.Output.Trim() -cnotmatch '^age1[0-9a-z]+$') { throw 'recovery_recipient_failed' }
         $result = Invoke-AcceptanceProcess $AgeExe @('-e', '-r', $PhoneRecipient, '-r', $result.Output.Trim(), '-o', $ciphertext, $probe)
         if ($result.ExitCode -ne 0) { throw 'encryption_failed' }
+        $report.rows.Add(@{ case = $stage; result = 'passed' })
         $stage = 'independent-recovery'
         $output = Join-Path $fixture 'recovery.bin'
         $result = Invoke-AcceptanceProcess $AgeExe @('-d', '-i', $recovery, '-o', $output, $ciphertext)
-        Assert-AcceptanceOutput $result.ExitCode $output $digest $true
+        Assert-AcceptanceOutput $result.ExitCode $output $digest $true $result.Output $result.DiagnosticCategory
         $report.rows.Add(@{ case = $stage; result = 'passed'; output_sha256 = $digest.ToLowerInvariant() })
 
-        $cases = @(
+        $cases = @()
+        if ($NonmatchingIdentityStub) {
+            $cases += @(
+                @('nonmatch-only', 'adb', $false, 'Expect an identity miss with no phone prompt or observed phone contact. Do not approve anything.'),
+                @('nonmatch-then-match', 'adb', $true, 'Expect only the matching identity to request fresh native verification; approve once.'),
+                @('nonmatch-then-cancel', 'adb', $false, 'Wait for the matching identity native prompt, then Cancel. Expect failure without another prompt.')
+            )
+        }
+        $cases += @(
             @('usb-approve-1', 'adb', $true, 'Approve on the phone using fresh biometrics.'),
             @('usb-approve-2', 'adb', $true, 'Approve again; a NEW biometric operation is required.'),
             @('usb-cancel', 'adb', $false, 'Wait for the native authorization prompt, then Cancel it.'),
@@ -214,15 +272,23 @@ function Invoke-MinimalAcceptance {
             Write-Host "$stage`: $($case[3])"
             if (-not (Request-AcceptanceConfirmation 'Start this single attempt now.' 'READY')) { throw 'operator_stopped' }
             $env:AGE_PLUGIN_PHONE_TRANSPORT = $case[1]
+            if ($case[1] -eq 'adb' -and $AdbSerial) { $env:AGE_PLUGIN_PHONE_ADB_SERIAL = $AdbSerial }
+            else { Remove-Item Env:AGE_PLUGIN_PHONE_ADB_SERIAL -ErrorAction SilentlyContinue }
             $output = Join-Path $fixture "$stage.bin"
             $timer = [Diagnostics.Stopwatch]::StartNew()
-            $result = Invoke-AcceptanceProcess $AgeExe @('-d', '-i', $IdentityStub, '-o', $output, $ciphertext)
+            $identityArguments = @('-i', $IdentityStub)
+            if ($stage -eq 'nonmatch-only') { $identityArguments = @('-i', $NonmatchingIdentityStub) }
+            elseif ($stage -in @('nonmatch-then-match', 'nonmatch-then-cancel')) {
+                $identityArguments = @('-i', $NonmatchingIdentityStub, '-i', $IdentityStub)
+            }
+            $result = Invoke-AcceptanceProcess $AgeExe (@('-d') + $identityArguments + @('-o', $output, $ciphertext))
             $timer.Stop()
-            Assert-AcceptanceOutput $result.ExitCode $output $digest $case[2]
+            Assert-AcceptanceOutput $result.ExitCode $output $digest $case[2] $result.Output $result.DiagnosticCategory ($stage -eq 'nonmatch-only')
             Assert-NoReverseRules
             Confirm-AcceptanceObservation "$($case[3]) Observed the intended event and recovery to usable phone UI."
             $report.rows.Add(@{ case = $stage; result = 'passed'; exit_code = $result.ExitCode
-                elapsed_ms = $timer.ElapsedMilliseconds; observer = $true; adb_reverse_count = 0 })
+                elapsed_ms = $timer.ElapsedMilliseconds; observer = $true; adb_reverse_count = 0
+                diagnostic_category = $result.DiagnosticCategory })
         }
         $stage = 'final-audit'
         Assert-NoReverseRules
@@ -232,16 +298,22 @@ function Invoke-MinimalAcceptance {
     } catch {
         $category = 'harness_error'
         $allowed = @('process_start_failed', 'harness_timeout', 'decrypt_failed', 'digest_mismatch',
-            'negative_case_released_output', 'observation_not_confirmed', 'shadowed_plugin', 'shadowed_adb',
+            'negative_case_released_output', 'unexpected_exit_code', 'observation_not_confirmed', 'shadowed_plugin', 'shadowed_adb',
             'wrong_plugin_version', 'capability_probe_failed', 'adb_selection_failed', 'adb_reverse_residue',
             'recovery_generation_failed', 'recovery_recipient_failed', 'encryption_failed', 'operator_stopped',
-            'owner_dialog_unavailable')
+            'owner_dialog_unavailable', 'unexpected_stdout', 'unexpected_identity_failure',
+            'invalid_identity_stub', 'identity_recipient_mismatch')
         if ($_.Exception.Message -cin $allowed) { $category = $_.Exception.Message }
         $report.rows.Add(@{ case = $stage; result = 'failed-or-unobserved'; category = $category })
         $report.status = 'failed'
         # Original exceptions/command arguments may contain private paths; never put them in evidence.
         throw "Minimal acceptance stopped at $stage ($category). Preserve this failed report; follow the checklist for diagnosis and a fresh run."
     } finally {
+        foreach ($planned in $plannedCases) {
+            if ($planned -notin @($report.rows | ForEach-Object { $_.case })) {
+                $report.rows.Add(@{ case = $planned; result = 'not-run' })
+            }
+        }
         foreach ($name in $environmentNames) {
             # PowerShell's .NET string binding can turn $null into an empty string; newer
             # Windows runtimes preserve empty variables. Restore absence explicitly.

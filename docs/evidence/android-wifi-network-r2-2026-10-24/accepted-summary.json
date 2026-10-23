@@ -1,0 +1,56 @@
+{
+  "status": "scoped-physical-regression-passed",
+  "accepted": [
+    {
+      "case": "wifi-approve",
+      "started_utc": "2026-10-23T19:47:18.9948144Z",
+      "attempt_file": "wifi-approve-7a386215c93a4e44877e0067e6fd6666.json",
+      "attempt_sha256": "a924d243dc6e6516cb21982539c594d9162d07e1142ee336f846e87be6769da6",
+      "owner_observation": "Owner confirmed a new native verification prompt and completed verification."
+    },
+    {
+      "case": "wifi-network-cancel-exact-replay",
+      "started_utc": "2026-10-23T19:50:51.730640+00:00",
+      "attempt_file": "wifi-network-cancel-exact-replay-8602b61f63e3424481f52e5c763d644d.json",
+      "attempt_sha256": "c4df992b73472be9003239909f3bd937c352ef0ef1fdc893472d6c05ad0376fc",
+      "owner_observation": "Owner confirmed the first fresh native prompt appeared, disappeared after network switching, no subsequent prompt appeared for either replay, and no phone interaction occurred."
+    },
+    {
+      "case": "wifi-after-replay",
+      "started_utc": "2026-10-23T19:53:43.3548433Z",
+      "attempt_file": "wifi-after-replay-88b92b420f144617b698bdba45321dbd.json",
+      "attempt_sha256": "6562ca5c1fe45108a88e6ade5dc88abb24a6889cd2588b86bad09f65796fad00",
+      "owner_observation": "Owner confirmed a new native prompt, completed verification and did not toggle the listener. Automated discovery produced byte-identical output."
+    },
+    {
+      "case": "wifi-background",
+      "started_utc": "2026-10-23T19:58:08.5133766Z",
+      "attempt_file": "wifi-background-8ff09f8d1b1d49abb47d80776d6564c8.json",
+      "attempt_sha256": "24d8f69957cbf2c5d84a4267080bb364706fcf73387cceaf4bd452550734c860",
+      "owner_observation": "Owner confirmed prompt dismissed on Home, no verification, returned foreground with listening restored. Desktop failed with no output."
+    },
+    {
+      "case": "wifi-after-background",
+      "started_utc": "2026-10-23T19:58:50.5980367Z",
+      "attempt_file": "wifi-after-background-7565ce16ff6f44129f645be655d06ae6.json",
+      "attempt_sha256": "0944e49e6c6ecfa2b0c5fe3f2ea28f353dc983531cf492459fe570197dac464b",
+      "owner_observation": "Owner confirmed a new native prompt and completed verification after foreground restoration. Automatic discovery produced byte-identical output."
+    }
+  ],
+  "excluded": [
+    {
+      "case": "wifi-network-cancel-exact-replay",
+      "started_utc": "2026-10-23T19:48:04.918414+00:00",
+      "attempt_file": "wifi-network-cancel-exact-replay-d9851ddf254c42758776fd26678d3c15.json",
+      "attempt_sha256": "ff0d98ae216f82ce88720d1cbfd8e8cacbe7eb2080a52a2efd0e7c9a199dee29",
+      "owner_observation": "Owner saw a new native prompt then automatic dismissal without interaction before any network cycle. No cycle was executed; script failed closed and did not replay. Not network-cancellation evidence."
+    }
+  ],
+  "limits": [
+    "One Android phone and Windows host",
+    "No AP/subnet roaming or physical app-restart replay campaign",
+    "Replay relay uses an explicit endpoint; subsequent recovery uses authenticated discovery",
+    "Registration failure and callback interleavings covered by deterministic JVM tests, not forced in the phone OS"
+  ],
+  "final_owner_check": "passed: auto-listen paused; page controls operational"
+}

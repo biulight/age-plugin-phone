@@ -1,0 +1,20 @@
+[
+  {
+    "artifact": "published",
+    "sha256": "b8c3011739914249f50d81fed4727f438a93b0b5839eed8188e645d5637f1b16",
+    "signer_sha256": "9a3e5a00a0a363ca58bbe0abfa1bbc0e36cbdce58e314c0c0dbfa94baff1d58b",
+    "signature_verified": true,
+    "package": "io.github.biulight.age_plugin_phone",
+    "version_code": "1000",
+    "version": "0.1.0-beta.2"
+  },
+  {
+    "artifact": "installed_before",
+    "sha256": "d7b200514d913e9fcbc7da7965f762854b64d60ecdc3fbfa832815206935d5f0",
+    "signer_sha256": "9a3e5a00a0a363ca58bbe0abfa1bbc0e36cbdce58e314c0c0dbfa94baff1d58b",
+    "signature_verified": true,
+    "package": "io.github.biulight.age_plugin_phone",
+    "version_code": "1000",
+    "version": "0.1.0-beta.1"
+  }
+]

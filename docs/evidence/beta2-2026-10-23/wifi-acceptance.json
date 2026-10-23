@@ -1,0 +1,321 @@
+{
+  "accepted": [
+    {
+      "case": "wifi-after-background",
+      "result": "passed",
+      "transport": "wifi",
+      "phone_observation": "user confirmed fresh native prompt and completed verification after foreground restoration",
+      "started_utc": "2026-10-23T14:00:14.9594869Z",
+      "driver_sha256": "f06be86ea46750f2daf5233171dd15d73c86c6bbd414381731e0a63251745d7e",
+      "exit_code": 0,
+      "diagnostic_category": "other-error",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T14:00:28.2303006Z"
+    },
+    {
+      "case": "wifi-after-replay",
+      "result": "passed",
+      "transport": "wifi",
+      "phone_observation": "user confirmed a fresh native prompt and completed verification for a new direct Wi-Fi request after both replay rejections",
+      "started_utc": "2026-10-23T14:50:18.4119665Z",
+      "driver_sha256": "7392089350fc341017d746b9d543bd345faa95384959de55c8541681c6301f4b",
+      "exit_code": 0,
+      "diagnostic_category": "other-error",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T14:50:28.6117726Z"
+    },
+    {
+      "case": "wifi-after-timeout",
+      "result": "passed",
+      "transport": "wifi",
+      "phone_observation": "user confirmed a fresh native prompt and completed verification after timeout",
+      "started_utc": "2026-10-23T14:02:25.5925943Z",
+      "driver_sha256": "f06be86ea46750f2daf5233171dd15d73c86c6bbd414381731e0a63251745d7e",
+      "exit_code": 0,
+      "diagnostic_category": "other-error",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T14:02:59.1777613Z"
+    },
+    {
+      "case": "wifi-after-network",
+      "result": "passed",
+      "transport": "wifi",
+      "phone_observation": {
+        "accepted_attempt_started_utc": "2026-10-23T14:32:38.1734357Z",
+        "observation": "user confirmed fresh native prompt and completed verification",
+        "earlier_attempt": "quick failure in approximately 3 seconds; cause not established, not attributed to user inattention"
+      },
+      "started_utc": "2026-10-23T14:32:38.1734357Z",
+      "driver_sha256": "8790794feb5357598399418dc8a72428c1de9bb68ae2601ee51c839c5e6237c8",
+      "exit_code": 0,
+      "diagnostic_category": "other-error",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T14:32:44.6328750Z"
+    },
+    {
+      "case": "usb-after-wifi-failure",
+      "result": "passed",
+      "transport": "adb",
+      "phone_observation": "user confirmed a fresh native prompt and completed verification for explicit USB recovery while Wi-Fi auto-listen remained paused",
+      "started_utc": "2026-10-23T14:11:01.5196283Z",
+      "driver_sha256": "0cb6980265071dae6da8e28fbad8d0bf23d387c229eaa2b83880b8b9edb1ad80",
+      "exit_code": 0,
+      "diagnostic_category": "other-error",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T14:11:07.9436381Z"
+    },
+    {
+      "case": "wifi-repeat",
+      "result": "passed",
+      "transport": "wifi",
+      "phone_observation": "user confirmed another fresh native biometric prompt and completed verification",
+      "started_utc": "2026-10-23T13:57:38.4061423Z",
+      "driver_sha256": "f06be86ea46750f2daf5233171dd15d73c86c6bbd414381731e0a63251745d7e",
+      "exit_code": 0,
+      "diagnostic_category": "other-error",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T13:57:45.9815526Z"
+    },
+    {
+      "case": "wifi-after-disconnect",
+      "result": "passed",
+      "transport": "wifi",
+      "phone_observation": "user confirmed a fresh native prompt and completed verification for a new Wi-Fi request after peer disconnection",
+      "started_utc": "2026-10-23T14:26:56.6559728Z",
+      "driver_sha256": "8790794feb5357598399418dc8a72428c1de9bb68ae2601ee51c839c5e6237c8",
+      "exit_code": 0,
+      "diagnostic_category": "other-error",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T14:27:03.8738998Z"
+    },
+    {
+      "case": "wifi-hostile-first",
+      "result": "passed",
+      "started_utc": "2026-10-23T14:19:40.4160941Z",
+      "phone_observation": {
+        "accepted_attempt_started_utc": "2026-10-23T14:19:40.4160941Z",
+        "observation": "user confirmed no native verification prompt and no manual listener restart or toggle",
+        "earlier_attempt": "not accepted: user was not watching phone"
+      },
+      "invalid_header_sent": true,
+      "peer_result": "closed-without-response",
+      "finished_utc": "2026-10-23T14:19:45.7985878Z"
+    },
+    {
+      "case": "wifi-disconnect",
+      "result": "passed",
+      "transport": "wifi",
+      "phone_observation": "user confirmed fresh native prompt was awaiting verification, then automatically dismissed upon Windows test-plugin termination without any phone interaction",
+      "started_utc": "2026-10-23T14:25:52.4030724Z",
+      "driver_sha256": "8790794feb5357598399418dc8a72428c1de9bb68ae2601ee51c839c5e6237c8",
+      "exit_code": 1,
+      "diagnostic_category": "other-error",
+      "output_check": "no-output",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T14:26:28.3297463Z"
+    },
+    {
+      "case": "wifi-after-hostile",
+      "result": "passed",
+      "transport": "wifi",
+      "phone_observation": "user confirmed a fresh native verification prompt and completed verification after invalid connection rejection, without manually restarting listener",
+      "started_utc": "2026-10-23T14:20:30.7809311Z",
+      "driver_sha256": "dfcc5cfc44645089a67fa5fd1aa1e6e7bf6089661c97957f5bbac2f9aba76c8d",
+      "exit_code": 0,
+      "diagnostic_category": "other-error",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T14:20:38.1249341Z"
+    },
+    {
+      "case": "wifi-paused",
+      "result": "passed",
+      "transport": "wifi",
+      "phone_observation": "user paused Wi-Fi auto-listen, kept USB connected and app foreground, and confirmed no native verification prompt during the failed Wi-Fi request",
+      "started_utc": "2026-10-23T14:10:08.0878581Z",
+      "driver_sha256": "0cb6980265071dae6da8e28fbad8d0bf23d387c229eaa2b83880b8b9edb1ad80",
+      "exit_code": 1,
+      "diagnostic_category": "other-error",
+      "output_check": "no-output",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T14:10:11.4220494Z"
+    },
+    {
+      "case": "wifi-exact-request-replay",
+      "result": "passed",
+      "phone_observation": "user confirmed fresh native verification for original request and no new prompts during both immediate exact signed-request replays",
+      "started_utc": "2026-10-23T14:49:15.520422+00:00",
+      "original_exit_code": 0,
+      "original_output_check": "byte-identical",
+      "replays": [
+        {
+          "mode": "identical-frame",
+          "signed_request_byte_identical": true,
+          "expiry_remaining_seconds_at_send": 295,
+          "peer_result": "closed-without-response",
+          "elapsed_seconds": 0.015
+        },
+        {
+          "mode": "fresh-outer-session-same-signed-request",
+          "signed_request_byte_identical": true,
+          "expiry_remaining_seconds_at_send": 294,
+          "peer_result": "closed-without-response",
+          "elapsed_seconds": 0.015
+        }
+      ],
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T14:49:26.426376+00:00"
+    },
+    {
+      "case": "wifi-network",
+      "result": "passed",
+      "transport": "wifi",
+      "phone_observation": {
+        "accepted_attempt_started_utc": "2026-10-23T14:29:29.1006774Z",
+        "observation": "user confirmed fresh prompt awaiting verification before ADB Wi-Fi interface disable/enable, and automatic dismissal without phone interaction",
+        "earlier_attempt": "not accepted as network interruption: quick-settings panel dismissed prompt first"
+      },
+      "started_utc": "2026-10-23T14:29:29.1006774Z",
+      "driver_sha256": "8790794feb5357598399418dc8a72428c1de9bb68ae2601ee51c839c5e6237c8",
+      "exit_code": 1,
+      "diagnostic_category": "other-error",
+      "output_check": "no-output",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T14:31:02.6660569Z"
+    },
+    {
+      "case": "wifi-approve",
+      "result": "passed",
+      "transport": "wifi",
+      "phone_observation": "user confirmed fresh native biometric prompt and completed verification",
+      "started_utc": "2026-10-23T13:57:09.5104139Z",
+      "driver_sha256": "f06be86ea46750f2daf5233171dd15d73c86c6bbd414381731e0a63251745d7e",
+      "exit_code": 0,
+      "diagnostic_category": "other-error",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T13:57:16.3079009Z"
+    },
+    {
+      "case": "wifi-after-cancel",
+      "result": "passed",
+      "transport": "wifi",
+      "phone_observation": "user confirmed a fresh native prompt and completed verification after Wi-Fi cancellation",
+      "started_utc": "2026-10-23T13:59:04.2601310Z",
+      "driver_sha256": "f06be86ea46750f2daf5233171dd15d73c86c6bbd414381731e0a63251745d7e",
+      "exit_code": 0,
+      "diagnostic_category": "other-error",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T13:59:14.0086939Z"
+    },
+    {
+      "case": "wifi-timeout",
+      "result": "passed",
+      "transport": "wifi",
+      "phone_observation": "user observed a new native prompt, took no action, and observed its automatic dismissal",
+      "started_utc": "2026-10-23T14:00:55.4972252Z",
+      "driver_sha256": "f06be86ea46750f2daf5233171dd15d73c86c6bbd414381731e0a63251745d7e",
+      "exit_code": 1,
+      "diagnostic_category": "other-error",
+      "output_check": "no-output",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T14:01:59.2777999Z"
+    },
+    {
+      "case": "wifi-background",
+      "result": "passed",
+      "transport": "wifi",
+      "phone_observation": "user observed native prompt dismissal on Home, stayed in background, then returned to foreground and restored listener",
+      "started_utc": "2026-10-23T13:59:34.7314514Z",
+      "driver_sha256": "f06be86ea46750f2daf5233171dd15d73c86c6bbd414381731e0a63251745d7e",
+      "exit_code": 1,
+      "diagnostic_category": "other-error",
+      "output_check": "no-output",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T13:59:46.0943093Z"
+    },
+    {
+      "case": "wifi-cancel",
+      "result": "passed",
+      "transport": "wifi",
+      "phone_observation": "user confirmed a new native prompt and explicitly clicked Cancel",
+      "started_utc": "2026-10-23T13:58:06.5721004Z",
+      "driver_sha256": "f06be86ea46750f2daf5233171dd15d73c86c6bbd414381731e0a63251745d7e",
+      "exit_code": 1,
+      "diagnostic_category": "other-error",
+      "output_check": "no-output",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T13:58:18.3941326Z"
+    }
+  ],
+  "supporting_or_excluded": [
+    {
+      "completed_utc": "2026-10-23T14:26:28.2601880Z",
+      "action": "terminated-current-test-plugin",
+      "case": "wifi-disconnect-action"
+    },
+    {
+      "case": "wifi-network",
+      "result": "automated-checks-passed-awaiting-observation",
+      "transport": "wifi",
+      "phone_observation": "pending",
+      "started_utc": "2026-10-23T14:21:24.1687929Z",
+      "driver_sha256": "9487955905e6d08427601e91f9cccb9faede6de29d930c389084055689504cf3",
+      "exit_code": 1,
+      "diagnostic_category": "other-error",
+      "output_check": "no-output",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T14:21:30.3321941Z"
+    },
+    {
+      "case": "wifi-interface-cycle",
+      "started_utc": "2026-10-23T14:29:45.3721535Z",
+      "result": "passed",
+      "disabled_utc": "2026-10-23T14:29:45.5847243Z",
+      "disabled_and_ipv4_removed": true,
+      "wifi_ipv4_restored": true,
+      "finished_utc": "2026-10-23T14:29:54.5548668Z"
+    },
+    {
+      "case": "wifi-hostile-first",
+      "result": "automated-checks-passed-awaiting-observation",
+      "started_utc": "2026-10-23T14:16:25.2543837Z",
+      "phone_observation": "pending",
+      "invalid_header_sent": true,
+      "peer_result": "closed-without-response",
+      "finished_utc": "2026-10-23T14:16:30.6618881Z"
+    },
+    {
+      "case": "wifi-approve",
+      "result": "failed",
+      "transport": "wifi",
+      "phone_observation": "pending",
+      "started_utc": "2026-10-23T13:54:27.4604072Z",
+      "driver_sha256": "1970266b844d141eb684d4f5e2b34bfc9f49f1a8b2b6dcbe2a64adacdb0bc14e",
+      "exit_code": 1,
+      "diagnostic_category": "other-error",
+      "failure_category": "operation-or-assertion-failed",
+      "finished_utc": "2026-10-23T13:54:27.7250212Z"
+    },
+    {
+      "case": "wifi-after-network",
+      "result": "failed",
+      "transport": "wifi",
+      "phone_observation": "pending",
+      "started_utc": "2026-10-23T14:31:27.2139720Z",
+      "driver_sha256": "8790794feb5357598399418dc8a72428c1de9bb68ae2601ee51c839c5e6237c8",
+      "exit_code": 1,
+      "diagnostic_category": "other-error",
+      "failure_category": "operation-or-assertion-failed",
+      "finished_utc": "2026-10-23T14:31:30.5225995Z"
+    }
+  ]
+}

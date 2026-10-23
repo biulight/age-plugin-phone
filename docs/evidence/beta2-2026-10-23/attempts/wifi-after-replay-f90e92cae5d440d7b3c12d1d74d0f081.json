@@ -1,0 +1,13 @@
+{
+  "case": "wifi-after-replay",
+  "result": "automated-checks-passed-awaiting-observation",
+  "transport": "wifi",
+  "phone_observation": "pending",
+  "started_utc": "2026-10-23T14:50:18.4119665Z",
+  "driver_sha256": "7392089350fc341017d746b9d543bd345faa95384959de55c8541681c6301f4b",
+  "exit_code": 0,
+  "diagnostic_category": "other-error",
+  "output_check": "byte-identical",
+  "adb_reverse_count": 0,
+  "finished_utc": "2026-10-23T14:50:28.6117726Z"
+}

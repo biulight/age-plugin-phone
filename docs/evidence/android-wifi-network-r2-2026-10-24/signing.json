@@ -1,0 +1,9 @@
+{
+  "key_exported": false,
+  "signature_verified": true,
+  "signer_sha256": "9a3e5a00a0a363ca58bbe0abfa1bbc0e36cbdce58e314c0c0dbfa94baff1d58b",
+  "result": "passed",
+  "signed_sha256": "cd28c3a7a19e1a4a92910c151551cec853169fa5e653815421c6386d825ee37a",
+  "case": "network-r2-signing",
+  "unsigned_sha256": "8e8e73525e0a3d47368f265f7e871237e6d738a070c7159347a81fe4a0c4b139"
+}

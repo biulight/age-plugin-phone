@@ -1,0 +1,43 @@
+{
+  "source": "explicit user replies in this chat",
+  "usb_authorization": "user confirmed",
+  "negative_cases": {
+    "nonmatch-only": "user confirmed no biometric prompt",
+    "malformed": "user confirmed no biometric prompt",
+    "unavailable-state": "user confirmed no biometric prompt"
+  },
+  "approve-1": "user confirmed a fresh native biometric prompt and completed verification",
+  "cancel": "user confirmed a new native prompt and explicitly clicked Cancel",
+  "after-cancel": "user confirmed a fresh native biometric prompt and completed verification after cancellation",
+  "approve-2": "user explicitly requested a fresh retry and confirmed a new native biometric prompt and completed verification",
+  "wifi-approve": "user confirmed fresh native biometric prompt and completed verification",
+  "wifi-repeat": "user confirmed another fresh native biometric prompt and completed verification",
+  "wifi-cancel": "user confirmed a new native prompt and explicitly clicked Cancel",
+  "wifi-after-cancel": "user confirmed a fresh native prompt and completed verification after Wi-Fi cancellation",
+  "wifi-background": "user observed native prompt dismissal on Home, stayed in background, then returned to foreground and restored listener",
+  "wifi-after-background": "user confirmed fresh native prompt and completed verification after foreground restoration",
+  "wifi-timeout": "user observed a new native prompt, took no action, and observed its automatic dismissal",
+  "wifi-after-timeout": "user confirmed a fresh native prompt and completed verification after timeout",
+  "wifi-paused": "user paused Wi-Fi auto-listen, kept USB connected and app foreground, and confirmed no native verification prompt during the failed Wi-Fi request",
+  "usb-after-wifi-failure": "user confirmed a fresh native prompt and completed verification for explicit USB recovery while Wi-Fi auto-listen remained paused",
+  "wifi-hostile-first": {
+    "accepted_attempt_started_utc": "2026-10-23T14:19:40.4160941Z",
+    "observation": "user confirmed no native verification prompt and no manual listener restart or toggle",
+    "earlier_attempt": "not accepted: user was not watching phone"
+  },
+  "wifi-after-hostile": "user confirmed a fresh native verification prompt and completed verification after invalid connection rejection, without manually restarting listener",
+  "wifi-network": {
+    "accepted_attempt_started_utc": "2026-10-23T14:29:29.1006774Z",
+    "observation": "user confirmed fresh prompt awaiting verification before ADB Wi-Fi interface disable/enable, and automatic dismissal without phone interaction",
+    "earlier_attempt": "not accepted as network interruption: quick-settings panel dismissed prompt first"
+  },
+  "wifi-disconnect": "user confirmed fresh native prompt was awaiting verification, then automatically dismissed upon Windows test-plugin termination without any phone interaction",
+  "wifi-after-disconnect": "user confirmed a fresh native prompt and completed verification for a new Wi-Fi request after peer disconnection",
+  "wifi-after-network": {
+    "accepted_attempt_started_utc": "2026-10-23T14:32:38.1734357Z",
+    "observation": "user confirmed fresh native prompt and completed verification",
+    "earlier_attempt": "quick failure in approximately 3 seconds; cause not established, not attributed to user inattention"
+  },
+  "wifi-exact-request-replay": "user confirmed fresh native verification for original request and no new prompts during both immediate exact signed-request replays",
+  "wifi-after-replay": "user confirmed a fresh native prompt and completed verification for a new direct Wi-Fi request after both replay rejections"
+}

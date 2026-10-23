@@ -1,0 +1,7 @@
+{
+  "in_place_update": "passed",
+  "installed_version": "0.1.0-beta.2",
+  "installed_sha256": "b8c3011739914249f50d81fed4727f438a93b0b5839eed8188e645d5637f1b16",
+  "installed_bytes_match_published_apk": true,
+  "uninstall_or_data_clear": false
+}
