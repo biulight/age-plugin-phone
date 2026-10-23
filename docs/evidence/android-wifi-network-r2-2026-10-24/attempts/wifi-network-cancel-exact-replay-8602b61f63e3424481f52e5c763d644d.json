@@ -1,0 +1,37 @@
+{
+  "case": "wifi-network-cancel-exact-replay",
+  "result": "automated-checks-passed-awaiting-observation",
+  "phone_observation": "pending",
+  "started_utc": "2026-10-23T19:50:51.730640+00:00",
+  "driver_sha256": "e851a6ba8f0bb809286c72f1c5c11203d4c0542664b48df617bc7c56bf2928de",
+  "replay_checks_sha256": "dcabba4960d462944bc6d40502b185deb0c95a32d7b10470ac3d85f3c3930040",
+  "provenance": {
+    "switch_sha256": "6779082c293f8bb53692adde65e07c5e80e19aaee113ae55e3cd8d89d50553e1",
+    "common_sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab",
+    "base_helper_sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9"
+  },
+  "automatic_cycle_delay_seconds": 10,
+  "original_peer_result": "bounded-read-timeout-without-response",
+  "original_exit_code": 1,
+  "original_output_check": "no-output",
+  "network_cycle_file": "wifi-interface-cycle-438812d875204e2b94684b7325dd23f5.json",
+  "network_cycle_sha256": "fe83d7ffd3b7d76d73cb74bfb5ce53447d75f259278767823490f049bfd48df3",
+  "replays": [
+    {
+      "mode": "identical-frame",
+      "signed_request_byte_identical": true,
+      "expiry_remaining_seconds_at_send": 186,
+      "peer_result": "closed-without-response",
+      "elapsed_seconds": 0.016
+    },
+    {
+      "mode": "fresh-outer-session-same-signed-request",
+      "signed_request_byte_identical": true,
+      "expiry_remaining_seconds_at_send": 185,
+      "peer_result": "closed-without-response",
+      "elapsed_seconds": 0.016
+    }
+  ],
+  "adb_reverse_count": 0,
+  "finished_utc": "2026-10-23T19:52:52.781881+00:00"
+}

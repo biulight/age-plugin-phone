@@ -272,6 +272,8 @@ function Invoke-MinimalAcceptance {
             Write-Host "$stage`: $($case[3])"
             if (-not (Request-AcceptanceConfirmation 'Start this single attempt now.' 'READY')) { throw 'operator_stopped' }
             $env:AGE_PLUGIN_PHONE_TRANSPORT = $case[1]
+            if ($case[1] -eq 'adb' -and $AdbSerial) { $env:AGE_PLUGIN_PHONE_ADB_SERIAL = $AdbSerial }
+            else { Remove-Item Env:AGE_PLUGIN_PHONE_ADB_SERIAL -ErrorAction SilentlyContinue }
             $output = Join-Path $fixture "$stage.bin"
             $timer = [Diagnostics.Stopwatch]::StartNew()
             $identityArguments = @('-i', $IdentityStub)

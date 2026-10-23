@@ -1,0 +1,45 @@
+{
+  "observations": [
+    {
+      "case": "wifi-approve",
+      "started_utc": "2026-10-23T19:47:18.9948144Z",
+      "observation": "Owner confirmed a new native verification prompt and completed verification.",
+      "result": "passed"
+    },
+    {
+      "case": "wifi-network-cancel-exact-replay",
+      "started_utc": "2026-10-23T19:48:04.918414+00:00",
+      "result": "excluded",
+      "observation": "Owner saw a new native prompt then automatic dismissal without interaction before any network cycle. No cycle was executed; script failed closed and did not replay. Not network-cancellation evidence."
+    },
+    {
+      "case": "wifi-network-cancel-exact-replay",
+      "started_utc": "2026-10-23T19:50:51.730640+00:00",
+      "result": "passed",
+      "observation": "Owner confirmed the first fresh native prompt appeared, disappeared after network switching, no subsequent prompt appeared for either replay, and no phone interaction occurred."
+    },
+    {
+      "case": "wifi-after-replay",
+      "started_utc": "2026-10-23T19:53:43.3548433Z",
+      "result": "passed",
+      "observation": "Owner confirmed a new native prompt, completed verification and did not toggle the listener. Automated discovery produced byte-identical output."
+    },
+    {
+      "case": "wifi-background",
+      "started_utc": "2026-10-23T19:58:08.5133766Z",
+      "result": "passed",
+      "observation": "Owner confirmed prompt dismissed on Home, no verification, returned foreground with listening restored. Desktop failed with no output."
+    },
+    {
+      "case": "wifi-after-background",
+      "started_utc": "2026-10-23T19:58:50.5980367Z",
+      "result": "passed",
+      "observation": "Owner confirmed a new native prompt and completed verification after foreground restoration. Automatic discovery produced byte-identical output."
+    }
+  ],
+  "final_owner_check": {
+    "wifi_auto_listen_paused": true,
+    "page_controls_operational": true,
+    "observation": "Owner confirmed Wi-Fi auto-listen paused and page controls normal after all physical requests ended."
+  }
+}

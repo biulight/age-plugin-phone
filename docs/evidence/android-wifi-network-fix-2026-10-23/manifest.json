@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "02ded1d0cba391db434a516693ad5bb401d3b94b2e956e10ea5e0d1b5a33098a"
+    },
+    {
+      "path": "acceptance.json",
+      "sha256": "5c5c423e047732c707d434a049843dd700ec535587fc5d8e77dc27b3e2a29a6f"
+    },
+    {
+      "path": "android-wifi-network-fix-2026-10-23.json",
+      "sha256": "9a73c44cf036df13ebf81dbd9af6e465f6e981989f4b32fc9bb4af287fdda016"
+    },
+    {
+      "path": "android-wifi-network-fix-install-2026-10-23.json",
+      "sha256": "1ddf47cca135076efce7b41d387beabf7d7e1569141a09da9fb1153954d287b4"
+    },
+    {
+      "path": "android-wifi-network-fix-signing-2026-10-23.json",
+      "sha256": "be37df8fa355695c38370f4a50ac5a201d7afe9a536b8b54028a22a875c9a90b"
+    },
+    {
+      "path": "attempts/wifi-after-background-e660b405fcd74d85b87d9439d957ed06.json",
+      "sha256": "e4577b1d2b18c478ce96c5d47b830a881d4f18b187a79e81e6f9932d7fddb5c1"
+    },
+    {
+      "path": "attempts/wifi-after-cancel-70856624e0e24794a6de94feaad0eadd.json",
+      "sha256": "8cb5212262bcff3da3eab91ca81110c676094e7fa93b5957f28279ccca519719"
+    },
+    {
+      "path": "attempts/wifi-after-network-27d03e5fee47414cb15244dc0937b4ad.json",
+      "sha256": "79fd7718b1635120d34170a9ef69d1a17abb62c05dc2a69b96164ca7ee5f3e2e"
+    },
+    {
+      "path": "attempts/wifi-after-network-8ae9da407ba94abc92ea13a573967b9a.json",
+      "sha256": "dd32b474f98d33d5113c1548756b275e3f0edc70515abc9b6b49e6c77ecc4840"
+    },
+    {
+      "path": "attempts/wifi-after-replay-9727f22a886a4ece8209ecb72a9dd8c1.json",
+      "sha256": "48c6690b61a4a66168a02cfc661db167616b09d18bae29b16a87fe6fdea4b8d9"
+    },
+    {
+      "path": "attempts/wifi-approve-59af4824f50f4f7dbfb60fc675e16136.json",
+      "sha256": "386e6112ab6cc05e0c695308d7aa47e791736a4814584cfe4b2f1eed99b2da2d"
+    },
+    {
+      "path": "attempts/wifi-background-5ceb163bea7e4164bcbc72ed4b340c0e.json",
+      "sha256": "f3cae4bdec39091ca76a5ee261b2251c6ad81762ac54199d4a1f0fa31e08f761"
+    },
+    {
+      "path": "attempts/wifi-cancel-ba3c64e3efc64dba92b928eb18d585bc.json",
+      "sha256": "8233bc7ccdad5eaca87a19cf5a504207650e7a68d49bc6ee9a72070d498e69d0"
+    },
+    {
+      "path": "attempts/wifi-exact-request-replay-baf8f9ebd3c44ac683f5fdb30a36a890.json",
+      "sha256": "ce9b86924a3c32f8f3406cd4ceb08c816c39f40f659ebf02a582018f5017b300"
+    },
+    {
+      "path": "attempts/wifi-interface-cycle-0daac588306f486c9539cb8a98307cc2.json",
+      "sha256": "e3f3699197573dd982eec6bc1487177a0e3a27ce6551f6e1399b27d418b4e96c"
+    },
+    {
+      "path": "attempts/wifi-interface-cycle-1bd8e2ae19ae4d8b999971c164022467.json",
+      "sha256": "0002ad3c80cf58f138298388912d101545cc397a3d7881206ebd3627e5cddb02"
+    },
+    {
+      "path": "attempts/wifi-network-9cb00d25616146eea88690bde4792d35.json",
+      "sha256": "e708365c5f53209fac844eebd881303ac82efcd4229ac685fc5ff0c9f5216830"
+    },
+    {
+      "path": "final-machine-audit.json",
+      "sha256": "b10a427e44d8d8048e09f3c7f04a9d0665bb3cc21acc0426d5c8025027db54b9"
+    },
+    {
+      "path": "review-followup.json",
+      "sha256": "2aecaff01a8357586bfe36b1bb9e7d86cd2cef34f36b01b44d2e5cf7e89b7129"
+    },
+    {
+      "path": "sources/0b0ce1448bcb9d0c8276bf8ab5be2d01d04ccafe8174d6e9f645ff4285ed75b8.xml",
+      "sha256": "0b0ce1448bcb9d0c8276bf8ab5be2d01d04ccafe8174d6e9f645ff4285ed75b8"
+    },
+    {
+      "path": "sources/379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9.ps1",
+      "sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9"
+    },
+    {
+      "path": "sources/6779082c293f8bb53692adde65e07c5e80e19aaee113ae55e3cd8d89d50553e1.ps1",
+      "sha256": "6779082c293f8bb53692adde65e07c5e80e19aaee113ae55e3cd8d89d50553e1"
+    },
+    {
+      "path": "sources/8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab.ps1",
+      "sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab"
+    },
+    {
+      "path": "sources/9122808126dc8c9bede4c9ba531f36fb8394b64dbcb2b22b031e3661e7c0fdc8.py",
+      "sha256": "9122808126dc8c9bede4c9ba531f36fb8394b64dbcb2b22b031e3661e7c0fdc8"
+    },
+    {
+      "path": "sources/aad632f9fd5baf2393128b9cced2f398094d6d9a20fb23355bd38f4b8c3ea980.kt",
+      "sha256": "aad632f9fd5baf2393128b9cced2f398094d6d9a20fb23355bd38f4b8c3ea980"
+    },
+    {
+      "path": "sources/b66090f146ad382194f812e0c7f965f747e10381af91f3fb9a04bd0c788db738.kt",
+      "sha256": "b66090f146ad382194f812e0c7f965f747e10381af91f3fb9a04bd0c788db738"
+    },
+    {
+      "path": "sources/e18da7ac98b3fcc09cdd1d4b58fb76a3bb04602f9e2cdc34a0e169197e5c81e7.kt",
+      "sha256": "e18da7ac98b3fcc09cdd1d4b58fb76a3bb04602f9e2cdc34a0e169197e5c81e7"
+    },
+    {
+      "path": "sources/fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103.ps1",
+      "sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103"
+    }
+  ]
+}

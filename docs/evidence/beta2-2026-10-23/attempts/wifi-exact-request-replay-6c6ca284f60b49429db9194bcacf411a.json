@@ -1,0 +1,26 @@
+{
+  "case": "wifi-exact-request-replay",
+  "result": "automated-checks-passed-awaiting-observation",
+  "phone_observation": "pending",
+  "started_utc": "2026-10-23T14:49:15.520422+00:00",
+  "original_exit_code": 0,
+  "original_output_check": "byte-identical",
+  "replays": [
+    {
+      "mode": "identical-frame",
+      "signed_request_byte_identical": true,
+      "expiry_remaining_seconds_at_send": 295,
+      "peer_result": "closed-without-response",
+      "elapsed_seconds": 0.015
+    },
+    {
+      "mode": "fresh-outer-session-same-signed-request",
+      "signed_request_byte_identical": true,
+      "expiry_remaining_seconds_at_send": 294,
+      "peer_result": "closed-without-response",
+      "elapsed_seconds": 0.015
+    }
+  ],
+  "adb_reverse_count": 0,
+  "finished_utc": "2026-10-23T14:49:26.426376+00:00"
+}

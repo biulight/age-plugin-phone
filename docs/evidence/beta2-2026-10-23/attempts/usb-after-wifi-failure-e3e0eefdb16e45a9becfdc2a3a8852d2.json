@@ -1,0 +1,13 @@
+{
+  "case": "usb-after-wifi-failure",
+  "result": "automated-checks-passed-awaiting-observation",
+  "transport": "adb",
+  "phone_observation": "pending",
+  "started_utc": "2026-10-23T14:11:01.5196283Z",
+  "driver_sha256": "0cb6980265071dae6da8e28fbad8d0bf23d387c229eaa2b83880b8b9edb1ad80",
+  "exit_code": 0,
+  "diagnostic_category": "other-error",
+  "output_check": "byte-identical",
+  "adb_reverse_count": 0,
+  "finished_utc": "2026-10-23T14:11:07.9436381Z"
+}

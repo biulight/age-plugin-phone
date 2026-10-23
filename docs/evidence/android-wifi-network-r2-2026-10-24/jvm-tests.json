@@ -1,0 +1,237 @@
+{
+  "result": "passed",
+  "tests": 87,
+  "suites": [
+    {
+      "suite": "io.github.biulight.phone_identity.ProbeKeyStoreTest",
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "acceptsOnlyCanonicalProbeAliases"
+      ]
+    },
+    {
+      "suite": "io.github.biulight.phone_identity.QrFramingTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "rejectsSizesCrossTransferTimeoutAndClockRollback",
+        "rejectsNonCanonicalUnknownAndDigestTamper",
+        "conflictingDuplicatePoisonsUntilExplicitReset",
+        "fragmentsAndReassemblesOutOfOrderWithDuplicates"
+      ]
+    },
+    {
+      "suite": "io.github.biulight.phone_identity.UsbUnwrapWakeCoordinatorTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "coldStartWakeIsQueuedOnceAndDrainedOnce",
+        "warmWakeStartsImmediatelyAndBusyWakeIsDropped",
+        "acceptsOnlyTheExactPayloadFreeAction"
+      ]
+    },
+    {
+      "suite": "io.github.biulight.phone_identity.TaggedRecipientCryptoTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "standardP256TagVectorAndFailures",
+        "realTagCollisionStillRequiresHpkeAuthentication",
+        "matchesSharedRustVector",
+        "matchesPrivateSelectionRustVector",
+        "rejectsMalformedStructureAndTampering"
+      ]
+    },
+    {
+      "suite": "io.github.biulight.phone_identity.PhoneIdentityKeyStoreTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "rejectsTextualIdentityStateVersionAndPhase",
+        "rejectsRecipientThatDoesNotBindIdentityPublicKey",
+        "aliasesAreRoleSeparatedAndCanonical",
+        "deletionJournalDoesNotDecodeAsUsableIdentity",
+        "preparingJournalRoundTripsWithoutPublicMaterial",
+        "committedMetadataRoundTripsCanonically",
+        "rejectsMalformedAndRoleConfusedMetadata"
+      ]
+    },
+    {
+      "suite": "io.github.biulight.phone_identity.OfflineEnvelopeCryptoTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "createsResponseBoundToPersistentPublicMetadataAndOffer",
+        "createsAndVerifiesSyntheticPairingTranscript",
+        "rejectsTamperingWrongDeviceAndExpiry",
+        "rejectsPairingTranscriptWithReusedLongTermKeyRoles",
+        "verifiesAndDecryptsSharedRustVector",
+        "extractsOnlyUntrustedScopeAndSignsResponseWithSeparateKeyHandles",
+        "verifiesSharedRustPairingTranscriptVector",
+        "rejectsMalformedTamperedAndWrongOfferPairingMessages",
+        "rejectsTextualProtocolHeaderFieldsBeforeRouting"
+      ]
+    },
+    {
+      "suite": "io.github.biulight.phone_identity.PhoneIdentityPluginTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "lifecycleCancellationPreventsPairingResponseUiHandoff",
+        "revokePairingArgumentsRemainDeserializableInMinifiedBuilds",
+        "rejectsWrongCurveAndNonEcPeerKeys",
+        "unrecognizedBiometricKeepsTheCurrentPromptPending",
+        "cancellationAndTimeoutRemainDistinctFailures"
+      ]
+    },
+    {
+      "suite": "io.github.biulight.phone_identity.WifiNetworkMonitorTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "ipv4RemovalAndAddressChangeInvalidateButDuplicateNotificationsDoNot",
+        "repeatedRegistrationFailuresUseBoundedBackoffAndSuccessfulStartIsIdempotent",
+        "lossOfOneWifiNetworkDoesNotForgetAnotherAndBackgroundClearsAll",
+        "reconnectWithSameAddressStillInvalidatesTheOldResources",
+        "queuedCallbacksAfterCloseCannotInvalidateReplacementEvenWhenUnregisterFails",
+        "failedRegistrationRetriesWithoutForegroundToggleAndIgnoresFailedObserver",
+        "backgroundCancelsRetryAndOldRetryCannotRegisterInNewForeground"
+      ]
+    },
+    {
+      "suite": "io.github.biulight.phone_identity.UnwrapOperationStateTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "cancelledAuthorizationRejectsLateSuccessTimeoutAndDisconnectAgainstReplacement",
+        "cancellationAfterResponseHandoffCannotCompleteOrClearReplacement",
+        "cancelledWorkerCannotPublishOverNewGeneration",
+        "wifiCancellationDoesNotCancelOtherTransportAndWorkerCannotOverwritePending"
+      ]
+    },
+    {
+      "suite": "io.github.biulight.phone_identity.WifiAutoListenTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "settingDefaultsOffPersistsAndFailsClosedOnCorruption",
+        "bindRetryBackoffIsBounded",
+        "foregroundStateIsDeliveredAcrossRegistration"
+      ]
+    },
+    {
+      "suite": "io.github.biulight.phone_identity.PairingConfirmationSessionTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "rejectsMalformedOrMismatchedTranscriptsBeforeDisplay",
+        "verifiesDisplaysAndCommitsSharedTranscriptOnce",
+        "wrongOrNonCanonicalFingerprintTerminatesWithoutCreatingState",
+        "coordinatorRejectsConcurrentSessionAndRemovesTerminalSession",
+        "activityStopCancelsPendingTranscriptAndForegroundRequiresFreshExchange",
+        "duplicatePairingAndWriteFailureCloseTheirSessions",
+        "cancellationTerminatesWithoutCreatingState"
+      ]
+    },
+    {
+      "suite": "io.github.biulight.phone_identity.WifiDiscoveryTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "duplicateQueryReusesOnePublicResponse",
+        "fixedQueriesRoundTripAndRejectUnknownFields",
+        "signedUnwrapResponseIsCompactLowSAndVerifiable"
+      ]
+    },
+    {
+      "suite": "io.github.biulight.phone_identity.QrScanSessionTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "verifierFailureClosesSessionAndClearsCompletedMessage",
+        "timeoutCancellationAndMalformedCandidateCloseSession",
+        "ignoresUnrelatedCodesAndReassemblesFramesWithoutExposingBytes",
+        "differentTransferDoesNotEvictActiveAssembly"
+      ]
+    },
+    {
+      "suite": "io.github.biulight.phone_identity.PairingStateStoreTest",
+      "tests": 12,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "persistsPairingAndRejectsReplayAfterRestart",
+        "rejectsSymlinkBeforeOpeningLockFile",
+        "deletionPendingStateRejectsRequestsAndRequiresExplicitCleanup",
+        "revocationFailsClosedAndDoesNotDamageAnotherPairing",
+        "managementRejectsMalformedAndWrongIdentityHandles",
+        "writeFailurePoisonsStoreWithoutConsumingRequest",
+        "rejectsInvalidRecordAndExistingScope",
+        "verifiesBeforeConsumptionAndFailsClosedOnCapacityAndClockRollback",
+        "rejectsSwappedCorruptNonCanonicalAndNonPrivateState",
+        "networkCancellationBeforeOrAfterPublicationRetainsExactRequestConsumption",
+        "rejectsVersionOnePairingStateWithoutMigration",
+        "rejectsTextualPairingStateVersion"
+      ]
+    },
+    {
+      "suite": "io.github.biulight.phone_identity.WifiDiscoveryReceptionTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "closeReleasesOnceIncludingConcurrentLifecycleClosure",
+        "listenerCloseAndBindFailureReleaseReception",
+        "acquisitionFailureReleasesPartialOwnershipAndDoesNotCreateListener"
+      ]
+    },
+    {
+      "suite": "io.github.biulight.phone_identity.StreamTransportTest",
+      "tests": 10,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "cases": [
+        "peerDisconnectNotifiesExactlyOnce",
+        "foregroundWifiListenerAcceptsOneBoundedUnwrap",
+        "foregroundWifiListenerReportsAcceptTimeoutAndReleasesPort",
+        "localSuppressionDoesNotReportPeerLoss",
+        "roundTripsBoundedOpaqueMessage",
+        "closingForegroundWifiListenerCancelsBlockedAcceptAndReleasesPort",
+        "unexpectedDesktopByteIsTerminal",
+        "rejectsWrongPurposeDirectionSessionAndVersion",
+        "closingAcceptedWifiSessionDisconnectsPeer",
+        "rejectsOversizeAndTruncation"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "disposition": "core and scoped replay observations retained; automatic discovery recovery remains open",
+  "historical_network_evidence": "Original address-removal query did not check exit status; superseded by corrected repeat, not silently relabeled.",
+  "observations": [
+    {
+      "case": "wifi-network",
+      "started_utc": "2026-10-23T15:02:52.2587512Z",
+      "observation": "Owner confirmed prompt waiting before cycle and automatic dismissal without interaction. Machine exit 1, no output, phone-response-unavailable."
+    },
+    {
+      "case": "wifi-interface-cycle",
+      "started_utc": "2026-10-23T15:03:14.4584165Z",
+      "observation": "Corrected checked-ADB driver verified disable, IPv4 removal and restoration."
+    },
+    {
+      "case": "wifi-after-network",
+      "started_utc": "2026-10-23T15:04:55.6486596Z",
+      "observation": "Failed automatically in 3.30 seconds with wifi-discovery-no-match. Do not count as passed."
+    },
+    {
+      "case": "wifi-after-network",
+      "started_utc": "2026-10-23T15:05:21.9457205Z",
+      "observation": "Explicit-address contrast succeeded; owner confirmed fresh native prompt and completed verification without changing listener switch."
+    },
+    {
+      "case": "wifi-after-network",
+      "started_utc": "2026-10-23T15:05:51.2109959Z",
+      "observation": "Subsequent authenticated discovery succeeded; owner confirmed another fresh prompt and completed verification."
+    }
+  ],
+  "root_cause_boundary": "Failure stage reproduced: automatic discovery. TCP and native authentication worked using explicit address. Responder/multicast reception lifecycle is a hypothesis, not a proven internal root cause. Released product unchanged.",
+  "validation": {
+    "macos_pwsh_7_4_6": "P1 failure fixtures passed",
+    "windows_pwsh_7_6_7": "P1 failure fixtures passed",
+    "python_evidence_tests": "passed"
+  }
+}

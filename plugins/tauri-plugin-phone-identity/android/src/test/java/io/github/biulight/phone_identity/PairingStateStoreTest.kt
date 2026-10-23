@@ -61,6 +61,50 @@ class PairingStateStoreTest {
     }
 
     @Test
+    fun networkCancellationBeforeOrAfterPublicationRetainsExactRequestConsumption() {
+        for (published in listOf(false, true)) {
+            val root = temporary.newFolder()
+            val record = record()
+            val state = UnwrapOperationState<java.util.UUID> { it }
+            val worker = java.util.UUID.randomUUID()
+            val authorization = java.util.UUID.randomUUID()
+            state.wifiToken = worker
+            var observer: WifiNetworkObservation.Observer<String>? = null
+            val queue = mutableListOf<() -> Unit>()
+            val monitor = WifiNetworkObservation<String>(
+                { _, action -> queue += action },
+                { observer = it; {} },
+                { ready ->
+                    if (!ready) {
+                        state.wifiToken = null
+                        state.cancelMatching { true }
+                    }
+                },
+            )
+            monitor.start()
+            observer!!.properties("wifi", "address")
+            queue.removeAt(0)()
+            state.wifiToken = worker
+            PairingStateStore.createAt(root, record, now(), 2, JvmDurableFileOperations).use {
+                OfflineEnvelopeCrypto.verifyRequestAndConsume(request(), it, now())
+            }
+            if (published) org.junit.Assert.assertTrue(state.publishWifi(worker, authorization))
+            observer!!.lost("wifi")
+            queue.removeAt(0)() // actual observation callback invalidates ownership
+            org.junit.Assert.assertFalse(state.publishWifi(worker, authorization))
+            org.junit.Assert.assertNull(state.beginResponse(authorization))
+            observer!!.properties("wifi", "address")
+            queue.removeAt(0)()
+            PairingStateStore.openAt(root, record.desktopId, record.identityId, JvmDurableFileOperations).use {
+                assertCategory(PairingStateStore.Category.REPLAY) {
+                    OfflineEnvelopeCrypto.verifyRequestAndConsume(request(), it, now() + 1)
+                }
+            }
+            monitor.close()
+        }
+    }
+
+    @Test
     fun verifiesBeforeConsumptionAndFailsClosedOnCapacityAndClockRollback() {
         val root = temporary.newFolder("policy")
         val record = record()

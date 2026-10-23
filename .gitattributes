@@ -4,3 +4,6 @@ plugins/tauri-plugin-phone-identity/permissions/** text eol=lf
 
 # Protocol vectors have pinned byte hashes in scripts/check-package-layout.py.
 crates/core/test-vectors/*.json text eol=lf
+
+# Evidence manifests and provenance hash the original bytes, including Windows CRLF.
+docs/evidence/** -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

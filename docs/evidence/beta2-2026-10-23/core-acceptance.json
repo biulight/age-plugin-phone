@@ -1,0 +1,96 @@
+{
+  "scope": "Beta 2 Windows/Android direct USB core regression; no Wi-Fi or broader-matrix claim",
+  "release_commit": "e08d631b33bd0c16948ca26275bc851b0bf56c15",
+  "results": [
+    {
+      "case": "after-cancel",
+      "result": "passed",
+      "transport": "direct-windows-adb",
+      "phone_observation": "user confirmed a fresh native biometric prompt and completed verification after cancellation",
+      "started_utc": "2026-10-23T13:41:48.1799127Z",
+      "exit_code": 0,
+      "diagnostic_category": "other-error",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T13:41:54.9323096Z"
+    },
+    {
+      "case": "approve-1",
+      "result": "passed",
+      "transport": "direct-windows-adb",
+      "phone_observation": "user confirmed a fresh native biometric prompt and completed verification",
+      "started_utc": "2026-10-23T13:37:56.5885435Z",
+      "exit_code": 0,
+      "diagnostic_category": "other-error",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T13:38:04.2522789Z"
+    },
+    {
+      "case": "approve-2",
+      "result": "passed",
+      "transport": "direct-windows-adb",
+      "phone_observation": "user explicitly requested a fresh retry and confirmed a new native biometric prompt and completed verification",
+      "started_utc": "2026-10-23T13:40:48.3439777Z",
+      "exit_code": 0,
+      "diagnostic_category": "none",
+      "output_check": "byte-identical",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T13:40:51.6990706Z"
+    },
+    {
+      "case": "cancel",
+      "result": "passed",
+      "transport": "direct-windows-adb",
+      "phone_observation": "user confirmed a new native prompt and explicitly clicked Cancel",
+      "started_utc": "2026-10-23T13:41:20.5368481Z",
+      "exit_code": 1,
+      "diagnostic_category": "other-error",
+      "output_check": "no-output",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T13:41:26.6647612Z"
+    },
+    {
+      "synthetic_bytes": 128,
+      "case": "independent-recovery",
+      "phone_contact_required": false,
+      "result": "passed"
+    },
+    {
+      "case": "malformed",
+      "result": "passed",
+      "transport": "direct-windows-adb",
+      "phone_observation": "user confirmed no biometric prompt",
+      "started_utc": "2026-10-23T13:36:10.6050779Z",
+      "exit_code": 1,
+      "diagnostic_category": "malformed-phone-stanza",
+      "output_check": "no-output",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T13:36:10.6992983Z"
+    },
+    {
+      "case": "nonmatch-only",
+      "result": "passed",
+      "transport": "direct-windows-adb",
+      "phone_observation": "user confirmed no biometric prompt",
+      "started_utc": "2026-10-23T13:34:57.6118197Z",
+      "exit_code": 1,
+      "diagnostic_category": "identity-miss",
+      "output_check": "no-output",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T13:34:58.0234641Z"
+    },
+    {
+      "case": "unavailable-state",
+      "result": "passed",
+      "transport": "direct-windows-adb",
+      "phone_observation": "user confirmed no biometric prompt",
+      "started_utc": "2026-10-23T13:36:26.3932635Z",
+      "exit_code": 1,
+      "diagnostic_category": "paired-state-unavailable",
+      "output_check": "no-output",
+      "adb_reverse_count": 0,
+      "finished_utc": "2026-10-23T13:36:26.4991415Z"
+    }
+  ]
+}

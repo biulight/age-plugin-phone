@@ -1,0 +1,54 @@
+{
+  "status": "passed",
+  "scope": "Acceptance tooling only; no Android rebuild, new phone request, commit or push. Historical physical attempts retain their exact original drivers.",
+  "source_sha256": {
+    "scripts/p1/replay-probe.py": "c6159dc1b1248fc23636e160d22084188e2507bd9210116203504aade336b53d",
+    "scripts/p1/replay_checks.py": "6919ce9b2623a0f99d96a8bf59a86bf6d4a23249eb3fc428fc7f87279f7b23cb",
+    "scripts/p1/replay_driver_fixture.py": "5e637b9660e97bd099e7219dfb422d544f61752b4b7ca014b8fca6717d0644df",
+    "scripts/test-p1-replay.py": "78773f08939e153e737084f49bc189821e31a3ee23dc77cdf5b77609c3f6ce52",
+    "scripts/check-p1-evidence.py": "37f14492de1762992823c4dc6dd25e1f09ece617a47566e163e907eca17bddd2",
+    "scripts/test-p1-evidence.py": "1d8feb7280f3fd066361b395d2baa39e0f7dc74db88de3644e13a3f9694f6a70"
+  },
+  "platforms": {
+    "macOS": {
+      "replay_unittest_methods": 4,
+      "actual_driver_combinations": 21,
+      "modes": [
+        "normal",
+        "-O",
+        "PYTHONOPTIMIZE=1"
+      ],
+      "evidence_unittest_methods": 5,
+      "summary_negative_subcases": 11,
+      "evidence_optimized_mode": "passed"
+    },
+    "Windows": {
+      "replay_unittest_methods": 4,
+      "actual_driver_combinations": 21,
+      "modes": [
+        "normal",
+        "-O",
+        "PYTHONOPTIMIZE=1"
+      ],
+      "evidence_unittest_methods": 5,
+      "summary_negative_subcases": 11
+    }
+  },
+  "driver_cases": [
+    "valid closed replay",
+    "unexpected replay response",
+    "expired request",
+    "malformed frame",
+    "wrong response session",
+    "wrong product hash",
+    "ADB reverse residue"
+  ],
+  "summary_checks": [
+    "attempt digest and identity",
+    "accepted/excluded classification",
+    "machine result and output invariants",
+    "owner observation identity, result and text",
+    "unique and complete membership",
+    "network-cycle and replay rejection details"
+  ]
+}

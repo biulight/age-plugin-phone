@@ -1,0 +1,6 @@
+{
+  "case": "network-fix-final-machine-audit",
+  "synthetic_inputs_removed": true,
+  "result": "passed",
+  "adb_reverse_count": 0
+}

@@ -1,0 +1,18 @@
+{
+  "recorded_driver_hashes": [
+    "0cb6980265071dae6da8e28fbad8d0bf23d387c229eaa2b83880b8b9edb1ad80",
+    "7392089350fc341017d746b9d543bd345faa95384959de55c8541681c6301f4b",
+    "8790794feb5357598399418dc8a72428c1de9bb68ae2601ee51c839c5e6237c8",
+    "dfcc5cfc44645089a67fa5fd1aa1e6e7bf6089661c97957f5bbac2f9aba76c8d",
+    "f06be86ea46750f2daf5233171dd15d73c86c6bbd414381731e0a63251745d7e"
+  ],
+  "exact_sources_available": [
+    "0cb6980265071dae6da8e28fbad8d0bf23d387c229eaa2b83880b8b9edb1ad80",
+    "7392089350fc341017d746b9d543bd345faa95384959de55c8541681c6301f4b",
+    "8790794feb5357598399418dc8a72428c1de9bb68ae2601ee51c839c5e6237c8",
+    "dfcc5cfc44645089a67fa5fd1aa1e6e7bf6089661c97957f5bbac2f9aba76c8d",
+    "f06be86ea46750f2daf5233171dd15d73c86c6bbd414381731e0a63251745d7e"
+  ],
+  "missing_historical_sources": [],
+  "recovery_method": "Deterministic removal of later additions; recovered source accepted only if SHA-256 equals the historical report. Other sources are retained final snapshots; original reports lacking hashes cannot be retroactively authenticated."
+}

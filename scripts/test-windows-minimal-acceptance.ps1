@@ -223,6 +223,12 @@ try {
                     Set-Content -LiteralPath $outputFile -Value 'ciphertext-fixture'
                 } else {
                     $caseName = [IO.Path]::GetFileNameWithoutExtension($outputFile)
+                    if ($caseName.StartsWith('wifi-')) {
+                        if ($env:AGE_PLUGIN_PHONE_TRANSPORT -cne 'wifi' -or
+                            (Test-Path Env:AGE_PLUGIN_PHONE_ADB_SERIAL)) { throw 'Wi-Fi inherited an ADB route hint.' }
+                    } elseif ($caseName -ne 'recovery' -and $env:AGE_PLUGIN_PHONE_ADB_SERIAL -cne $AdbSerial) {
+                        throw 'USB lost its selected device.'
+                    }
                     if ($caseName -ne 'recovery') { $state.Unwraps++ }
                     if ($FailureMode -eq 'timeout' -and $state.Unwraps -eq 2) { throw 'harness_timeout' }
                     if ($FailureMode -eq 'launch' -and $state.Unwraps -eq 1) { throw 'process_start_failed' }

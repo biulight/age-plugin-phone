@@ -1,0 +1,10 @@
+{
+  "wifi_ipv4_present": true,
+  "result": "passed",
+  "finished_utc": "2026-10-23T20:00:22.9669235Z",
+  "adb_reverse_count": 0,
+  "real_pairing_state_modified": false,
+  "synthetic_inputs_removed": true,
+  "wifi_enabled": true,
+  "case": "network-r2-final-audit"
+}

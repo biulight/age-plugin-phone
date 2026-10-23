@@ -1,0 +1,7 @@
+{
+  "installed_apk_sha256": "cd28c3a7a19e1a4a92910c151551cec853169fa5e653815421c6386d825ee37a",
+  "uninstall_or_data_clear": false,
+  "case": "network-r2-in-place-install",
+  "baseline_apk_sha256": "87a9262a724aaf2d3fad191fca8ba697e03ea39b34608a22eca09458c9caa95f",
+  "result": "passed"
+}

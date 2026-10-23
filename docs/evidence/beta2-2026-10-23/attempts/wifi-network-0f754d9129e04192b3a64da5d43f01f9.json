@@ -1,0 +1,13 @@
+{
+  "case": "wifi-network",
+  "result": "automated-checks-passed-awaiting-observation",
+  "transport": "wifi",
+  "phone_observation": "pending",
+  "started_utc": "2026-10-23T14:21:24.1687929Z",
+  "driver_sha256": "9487955905e6d08427601e91f9cccb9faede6de29d930c389084055689504cf3",
+  "exit_code": 1,
+  "diagnostic_category": "other-error",
+  "output_check": "no-output",
+  "adb_reverse_count": 0,
+  "finished_utc": "2026-10-23T14:21:30.3321941Z"
+}

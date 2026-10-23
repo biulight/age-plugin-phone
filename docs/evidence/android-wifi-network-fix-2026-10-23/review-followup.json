@@ -1,0 +1,56 @@
+{
+  "installed_apk_sha256": "87a9262a724aaf2d3fad191fca8ba697e03ea39b34608a22eca09458c9caa95f",
+  "observations": [
+    {
+      "case": "wifi-approve",
+      "started_utc": "2026-10-23T15:43:37.1130865Z",
+      "observation": "Owner confirmed a fresh native prompt and completed verification on the installed same-signer candidate."
+    },
+    {
+      "case": "wifi-network",
+      "started_utc": "2026-10-23T15:44:01.2505738Z",
+      "observation": "Owner confirmed prompt awaiting verification, then automatic dismissal on checked Wi-Fi cycle without interaction."
+    },
+    {
+      "case": "wifi-after-network",
+      "started_utc": "2026-10-23T15:45:49.2443980Z",
+      "observation": "Owner confirmed fresh native verification on first automatic discovery after restoration; no listener toggle or direct-address request."
+    },
+    {
+      "case": "wifi-after-network",
+      "started_utc": "2026-10-23T15:46:52.2114444Z",
+      "observation": "Owner confirmed no prompt during idle network cycle, then fresh prompt and verification on first automatic discovery, without listener operation."
+    },
+    {
+      "case": "wifi-cancel",
+      "started_utc": "2026-10-23T15:47:28.3915270Z",
+      "observation": "Owner confirmed a fresh native prompt and explicitly clicked Cancel."
+    },
+    {
+      "case": "wifi-after-cancel",
+      "started_utc": "2026-10-23T15:48:00.1216599Z",
+      "observation": "Owner confirmed a fresh native prompt and completed verification after cancellation."
+    },
+    {
+      "case": "wifi-background",
+      "started_utc": "2026-10-23T15:48:33.3771902Z",
+      "observation": "Owner confirmed prompt dismissed on Home, then returned to foreground with listening restored."
+    },
+    {
+      "case": "wifi-after-background",
+      "started_utc": "2026-10-23T15:49:15.2603313Z",
+      "observation": "Owner confirmed fresh native prompt and completed verification after foreground restoration."
+    },
+    {
+      "case": "wifi-exact-request-replay",
+      "started_utc": "2026-10-23T15:49:41.715813+00:00",
+      "observation": "Owner confirmed first fresh prompt verified, followed by no additional prompts during both exact signed-request replays."
+    },
+    {
+      "case": "wifi-after-replay",
+      "started_utc": "2026-10-23T15:51:06.8618874Z",
+      "observation": "Owner confirmed a fresh native prompt and completed verification for the new request after both replay rejections."
+    }
+  ],
+  "final_phone_audit": "Owner confirmed Wi-Fi auto-listen paused and page controls usable."
+}

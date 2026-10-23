@@ -1,0 +1,94 @@
+{
+  "result": "passed",
+  "records": [
+    {
+      "record": "runs/darwin-086b98868720493eb1e5664a8d0acb75.json",
+      "sha256": "3e69e6101275c649ab27eb4c802f9f182e5a2860381ed852068febab1aa26db1",
+      "platform": "Darwin",
+      "command": [
+        "python",
+        "-B",
+        "test-p1-replay.py",
+        "-v"
+      ],
+      "python_version": "3.15.0",
+      "result": "passed",
+      "driver_combinations": 66
+    },
+    {
+      "record": "runs/darwin-3748fb3763f7404a813d0f1278d63a77.json",
+      "sha256": "b92271e3d408cb3286c434d4f762f30f831b10beacfb08b92f79cf889ed164bc",
+      "platform": "Darwin",
+      "command": [
+        "python",
+        "-O",
+        "-B",
+        "test-p1-evidence.py",
+        "-v"
+      ],
+      "python_version": "3.15.0",
+      "result": "passed",
+      "driver_combinations": 0
+    },
+    {
+      "record": "runs/darwin-4f4f9c0635f24b87b4ed9f7183bf2c13.json",
+      "sha256": "24ad8e572e7016c1aa66cbf636af557468a9d55e2fd99aa2d44d7845eebe07e5",
+      "platform": "Darwin",
+      "command": [
+        "python",
+        "-B",
+        "test-p1-evidence.py",
+        "-v"
+      ],
+      "python_version": "3.15.0",
+      "result": "passed",
+      "driver_combinations": 0
+    },
+    {
+      "record": "runs/windows-12ce3fe586994ba9b80042c28333c350.json",
+      "sha256": "b7197f51ce6b5ecc292cd9d8a19f8bd72a3a38132702a762abffe6c2443a04fc",
+      "platform": "Windows",
+      "command": [
+        "python",
+        "-B",
+        "test-p1-replay.py",
+        "-v"
+      ],
+      "python_version": "3.11.2",
+      "result": "passed",
+      "driver_combinations": 66
+    },
+    {
+      "record": "runs/windows-69b091ea40df4146b723e8e81602a6f6.json",
+      "sha256": "341673df00533b2ff116c8947157104d416fd7d691ddea504c7bb11d8fb068d1",
+      "platform": "Windows",
+      "command": [
+        "python",
+        "-O",
+        "-B",
+        "test-p1-evidence.py",
+        "-v"
+      ],
+      "python_version": "3.11.2",
+      "result": "passed",
+      "driver_combinations": 0
+    },
+    {
+      "record": "runs/windows-ca859cc8eae54f55a69532fe2fc3196d.json",
+      "sha256": "4d371070ea790d2a41aefc9942922d02b55ed3745362d8385aa607c9b100ec4a",
+      "platform": "Windows",
+      "command": [
+        "python",
+        "-B",
+        "test-p1-evidence.py",
+        "-v"
+      ],
+      "python_version": "3.11.2",
+      "result": "passed",
+      "driver_combinations": 0
+    }
+  ],
+  "source_snapshots_verified": true,
+  "driver_combinations_per_platform": 66,
+  "evidence_tests_per_run": 6
+}

@@ -1,0 +1,13 @@
+{
+  "case": "wifi-after-hostile",
+  "result": "automated-checks-passed-awaiting-observation",
+  "transport": "wifi",
+  "phone_observation": "pending",
+  "started_utc": "2026-10-23T14:20:30.7809311Z",
+  "driver_sha256": "dfcc5cfc44645089a67fa5fd1aa1e6e7bf6089661c97957f5bbac2f9aba76c8d",
+  "exit_code": 0,
+  "diagnostic_category": "other-error",
+  "output_check": "byte-identical",
+  "adb_reverse_count": 0,
+  "finished_utc": "2026-10-23T14:20:38.1249341Z"
+}

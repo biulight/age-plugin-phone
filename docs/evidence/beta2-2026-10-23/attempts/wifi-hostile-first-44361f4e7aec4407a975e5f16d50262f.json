@@ -1,0 +1,9 @@
+{
+  "case": "wifi-hostile-first",
+  "result": "automated-checks-passed-awaiting-observation",
+  "started_utc": "2026-10-23T14:16:25.2543837Z",
+  "phone_observation": "pending",
+  "invalid_header_sent": true,
+  "peer_result": "closed-without-response",
+  "finished_utc": "2026-10-23T14:16:30.6618881Z"
+}

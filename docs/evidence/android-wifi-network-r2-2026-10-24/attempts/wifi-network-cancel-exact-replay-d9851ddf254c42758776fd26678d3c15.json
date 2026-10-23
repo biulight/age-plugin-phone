@@ -1,0 +1,13 @@
+{
+  "case": "wifi-network-cancel-exact-replay",
+  "result": "failed",
+  "phone_observation": "pending",
+  "started_utc": "2026-10-23T19:48:04.918414+00:00",
+  "driver_sha256": "45f5fed664bed76318e46b9a9bcde24ba2437cf51091ac9e8bbc1c3017b31fc5",
+  "replay_checks_sha256": "dcabba4960d462944bc6d40502b185deb0c95a32d7b10470ac3d85f3c3930040",
+  "original_peer_result": "closed-without-response",
+  "original_exit_code": 1,
+  "original_output_check": "no-output",
+  "failure_category": "proxy-or-replay-assertion-failed",
+  "finished_utc": "2026-10-23T19:49:10.764704+00:00"
+}

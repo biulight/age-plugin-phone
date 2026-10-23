@@ -1,0 +1,19 @@
+{
+  "status": "candidate-built-physical-verification-pending",
+  "version": "0.1.0-beta.2 with local uncommitted network recovery fix",
+  "apk_sha256": "c096e911eddb9c2e39e450c5a9c2d0fba513658c40f96f8028d464e920a9c848",
+  "apk_signed": false,
+  "abis": [
+    "arm64-v8a"
+  ],
+  "android_unit_tests": 78,
+  "failures": 0,
+  "errors": 0,
+  "windows_harness_regressions": "passed; not physical validation of the new APK",
+  "sources": {
+    "plugins/tauri-plugin-phone-identity/android/src/main/AndroidManifest.xml": "0b0ce1448bcb9d0c8276bf8ab5be2d01d04ccafe8174d6e9f645ff4285ed75b8",
+    "plugins/tauri-plugin-phone-identity/android/src/main/java/io/github/biulight/phone_identity/PhoneIdentityPlugin.kt": "aad632f9fd5baf2393128b9cced2f398094d6d9a20fb23355bd38f4b8c3ea980",
+    "plugins/tauri-plugin-phone-identity/android/src/main/java/io/github/biulight/phone_identity/WifiNetworkMonitor.kt": "e18da7ac98b3fcc09cdd1d4b58fb76a3bb04602f9e2cdc34a0e169197e5c81e7",
+    "plugins/tauri-plugin-phone-identity/android/src/test/java/io/github/biulight/phone_identity/WifiNetworkMonitorTest.kt": "b66090f146ad382194f812e0c7f965f747e10381af91f3fb9a04bd0c788db738"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "case": "wifi-after-network",
+  "result": "failed",
+  "transport": "wifi",
+  "phone_observation": "pending",
+  "started_utc": "2026-10-23T14:31:27.2139720Z",
+  "driver_sha256": "8790794feb5357598399418dc8a72428c1de9bb68ae2601ee51c839c5e6237c8",
+  "exit_code": 1,
+  "diagnostic_category": "other-error",
+  "failure_category": "operation-or-assertion-failed",
+  "finished_utc": "2026-10-23T14:31:30.5225995Z"
+}

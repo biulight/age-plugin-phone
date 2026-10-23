@@ -1,0 +1,9 @@
+{
+  "case": "wifi-interface-cycle",
+  "started_utc": "2026-10-23T14:29:45.3721535Z",
+  "result": "passed",
+  "disabled_utc": "2026-10-23T14:29:45.5847243Z",
+  "disabled_and_ipv4_removed": true,
+  "wifi_ipv4_restored": true,
+  "finished_utc": "2026-10-23T14:29:54.5548668Z"
+}

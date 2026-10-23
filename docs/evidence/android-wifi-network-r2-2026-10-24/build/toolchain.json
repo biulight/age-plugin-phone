@@ -1,0 +1,13 @@
+{
+  "rustc": "rustc 1.99.0 (b940084d7 2026-09-28)",
+  "cargo": "cargo 1.99.0 (5f94df478 2026-08-27)",
+  "bun": "1.4.2",
+  "java": "openjdk version \"17.0.20.1\" 2026-08-18 LTS\nOpenJDK Runtime Environment Zulu17.68+203-CA (build 17.0.20.1+1-LTS)\nOpenJDK 64-Bit Server VM Zulu17.68+203-CA (build 17.0.20.1+1-LTS, mixed mode, sharing)",
+  "gradle": "8.14.3",
+  "ndk": "28.2.13676358",
+  "target": "aarch64-linux-android",
+  "android_plugin_jvm_tests": 87,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0
+}

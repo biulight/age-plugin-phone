@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "platform": "Windows",
+  "python_version": "3.11.2",
+  "python_implementation": "CPython",
+  "executable_name": "python.exe",
+  "command": [
+    "python",
+    "-O",
+    "-B",
+    "test-p1-evidence.py",
+    "-v"
+  ],
+  "working_directory": "scripts",
+  "environment": {
+    "PYTHONOPTIMIZE": "unset for parent; replay suite sets child modes explicitly",
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "source_sha256": {
+    "p1/record-tool-validation.py": "ea0a8c8cc01366a20161dc2582d383949e6e79ea7f2c43c991fe6106f73ac1d3",
+    "p1/replay-probe.py": "902c625c2f12999614db89dae7879967734b0b1feff674e2b810c3e9c4ec084b",
+    "p1/replay_checks.py": "d1be8e0954ed48ee0fde7a71d0833d218932b8f104c93d9789655d144de84456",
+    "p1/replay_driver_fixture.py": "573ab802e40f5d06a6115bc4690de626ec49f31a6f6c7286ed2f3a6250a82757",
+    "test-p1-replay.py": "892575e9a042c6f203186bd6d93c5394b24b0989edef721a2f6ca97e97d385cc",
+    "check-p1-evidence.py": "3792cb3ba5dead0c85481b24023268f9254d68f9a2650b09b3fa25538b5d18c5",
+    "test-p1-evidence.py": "97d63054631c076606ed034a5063cd9bfb076bdabbc0ae1df7e9de67669cdb92",
+    "p1/switch-wifi.ps1": "6779082c293f8bb53692adde65e07c5e80e19aaee113ae55e3cd8d89d50553e1",
+    "p1/common.ps1": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab",
+    "windows-minimal-acceptance.ps1": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9"
+  },
+  "started_utc": "2026-10-23T20:26:06.097455+00:00",
+  "exit_code": 0,
+  "output": "test_build_chain_rejects_rehashed_wrong_baseline_snapshot_and_apk (__main__.EvidenceTests.test_build_chain_rejects_rehashed_wrong_baseline_snapshot_and_apk) ... ok\ntest_missing_attempt_source (__main__.EvidenceTests.test_missing_attempt_source) ... ok\ntest_network_cycle_time_must_belong_to_accepted_attempt (__main__.EvidenceTests.test_network_cycle_time_must_belong_to_accepted_attempt) ... ok\ntest_summary_cross_checks_even_after_manifest_is_resealed (__main__.EvidenceTests.test_summary_cross_checks_even_after_manifest_is_resealed) ... ok\ntest_traversal_and_private_data (__main__.EvidenceTests.test_traversal_and_private_data) ... ok\ntest_valid_then_tampered_and_unlisted (__main__.EvidenceTests.test_valid_then_tampered_and_unlisted) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.151s\n\nOK\n",
+  "source_unchanged": true,
+  "test_methods": 6,
+  "result": "passed",
+  "finished_utc": "2026-10-23T20:26:06.311240+00:00"
+}

@@ -1,0 +1,237 @@
+{
+  "schema_version": 1,
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "8a9c462737f57ed98e16944c0d379ea25f3dc6a409f059d26e00c954be404f60"
+    },
+    {
+      "path": "android-install.json",
+      "sha256": "0dfe5c68dcf7262de9e91ce3b618807f621948c9a63e35e444582270f9591128"
+    },
+    {
+      "path": "android-preflight.json",
+      "sha256": "d78390d9f681cbac40e329022b38b074dd9a0c0d31e06e6a7db48f7e104d4de6"
+    },
+    {
+      "path": "attempts/disconnect-action.json",
+      "sha256": "2ca6b50ff231bff0ea4412ba4600f4f86079ef3908c49aa92b9663194f784316"
+    },
+    {
+      "path": "attempts/usb-after-wifi-failure-e3e0eefdb16e45a9becfdc2a3a8852d2.json",
+      "sha256": "fa68502906f781050c5ed819a4bc2833ce4122d67d41dd8cc2eb3b3db755d30b"
+    },
+    {
+      "path": "attempts/wifi-after-background-07b1b99a9ce249b2b029eedaa5bb5724.json",
+      "sha256": "3a935c2aca89e6e7a952357819143aea7bb5c2c1d0f5ae2957ec4d1192fa8185"
+    },
+    {
+      "path": "attempts/wifi-after-cancel-b53fbaa5d44d407b972cbc08f10b1fa0.json",
+      "sha256": "106196d2f609d6d133fd964ce698b033b31f1c2890b06170ae5d4c301266e5ad"
+    },
+    {
+      "path": "attempts/wifi-after-disconnect-c91318262f9c4d4ab0d4e4221bd2c983.json",
+      "sha256": "973498a91f36012cceca976464b7274227a396380b3baa37900750e40f13e921"
+    },
+    {
+      "path": "attempts/wifi-after-hostile-b3c808be5e7e4827a8e951018493e866.json",
+      "sha256": "3b71135a2f5f529ac462bdfb90bba0e538030b7ad03a00dde2fdbf58323429a6"
+    },
+    {
+      "path": "attempts/wifi-after-network-058645b8d4154a7ab0a58c80c4ad21f2.json",
+      "sha256": "f267471ee4336c7b6b4ac861159e6c9242575617aa6fe01ba37404cc3e3809e3"
+    },
+    {
+      "path": "attempts/wifi-after-network-2a48718ac33f4be3822f42189c18b75e.json",
+      "sha256": "f490e1c087ea5d98981e6a45fdf66ef6d137962a4a796938730265388133f601"
+    },
+    {
+      "path": "attempts/wifi-after-network-2c7796e5591046e0bbc2f1c2caea6f7e.json",
+      "sha256": "7dc5102343f6d3329ca471bd98a3547480cf48ab88a0c06be84ccdf0c1f59830"
+    },
+    {
+      "path": "attempts/wifi-after-network-af5af8e5222e4516a24907788cf60b46.json",
+      "sha256": "ad2cc422a1c86806880fdfd2c4f1b0132dd9d22a3b9b2d7cf4a4aed6624808b4"
+    },
+    {
+      "path": "attempts/wifi-after-network-afded65705054606b47e71c9f5cb1582.json",
+      "sha256": "2feb50b2ba80eb9f0bb7cee34e87e7a6d83be4abe411cd60ef88585c44cb2b82"
+    },
+    {
+      "path": "attempts/wifi-after-replay-f90e92cae5d440d7b3c12d1d74d0f081.json",
+      "sha256": "3977c8f9315601db5a9f1df2d3fdabb275498de6637446ea44241bc61719b1c4"
+    },
+    {
+      "path": "attempts/wifi-after-timeout-3e4afe7f91df48fe9392e3ae9ea17630.json",
+      "sha256": "b37fda7f2919d192e91f80a006ed1d4811587b8965a7a68c565e4673721fdad5"
+    },
+    {
+      "path": "attempts/wifi-approve-f02d053af7794679917b696c1dce0053.json",
+      "sha256": "9bd9225dd71220c08991807a9f4a2b623874f4f784bc608bf2b71a2fed7395b7"
+    },
+    {
+      "path": "attempts/wifi-approve-fe307b2853f4468baba4a178d75a13bf.json",
+      "sha256": "736b9a4bedf968311a373c6ec12e55302a278d589afd3a0845bd5d5b7fafe462"
+    },
+    {
+      "path": "attempts/wifi-background-a754309230a447f48d07ee23aaa16b58.json",
+      "sha256": "793deea22d9181dbada3a0f89a0f364c56d4057a5df5fe36cf7ac5e3e4c42656"
+    },
+    {
+      "path": "attempts/wifi-cancel-4a86bfdb6bc74c718eb53cb695afa3fb.json",
+      "sha256": "2071ae207017004af29e1115ce42d95c9b3273e6b9d834c70381c173dd85f2a5"
+    },
+    {
+      "path": "attempts/wifi-disconnect-c90ddedc5f4e409abf6bd61d517fbd87.json",
+      "sha256": "a963756909a191985f5bfd11503890543cb0652ce64a8682349e8209095ce83a"
+    },
+    {
+      "path": "attempts/wifi-exact-request-replay-6c6ca284f60b49429db9194bcacf411a.json",
+      "sha256": "bfca85fc30a82da47eebdae12fad5ade14d5f4710be8dee60a522dae112a09a9"
+    },
+    {
+      "path": "attempts/wifi-hostile-first-44361f4e7aec4407a975e5f16d50262f.json",
+      "sha256": "f959bd4ce90e655a3f99c112dea2c05602e6df120ffde4007102a26bf95383f4"
+    },
+    {
+      "path": "attempts/wifi-hostile-first-56b4dda9bc624a7c85177a746e47d725.json",
+      "sha256": "32a17facf1c2ceaab84b48172ae040e0643f22bb8a8d2bbdbbeb210523fd550c"
+    },
+    {
+      "path": "attempts/wifi-interface-cycle-15cc7f14f16040478b8b612ccb3bb77c.json",
+      "sha256": "ef13dd40c32bc38a8f601aa82aafd657f8ef89938d7738c94f45f88dc1ef2206"
+    },
+    {
+      "path": "attempts/wifi-interface-cycle-822d7b01520b40af9001c17a6c4775a1.json",
+      "sha256": "1287536bde6ed353bc478dff5ba6109d4d6525c686eca2f712620d4396d5a608"
+    },
+    {
+      "path": "attempts/wifi-network-0f754d9129e04192b3a64da5d43f01f9.json",
+      "sha256": "b48fcd6f2d2544847371a9f2b63d88cf3e01c92598af4378e518e47b8b665c08"
+    },
+    {
+      "path": "attempts/wifi-network-6aff0d7380324fa5b135733b805eac62.json",
+      "sha256": "1edad0aa886829d9a935b16f25e48b65cefa9e0d92fd34effa229bfc24019a69"
+    },
+    {
+      "path": "attempts/wifi-network-97adf9dd8c724f57bba311e46df59863.json",
+      "sha256": "20dc5f380fc1aeca31a6c9023b0b88ff1a017e9c0b7fa1b31f51ab276723190f"
+    },
+    {
+      "path": "attempts/wifi-paused-5b6aa12de3364ffdb57b3efcdf8b6deb.json",
+      "sha256": "231b3ceeecf2b65f591ef01281225143e43e42649bf0079715fd76e6ad6f9701"
+    },
+    {
+      "path": "attempts/wifi-repeat-9d46647343c245ceaed3b35f35fa808c.json",
+      "sha256": "0da43d476eb27891f265192fb4bc136df41bde8107d6e99f682c0b0691fb6805"
+    },
+    {
+      "path": "attempts/wifi-timeout-4c719f40b0784e8880c306ebb1f6a6a3.json",
+      "sha256": "05e9ece5a9ecb1c7b5d96b6c6cfa6504c4b80d1c72e9904a5cb8178206d44bc4"
+    },
+    {
+      "path": "core-acceptance.json",
+      "sha256": "f1e3adaab96e53f694719c82e6226c5957346ffde500c540ed72a33b9fb979c4"
+    },
+    {
+      "path": "core-machine-results.json",
+      "sha256": "2337a262b4cf756223ab395836d8e6b8a6c17d275435525193c9b8b5236810e8"
+    },
+    {
+      "path": "download-evidence.json",
+      "sha256": "8e30c78d7e049e784496ec74ca82586c2ebeba739a08e3ad291f4677462d9cbf"
+    },
+    {
+      "path": "review-followup.json",
+      "sha256": "1047e6dd86a0ca6c04655b4501c24759461339440174a222644681586ce77b4e"
+    },
+    {
+      "path": "source-coverage.json",
+      "sha256": "7ba61fc740e8dfa4c05a5c42abc2dd05790aed34f9f1d799cbb71d5e67821334"
+    },
+    {
+      "path": "sources/100d8f754cf6a40f79f509b524b2836d52adeb9c54a2568e614671868106c509.ps1",
+      "sha256": "100d8f754cf6a40f79f509b524b2836d52adeb9c54a2568e614671868106c509"
+    },
+    {
+      "path": "sources/379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9.ps1",
+      "sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9"
+    },
+    {
+      "path": "sources/64c840b483e5567883eef188aa97c3c896f228b37a584e0a8330787d90b57cf4.ps1",
+      "sha256": "64c840b483e5567883eef188aa97c3c896f228b37a584e0a8330787d90b57cf4"
+    },
+    {
+      "path": "sources/6779082c293f8bb53692adde65e07c5e80e19aaee113ae55e3cd8d89d50553e1.ps1",
+      "sha256": "6779082c293f8bb53692adde65e07c5e80e19aaee113ae55e3cd8d89d50553e1"
+    },
+    {
+      "path": "sources/8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab.ps1",
+      "sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab"
+    },
+    {
+      "path": "sources/9122808126dc8c9bede4c9ba531f36fb8394b64dbcb2b22b031e3661e7c0fdc8.py",
+      "sha256": "9122808126dc8c9bede4c9ba531f36fb8394b64dbcb2b22b031e3661e7c0fdc8"
+    },
+    {
+      "path": "sources/disconnect-current.ps1",
+      "sha256": "f16870ce2657481cbeb7fd2e52753f761fe0cd5e0c59aa8ef5b374a1e6ef365f"
+    },
+    {
+      "path": "sources/fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103.ps1",
+      "sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103"
+    },
+    {
+      "path": "sources/hostile-first.ps1",
+      "sha256": "2da883be7a1a526c5a8738536313581543f2f97ab3217e8375a57374469142b3"
+    },
+    {
+      "path": "sources/replay-probe.py",
+      "sha256": "9a39f0bd54eea216869b78a1dfabb595a9a45075fd44147a9e48cb07e2d60837"
+    },
+    {
+      "path": "sources/step-0cb6980265071dae6da8e28fbad8d0bf23d387c229eaa2b83880b8b9edb1ad80.ps1",
+      "sha256": "0cb6980265071dae6da8e28fbad8d0bf23d387c229eaa2b83880b8b9edb1ad80"
+    },
+    {
+      "path": "sources/step-7392089350fc341017d746b9d543bd345faa95384959de55c8541681c6301f4b.ps1",
+      "sha256": "7392089350fc341017d746b9d543bd345faa95384959de55c8541681c6301f4b"
+    },
+    {
+      "path": "sources/step-8790794feb5357598399418dc8a72428c1de9bb68ae2601ee51c839c5e6237c8.ps1",
+      "sha256": "8790794feb5357598399418dc8a72428c1de9bb68ae2601ee51c839c5e6237c8"
+    },
+    {
+      "path": "sources/step-dfcc5cfc44645089a67fa5fd1aa1e6e7bf6089661c97957f5bbac2f9aba76c8d.ps1",
+      "sha256": "dfcc5cfc44645089a67fa5fd1aa1e6e7bf6089661c97957f5bbac2f9aba76c8d"
+    },
+    {
+      "path": "sources/step-f06be86ea46750f2daf5233171dd15d73c86c6bbd414381731e0a63251745d7e.ps1",
+      "sha256": "f06be86ea46750f2daf5233171dd15d73c86c6bbd414381731e0a63251745d7e"
+    },
+    {
+      "path": "sources/step-regression.ps1",
+      "sha256": "7392089350fc341017d746b9d543bd345faa95384959de55c8541681c6301f4b"
+    },
+    {
+      "path": "sources/switch-wifi.ps1",
+      "sha256": "baf751734b076b18749551ba05490179baac98ababccff252c55caaa0e7e4325"
+    },
+    {
+      "path": "user-observations.json",
+      "sha256": "eb6ec5eec50836b1cf1be03e935d584734b55033600bee70885d196221629d95"
+    },
+    {
+      "path": "wifi-acceptance.json",
+      "sha256": "121f1e9fba6793b020e168184e39f4f3d918719facf45fc3ff89ec36c03b8f19"
+    },
+    {
+      "path": "windows-phone-hash.json",
+      "sha256": "07cf92d689f0878b6f6fe130ed367fe15c9e9a49e6c3f9adab8d60c6d9c22b8f"
+    },
+    {
+      "path": "windows-preflight.json",
+      "sha256": "e9b2ea32e34439cf12acff1e50a83d65fd1be5122dbdd046b3bdce929965e70c"
+    }
+  ]
+}

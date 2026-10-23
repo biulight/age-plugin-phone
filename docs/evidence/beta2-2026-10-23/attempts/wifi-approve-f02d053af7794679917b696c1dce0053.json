@@ -1,0 +1,12 @@
+{
+  "case": "wifi-approve",
+  "result": "failed",
+  "transport": "wifi",
+  "phone_observation": "pending",
+  "started_utc": "2026-10-23T13:54:27.4604072Z",
+  "driver_sha256": "1970266b844d141eb684d4f5e2b34bfc9f49f1a8b2b6dcbe2a64adacdb0bc14e",
+  "exit_code": 1,
+  "diagnostic_category": "other-error",
+  "failure_category": "operation-or-assertion-failed",
+  "finished_utc": "2026-10-23T13:54:27.7250212Z"
+}

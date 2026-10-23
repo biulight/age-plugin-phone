@@ -1,0 +1,32 @@
+[
+  {
+    "name": "age-plugin-phone-0.1.0-beta.2-android-arm64.apk",
+    "sha256": "b8c3011739914249f50d81fed4727f438a93b0b5839eed8188e645d5637f1b16",
+    "hash_verified": true
+  },
+  {
+    "name": "age-plugin-phone-0.1.0-beta.2-android-SHA256SUMS.txt",
+    "sha256": "948874eb9847d528fd3360e66801d56b7969ac44bb98dfc29759e7a646437c8a",
+    "hash_verified": true
+  },
+  {
+    "name": "age-plugin-phone-0.1.0-beta.2-android-signature-verification.txt",
+    "sha256": "56b20f6b720c1756f2a5226f4590a08c487fcc1c0ddd82a85e75179a9fbe0193",
+    "hash_verified": true
+  },
+  {
+    "name": "age-plugin-phone-0.1.0-beta.2-windows-SHA256SUMS.txt",
+    "sha256": "845fb9e76a3c3516c726be04c2b4dbe8b07c3294876c99873b9da9ab11530cc7",
+    "hash_verified": true
+  },
+  {
+    "name": "age-plugin-phone-0.1.0-beta.2-windows-signature-verification.txt",
+    "sha256": "b14ba49f469028994d51bec96851be1a64425778589465de302681ef36b162ed",
+    "hash_verified": true
+  },
+  {
+    "name": "age-plugin-phone-0.1.0-beta.2-windows-x64-beta-test-signed.zip",
+    "sha256": "b245990706547b2e66937b2198cdcf1fc854c38737cb8efac4e6617e3184d324",
+    "hash_verified": true
+  }
+]
