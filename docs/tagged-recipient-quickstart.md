@@ -5,9 +5,10 @@
 > [简体中文手册](https://biulight.github.io/age-plugin-phone/zh-Hans/guides/recipients).
 > This page is retained for existing links and its original evidence scope.
 
-This workflow applies to the source candidate implementing [ADR 0026](adr/0026-native-tagged-recipients.md),
-not the published alpha.5 snapshot. It remains experimental and is for synthetic data only.
-Upgrade both desktop and phone software to a compatible candidate before testing tag decryption.
+This workflow applies to the explicit tag support introduced in the published Beta 1 and retained
+in Beta 2, implementing [ADR 0026](adr/0026-native-tagged-recipients.md). It remains experimental
+and is for synthetic data only. Upgrade both desktop and phone software to the same compatible Beta
+release before testing tag decryption.
 Existing protocol v2 pairings and public identity stubs remain usable without re-pairing.
 
 | Choice | Encryption requirement | Selection/privacy |

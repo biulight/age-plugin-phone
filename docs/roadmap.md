@@ -1,18 +1,72 @@
 # Roadmap
 
-## Beta 2 maintenance release — 2026-09-11
+## Beta 2 maintenance release — published 2026-09-11
 
-Prepare `0.1.0-beta.2` as a narrow maintenance release for the multi-identity continuation fix.
-Follow [the release checklist](beta-readiness.md): preserve Beta 1's scope and compatibility,
-verify the exact source, then build and publish only from the accepted commit. This sequencing
-update does not publish a version or mark older unchecked gates as passed.
+`0.1.0-beta.2` was published from immutable commit
+`e08d631b33bd0c16948ca26275bc851b0bf56c15` as a narrow maintenance release for the
+multi-identity continuation fix. The exact commit passed
+[CI run 34611758225](https://github.com/biulight/age-plugin-phone/actions/runs/34611758225),
+the four crates were published and production-installed in
+[run 34612479475](https://github.com/biulight/age-plugin-phone/actions/runs/34612479475),
+and the Windows/Android artifacts were built, verified, and published in
+[run 34612479284](https://github.com/biulight/age-plugin-phone/actions/runs/34612479284).
+The scoped multi-identity behavior passed on a source-installed desktop before publication. The
+same smoke has not been recorded against the published Windows/Android package pair, so that
+remains post-publication evidence rather than a completed release gate. See
+[the release checklist](beta-readiness.md).
+
+## Next execution plan — 2026-09-22
+
+Keep the owner-only, synthetic-data scope while closing evidence around the code already shipped.
+Do not start BLE, a dedicated USB transport, background wake, or another platform package during
+this phase.
+
+### Phase 1: exact Beta 2 package regression
+
+- [ ] Verify the published Windows ZIP and Android APK checksums, signatures, versions, source
+  commit, and workflow attempt before installation. Retain an independently tested recovery
+  recipient.
+- [ ] Exercise the published pair with two configured phone identity files: the first valid
+  nonmatching identity must cause no phone contact, and age must continue to the matching identity.
+  The matching identity must require a fresh native phone verification and recover byte-identical
+  synthetic input.
+- [ ] Repeat malformed supported stanza, unavailable private state, cancellation, and independent
+  recovery checks. Every failure must produce no plaintext; a retry must create a fresh request and
+  require a new phone verification.
+- [ ] Record only version, immutable commit, package hashes, signer identities, result, and timing.
+  Do not record private keys, plaintext, raw protocol messages, QR contents, or device serials.
+
+### Phase 2: foreground Wi-Fi adverse-condition matrix
+
+- [ ] On one exact artifact pair, cover no listener, hostile first connection, app backgrounding,
+  network change, cancellation, timeout, replay, and a successful Wi-Fi-to-ADB recovery using a
+  fresh user-initiated request.
+- [ ] Repeat consecutive Wi-Fi requests after success, cancellation, timeout, and foreground
+  restoration to verify immediate listener re-arm and the fixed-port `TIME_WAIT` behavior.
+- [ ] Keep wrong-phone and multiple-phone cases in the broader-use phase because they require
+  additional physical devices. Discovery may choose one route before request creation; after a
+  request is created, no test may treat fallback, reconnect, or silent retry as success.
+
+### Phase 3: broader-use re-entry
+
+- [ ] Qualify a second StrongBox device family and complete wrong-paired-phone, multiple-phone,
+  invalidation, upgrade, and lifecycle coverage against one exact signed pair.
+- [ ] Move Windows signing to a publicly trusted open-source program and conduct a limited
+  technical-user Alpha before expanding beyond the repository owner.
+- [ ] Revisit protocol freeze only after the physical matrix and compatibility policy are complete;
+  until then, protocol v2 remains experimental and production secrets remain unsupported.
+
+This phase is complete when the published Beta 2 pair has a reproducible multi-identity regression
+record and the single-phone foreground Wi-Fi failure/recovery matrix is closed. Broader-device,
+public-signing, and external-user gates remain explicitly open.
 
 ## Product sequencing principles
 
 2026-09-10 sequencing decision: stop additional macOS acceptance for an interim
 experimental release, retaining unverified rows and known limitations. The
-[tagged-recipient PRD](tagged-recipient-prd.md) now has a source implementation candidate;
-[evidence and remaining gates](tagged-recipient-evidence.md) define its completion status. See the [scope decision](macos-release-scope-decision.md).
+[tagged-recipient PRD](tagged-recipient-prd.md) shipped within the limited Beta scope;
+[evidence and remaining gates](tagged-recipient-evidence.md) define the narrower physical coverage
+and the work required before broader support. See the [scope decision](macos-release-scope-decision.md).
 
 Current deployment posture: this application is temporarily an owner-only technical preview as
 defined in [`owner-only-preview.md`](owner-only-preview.md). The UVC-camera QR/replay matrix,
@@ -326,7 +380,7 @@ release gate, not an open question about whether the ADB transport can carry the
 - [ ] Define signed update, vulnerability reporting, protocol migration, support lifetime, and
   deprecation policies before general availability.
 
-## Explicit native tagged recipients (2026-09-10 source candidate)
+## Explicit native tagged recipients (introduced in Beta 1)
 
 - [x] Preserve default phone and add explicit tag/phone CLI and read-only public export.
 - [x] Add strict standard stanza parsing, public prefilter, real collision and input-order tests.
@@ -334,8 +388,10 @@ release gate, not an open question about whether the ADB transport can carry the
 - [x] Cross-check shared vectors in Rust/Kotlin/Swift and independently in Apple CryptoKit HPKE.
 - [x] Verify age v1.3.2 and rage 0.12.1 plugin-free encryption and authenticated payload recovery.
 - [ ] Complete exact-candidate Android StrongBox and iOS Secure Enclave physical matrix.
-- [ ] Record candidate-specific mixed phone/SE identities and Shine integration acceptance.
-- [ ] Complete separate signing/publication authorization and remaining tag release gates.
+- [x] Record candidate-specific mixed phone/SE identities and Shine integration acceptance.
+- [x] Publish the explicit tag feature in the limited Beta 1 scope and retain it in Beta 2.
+- [ ] Complete the remaining Android/iOS physical matrix before expanding tag support beyond the
+  limited Beta scope.
 
 [ADR 0026](adr/0026-native-tagged-recipients.md), [workflow](tagged-recipient-quickstart.md),
 and [evidence](tagged-recipient-evidence.md) define the scope. Historical uses of “tagged” above

@@ -6,9 +6,9 @@ recovery recipient.
 
 ## [Unreleased]
 
-## [0.1.0-beta.2] - Unreleased
+## [0.1.0-beta.2] - 2026-09-11
 
-Maintenance candidate based on the published Beta 1 release. Protocol v2, public identity stubs,
+Published maintenance release based on Beta 1. Protocol v2, public identity stubs,
 pairing state, recipient formats, key custody, and mobile authorization behavior are unchanged.
 
 ### Fixed
@@ -17,7 +17,7 @@ pairing state, recipient formats, key custody, and mobile authorization behavior
   to continue to later configured plugin identities. Malformed stanzas and unavailable or corrupt
   state remain fatal, and a miss does not contact the phone or consume replay state.
 
-See the [candidate notes](docs/releases/v0.1.0-beta.2.md). Not yet published.
+See the [release notes](docs/releases/v0.1.0-beta.2.md).
 
 ## [0.1.0-beta.1] - 2026-09-11
 

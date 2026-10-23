@@ -2,12 +2,13 @@
 
 ## Supported versions
 
-No version is supported for production secrets. `0.1.0-beta.1` is published for limited
-technical testing, and `0.1.0-beta.2` is an unpublished maintenance candidate. The
-[beta checklist](docs/beta-readiness.md) tracks the candidate and compatibility limits.
-Existing hardware evidence does not establish support for every device or certify Beta 2 artifacts.
+No version is supported for production secrets. `0.1.0-beta.1` and its `0.1.0-beta.2`
+maintenance update are published for limited technical testing. The
+[beta checklist](docs/beta-readiness.md) tracks their evidence and compatibility limits.
+Existing hardware evidence does not establish support for every device, and the Beta 2
+multi-identity physical pass used a source-installed desktop rather than the published package pair.
 Protocol v2 remains unfrozen; independent recovery is required.
-See the [Beta 2 candidate notes](docs/releases/v0.1.0-beta.2.md). The published alpha.5
+See the [Beta 2 release notes](docs/releases/v0.1.0-beta.2.md). The published alpha.5
 snapshot retains its [experimental scope](docs/releases/v0.1.0-alpha.5.md).
 
 Historically, `0.1.0-alpha.4` is an experimental,
