@@ -35,8 +35,10 @@ authentication. Beta 1's technical-test scope and all recorded limitations remai
 - [x] Publish the four crates and signed artifacts without changing the accepted commit. The
   protected `crates-io-publish` and `alpha-release` environments admitted the manually dispatched
   workflows, and GitHub published `v0.1.0-beta.2` as a prerelease at 2026-09-11 15:01:56 UTC.
-- [ ] Repeat the scoped multi-identity regression with the exact published Windows/Android package
-  pair. The source-installed physical pass below does not certify those packaged bits.
+- [x] Repeat the scoped `phone` multi-identity regression with the exact published Windows/Android
+  package pair. The [2026-10-23 package record](beta2-package-acceptance-2026-10-23.md) binds the
+  artifacts, source, signer identities, machine results and owner observations. It does not certify
+  `tag`, fresh pairing or the complete Wi-Fi/lifecycle matrix.
 
 ### Beta 2 source physical acceptance — 2026-09-11
 
@@ -44,7 +46,8 @@ The project owner confirmed that the multi-identity scenario passed on a real ph
 source-installed desktop build. This closes the candidate's source-level physical regression gate:
 the configured identity set continued past a nonmatching phone identity and successfully reached
 the matching identity. This record does not claim that the later published Windows/Android package
-pair passed the same physical regression; that post-publication repeat remains open above.
+pair passed the same physical regression; the separately recorded 2026-10-23 package run now
+closes that scoped post-publication repeat.
 
 ### Beta 2 publication evidence — 2026-09-11
 
@@ -54,11 +57,46 @@ The published Windows ZIP SHA-256 is
 SHA-256 is `b8c3011739914249f50d81fed4727f438a93b0b5839eed8188e645d5637f1b16`.
 The release workflow also published matching checksum and signature-verification records. The
 Windows package remains private-root test-signed and ordinary installations do not trust that root.
-Publication preserves Beta 1's owner-only, synthetic-or-disposable-data scope and does not close
-the post-publication package regression, public signing, multi-device, or technical-user gates.
+Publication preserves Beta 1's owner-only, synthetic-or-disposable-data scope. The later package
+regression closes only the scoped `phone` core cases; public signing, multi-device and
+technical-user gates remain open.
 The immutable GitHub release body was generated from the accepted pre-publication note and retains
 its candidate wording. Repository release policy forbids modifying a public release; this checklist,
 the current release note, changelog, security policy, and README record the post-publication state.
+
+### Post-publication acceptance and merged repair — updated 2026-10-27
+
+The [exact Beta 2 package run](beta2-package-acceptance-2026-10-23.md) passed independent
+recovery, nonmatch/match continuation, malformed-stanza and unavailable-state rejection,
+cancellation and fresh verification, plus scoped foreground Wi-Fi cases. It also reproduced
+failure of the first automatic-discovery request after network restoration. **That published
+package failure remains open; the original evidence and release assets are unchanged.**
+
+PR #23 merged the Android recovery fix and P0/P1 tooling at `196943f`; its
+[main CI run](https://github.com/biulight/age-plugin-phone/actions/runs/40027249318)
+passed all eight jobs. That run predates the newly configured `acceptance-tooling` matrix;
+it is not evidence that the new CI steps have already executed. The
+[candidate record](android-wifi-network-recovery.md) separates the first local fix from
+R2, including 87 Android JVM tests, signed in-place installation, scoped physical results,
+and the source-to-installed-package hash chain. The latest published artifacts remain Beta 2;
+merged code and local fixed APKs do not replace or certify those published bytes.
+
+The new CI matrix runs synthetic replay/negative tests in normal and optimized Python,
+Windows checked-ADB failure fixtures, and the three archived-evidence validators. Its
+uploaded tool-run records are automated evidence, not fresh phone verification.
+
+Remaining maintenance-candidate acceptance:
+
+- [ ] First automatic discovery after idle and pending-request network restoration on the final
+  signed pair, without direct-address/listener-toggle workarounds. This passed on the first fix;
+  R2's replay relay used a direct endpoint before discovery recovery.
+- [ ] Separate final-pair `phone` and `tag` multi-identity and cancellation records; historical
+  tag evidence and this run's `phone` results retain their own package scope.
+- [ ] Exact cancelled-request replay after app restart, within expiry, followed by fresh recovery.
+- [ ] Reconcile the remaining Wi-Fi adverse-condition rows on that same final pair and record
+  any AP/subnet roaming, upgrade or lifecycle exclusions. Broader-device gates stay deferred.
+- [ ] Bind a new maintenance release to its immutable source and accepted signed artifacts before
+  publication. Do not overwrite Beta 2 or relabel its reproduced failure as passed.
 
 ## Beta 1 closeout
 
