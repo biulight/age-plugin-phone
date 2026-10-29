@@ -1,6 +1,6 @@
 # Protocol v2 freeze preparation record
 
-Date: 2026-10-30. Status: P0 specification/scope inventory prepared for review; **not frozen**.
+Date: 2026-10-30. Status: D1–D5 decisions accepted by the project owner; implementation and acceptance remain open; **not frozen**.
 Beta remains limited technical testing. The [prerelease compatibility policy](protocol.md#prerelease-compatibility-policy)
 permits clearly announced breaking updates before freeze without cross-version interoperability,
 automatic migration or downgrade promises. This record does not authorize code changes or publication.
@@ -41,9 +41,9 @@ The consolidated specification is the review entry point for current bytes. It d
 all implementations conformant. Resolve discrepancies against the named source and vectors before
 accepting normative text; do not alter source or fixtures merely to make the documentation agree.
 
-## Proposed freeze boundary
+## Accepted freeze scope
 
-The following is the candidate scope for decision D1, not a completed freeze:
+The following scope is accepted under D1. Final baseline selection and freeze approval remain open:
 
 | Include in the v2 baseline | Keep separately versioned or outside this freeze |
 | --- | --- |
@@ -56,25 +56,135 @@ Transport exclusion means no wire-stability promise for that framing; it does no
 from signature verification, bounded parsing, fresh authorization or replay rules. Private storage
 exclusion similarly does not permit state loss, uncertain replay reset or weaker key custody.
 
-## Decisions still required
+## Accepted decisions and acceptance criteria
 
-| ID | Question and evidence | Recommended disposition | Closure needed |
-| --- | --- | --- | --- |
-| D1 | Which source/specification revisions and scope are frozen? Current preparation names `69b3cdf`, but no freeze approval exists. | Review this candidate and the table above; name the final specification revision separately. | Explicit accepted baseline/scope after relevant gates pass; rebaseline if source changes |
-| D2 | Retain legacy `phone-p256-v1` stanza support in the stable supported set? It is still accepted with restricted selection, and the pairing response/stub carry the single-phone recipient encoding. | Retain current behavior for this candidate to avoid unrelated code changes; do not promise historical protocol-v1 messages or state. Decide any later removal explicitly. | Confirm legacy stanza policy separately from the single-phone public-key encoding; identify affected ciphertext if removal is chosen |
-| D3 | What are the portable clock integer range, overflow behavior and parser resource bounds? Rust uses u64 with saturating lifetime addition; Kotlin accepts nonnegative Long and adds 300; Swift uses UInt64 and ordinary addition. Swift CBOR defaults to 65,536 bytes/128 elements/depth 16; Rust's protocol decoder has field bounds but no equivalent total-input cap in decode_signed. | Specify a bounded interoperable time domain and overflow rejection; distinguish normative message bounds from transport/storage caps. Do not assume all extremes already agree. | Choose limits, inspect each entry boundary and add shared boundary tests in subsequent code work if needed; ordinary-clock vectors alone do not close this |
-| D4 | Which stanza capabilities does a frozen v2 endpoint support, and how are future additions versioned? Pre-tag mobile parsers reject tag while retaining protocol number 2. | Name phone v2 and explicit tag in the current profile, subject to D2 for legacy v1; reject unsupported capabilities. Do not add negotiation solely for freeze. | Accept a baseline capability list and an extension/versioning policy that never reinterprets frozen fields |
-| D5 | What completes the conformance fixture set? Existing vectors do not cover every full message path or every parser rejection. | Add a shared phone-v2-stanza envelope, full Swift pairing/envelope coverage and public-stub serialization expectations; organize negative mutations with explicit outcomes. | Agree the required vector/negative-test matrix and close its gaps on the selected candidate; no fixture generation or code edits occur in this task |
+The project owner accepted the following recommendations on 2026-10-30. Acceptance of policy does
+not establish implementation conformance, close the independent review, or authorize this
+documentation task to modify code. D3 specifies target behavior not yet uniformly enforced.
 
-D3 is a source-observed boundary difference and a review item, not evidence of a practical
-biometric bypass. Do not invent a new wire bound in documentation and claim existing code enforces
-it. D2/D4 recommendations preserve the current implementation while making future promises explicit.
+### D1 — Scope and baseline
+
+Retain `69b3cdf` as the source assessment baseline and the scope above. Runtime sources and all
+seven public vectors were unchanged through `fd6fa6c`; the later commits record documentation.
+Do not select today's HEAD as the final frozen baseline merely because CI passed. After D3/D5
+implementation and review, select a new immutable source SHA if code or vectors changed, and bind
+it to an accepted specification revision and vector inventory.
+
+Acceptance: the final record names source SHA, specification revision, supported capability set,
+vector hashes and applicable CI/review evidence. Private storage, framing and product contracts are
+explicitly separated. No historical hardware or CI result is silently promoted to a new candidate.
+
+### D2 — Retain restricted legacy stanza support
+
+Retain `phone-p256-v1` for this baseline under the existing selection constraints. After unmatched
+tag candidates are removed, legacy v1 requires exactly one configured identity and one remaining
+phone stanza; mixed phone v1/v2 candidates are rejected. This does not promise protocol-v1 message
+or state compatibility, nor require automatic migration. The `0x01` single-phone recipient encoding
+remains necessary in v2 pairing responses and public stubs, independently of legacy stanza support.
+
+Acceptance: retain positive single-identity/single-stanza coverage and rejection of ambiguous or
+mixed candidates before phone authorization. Preserve protocol-v1/state rejection and the pairing/
+stub key encoding. Any future removal is a separate decision identifying affected ciphertext and
+recovery steps; no removal is part of this work.
+
+### D3 — Portable time and parser boundaries
+
+Accepted target rules, pending implementation and cross-language verification:
+
+- Encode Unix seconds as a CBOR unsigned integer in `[0, 2^63-1]`. Apply the same valid range to
+  verifier time. Reject negative values, numeric strings and values outside that range.
+- Validate range, then `expires >= now`, then `expires - now <= 300`. Both endpoints of the
+  ordinary 300-second window remain inclusive; avoid overflow-prone `now + 300` in verification.
+- Request creation uses checked addition and rejects expiry beyond the accepted range. Do not
+  saturate or wrap. Preserve the durable replay high-water mark and ordinary restart semantics.
+- Limit each complete signed envelope to 65,536 bytes at the protocol entry before decoding or
+  copying its payload. Apply this independently of QR/stream checks. A frame cap alone does not
+  protect a directly invoked decoder.
+- Preserve exact array/field bounds and canonical encoding. Reject oversized declared lengths,
+  extra/trailing data and malicious nesting without unbounded allocation or recursion. Implement
+  schema-specific structural checks or bounded parser constraints; no shared generic depth limit
+  is claimed to be implemented already.
+- Keep persistent-state parsing limits separate. In particular, do not replace iOS storage-specific
+  array limits with the protocol parser's default 128-element limit.
+
+Evidence: Rust currently uses u64 with saturating lifetime addition; Kotlin accepts nonnegative
+Long and uses ordinary addition; Swift uses UInt64 and ordinary addition. Swift CBOR has a default
+65,536-byte limit, while Rust/Kotlin envelope entry points need explicit equivalent protection.
+QR/stream already use 65,536-byte limits. These are boundary differences, not evidence of a
+practical biometric bypass.
+
+Acceptance: shared cases cover negative/text integers, `2^63-1`, `2^63`, `now-1`, `now`, `now+300`,
+`now+301` where representable, checked creation near the upper bound, and rejection of invalid
+verifier times. Length tests cover zero, limit and limit+1, inflated length declarations, deep
+nesting, nonminimal CBOR and trailing bytes. An input at the size limit is only size-eligible, not
+necessarily structurally valid. Rejection must occur without a new prompt, state reset or crash;
+stateful tests must distinguish pre-consumption rejection from failures after durable consumption.
+The same rules must hold at all included Rust/Kotlin/Swift entry points before D3 is closed.
+
+### D4 — Capabilities and extension policy
+
+The baseline capability set is suite 1, current fixed signed-message layouts, default paired phone
+v2, explicit `p256tag`, and the restricted legacy stanza path in D2. No negotiation mechanism is
+introduced solely for freeze. Historical prereleases sharing v2 are not evidence of this full set.
+
+Incompatible field, algorithm or interpretation changes require a new protocol version. New stanza
+capabilities must identify minimum endpoint versions and explicit rejection behavior. Until a safe
+capability-identification mechanism is separately accepted, use a new version to distinguish such
+extensions rather than treating the same number as proof of support. Unknown age stanza tags remain
+ignored at `identity-v1`; unknown signed-request stanza types, protocol fields or suites are rejected.
+Unsupported capability never permits downgrade, pairing substitution or within-request transport fallback.
+
+Acceptance: document the capability set and exercise all included stanza paths plus unknown-version,
+suite, field and signed-stanza rejection. Retain age-boundary unknown-tag handling and no-fallback
+negative tests. An extension must not reinterpret the frozen version's bytes or semantics.
+
+### D5 — Conformance fixtures and implementation coverage
+
+Retain the existing seven public vectors byte-for-byte. Add a complete phone-v2-stanza envelope
+fixture with selector, signed request, request digest, response and expected opening result. Add
+public-stub canonical CBOR/text expectations linked to a pairing transcript, including derived
+phone/tag recipients. Organize shared negative cases with explicit expected outcomes, covering D3
+and version/suite/type, reused roles, high-S, wrong bindings and ciphertext tampering.
+
+Run full pairing/envelope fixtures through Swift as well as Rust/Kotlin. The Swift envelope currently
+lives outside the Core test module and its generation APIs depend on Secure Enclave keys. Introduce
+only the minimal test boundary needed to execute production-used encoding/crypto logic; do not copy
+a second implementation or enable a production software-key fallback. Fixed signed fixture bytes
+must verify; randomized hardware ECDSA signatures need not equal deterministic fixture signatures.
+
+Acceptance: every required shared fixture has identified consumers and passing expected results;
+all newly generated bytes have independently checked expectations rather than self-confirming
+round trips alone. Preserve the seven original hashes. Verify stub serialization in its owning
+desktop implementation; it is not a new mobile storage contract. Retain separate stateful tests
+for cancellation, replay, timeout, persistence failure and restart, plus required native acceptance.
+Static JSON and successful iOS compilation do not prove those properties. Existing fixture coverage
+and remaining gaps are tracked in the [vector catalog](test-vectors/README.md).
+
+## Implementation order
+
+1. **Decisions recorded:** D1 scope, D2 retention, D3 target limits, D4 capability policy and D5
+   required conformance set are accepted. Final baseline selection is still deferred.
+2. **Establish boundary evidence:** add failing/shared time and parsing cases and complete-message
+   expectations to identify actual cross-language differences before changing behavior.
+3. **Implement D3 narrowly:** unify time range, safe arithmetic and protocol-entry bounds while
+   preserving key custody, native authorization and durable consumption. Validate negative paths.
+4. **Complete D5:** add the envelope/stub fixtures and minimal Swift test entry, then run the shared
+   conformance matrix and retain existing vectors unchanged.
+5. **Independent increment review:** review security-sensitive changes since the historical review
+   plus the new D3/D5 changes; resolve findings against the candidate. Implementation self-checks
+   are supporting evidence, not independent approval.
+6. **Final baseline decision:** bind source/specification/vector revisions and complete the remaining
+   protocol gates, including the breaking-update procedure. Decide freeze separately from production
+   support and exact-release-package acceptance.
+
+Steps 2–6 are outstanding. This sequence defines future work; the current authorization remains
+documentation-only. No exhaustive historical Alpha/Beta interoperability matrix is required.
 
 ## Evidence and remaining work
 
 | Work item | Status and next step |
 | --- | --- |
-| P0 inventory: source baseline, current schemas, domains, scope and public-vector hashes | Prepared here; review the specification/catalog and resolve D1–D5 before claiming closure |
+| P0 inventory: source baseline, current schemas, domains, scope and public-vector hashes | Complete as an inventory; D1–D5 policy decisions are accepted, while implementation, final baseline and freeze acceptance remain open |
 | P0 independent candidate review | Open; inspect changes since the historical reviewed candidates and close findings against the chosen SHA |
 | P1 cross-implementation conformance | Partial: Rust/Kotlin v2 envelope/pairing and Rust/Kotlin/Swift tag vectors exist; full Swift signed-envelope/pairing fixture execution and a shared phone-v2 envelope remain open |
 | P1 rejection/lifecycle/persistence evidence | Existing negative tests and scoped physical results remain useful; bind required cases to the candidate, including D3 boundaries. Source/CI agreement is not hardware verification |
@@ -88,6 +198,6 @@ not rebuild or re-certify those artifacts at `69b3cdf`. The published Beta 2 dis
 attached to its published bits. Broader coverage alone is not a wire-freeze gate, but any discovered
 binding, parsing, authorization or consumption defect must be resolved for the affected path.
 
-Next action: review D1–D5 and the current-byte specification, then perform the targeted P0 independent
-review. Only separately authorized implementation work may change code or fixtures. Neither this
+Next action after implementation is authorized: establish D3/D5 boundary evidence, then follow the
+implementation order above. Only separately authorized implementation work may change code or fixtures. Neither this
 record nor protocol freeze grants production-secret approval or replaces exact-release acceptance.
