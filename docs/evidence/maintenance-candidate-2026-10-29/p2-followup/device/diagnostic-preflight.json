@@ -1,0 +1,10 @@
+{
+  "installation_changed": false,
+  "case": "diagnostic-preflight",
+  "started_utc": "2026-10-29T11:33:09.4153777Z",
+  "windows_exe_sha256": "62d8f3836598dd1ab287c3b2ac432539870bfb0cbe7bdfd547d08cf3be373e2b",
+  "installed_apk_sha256": "cd28c3a7a19e1a4a92910c151551cec853169fa5e653815421c6386d825ee37a",
+  "adb_reverse_count": 0,
+  "finished_utc": "2026-10-29T11:33:15.2519369Z",
+  "result": "passed"
+}

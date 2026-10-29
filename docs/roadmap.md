@@ -18,10 +18,11 @@ The [subsequent Android fix](android-wifi-network-recovery.md) was merged in PR 
 `196943f`; its signed local candidates have separate evidence and are not published
 Beta 2 artifacts. See [the release checklist](beta-readiness.md).
 
-## Next execution plan — updated 2026-10-27
+## Next execution plan — updated 2026-10-29
 
 Keep the owner-only, synthetic-data scope. P0 acceptance tooling and the scoped P1
-package/fix evidence are merged; the full single-pair acceptance matrix is not complete.
+package/fix evidence are merged. The [2026-10-29 fixed-pair follow-up](evidence/maintenance-candidate-2026-10-29/README.md)
+closes the listed single-phone gaps on the existing R2 APK, not on future release artifacts.
 Do not start BLE, a dedicated USB transport, background wake, or another platform package
 while closing these gaps.
 
@@ -37,8 +38,8 @@ while closing these gaps.
   recovery checks without plaintext on failure. Existing pairings and replay state were preserved.
 - [x] Archive sanitized machine results, owner observations, artifact identities and driver
   provenance in the [published-package evidence](evidence/beta2-2026-10-23/README.md).
-- [ ] Run and record `tag` separately on the final candidate; the `phone` result does not certify
-  another recipient mode, fresh pairing, multiple physical phones or the full lifecycle matrix.
+- [x] Record `tag` separately on the selected R2 pair in the 2026-10-29 follow-up. This does not
+  certify fresh pairing, multiple physical phones, the full lifecycle matrix or a future release pair.
 
 ### Phase 2: foreground Wi-Fi matrix and final-candidate closure
 
@@ -52,18 +53,21 @@ The first unpublished repair passed idle and pending-authorization network cycle
 by the first automatic-discovery request. The final R2 repair added observation-registration
 retry and ownership regressions, then passed network-cancelled request replay and scoped
 foreground recovery. Its relay used a direct endpoint before the fresh discovery request;
-that does not close the first-discovery gap for R2. See the
+that did not close the first-discovery gap for R2. The 2026-10-29 follow-up now records
+first discovery after both idle and pending-request cycles without an intervening direct connection. See the
 [separate candidate evidence](evidence/android-wifi-network-r2-2026-10-24/README.md).
 
 - [x] Configure synthetic P1 regressions and all three evidence-archive checks in the
   `acceptance-tooling` CI matrix. This adds ongoing validation, not new physical passes;
-  the first hosted run of this CI addition remains to be observed after submission.
-- [ ] On one final exact signed pair, repeat idle and pending-authorization network restoration
-  with the first automatic-discovery request, without a prior direct connection, listener toggle
-  or second-request workaround. Reconcile the other adverse-condition rows on that same pair.
-- [ ] Record separate `phone` and `tag` multi-identity/cancellation results on the final pair.
-- [ ] Verify exact cancelled-request replay after app restart within expiry, then a fresh successful
-  request. JVM durable-store tests and same-process physical rejection are separate evidence.
+  PR #24 and [merged main CI](https://github.com/biulight/age-plugin-phone/actions/runs/40851959029)
+  passed all 11 jobs. The new 2026-10-29 archive/mode-fixture CI additions remain locally verified only.
+- [x] On the fixed published-Windows/R2-Android pair, record first automatic discovery after idle
+  and pending-authorization restoration without direct-address or listener-toggle workarounds.
+  Reconcile adverse-condition rows on that same pair; background recovery retains its earlier
+  same-hash R2 record rather than claiming a fresh run.
+- [x] Record separate `phone` and `tag` multi-identity/cancellation and fresh recovery on that pair.
+- [x] Verify exact network-cancelled request replay after confirmed app-process restart within
+  expiry, then fresh successful recovery. This is not device reboot or rollback acceptance.
 - [ ] Keep AP/subnet roaming explicitly unverified until exercised. Wrong-phone and multiple-phone
   physical cases remain in Phase 3. A new request may choose another transport; a signed request
   may never silently fall back, reconnect or retry.
@@ -82,8 +86,8 @@ that does not close the first-discovery gap for R2. See the
   until then, protocol v2 remains experimental and production secrets remain unsupported.
 
 The scoped published-package core regression is complete. The next stage ends when the final
-candidate's single-phone foreground Wi-Fi and recipient-mode gaps above are closed, with failures
-and exclusions retained. Broader-device, public-signing and external-user gates remain open.
+release candidate is built, signed and checked as its own immutable package pair. The existing
+R2 pair's scoped matrix is recorded, with failures and exclusions retained. Broader-device, public-signing and external-user gates remain open.
 
 ## Product sequencing principles
 

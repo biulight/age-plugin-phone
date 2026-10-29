@@ -1,0 +1,20 @@
+{
+  "entries": [
+    {
+      "mode": "idle",
+      "cycle_file": "wifi-interface-cycle-585eb3763eb2473387c1409e3962c6a6.json",
+      "cycle_sha256": "aee766e097830d3a8d837b991349c63d71ce8f0c158a143c9cff14d19b5d1e0a",
+      "recovery_file": "wifi-after-network-36189b7e295040dbaf023f0bb93dc3ee.json",
+      "recovery_sha256": "1c0775171863fcd587ad3c9b20f322c26c2bbdfaaf6af6f733d1dce5a1f2e9b6"
+    },
+    {
+      "mode": "pending",
+      "cycle_file": "wifi-interface-cycle-9642151b20094b789349c6fd32bcb557.json",
+      "cycle_sha256": "bac2e8f438815cad10045baedfac57208fa4adee573e871c2c40b2b1a314da05",
+      "recovery_file": "wifi-after-network-305ad1a663f54bdfa443403e0a00ae42.json",
+      "recovery_sha256": "8248ad57eec9019ee09b117db6dbe26721f161c51e929a8adbcfeddb7c4d2675",
+      "interrupted_file": "wifi-network-956e8097db8e45fc87564f7306e98b7f.json",
+      "interrupted_sha256": "40f4aea5f967f8a07521c778ffa9702f886332acd4dbb4740d05a3c75ce8bfbc"
+    }
+  ]
+}

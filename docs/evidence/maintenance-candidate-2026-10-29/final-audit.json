@@ -1,0 +1,11 @@
+{
+  "case": "final-audit",
+  "finished_utc": "2026-10-29T10:56:33.0999785Z",
+  "adb_reverse_count": 0,
+  "synthetic_inputs_removed": true,
+  "local_input_indexes_removed": true,
+  "manual_pairing_or_replay_state_changes": false,
+  "owner_confirmed_auto_listen_paused": true,
+  "owner_confirmed_controls_normal": true,
+  "query_implementation": "checked P1 common helper, stdout separated from stderr"
+}

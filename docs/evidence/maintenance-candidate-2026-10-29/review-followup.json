@@ -1,0 +1,221 @@
+{
+  "observations": [
+    {
+      "case": "wifi-approve",
+      "started_utc": "2026-10-29T10:04:04.9706431Z",
+      "result": "passed",
+      "observation": "Owner answered the fresh-prompt/verification question: \u5b8c\u6210\u9a8c\u8bc1.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "wifi-after-network",
+      "started_utc": "2026-10-29T10:05:10.7196076Z",
+      "result": "excluded",
+      "observation": "Owner did not observe the phone during the attempt; no prompt was present at time of reply. Excluded for missing observation, not attributed to a product defect or confirmed authentication timeout.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "wifi-after-network",
+      "started_utc": "2026-10-29T10:07:52.1002842Z",
+      "result": "passed",
+      "observation": "Owner completed one verification and explicitly confirmed no manual listener toggle or app restart during the retry.",
+      "source": "owner chat responses"
+    },
+    {
+      "case": "wifi-network",
+      "started_utc": "2026-10-29T10:10:09.8677609Z",
+      "result": "passed",
+      "observation": "Owner confirmed the native prompt appeared and then disappeared, in response to instructions not to authenticate, cancel or operate menus/listening.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "wifi-after-network",
+      "started_utc": "2026-10-29T10:14:26.6430430Z",
+      "result": "excluded",
+      "observation": "Owner reported accidentally pressing Pause. Discovery-no-match retained, but not accepted as an unassisted network-recovery result or attributed to a product regression.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "wifi-network",
+      "started_utc": "2026-10-29T10:16:45.4771954Z",
+      "result": "passed",
+      "observation": "Owner confirmed prompt appeared then disappeared without verification/cancellation/menu/listener operation.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "wifi-after-network",
+      "started_utc": "2026-10-29T10:18:39.9268774Z",
+      "result": "passed",
+      "observation": "Owner confirmed verification completed according to instructions, including no manual listener operation or app restart.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "wifi-network-cancel-restart-exact-replay",
+      "started_utc": "2026-10-29T10:26:20.519447+00:00",
+      "result": "passed",
+      "observation": "Owner confirmed prompt disappeared with network cycle, app reopened, and no prompts appeared during either replay; no phone operation.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "wifi-after-replay",
+      "started_utc": "2026-10-29T10:30:17.9675627Z",
+      "result": "passed",
+      "observation": "Owner completed fresh native verification.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "nonmatch-only",
+      "started_utc": "2026-10-29T10:31:29.8748571Z",
+      "result": "passed",
+      "observation": "Owner confirmed no new native verification prompt.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "approve-1",
+      "started_utc": "2026-10-29T10:33:10.5120122Z",
+      "result": "passed",
+      "observation": "Owner completed fresh native verification.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "cancel",
+      "started_utc": "2026-10-29T10:33:48.9118183Z",
+      "result": "passed",
+      "observation": "Owner explicitly clicked Cancel on the new native prompt.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "after-cancel",
+      "started_utc": "2026-10-29T10:34:23.2235740Z",
+      "result": "passed",
+      "observation": "Owner completed fresh native verification.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "nonmatch-only",
+      "started_utc": "2026-10-29T10:37:58.8131555Z",
+      "result": "passed",
+      "observation": "Owner confirmed no new native verification prompt in tag mode.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "approve-1",
+      "started_utc": "2026-10-29T10:38:48.8725018Z",
+      "result": "passed",
+      "observation": "Owner completed fresh native verification in tag mode.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "cancel",
+      "started_utc": "2026-10-29T10:39:22.5646826Z",
+      "result": "passed",
+      "observation": "Owner confirmed actively cancelling the new native prompt in tag mode.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "after-cancel",
+      "started_utc": "2026-10-29T10:40:05.0855745Z",
+      "result": "passed",
+      "observation": "Owner completed fresh native verification in tag mode.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "wifi-cancel",
+      "started_utc": "2026-10-29T10:41:44.1604836Z",
+      "result": "passed",
+      "observation": "Owner explicitly clicked Cancel.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "wifi-after-cancel",
+      "started_utc": "2026-10-29T10:42:18.4927947Z",
+      "result": "passed",
+      "observation": "Owner completed fresh native verification.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "wifi-timeout",
+      "started_utc": "2026-10-29T10:42:51.2629243Z",
+      "result": "passed",
+      "observation": "Owner confirmed prompt disappeared automatically without responding.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "wifi-after-timeout",
+      "started_utc": "2026-10-29T10:44:42.5475960Z",
+      "result": "passed",
+      "observation": "Owner completed fresh native verification.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "wifi-hostile-first",
+      "started_utc": "2026-10-29T10:45:16.1776316Z",
+      "result": "passed",
+      "observation": "Owner confirmed no native verification prompt and no manual phone operation.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "wifi-after-hostile",
+      "started_utc": "2026-10-29T10:46:04.7720589Z",
+      "result": "passed",
+      "observation": "Owner completed fresh native verification.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "wifi-exact-request-replay",
+      "started_utc": "2026-10-29T10:47:08.474477+00:00",
+      "result": "passed",
+      "observation": "Owner confirmed only the original fresh verification prompt appeared; no new prompt during either replay.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "wifi-after-replay",
+      "started_utc": "2026-10-29T10:48:53.7278788Z",
+      "result": "passed",
+      "observation": "Owner completed fresh native verification.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "wifi-disconnect",
+      "started_utc": "2026-10-29T10:49:33.3643695Z",
+      "result": "passed",
+      "observation": "Owner first confirmed pending native prompt, then confirmed automatic dismissal after exact test-plugin termination without phone operation.",
+      "source": "owner chat responses"
+    },
+    {
+      "case": "wifi-after-disconnect",
+      "started_utc": "2026-10-29T10:50:50.3754092Z",
+      "result": "passed",
+      "observation": "Owner completed fresh native verification.",
+      "source": "owner chat responses"
+    },
+    {
+      "case": "wifi-paused",
+      "started_utc": "2026-10-29T10:52:14.8026528Z",
+      "result": "passed",
+      "observation": "Owner confirmed no new verification prompt with auto-listen paused and USB still connected.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "usb-after-wifi-failure",
+      "started_utc": "2026-10-29T10:53:27.3030519Z",
+      "result": "passed",
+      "observation": "Owner completed fresh native verification for a new explicitly USB request.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "wifi-network-cancel-restart-exact-replay",
+      "started_utc": "2026-10-29T12:43:56.938896+00:00",
+      "result": "passed",
+      "observation": "Owner observed first prompt disappear with the automatic network switch, application reopen, and no new prompts for either replay; no phone interaction throughout.",
+      "source": "owner chat response"
+    },
+    {
+      "case": "wifi-after-replay",
+      "started_utc": "2026-10-29T12:47:05.9292817Z",
+      "result": "passed",
+      "observation": "Owner observed and completed fresh native verification for the new automatic-discovery recovery request; listening was unchanged.",
+      "source": "owner chat response"
+    }
+  ]
+}

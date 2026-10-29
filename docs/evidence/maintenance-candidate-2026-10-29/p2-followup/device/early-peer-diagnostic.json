@@ -1,0 +1,30 @@
+{
+  "case": "early-peer-diagnostic",
+  "started_utc": "2026-10-29T12:43:51.517159+00:00",
+  "python_version": "3.11.2",
+  "command": [
+    "python",
+    "p1/replay-probe.py",
+    "--network-cancel",
+    "--auto-cycle",
+    "--restart-after-cancel"
+  ],
+  "driver_sha256": "fcfb3f8dd6be6594c37646c98ef1e429f4a717b8d88563c49b872df057f5b1cb",
+  "wrapper_sha256": "62a2df23e1c7f2de7adceb4bc19ddc396d612ddc100ce598afc92d3119e5facb",
+  "before": {
+    "utc": "2026-10-29T12:43:56.875349+00:00",
+    "awake": true,
+    "app_resumed": true,
+    "wifi_enabled": true,
+    "wifi_ipv4_present": true
+  },
+  "exit_code": 0,
+  "after": {
+    "utc": "2026-10-29T12:45:53.578227+00:00",
+    "awake": true,
+    "app_resumed": true,
+    "wifi_enabled": true,
+    "wifi_ipv4_present": true
+  },
+  "finished_utc": "2026-10-29T12:45:53.578227+00:00"
+}

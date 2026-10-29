@@ -1,0 +1,48 @@
+{
+  "case": "wifi-network-cancel-restart-exact-replay",
+  "result": "automated-checks-passed-awaiting-observation",
+  "phone_observation": "pending",
+  "started_utc": "2026-10-29T12:43:56.938896+00:00",
+  "driver_sha256": "fcfb3f8dd6be6594c37646c98ef1e429f4a717b8d88563c49b872df057f5b1cb",
+  "replay_checks_sha256": "4355ac2a281632fddeaa5580b4e35ae8537f329062c46c57e1a8ab3ae9bb39f6",
+  "restart_helper_sha256": "4b5afa0fed9a13cec70a51106995aa6f51938ff9369f05691e0302e0e10536ee",
+  "request_forwarded_utc": "2026-10-29T12:43:57.337914+00:00",
+  "provenance": {
+    "switch_sha256": "6779082c293f8bb53692adde65e07c5e80e19aaee113ae55e3cd8d89d50553e1",
+    "common_sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab",
+    "base_helper_sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9"
+  },
+  "automatic_cycle_delay_seconds": 10,
+  "original_peer_result": "bounded-read-timeout-without-response",
+  "original_exit_code": 1,
+  "original_output_check": "no-output",
+  "original_finished_utc": "2026-10-29T12:45:50.317201+00:00",
+  "network_cycle_file": "wifi-interface-cycle-7f85ef72d293420a86239f9814a1e332.json",
+  "network_cycle_sha256": "9e1a4cd5cf2ae7f100755c4c9a2f2e8d9c1201b4948955886ecbcd5c25b47035",
+  "restart": {
+    "started_utc": "2026-10-29T12:45:50.361324+00:00",
+    "package": "io.github.biulight.age_plugin_phone",
+    "old_process_stopped": true,
+    "fresh_process_started": true,
+    "finished_utc": "2026-10-29T12:45:50.802074+00:00",
+    "result": "passed"
+  },
+  "replays": [
+    {
+      "mode": "identical-frame",
+      "signed_request_byte_identical": true,
+      "expiry_remaining_seconds_at_send": 186,
+      "peer_result": "closed-without-response",
+      "elapsed_seconds": 0.015
+    },
+    {
+      "mode": "fresh-outer-session-same-signed-request",
+      "signed_request_byte_identical": true,
+      "expiry_remaining_seconds_at_send": 185,
+      "peer_result": "closed-without-response",
+      "elapsed_seconds": 0.015
+    }
+  ],
+  "adb_reverse_count": 0,
+  "finished_utc": "2026-10-29T12:45:53.377936+00:00"
+}

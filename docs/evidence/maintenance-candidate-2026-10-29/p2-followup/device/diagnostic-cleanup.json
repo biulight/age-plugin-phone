@@ -1,0 +1,10 @@
+{
+  "finished_utc": "2026-10-29T12:48:30.8573480Z",
+  "case": "diagnostic-cleanup",
+  "started_utc": "2026-10-29T12:48:30.8454123Z",
+  "owner_controls_normal": true,
+  "adb_reverse_count": 0,
+  "owner_listening_paused": true,
+  "synthetic_inputs_removed": true,
+  "result": "passed"
+}

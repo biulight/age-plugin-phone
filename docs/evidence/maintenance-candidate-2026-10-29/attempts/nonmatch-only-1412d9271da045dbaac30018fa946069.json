@@ -1,0 +1,20 @@
+{
+  "case": "nonmatch-only",
+  "recipient_mode": "tag",
+  "result": "automated-checks-passed-awaiting-observation",
+  "transport": "adb",
+  "route_mode": "explicit-adb",
+  "phone_observation": "pending",
+  "started_utc": "2026-10-29T10:37:58.8131555Z",
+  "driver_sha256": "1d3ad75fb8a2f7da2d8876c80899de1271d57ca3a1a7ec338c0e1a8499ac9574",
+  "provenance": {
+    "common_sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab",
+    "base_helper_sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9",
+    "driver_sha256": "1d3ad75fb8a2f7da2d8876c80899de1271d57ca3a1a7ec338c0e1a8499ac9574"
+  },
+  "exit_code": 1,
+  "diagnostic_category": "identity-miss",
+  "output_check": "no-output",
+  "adb_reverse_count": 0,
+  "finished_utc": "2026-10-29T10:37:58.8933343Z"
+}

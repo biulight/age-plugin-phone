@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "checked_utc": "2026-10-29T09:59:14.567266+00:00",
+  "main_commit": "be46c547922cdd3c5d33c41cf69f1e979b5292dd",
+  "main_ci_run": 40851959029,
+  "main_ci_result": "success",
+  "archived_build_source": "android-wifi-network-r2-2026-10-24/build/build-source.json",
+  "archived_build_source_sha256": "e91011d95d7275afad4df40958396dba9579fd4b0f42fe8ab03d7b62dbcb38a9",
+  "source_inputs_checked": 300,
+  "all_input_bytes_equal": true,
+  "additional_inputs": [],
+  "missing_inputs": [],
+  "different_inputs": [],
+  "scope_exclusions": "Apple project and generated Tauri schemas; neither is Android source input",
+  "candidate_apk_sha256": "cd28c3a7a19e1a4a92910c151551cec853169fa5e653815421c6386d825ee37a",
+  "candidate_kind": "existing unpublished R2; source-equivalent within archived scope, not a new build or release",
+  "windows_exe_sha256": "62d8f3836598dd1ab287c3b2ac432539870bfb0cbe7bdfd547d08cf3be373e2b"
+}

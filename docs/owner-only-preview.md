@@ -21,7 +21,7 @@ recovery, foreground Wi-Fi unwrap, foreground/background listener lifecycle, fin
 and zero ADB reverse residue. This supports publication of the developer prerelease only; it does
 not mark any deferred public-Alpha gate as passed.
 
-As of 2026-10-27, the latest published release is `v0.1.0-beta.2` from `e08d631`.
+As of 2026-10-29, the latest published release is `v0.1.0-beta.2` from `e08d631`.
 Its exact-commit CI, four-crate publication and Windows/Android signing workflows passed.
 The [2026-10-23 exact-package run](beta2-package-acceptance-2026-10-23.md) subsequently
 recorded the scoped `phone` multi-identity, failure/recovery and foreground Wi-Fi cases.
@@ -31,8 +31,9 @@ remains attached to the published Beta 2 bits; the overall P1 matrix is not mark
 The [Android recovery repair](android-wifi-network-recovery.md) is merged at `196943f`
 and passed scoped tests on separately identified, unpublished same-signer APKs. The first
 fix's first-discovery result does not transfer to final R2, whose replay relay used a
-direct endpoint before discovery recovery. Final-pair first discovery, separate `phone`
-and `tag` acceptance, and cancelled-request replay after app restart remain open in the
+direct endpoint before discovery recovery. The [2026-10-29 fixed-pair follow-up](evidence/maintenance-candidate-2026-10-29/README.md)
+now records first discovery, separate `phone`/`tag` acceptance, and cancelled-request replay
+after app restart on those same R2 bytes. Future release artifacts still require their own acceptance under the
 [execution plan](roadmap.md). Existing pairing reuse is not fresh-pairing acceptance, and
 an in-place update is not the complete upgrade/invalidation matrix.
 

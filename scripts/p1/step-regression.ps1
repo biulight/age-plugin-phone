@@ -1,5 +1,6 @@
 param([ValidateSet('prepare','nonmatch-only','malformed','unavailable-state','approve-1','approve-2','cancel','after-cancel','wifi-approve','wifi-repeat','wifi-cancel','wifi-after-cancel','wifi-background','wifi-after-background','wifi-paused','wifi-network','wifi-disconnect','wifi-timeout','wifi-after-timeout','wifi-after-hostile','wifi-after-network','wifi-after-disconnect','wifi-after-replay','usb-after-wifi-failure')][string]$Case,
-    [string]$PhonePublicRecipient, [switch]$DirectWifi)
+    [string]$PhonePublicRecipient, [switch]$DirectWifi,
+    [ValidateSet('phone','tag')][string]$AcceptanceRecipientMode='phone')
 $ErrorActionPreference='Stop'
 $d=Join-Path $env:TEMP 'phone-beta2-p1-20261023'
 . (Join-Path $PSScriptRoot 'common.ps1')
@@ -43,8 +44,9 @@ if ($Case -eq 'prepare') {
     $alphabet='qpzry9x8gf2tvdw0s3jn54khce6mua7l'
     $candidates=@()
     foreach($stub in @(Get-ChildItem $root -Filter 'identity-*.txt' -File | Sort-Object LastWriteTime -Descending)) {
-        $r=Invoke-AcceptanceProcess $product @('recipients','--identity',$stub.FullName,'--recipient-type','phone')
+        $r=Invoke-AcceptanceProcess $product @('recipients','--identity',$stub.FullName,'--recipient-type',$AcceptanceRecipientMode)
         if ($r.ExitCode -ne 0) { continue }
+        if($r.Output.Trim() -cnotmatch "^age1${AcceptanceRecipientMode}1[0-9a-z]+$"){throw 'Exported recipient mode mismatch'}
         $line=@([IO.File]::ReadAllLines($stub.FullName) | ForEach-Object {$_.Trim()} | Where-Object {$_ -and -not $_.StartsWith('#')})[0].ToLowerInvariant()
         $data=$line.Substring($line.LastIndexOf('1')+1); $data=$data.Substring(0,$data.Length-6)
         $bytes=[Collections.Generic.List[byte]]::new(); $acc=0; $bits=0
@@ -73,13 +75,17 @@ if ($Case -eq 'prepare') {
     $r=Invoke-AcceptanceProcess $age @('-d','-i',$recovery,'-o',$out,$cipher)
     Assert-AcceptanceOutput $r.ExitCode $out $digest $true $r.Output $r.DiagnosticCategory
     # Operational inputs stay on the test host, outside shareable evidence.
-    @{matching=$selected.path; nonmatching=$others[0].path; digest=$digest} | ConvertTo-Json | Set-Content $localInputs
-    @{case='independent-recovery';result='passed';phone_contact_required=$false;synthetic_bytes=128} | ConvertTo-Json | Set-Content (Join-Path $d 'independent-recovery.json')
+    @{matching=$selected.path; nonmatching=$others[0].path; digest=$digest;recipient_mode=$AcceptanceRecipientMode;cipher_sha256=(Get-FileHash $cipher).Hash} | ConvertTo-Json | Set-Content $localInputs
+    @{case='independent-recovery';result='passed';phone_contact_required=$false;synthetic_bytes=128;recipient_mode=$AcceptanceRecipientMode} | ConvertTo-Json | Set-Content (Join-Path $d 'independent-recovery.json')
     Write-Output 'Prepared synthetic ciphertext; independent recovery passed. No phone authorization requested.'
     exit
 }
 $inputSet=Get-Content $localInputs -Raw | ConvertFrom-Json
+$preparedMode=if($inputSet.PSObject.Properties.Name -contains 'recipient_mode'){$inputSet.recipient_mode}else{''}
+if($preparedMode -cne $AcceptanceRecipientMode){throw 'Prepared recipient mode mismatch'}
+if($Case -eq 'malformed' -and $AcceptanceRecipientMode -ne 'phone'){throw 'Malformed probe supports phone only'}
 $cipher=Join-Path $work 'synthetic.age'
+if($inputSet.PSObject.Properties.Name -notcontains 'cipher_sha256' -or $inputSet.cipher_sha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or (Get-FileHash $cipher).Hash -ine $inputSet.cipher_sha256){throw 'Prepared ciphertext binding mismatch'}
 $out=Join-Path $work ($Case+'-'+[Guid]::NewGuid().ToString('N')+'.bin')
 $ids=@('-i',$inputSet.matching)
 if($Case -eq 'nonmatch-only'){$ids=@('-i',$inputSet.nonmatching)}
@@ -94,7 +100,7 @@ if($Case -eq 'malformed'){
     [IO.File]::WriteAllBytes($cipher,[Text.Encoding]::Latin1.GetBytes($modified))
 }
 $success=$Case -in @('approve-1','approve-2','after-cancel','wifi-approve','wifi-repeat','wifi-after-cancel','wifi-after-background','wifi-after-timeout','wifi-after-hostile','wifi-after-network','wifi-after-disconnect','wifi-after-replay','usb-after-wifi-failure')
-$record=[ordered]@{case=$Case;result='incomplete';transport=$env:AGE_PLUGIN_PHONE_TRANSPORT;route_mode=$(if($DirectWifi){'explicit-phone-address'}else{'authenticated-discovery'});phone_observation='pending';started_utc=[DateTime]::UtcNow.ToString('o');driver_sha256=(Get-FileHash $PSCommandPath).Hash.ToLowerInvariant();provenance=(Get-P1Provenance $PSCommandPath)}
+$record=[ordered]@{case=$Case;recipient_mode=$AcceptanceRecipientMode;result='incomplete';transport=$env:AGE_PLUGIN_PHONE_TRANSPORT;route_mode=$(if($DirectWifi){'explicit-phone-address'}elseif($Case.StartsWith('wifi-')){'authenticated-discovery'}else{'explicit-adb'});phone_observation='pending';started_utc=[DateTime]::UtcNow.ToString('o');driver_sha256=(Get-FileHash $PSCommandPath).Hash.ToLowerInvariant();provenance=(Get-P1Provenance $PSCommandPath)}
 $report=Join-Path $d ($Case+'-'+[Guid]::NewGuid().ToString('N')+'.json')
 if($Case -eq 'wifi-disconnect'){ @{pid=$PID;started=(Get-Process -Id $PID).StartTime.ToUniversalTime().ToString('o')} | ConvertTo-Json | Set-Content (Join-Path $d 'disconnect-operation.json') }
 try {

@@ -1,0 +1,7 @@
+{
+  "recipient_mode": "phone",
+  "result": "passed",
+  "synthetic_bytes": 128,
+  "case": "independent-recovery",
+  "phone_contact_required": false
+}

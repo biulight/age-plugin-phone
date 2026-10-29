@@ -1,17 +1,23 @@
 import argparse, datetime, hashlib, ipaddress, json, os, pathlib, re, select, socket, struct, subprocess, time, uuid
 
-from replay_checks import check_original, check_network_cycle, require, timestamp
+from replay_checks import check_original, check_network_cycle, check_restart, require, timestamp
+from phone_restart import restart
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--network-cancel', action='store_true')
 parser.add_argument('--auto-cycle', action='store_true', help='cycle Wi-Fi after 10 seconds with the request still pending')
+parser.add_argument('--restart-after-cancel', action='store_true', help='verify application process restart before replaying the cancelled request')
 args = parser.parse_args()
 if args.auto_cycle and not args.network_cancel:
     parser.error('--auto-cycle requires --network-cancel')
+if args.restart_after_cancel and not args.network_cancel:
+    parser.error('--restart-after-cancel requires --network-cancel')
 D = pathlib.Path(os.environ['TEMP']) / 'phone-beta2-p1-20261023'
 R = {'case': 'wifi-exact-request-replay', 'result': 'incomplete', 'phone_observation': 'pending'}
 if args.network_cancel:
     R['case'] = 'wifi-network-cancel-exact-replay'
+if args.restart_after_cancel:
+    R['case'] = 'wifi-network-cancel-restart-exact-replay'
 P = None
 
 def now(): return datetime.datetime.now(datetime.timezone.utc).isoformat()
@@ -72,6 +78,7 @@ try:
     R['started_utc']=now()
     R['driver_sha256']=hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest()
     R['replay_checks_sha256']=hashlib.sha256(pathlib.Path(__file__).with_name('replay_checks.py').read_bytes()).hexdigest()
+    R['restart_helper_sha256']=hashlib.sha256(pathlib.Path(__file__).with_name('phone_restart.py').read_bytes()).hexdigest()
     product=D/'package'/'age-plugin-phone.exe'
     require(hashlib.sha256(product.read_bytes()).hexdigest()=='62d8f3836598dd1ab287c3b2ac432539870bfb0cbe7bdfd547d08cf3be373e2b')
     devices=re.findall(r'^\S+\s+device\s*$',run('adb','devices'),re.M)
@@ -102,11 +109,18 @@ try:
             payload=cbor(envelope[0]);require(len(payload)==11 and payload[:3]==[2,3,1])
             expiry=payload[9];require(isinstance(expiry,int) and time.time()<expiry)
             upstream.sendall(request)
+            R['request_forwarded_utc']=now()
             print('Original request forwarded; '+('leave the native prompt pending for the network cycle.' if args.network_cancel else 'awaiting fresh phone verification.'),flush=True)
             if args.network_cancel:
                 if args.auto_cycle:
                     # Do not cycle an already closed or unexpectedly answered request.
                     readable, _, _ = select.select([upstream], [], [], 10)
+                    if readable:
+                        R['early_peer_utc']=now()
+                        try:
+                            R['early_peer_result'] = 'response-before-cycle' if upstream.recv(1) else 'closed-before-cycle'
+                        except ConnectionResetError:
+                            R['early_peer_result'] = 'reset-before-cycle'
                     require(not readable)
                     switch = pathlib.Path(__file__).with_name('switch-wifi.ps1')
                     base = pathlib.Path(__file__).resolve().parent.parent / 'windows-minimal-acceptance.ps1'
@@ -134,6 +148,7 @@ try:
     check_original(P.returncode, stdout, output.read_bytes() if output.exists() else b'', inputs['digest'], args.network_cancel)
     R['original_exit_code']=P.returncode
     R['original_output_check']='no-output' if args.network_cancel else 'byte-identical'
+    R['original_finished_utc']=now()
     if args.network_cancel:
         cycles = []
         for path in D.glob('wifi-interface-cycle-*.json'):
@@ -148,6 +163,11 @@ try:
         route=run('adb','shell','ip','-4','route','show','dev','wlan0')
         phone=re.search(r'\bsrc\s+(\d+\.\d+\.\d+\.\d+)',route).group(1)
         require(ipaddress.ip_address(phone).is_private)
+    if args.restart_after_cancel:
+        require(expiry-int(time.time()) > 60)
+        R['restart'] = restart()
+        check_restart(R['restart'], R['original_finished_utc'], now())
+        print('Application process restart verified; replaying the cancelled request.', flush=True)
     R['replays']=[]
     for mode in ('identical-frame','fresh-outer-session-same-signed-request'):
         time.sleep(1)

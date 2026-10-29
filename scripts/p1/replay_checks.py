@@ -34,3 +34,13 @@ def require(condition):
     # Explicit validation survives both -O and PYTHONOPTIMIZE. No payload in errors.
     if not condition:
         raise AssertionError("replay acceptance condition failed")
+
+
+def check_restart(record, original_finished, finished):
+    if (record.get('result') != 'passed'
+            or record.get('package') != 'io.github.biulight.age_plugin_phone'
+            or record.get('old_process_stopped') is not True
+            or record.get('fresh_process_started') is not True
+            or not timestamp(original_finished) <= timestamp(record['started_utc'])
+                <= timestamp(record['finished_utc']) <= timestamp(finished)):
+        raise ValueError('cancelled request restart evidence mismatch')

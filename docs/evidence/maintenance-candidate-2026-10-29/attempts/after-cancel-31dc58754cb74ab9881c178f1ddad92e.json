@@ -1,0 +1,19 @@
+{
+  "case": "after-cancel",
+  "result": "automated-checks-passed-awaiting-observation",
+  "transport": "adb",
+  "route_mode": "authenticated-discovery",
+  "phone_observation": "pending",
+  "started_utc": "2026-10-29T10:34:23.2235740Z",
+  "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103",
+  "provenance": {
+    "common_sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab",
+    "driver_sha256": "fd29d281ebb10052bd320204b1f9b03bd78ddd51a042714c40dc513c16e7b103",
+    "base_helper_sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9"
+  },
+  "exit_code": 0,
+  "diagnostic_category": "other-error",
+  "output_check": "byte-identical",
+  "adb_reverse_count": 0,
+  "finished_utc": "2026-10-29T10:34:33.8715109Z"
+}
