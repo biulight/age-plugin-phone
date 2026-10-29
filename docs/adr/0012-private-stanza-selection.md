@@ -1,5 +1,11 @@
 # ADR 0012: private selection for paired phone stanzas
 
+Current v2 byte layouts and freeze preparation are consolidated in the
+[specification candidate](../protocol-v2-spec.md) and [decision record](../protocol-v2-freeze-preparation.md).
+This ADR retains its historical scope and evidence; it does not declare the candidate frozen.
+ADR 0014 supersedes the original desktop authentication/selection key-role wording below: current
+v2 uses a dedicated ECDH selection key distinct from desktop ECDSA signing.
+
 Status: experimental, accepted for implementation testing; not approved for production secrets.
 
 ## Context

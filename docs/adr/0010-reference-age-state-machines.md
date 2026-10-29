@@ -1,5 +1,9 @@
 # ADR 0010: reference age state-machine integration
 
+Current v2 byte layouts and freeze preparation are consolidated in the
+[specification candidate](../protocol-v2-spec.md) and [decision record](../protocol-v2-freeze-preparation.md).
+This ADR retains its historical scope and evidence; it does not declare the candidate frozen.
+
 Status: accepted for the QR prototype; not approved for production secrets.
 
 ## Decision
