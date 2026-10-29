@@ -153,12 +153,18 @@ unchanged. A signed Android app is still required for the Windows/Android route.
   in-place candidate updates; that is not final beta-package upgrade evidence.
 - Older phone apps strictly reject `p256tag`; update the phone before using tag
   ciphertext. Existing phone v1/v2 vectors and newly generated phone v2 ciphertext
-  passed. This is the first public release, so no released-user ciphertext population
-  exists for an upgrade-migration test.
-- Protocol v2 remains unfrozen. Future prerelease changes may require re-pairing
-  and recovery-based re-encryption. Any such release must identify affected versions
-  and publish the recovery steps before upgrade; never silently reset or migrate
-  uncertain replay state. There is no general downgrade support promise.
+  passed for the recorded candidates. Beta 1 and Beta 2 both use protocol v2, suite 1;
+  there is no published-Beta protocol-v1-to-v2 migration requirement. These format
+  observations do not promise compatibility with every earlier or future prerelease.
+- Beta retains its limited technical-testing position. **Prerelease versions before protocol
+  freeze** do not promise cross-version interoperability, automatic state migration or downgrade
+  support. Clearly announced breaking updates may require both endpoints to update, re-pairing
+  and recovery-based re-encryption. Identify affected versions/formats, update order, ciphertext
+  consequences and recovery steps before upgrade; never silently reset uncertain replay state.
+- The [freeze scope and acceptance](protocol.md#freeze-scope-and-future-changes) establish stable
+  commitments only from a named baseline. Current-candidate safety and implementation agreement
+  are required; exhaustive historical Alpha/Beta interoperability is not. Exact-package acceptance,
+  broader device coverage and distribution readiness remain separate gates.
 - Retain the independent recovery recipient and verify recovery before upgrading
   or deleting old state. Phone v2 ciphertext depends on its original pairing; tag
   ciphertext may be opened through another explicitly confirmed pairing to the

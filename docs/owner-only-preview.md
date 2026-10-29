@@ -68,8 +68,11 @@ pair never transfers to the active candidate.
 Before giving the application or protected data workflow to another user, claiming a public Alpha,
 or selecting a production convenience transport, reactivate every deferred item above against one
 exact signed artifact pair. The public-Alpha decision still requires the complete matrix in
-[`alpha-matrix.md`](alpha-matrix.md), a frozen compatibility policy, and the documented public
-signing and technical-user gates.
+[`alpha-matrix.md`](alpha-matrix.md), the explicit
+[prerelease compatibility policy](protocol.md#prerelease-compatibility-policy), and the documented
+public signing and technical-user gates. Protocol freeze has its own candidate-specific gates;
+completion of the entire physical matrix is not a wire-freeze prerequisite. Missing device coverage
+remains unverified, and any discovered protocol security defect still requires resolution.
 
 Owner-only use does not relax any protocol or custody invariant: Windows stores no reusable age
 private identity, every unwrap requires fresh phone user verification, failures remain fail closed,

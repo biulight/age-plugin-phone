@@ -7,6 +7,20 @@ sidebar_position: 4
 
 Before changing devices or deleting state, prove that an independent recovery identity decrypts every retained test file. Recovery must work without the original phone, desktop hardware keys, or plugin state. A public stub alone and a second phone paired only to the same desktop do not provide that protection.
 
+## Before upgrading
+
+Beta remains a limited technical-testing stage. Prerelease versions before protocol freeze may
+make clearly announced breaking changes; cross-version compatibility, automatic migration and
+downgrade support are not promised. Read the release-specific affected versions, required endpoint
+update order and whether re-pairing or re-encryption is needed.
+
+For a breaking update, verify independent recovery and recover retained test files before removing
+required keys or state. Update the required endpoints, complete any new pairing with full fingerprint
+comparison, then encrypt to the new recipient plus independent recovery and verify both paths.
+If the data is explicitly disposable, you may instead choose to discard it. Do not clear uncertain
+replay state or restore an old snapshot to make incompatible versions work. A downgrade is not a
+recovery procedure.
+
 ## Upgrade without replacing the pairing
 
 Install the compatible desktop version and matching phone release while preserving app data and desktop state. Beta 2's multi-identity fix does not require re-pairing or state migration from Beta 1. Test phone and recovery decryption after updating. Do not uninstall the phone app to resolve a signing conflict, clear its data, or create a replacement identity as a troubleshooting step.
@@ -49,7 +63,7 @@ Never use a wildcard or guess by the desktop label. This command does not find/d
 
 ## Replace a device or delete the phone identity
 
-New pairing does not recover old v2 ciphertext. Before retiring either endpoint:
+New pairing does not recover old phone v2 ciphertext. Old tag ciphertext may remain accessible through a newly confirmed pairing to the same surviving phone identity; lost hardware keys are not restored. Before retiring either endpoint:
 
 1. Decrypt retained test files using the original working pairing or an independent recovery recipient included when they were encrypted.
 2. Pair the new devices and encrypt anew to the new recipient plus independent recovery.

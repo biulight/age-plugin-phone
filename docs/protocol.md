@@ -194,7 +194,75 @@ old ciphertext usable through the new pairing. [`ADR 0017`](adr/0017-lifecycle-a
 requires an independent recipient to recover and re-encrypt retained data; it never migrates a
 private key or replay scope.
 
-Version 2 remains an unfrozen design draft. Version 1 messages and state are rejected rather than
-migrated as defined by [`ADR 0014`](adr/0014-split-desktop-key-protocol-v2.md). Stable upgrade,
-downgrade-rejection, and compatibility rules will be specified only after independent review
-findings are resolved.
+Version 2 remains unfrozen. Published Beta 1 (`c73b289`) and Beta 2 (`e08d631`) both use
+protocol v2, suite 1; Beta 2 does not change the protocol. Their product stage is **limited
+technical testing**. The policy below applies to **prerelease versions before protocol freeze**;
+it does not relabel Beta as Alpha or establish production-secret support.
+
+### Prerelease compatibility policy
+
+Before an explicitly declared freeze baseline, cross-version interoperability, automatic state
+migration, downgrade compatibility and continued access through old pairings are not promised.
+Clearly announced breaking updates may require updating both endpoints, re-pairing and independent
+recovery followed by re-encryption. A release must identify affected versions and formats, required
+update order, effects on retained ciphertext and recovery steps before upgrade. Verify independent
+recovery before deleting required keys or state; explicitly disposable data may instead be discarded.
+
+Unsupported messages and state must fail closed without silent reinterpretation, empty replay-store
+replacement, authorization caching or weaker key custody. Incompatible wire or state semantics
+require a distinguishable version identifier. A breaking-update notice never replaces full pairing
+fingerprint comparison, fresh phone verification or native destructive-action confirmation.
+
+Version 1 protocol messages and state remain rejected without migration as specified by
+[ADR 0014](adr/0014-split-desktop-key-protocol-v2.md). This is separate from the restricted legacy
+phone v1 stanza support above and from the standard age interface named `identity-v1`. No published
+Beta requires a protocol-v1-to-v2 migration. Existing rejection behavior is retained; this policy
+neither adds migration code nor removes legacy stanza support.
+
+### Freeze scope and future changes
+
+A freeze decision must name an immutable source baseline, normative specification and public-vector
+set. Stable commitments start at that baseline and do not retroactively cover earlier prereleases.
+The intended scope is:
+
+| Surface | Freeze commitment |
+| --- | --- |
+| Signed pairing, request and response messages | Canonical encoding, field types and bounds, suites, key roles, signature/digest domains, binding, expiry and rejection semantics |
+| Recipient and stanza formats | Encodings, cryptographic contexts, selection/ambiguity rules and the explicit supported set, including the policy for legacy phone stanzas and `p256tag` |
+| Public identity stub | Public schema, key-role binding and validation; it does not guarantee private state portability |
+| Private pairing, key metadata, locator, journal and replay storage | Separate format/version decisions; byte layouts are not implicitly frozen by wire v2. Durable consumption, fail-closed uncertainty and key-custody invariants remain mandatory |
+| QR/stream framing and discovery | Separate specifications and version identifiers; freeze only when explicitly included. Transport changes never authorize unwrap or weaken signed-message validation |
+| Product CLI, setup JSON and packaging | Separate product contracts; no stability or platform-support promise follows solely from protocol freeze |
+
+The baseline must specify the supported endpoint/recipient capabilities: the same protocol number
+does not imply support for every stanza extension. Old mobile parsers reject `p256tag` even though
+its introduction did not change protocol v2. No capability-negotiation mechanism is required by
+this policy. After freeze, preserve the frozen semantics; incompatible revisions use a new version
+identifier and an explicit transition policy rather than redefining the frozen version.
+
+### Remaining freeze acceptance
+
+- [ ] Select the baseline and consolidate the normative v2 specification, limits, supported formats,
+  version identifiers and vectors without relying on readers to combine historical v1 descriptions.
+- [ ] Bind independent security review and finding closure to that candidate, including a targeted
+  review of security-sensitive changes after the recorded `0305c0e` follow-up.
+- [ ] Complete current-candidate Rust/Kotlin/Swift agreement on pairing and unwrap bytes, signatures,
+  digests and rejection cases. Rust/Kotlin shared v2 vectors and Swift tag/HPKE tests are supporting
+  evidence; full Swift pairing/envelope shared-vector coverage remains to be established.
+- [ ] Verify unsupported versions and malformed inputs fail safely, and cover cancellation, replay,
+  wrong-device binding, timeout and uncertain persistence on the included implementations. Preserve
+  ordinary restart consumption and the documented desktop snapshot-freshness limitation.
+- [ ] Exercise the documented breaking-update path on disposable identities: independent recovery,
+  required endpoint updates/re-pairing, re-encryption and verification. Do not reset uncertain replay
+  state. No exhaustive historical Alpha/Beta interoperability or automatic-migration matrix is required.
+
+[Existing reviews](independent-security-review-2026-09-11.md) and the
+[fixed-pair acceptance](evidence/maintenance-candidate-2026-10-29/README.md) retain their exact
+source/device/package scope; these checklist items are not claims of new passes.
+
+Protocol freeze commits to format and semantics, not production readiness. New release artifacts
+still require source/signature/hash binding and scoped exact-package acceptance. Second-device-family,
+AP-roaming, broad multi-device lifecycle, QR transport, public signing and external-user readiness
+remain platform or distribution gates in the [roadmap](roadmap.md). Missing coverage alone does not
+block wire freeze; a discovered defect in binding, authorization, parsing or durable consumption
+must still be resolved before freezing the affected semantics or releasing the affected path.
