@@ -5,8 +5,9 @@ Status: version 2 design draft; not a stable wire format and not suitable for re
 The [consolidated v2 specification candidate](protocol-v2-spec.md) records the current message
 arrays, domains, recipient/stanza constructions, public stub and replay semantics against source
 baseline `69b3cdfa006d8bbe4f1154ec5874ea954f2ae717`. Use it for current byte layouts and this page
-for flow and policy. [Freeze preparation](protocol-v2-freeze-preparation.md) separates proposed
-scope, evidence and unresolved decisions; no stable baseline has been accepted.
+for flow and policy. [Freeze preparation](protocol-v2-freeze-preparation.md) records the accepted
+scope, evidence and D1–D5 decisions with outstanding implementation/acceptance;
+no stable baseline has been accepted.
 
 The [public-vector catalog](test-vectors/README.md) inventories seven existing fixtures with hashes
 and consumer coverage. ADRs [0001](adr/0001-experimental-p256-recipient.md),
@@ -249,8 +250,10 @@ identifier and an explicit transition policy rather than redefining the frozen v
 
 - [x] Prepare the source candidate, consolidated current-byte specification and seven-vector
   catalog in the [P0 preparation record](protocol-v2-freeze-preparation.md), without changing code.
-- [ ] Accept the final source/specification baseline and resolve preparation decisions D1–D5,
-  including portable bounds, supported capabilities and conformance evidence. Preparation is not freeze.
+- [x] Record accepted D1–D5 decisions, including scope, restricted legacy support, target time/input
+  bounds, capabilities and required conformance evidence. Decision acceptance is not implementation.
+- [ ] Implement and validate D3/D5, close independent review and remaining protocol gates, then
+  accept the final source/specification/vector baseline. Preparation is not freeze.
 - [ ] Bind independent security review and finding closure to that candidate, including a targeted
   review of security-sensitive changes after the recorded `0305c0e` follow-up.
 - [ ] Complete current-candidate Rust/Kotlin/Swift agreement on pairing and unwrap bytes, signatures,

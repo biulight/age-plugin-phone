@@ -85,5 +85,6 @@ inventory. Do not claim the existing script separately pins all seven hashes.
   extremes and response tampering. Existing tests and fixture mutation lists are partial evidence,
   not one exhaustive corpus. Durable replay and cancellation need stateful tests beyond static JSON.
 
-Resolve the required set under D5 in the preparation record. No vector bytes, code or platform
-state are changed by this documentation work.
+D5's required set is now accepted in the preparation record; generating the additional fixtures and
+closing their implementation coverage remain outstanding. Retain these seven baseline files unchanged.
+No vector bytes, code or platform state are changed by this documentation work.

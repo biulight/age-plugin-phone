@@ -103,8 +103,16 @@ Priorities below are work order, not vulnerability severity:
 - [x] **P0 — preparation inventory:** record source candidate `69b3cdf`, consolidate current v2
   schemas/domains and inventory all seven public vectors with hashes and consumers in the
   [preparation record](protocol-v2-freeze-preparation.md). This is documentation preparation only.
-- [ ] **P0 — scope and specification acceptance:** resolve D1–D5 in that record and accept the final
-  source/specification baseline, portable limits, supported capabilities and conformance matrix.
+- [x] **P0 — D1–D5 policy decisions:** accept the scope, restricted legacy retention, bounded time
+  domain and parser inputs, baseline capabilities and required conformance set in the
+  [decision record](protocol-v2-freeze-preparation.md#accepted-decisions-and-acceptance-criteria).
+  These are accepted requirements, not completed implementation or freeze acceptance.
+- [ ] **D3/D5 — boundary evidence and implementation:** first establish failing/shared boundary
+  cases, then implement D3's `[0, 2^63-1]` time domain, overflow-safe validation/creation and
+  65,536-byte signed-envelope entry cap. Complete D5's phone-v2 envelope/stub fixtures and minimal
+  Swift test boundary using production logic. Keep the original seven vectors unchanged.
+- [ ] **P0 — final scope/specification baseline:** after implementation and independent review,
+  identify final source/specification/vector revisions and close the remaining protocol gates.
   Do not infer feature compatibility from the protocol number alone or treat the candidate as frozen.
 - [ ] **P0 — candidate review:** close a targeted independent review of security-sensitive changes
   since the recorded review, and bind all applicable findings to the selected candidate.
@@ -120,6 +128,11 @@ Priorities below are work order, not vulnerability severity:
   wrong/multiple physical phones, second StrongBox family, QR response replay, broader lifecycle,
   public signing and external-user readiness. Credit prior scoped evidence without marking the
   complete matrix passed. Security defects in these cases still block the affected path.
+
+Execution order: accepted decisions → boundary evidence → narrow D3 implementation → D5 conformance
+coverage → independent increment review → final baseline/freeze decision. The
+[implementation order](protocol-v2-freeze-preparation.md#implementation-order) and per-decision
+acceptance criteria govern closure; the current task only records documentation.
 
 Do not require every historical Alpha/Beta pair to interoperate or implement migration solely to
 preserve prerelease compatibility. Current-candidate protocol safety and clearly rejected incompatible
