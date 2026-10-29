@@ -100,9 +100,12 @@ recipient formats and public stubs from private storage, transport framing and p
 
 Priorities below are work order, not vulnerability severity:
 
-- [ ] **P0 — scope and specification:** select the immutable freeze baseline and vector set;
-  consolidate canonical v2 semantics, supported stanza capabilities, format boundaries and future
-  versioning rules. Do not infer feature compatibility from the protocol number alone.
+- [x] **P0 — preparation inventory:** record source candidate `69b3cdf`, consolidate current v2
+  schemas/domains and inventory all seven public vectors with hashes and consumers in the
+  [preparation record](protocol-v2-freeze-preparation.md). This is documentation preparation only.
+- [ ] **P0 — scope and specification acceptance:** resolve D1–D5 in that record and accept the final
+  source/specification baseline, portable limits, supported capabilities and conformance matrix.
+  Do not infer feature compatibility from the protocol number alone or treat the candidate as frozen.
 - [ ] **P0 — candidate review:** close a targeted independent review of security-sensitive changes
   since the recorded review, and bind all applicable findings to the selected candidate.
 - [ ] **P1 — current implementation agreement:** complete Rust/Kotlin/Swift pairing and envelope

@@ -2,14 +2,18 @@
 
 Status: version 2 design draft; not a stable wire format and not suitable for real secrets.
 
-The experimental P-256 file-key wrapping construction is specified separately by
-[`ADR 0001`](adr/0001-experimental-p256-recipient.md). It does not select the pairing, request, or
-response wire encoding described here.
+The [consolidated v2 specification candidate](protocol-v2-spec.md) records the current message
+arrays, domains, recipient/stanza constructions, public stub and replay semantics against source
+baseline `69b3cdfa006d8bbe4f1154ec5874ea954f2ae717`. Use it for current byte layouts and this page
+for flow and policy. [Freeze preparation](protocol-v2-freeze-preparation.md) separates proposed
+scope, evidence and unresolved decisions; no stable baseline has been accepted.
 
-The experimental canonical pairing/request and encrypted response envelope is specified by
-[`ADR 0002`](adr/0002-experimental-offline-envelope.md). Its pairing and unwrap transcripts have
-deterministic Rust/Kotlin interoperability vectors, but it remains unsuitable for real secrets or
-transport compatibility commitments.
+The [public-vector catalog](test-vectors/README.md) inventories seven existing fixtures with hashes
+and consumer coverage. ADRs [0001](adr/0001-experimental-p256-recipient.md),
+[0002](adr/0002-experimental-offline-envelope.md), [0012](adr/0012-private-stanza-selection.md),
+[0014](adr/0014-split-desktop-key-protocol-v2.md) and [0026](adr/0026-native-tagged-recipients.md)
+retain historical rationale and amendments. Do not apply their superseded v1 message layouts or
+combined desktop key roles to the current v2 implementation.
 
 ## Pairing
 
@@ -68,9 +72,10 @@ fails closed before a prompt appears.
 The response contains the request identifier and digest, a fresh nonce, and only the age file key
 encrypted to the request's one-time session public key. It is signed by the paired phone key.
 
-The desktop rejects a response if any binding, signature, expiry, algorithm, identity, nonce, or
-request digest differs. After authenticating the ciphertext it durably consumes the response digest
-before returning the file key. A response is consumed at most once.
+The desktop rejects invalid bindings, signatures, suite/version, identities, request digests or AEAD
+authentication, and checks the pending request's expiry. The fresh response nonce is authenticated
+by the signature, KDF and AAD; it is not required to equal the request nonce. After authenticating
+the ciphertext it durably consumes the response digest before returning the file key. A response is consumed at most once.
 
 The one-shot native implementation is recorded in
 [`ADR 0009`](adr/0009-one-shot-qr-unwrap.md). Android prepares a new auth-per-use StrongBox
@@ -242,8 +247,10 @@ identifier and an explicit transition policy rather than redefining the frozen v
 
 ### Remaining freeze acceptance
 
-- [ ] Select the baseline and consolidate the normative v2 specification, limits, supported formats,
-  version identifiers and vectors without relying on readers to combine historical v1 descriptions.
+- [x] Prepare the source candidate, consolidated current-byte specification and seven-vector
+  catalog in the [P0 preparation record](protocol-v2-freeze-preparation.md), without changing code.
+- [ ] Accept the final source/specification baseline and resolve preparation decisions D1–D5,
+  including portable bounds, supported capabilities and conformance evidence. Preparation is not freeze.
 - [ ] Bind independent security review and finding closure to that candidate, including a targeted
   review of security-sensitive changes after the recorded `0305c0e` follow-up.
 - [ ] Complete current-candidate Rust/Kotlin/Swift agreement on pairing and unwrap bytes, signatures,

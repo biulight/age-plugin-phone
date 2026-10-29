@@ -12,7 +12,9 @@ Protocol v2 remains unfrozen; Beta 1 and Beta 2 are limited technical-test relea
 Prerelease versions before protocol freeze do not promise cross-version compatibility and may make
 clearly announced breaking updates. Historical source reviews cover their recorded candidates;
 freeze requires a named baseline, current-candidate review closure and implementation agreement.
-See the [freeze scope and remaining acceptance](protocol.md#freeze-scope-and-future-changes).
+See the [freeze scope and remaining acceptance](protocol.md#freeze-scope-and-future-changes),
+[consolidated current-byte specification](protocol-v2-spec.md) and
+[P0 source candidate/decisions](protocol-v2-freeze-preparation.md).
 Platform coverage and exact-package release acceptance remain separate from wire-format stability.
 
 ## Unwrap flow

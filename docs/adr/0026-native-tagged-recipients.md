@@ -1,5 +1,9 @@
 # ADR 0026: Explicit native tag and paired phone recipients
 
+Current v2 byte layouts and freeze preparation are consolidated in the
+[specification candidate](../protocol-v2-spec.md) and [decision record](../protocol-v2-freeze-preparation.md).
+This ADR retains its historical scope and evidence; it does not declare the candidate frozen.
+
 Date: 2026-09-10. Status: implementation candidate; phone hardware acceptance pending.
 
 The [PRD](../tagged-recipient-prd.md) adds standard `age1tag` without changing the default

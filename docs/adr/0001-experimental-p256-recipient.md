@@ -1,5 +1,9 @@
 # ADR 0001: Experimental StrongBox P-256 tagged recipient
 
+Current v2 byte layouts and freeze preparation are consolidated in the
+[specification candidate](../protocol-v2-spec.md) and [decision record](../protocol-v2-freeze-preparation.md).
+This ADR retains its historical scope and evidence; it does not declare the candidate frozen.
+
 - Status: experimental, accepted for interoperability testing
 - Date: 2026-08-24
 - Scope: age file-key wrapping only; not pairing or transport
