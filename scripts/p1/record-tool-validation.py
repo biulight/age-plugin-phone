@@ -12,8 +12,8 @@ import sys
 import uuid
 
 SCRIPTS = Path(__file__).resolve().parent.parent
-SOURCES = ['p1/record-tool-validation.py', 'p1/replay-probe.py', 'p1/replay_checks.py',
-           'p1/replay_driver_fixture.py', 'test-p1-replay.py', 'check-p1-evidence.py',
+SOURCES = ['p1/record-tool-validation.py', 'p1/replay-probe.py', 'p1/replay_checks.py', 'p1/phone_restart.py',
+           'p1/replay_driver_fixture.py', 'p1/evidence_fixture.py', 'test-p1-replay.py', 'check-p1-evidence.py',
            'test-p1-evidence.py', 'p1/switch-wifi.ps1', 'p1/common.ps1', 'windows-minimal-acceptance.ps1']
 
 
@@ -55,7 +55,7 @@ def main():
             record['source_unchanged'] = before == hashes()
             count = re.search(r'Ran (\d+) tests? in ', output)
             record['test_methods'] = int(count.group(1)) if count else None
-            expected = 4 if script == 'test-p1-replay.py' else 6
+            expected = 4 if script == 'test-p1-replay.py' else 10
             passed = result.returncode == 0 and record['source_unchanged'] and record['test_methods'] == expected and output.rstrip().endswith('OK')
             record['result'] = 'passed' if passed else 'failed'
         except Exception as error:

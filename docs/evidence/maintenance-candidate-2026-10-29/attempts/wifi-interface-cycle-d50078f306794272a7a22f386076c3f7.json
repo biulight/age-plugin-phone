@@ -1,0 +1,14 @@
+{
+  "case": "wifi-interface-cycle",
+  "started_utc": "2026-10-29T10:26:36.4626535Z",
+  "result": "passed",
+  "provenance": {
+    "common_sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab",
+    "base_helper_sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9",
+    "driver_sha256": "6779082c293f8bb53692adde65e07c5e80e19aaee113ae55e3cd8d89d50553e1"
+  },
+  "disabled_utc": "2026-10-29T10:26:36.7427350Z",
+  "disabled_and_ipv4_removed": true,
+  "wifi_ipv4_restored": true,
+  "finished_utc": "2026-10-29T10:26:45.5705408Z"
+}

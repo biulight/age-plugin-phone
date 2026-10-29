@@ -1,0 +1,15 @@
+{
+  "diagnostic-preflight_sha256": "f77314acb38c21177030941fac05a9750a19c474db5c8d8b44b294abb5d2615b",
+  "early-peer-diagnostic_sha256": "8e9902b0b346e84dab998e94a5514f832d2e10a27d62c4d397c72d6c88eff570",
+  "diagnostic-cleanup_sha256": "b9b13e8ec2636bba766e14511ec56301e4f41cec8042235c26343ba13a972313",
+  "requests": [
+    {
+      "attempt_file": "wifi-network-cancel-restart-exact-replay-bbfcdf01c10847f18c5590937cd578eb.json",
+      "attempt_sha256": "10eb576f6da1e783f9af1ca38cad1c7820fd32cd7c208d753b82d853a85c1640"
+    },
+    {
+      "attempt_file": "wifi-after-replay-708d860ea8c545ba88bd995c1ef05476.json",
+      "attempt_sha256": "8abe69f2ca7b4031e9f849963d614715c46a959822d87ae5b279b4b0c4dd9373"
+    }
+  ]
+}

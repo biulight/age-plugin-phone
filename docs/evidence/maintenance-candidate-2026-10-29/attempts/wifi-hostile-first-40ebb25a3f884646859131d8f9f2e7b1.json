@@ -1,0 +1,14 @@
+{
+  "case": "wifi-hostile-first",
+  "result": "automated-checks-passed-awaiting-observation",
+  "started_utc": "2026-10-29T10:45:16.1776316Z",
+  "phone_observation": "pending",
+  "provenance": {
+    "driver_sha256": "64c840b483e5567883eef188aa97c3c896f228b37a584e0a8330787d90b57cf4",
+    "base_helper_sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9",
+    "common_sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab"
+  },
+  "invalid_header_sent": true,
+  "peer_result": "closed-without-response",
+  "finished_utc": "2026-10-29T10:45:21.5759317Z"
+}

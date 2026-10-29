@@ -64,7 +64,7 @@ The immutable GitHub release body was generated from the accepted pre-publicatio
 its candidate wording. Repository release policy forbids modifying a public release; this checklist,
 the current release note, changelog, security policy, and README record the post-publication state.
 
-### Post-publication acceptance and merged repair — updated 2026-10-27
+### Post-publication acceptance and merged repair — updated 2026-10-29
 
 The [exact Beta 2 package run](beta2-package-acceptance-2026-10-23.md) passed independent
 recovery, nonmatch/match continuation, malformed-stanza and unavailable-state rejection,
@@ -81,22 +81,35 @@ R2, including 87 Android JVM tests, signed in-place installation, scoped physica
 and the source-to-installed-package hash chain. The latest published artifacts remain Beta 2;
 merged code and local fixed APKs do not replace or certify those published bytes.
 
-The new CI matrix runs synthetic replay/negative tests in normal and optimized Python,
+The CI matrix merged in PR #24 runs synthetic replay/negative tests in normal and optimized Python,
 Windows checked-ADB failure fixtures, and the three archived-evidence validators. Its
-uploaded tool-run records are automated evidence, not fresh phone verification.
+uploaded tool-run records are automated evidence, not fresh phone verification. The current
+follow-up adds a fourth archive and recipient-mode fixtures; those additions await hosted CI.
 
-Remaining maintenance-candidate acceptance:
+The subsequent [merged-main CI](https://github.com/biulight/age-plugin-phone/actions/runs/40851959029)
+passed all 11 jobs for `be46c54`, including all three P1 platforms. The
+[2026-10-29 follow-up](evidence/maintenance-candidate-2026-10-29/README.md) freezes the published
+Windows executable plus the existing R2 APK: its complete 300-file Android source inventory
+matches that main commit. No new package was built or released.
 
-- [ ] First automatic discovery after idle and pending-request network restoration on the final
-  signed pair, without direct-address/listener-toggle workarounds. This passed on the first fix;
-  R2's replay relay used a direct endpoint before discovery recovery.
-- [ ] Separate final-pair `phone` and `tag` multi-identity and cancellation records; historical
-  tag evidence and this run's `phone` results retain their own package scope.
-- [ ] Exact cancelled-request replay after app restart, within expiry, followed by fresh recovery.
-- [ ] Reconcile the remaining Wi-Fi adverse-condition rows on that same final pair and record
-  any AP/subnet roaming, upgrade or lifecycle exclusions. Broader-device gates stay deferred.
-- [ ] Bind a new maintenance release to its immutable source and accepted signed artifacts before
-  publication. Do not overwrite Beta 2 or relabel its reproduced failure as passed.
+Maintenance-candidate acceptance:
+
+- [x] First automatic discovery after both idle and pending-request restoration on this fixed pair,
+  without direct-address, listener-toggle or second-request workarounds.
+- [x] Separate `phone` and `tag` multi-identity, cancellation and fresh recovery records.
+- [x] Exact network-cancelled request replay after confirmed application restart, within expiry,
+  followed by fresh recovery. Neither device reboot nor replay-store rollback is certified.
+- [x] Reconcile Wi-Fi cancellation, timeout, hostile first connection, successful-request replay,
+  peer disconnect, paused-listener/no-fallback and explicit USB recovery on the same pair.
+  Background recovery is linked to the earlier R2 same-hash evidence, not rerun in this session.
+- [ ] Review the follow-up tooling/evidence changes and observe their hosted CI. Local Python and
+  PowerShell records are not hosted CI results for these new changes.
+- [ ] Choose and build/sign a new immutable maintenance version, then run its exact-artifact smoke
+  before publication. Existing R2 acceptance cannot certify future bytes. Do not overwrite Beta 2
+  or relabel its reproduced failure as passed.
+
+The follow-up retains 29 scoped accepted cases and 2 excluded attempts. AP/subnet roaming,
+upgrade/invalidation, fresh pairing and broader-device/public-use gates remain separate.
 
 ## Beta 1 closeout
 

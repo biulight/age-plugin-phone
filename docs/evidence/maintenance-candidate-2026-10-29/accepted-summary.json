@@ -1,0 +1,256 @@
+{
+  "accepted": [
+    {
+      "case": "wifi-approve",
+      "started_utc": "2026-10-29T10:04:04.9706431Z",
+      "attempt_file": "wifi-approve-ee6fb0a073004aa6a535693356024147.json",
+      "attempt_sha256": "866293cff64c910f651d47866092ebbb440754608d85452b4ac611ffe7091d36",
+      "owner_observation": "Owner answered the fresh-prompt/verification question: \u5b8c\u6210\u9a8c\u8bc1.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-after-network",
+      "started_utc": "2026-10-29T10:07:52.1002842Z",
+      "attempt_file": "wifi-after-network-36189b7e295040dbaf023f0bb93dc3ee.json",
+      "attempt_sha256": "1c0775171863fcd587ad3c9b20f322c26c2bbdfaaf6af6f733d1dce5a1f2e9b6",
+      "owner_observation": "Owner completed one verification and explicitly confirmed no manual listener toggle or app restart during the retry.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-network",
+      "started_utc": "2026-10-29T10:10:09.8677609Z",
+      "attempt_file": "wifi-network-6ce4fd24ba134370ac46df152c6407e3.json",
+      "attempt_sha256": "3110b0762247b39140f7ac9cb31194decebfb402d81bffad55362d4343becdbb",
+      "owner_observation": "Owner confirmed the native prompt appeared and then disappeared, in response to instructions not to authenticate, cancel or operate menus/listening.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-network",
+      "started_utc": "2026-10-29T10:16:45.4771954Z",
+      "attempt_file": "wifi-network-956e8097db8e45fc87564f7306e98b7f.json",
+      "attempt_sha256": "40f4aea5f967f8a07521c778ffa9702f886332acd4dbb4740d05a3c75ce8bfbc",
+      "owner_observation": "Owner confirmed prompt appeared then disappeared without verification/cancellation/menu/listener operation.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-after-network",
+      "started_utc": "2026-10-29T10:18:39.9268774Z",
+      "attempt_file": "wifi-after-network-305ad1a663f54bdfa443403e0a00ae42.json",
+      "attempt_sha256": "8248ad57eec9019ee09b117db6dbe26721f161c51e929a8adbcfeddb7c4d2675",
+      "owner_observation": "Owner confirmed verification completed according to instructions, including no manual listener operation or app restart.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-network-cancel-restart-exact-replay",
+      "started_utc": "2026-10-29T10:26:20.519447+00:00",
+      "attempt_file": "wifi-network-cancel-restart-exact-replay-af60f9ba8bbc47cb82695f5275767110.json",
+      "attempt_sha256": "f255064c2a3492f48858fdded257a848d4954496d6ebfd4b7f3c2aacf1aece05",
+      "owner_observation": "Owner confirmed prompt disappeared with network cycle, app reopened, and no prompts appeared during either replay; no phone operation.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-after-replay",
+      "started_utc": "2026-10-29T10:30:17.9675627Z",
+      "attempt_file": "wifi-after-replay-fa057a0617dc4311ad6631a9fdb22c57.json",
+      "attempt_sha256": "1b23781349fdd9add7cd306de3c2ae4bc08629af3224256a6b51e661b30e2281",
+      "owner_observation": "Owner completed fresh native verification.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "nonmatch-only",
+      "started_utc": "2026-10-29T10:31:29.8748571Z",
+      "attempt_file": "nonmatch-only-f05d0677f1a54b48a945186cf36c98ba.json",
+      "attempt_sha256": "a8b09b2e210c9c49b68efd657fbd5f8f26acb4d529aec70bfd8e350323fea61a",
+      "owner_observation": "Owner confirmed no new native verification prompt.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "approve-1",
+      "started_utc": "2026-10-29T10:33:10.5120122Z",
+      "attempt_file": "approve-1-7f30270772df4929a8d9cbb1c88313e7.json",
+      "attempt_sha256": "820964c7726d072774596db4b87dc9a7924695b84b8a358bb140dbbdc835cff2",
+      "owner_observation": "Owner completed fresh native verification.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "cancel",
+      "started_utc": "2026-10-29T10:33:48.9118183Z",
+      "attempt_file": "cancel-3b492d2b56f2466195efc74053ee9275.json",
+      "attempt_sha256": "b67cbc08c924e25bc7008afb59e439dd2cef34f1e824aba1a5b40bea1671c364",
+      "owner_observation": "Owner explicitly clicked Cancel on the new native prompt.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "after-cancel",
+      "started_utc": "2026-10-29T10:34:23.2235740Z",
+      "attempt_file": "after-cancel-31dc58754cb74ab9881c178f1ddad92e.json",
+      "attempt_sha256": "5d2c0613ae980c78cfa73d46164cfec197d6ee5d316aa2afc70bb77f064efcdb",
+      "owner_observation": "Owner completed fresh native verification.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "nonmatch-only",
+      "started_utc": "2026-10-29T10:37:58.8131555Z",
+      "attempt_file": "nonmatch-only-1412d9271da045dbaac30018fa946069.json",
+      "attempt_sha256": "40249caa30efb9c18953fd18dc3dea70250e9371472fca2187edd1021932e3a2",
+      "owner_observation": "Owner confirmed no new native verification prompt in tag mode.",
+      "recipient_mode": "tag"
+    },
+    {
+      "case": "approve-1",
+      "started_utc": "2026-10-29T10:38:48.8725018Z",
+      "attempt_file": "approve-1-eda07b805c0e4f27b14d2b6a81685a72.json",
+      "attempt_sha256": "0a62873abd1a17d71e404f6f0c332b2fc3d273a580845fae593abf3ac80ec3a3",
+      "owner_observation": "Owner completed fresh native verification in tag mode.",
+      "recipient_mode": "tag"
+    },
+    {
+      "case": "cancel",
+      "started_utc": "2026-10-29T10:39:22.5646826Z",
+      "attempt_file": "cancel-150acdccbd964105b7e3e1d996d23efe.json",
+      "attempt_sha256": "cffec1f061b2564ed487a24f2edb4261a32302ebbffd29c33fd4a5a5fec00aa7",
+      "owner_observation": "Owner confirmed actively cancelling the new native prompt in tag mode.",
+      "recipient_mode": "tag"
+    },
+    {
+      "case": "after-cancel",
+      "started_utc": "2026-10-29T10:40:05.0855745Z",
+      "attempt_file": "after-cancel-15948c450b1844a29f38ac5d005b079a.json",
+      "attempt_sha256": "144abeeeaa78e25452ed1b7eb23c5a58371d83a01f4ff9ab1eba3ce47e1009d4",
+      "owner_observation": "Owner completed fresh native verification in tag mode.",
+      "recipient_mode": "tag"
+    },
+    {
+      "case": "wifi-cancel",
+      "started_utc": "2026-10-29T10:41:44.1604836Z",
+      "attempt_file": "wifi-cancel-a70cc8decc8840af8542e320063f2c88.json",
+      "attempt_sha256": "f79f03d9c65a0a7c563d21a7ca9ebaa375727b76a680da69c109378cc6f65051",
+      "owner_observation": "Owner explicitly clicked Cancel.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-after-cancel",
+      "started_utc": "2026-10-29T10:42:18.4927947Z",
+      "attempt_file": "wifi-after-cancel-12ce2cbd5649472dab039206eac6c171.json",
+      "attempt_sha256": "1b38410e4bfefb6c93c2c87ad7a17d07fb8354559048fc402e5fa69e2bed17f3",
+      "owner_observation": "Owner completed fresh native verification.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-timeout",
+      "started_utc": "2026-10-29T10:42:51.2629243Z",
+      "attempt_file": "wifi-timeout-e883df6b191b486a9e9a9be4ccec364d.json",
+      "attempt_sha256": "b1a160a81c4fa264b8b81a698ea18c9ae80362f139d6c7e4228a6843a8404338",
+      "owner_observation": "Owner confirmed prompt disappeared automatically without responding.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-after-timeout",
+      "started_utc": "2026-10-29T10:44:42.5475960Z",
+      "attempt_file": "wifi-after-timeout-1fc96385b5314ee59ebf8d71187c2a1f.json",
+      "attempt_sha256": "432979df87b6b3c2d82ebc95f982d9ef361acee0afa4aa1e54ff2fbd3c368150",
+      "owner_observation": "Owner completed fresh native verification.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-hostile-first",
+      "started_utc": "2026-10-29T10:45:16.1776316Z",
+      "attempt_file": "wifi-hostile-first-40ebb25a3f884646859131d8f9f2e7b1.json",
+      "attempt_sha256": "79bd053effaa42a5b6c95d278189f2a51453945dc72a3e9ca8c492f28ebee905",
+      "owner_observation": "Owner confirmed no native verification prompt and no manual phone operation.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-after-hostile",
+      "started_utc": "2026-10-29T10:46:04.7720589Z",
+      "attempt_file": "wifi-after-hostile-1d39eea8bb884dc1b521c13ecb904972.json",
+      "attempt_sha256": "8c48e9047e61e11031b6eb5f5f5b8c0ba694027b4a4af52ab49ef15f1b0d489c",
+      "owner_observation": "Owner completed fresh native verification.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-exact-request-replay",
+      "started_utc": "2026-10-29T10:47:08.474477+00:00",
+      "attempt_file": "wifi-exact-request-replay-88d5541ff4a548a698333baaa425ba66.json",
+      "attempt_sha256": "913650f9e6bdc9a6eb975dfc8593d935010fc88dd9ef96fa3aaac260ad9c1691",
+      "owner_observation": "Owner confirmed only the original fresh verification prompt appeared; no new prompt during either replay.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-after-replay",
+      "started_utc": "2026-10-29T10:48:53.7278788Z",
+      "attempt_file": "wifi-after-replay-473fb85e87574e42817a2e224aa85229.json",
+      "attempt_sha256": "71676d1d1372b81a96839c4c1ce0b721a92318f2aa67dc4e5f0112c6b329b9d6",
+      "owner_observation": "Owner completed fresh native verification.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-disconnect",
+      "started_utc": "2026-10-29T10:49:33.3643695Z",
+      "attempt_file": "wifi-disconnect-31c102f2e539401e873a26227ee6dd50.json",
+      "attempt_sha256": "d953468fbb680906eb29645bcaad68a17f37dc5204b1aecb04e700efea078c8e",
+      "owner_observation": "Owner first confirmed pending native prompt, then confirmed automatic dismissal after exact test-plugin termination without phone operation.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-after-disconnect",
+      "started_utc": "2026-10-29T10:50:50.3754092Z",
+      "attempt_file": "wifi-after-disconnect-4408d39e2ec34bd29a9f8ee1e9bad1f0.json",
+      "attempt_sha256": "edafd60d97ceea557e81fac7b55f648683edfadc30d3e95ebcdc1908b52576a5",
+      "owner_observation": "Owner completed fresh native verification.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-paused",
+      "started_utc": "2026-10-29T10:52:14.8026528Z",
+      "attempt_file": "wifi-paused-90d0f16aff0b45ca95b6c5dca9c9b190.json",
+      "attempt_sha256": "adf359c1854dfc4e610220151aaa0f027e893ba44833c4f039e51ed9860cb98f",
+      "owner_observation": "Owner confirmed no new verification prompt with auto-listen paused and USB still connected.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "usb-after-wifi-failure",
+      "started_utc": "2026-10-29T10:53:27.3030519Z",
+      "attempt_file": "usb-after-wifi-failure-c589f21eec9242a68289f10ac947dc57.json",
+      "attempt_sha256": "470da8ee907a81a883f324fefcd76f42648b43579d9709407f6af1255630682c",
+      "owner_observation": "Owner completed fresh native verification for a new explicitly USB request.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-network-cancel-restart-exact-replay",
+      "started_utc": "2026-10-29T12:43:56.938896+00:00",
+      "attempt_file": "wifi-network-cancel-restart-exact-replay-bbfcdf01c10847f18c5590937cd578eb.json",
+      "attempt_sha256": "10eb576f6da1e783f9af1ca38cad1c7820fd32cd7c208d753b82d853a85c1640",
+      "owner_observation": "Owner observed first prompt disappear with the automatic network switch, application reopen, and no new prompts for either replay; no phone interaction throughout.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-after-replay",
+      "started_utc": "2026-10-29T12:47:05.9292817Z",
+      "attempt_file": "wifi-after-replay-708d860ea8c545ba88bd995c1ef05476.json",
+      "attempt_sha256": "8abe69f2ca7b4031e9f849963d614715c46a959822d87ae5b279b4b0c4dd9373",
+      "owner_observation": "Owner observed and completed fresh native verification for the new automatic-discovery recovery request; listening was unchanged.",
+      "recipient_mode": "phone"
+    }
+  ],
+  "excluded": [
+    {
+      "case": "wifi-after-network",
+      "started_utc": "2026-10-29T10:05:10.7196076Z",
+      "attempt_file": "wifi-after-network-b26bdc0dde8d4041bba16d3028a8badc.json",
+      "attempt_sha256": "058f4e776da999dc1ece9693b38af26dc4d3a4b70b6e9396142052284aebd980",
+      "owner_observation": "Owner did not observe the phone during the attempt; no prompt was present at time of reply. Excluded for missing observation, not attributed to a product defect or confirmed authentication timeout.",
+      "recipient_mode": "phone"
+    },
+    {
+      "case": "wifi-after-network",
+      "started_utc": "2026-10-29T10:14:26.6430430Z",
+      "attempt_file": "wifi-after-network-16effdd79e564cbebebc2123dccbfb96.json",
+      "attempt_sha256": "ba0d201e0c6aae60d62f2c726f62792891022aaaa18400e15bd959be05956fe2",
+      "owner_observation": "Owner reported accidentally pressing Pause. Discovery-no-match retained, but not accepted as an unassisted network-recovery result or attributed to a product regression.",
+      "recipient_mode": "phone"
+    }
+  ],
+  "status": "scoped-physical-regression-passed",
+  "scope": "recorded candidate pair and cases only; not release authorization"
+}

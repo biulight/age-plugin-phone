@@ -1,0 +1,457 @@
+{
+  "schema_version": 2,
+  "scope": "Final tooling verification; no additional physical acceptance",
+  "source_sha256": {
+    "test-p1-recipient-mode.ps1": "57d765b2d244647e75edf4c1048e6cc7566039833347757bca2b2a040d6df912",
+    "test-p1-acceptance.ps1": "f8863ec4ad7e7b19c0e41bdc5015b7c66aa9edf93d1f9ca317e9dd5c50492e25",
+    "p1/step-regression.ps1": "547bc193e256266d5a647881e657b553f176bbb713e0e7fa3722e49421a533c0",
+    "p1/common.ps1": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab",
+    "p1/switch-wifi.ps1": "6779082c293f8bb53692adde65e07c5e80e19aaee113ae55e3cd8d89d50553e1",
+    "windows-minimal-acceptance.ps1": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9",
+    "p1/record-tool-validation.py": "4a7ba2e5bcbfc070d151dfb1e97a8bfb77f6b7043a9a87d2d3aa506f76828dc0",
+    "p1/replay-probe.py": "fcfb3f8dd6be6594c37646c98ef1e429f4a717b8d88563c49b872df057f5b1cb",
+    "p1/replay_checks.py": "4355ac2a281632fddeaa5580b4e35ae8537f329062c46c57e1a8ab3ae9bb39f6",
+    "p1/phone_restart.py": "4b5afa0fed9a13cec70a51106995aa6f51938ff9369f05691e0302e0e10536ee",
+    "p1/replay_driver_fixture.py": "5004a5133d10ebf00eff42bbc3c9f1f7ad21d43b227ecadc33184a85806e12db",
+    "p1/evidence_fixture.py": "d0bdfa61f31c7e54162fe92ff6e6bbf7f759dbe0a4ce313f6e2fbedf51192a9d",
+    "test-p1-replay.py": "27890546d2d843889a9ddafb6bbb3013778ecd5d9c592ebff5c3eb6d0782a0fd",
+    "check-p1-evidence.py": "09d18bb16d610fa00db075e88bc83a381750d5fe22a177af2a54f196f6360b6b",
+    "test-p1-evidence.py": "51278a6af56abf3e759e261d76324b968505e90ff325439b3f40377de527a7e6"
+  },
+  "test_runs": [
+    {
+      "platform": "Darwin",
+      "command": [
+        "pwsh",
+        "-NoProfile",
+        "-File",
+        "scripts/test-p1-acceptance.ps1"
+      ],
+      "started_utc": "2026-10-29T13:58:27.658996+00:00",
+      "finished_utc": "2026-10-29T13:58:28.742215+00:00",
+      "exit_code": 0,
+      "result": "passed",
+      "powershell_version": "7.4.6"
+    },
+    {
+      "platform": "Darwin",
+      "command": [
+        "pwsh",
+        "-NoProfile",
+        "-File",
+        "scripts/test-p1-recipient-mode.ps1"
+      ],
+      "started_utc": "2026-10-29T13:58:26.294433+00:00",
+      "finished_utc": "2026-10-29T13:58:27.658549+00:00",
+      "exit_code": 0,
+      "result": "passed",
+      "powershell_version": "7.4.6",
+      "scenarios": 12
+    },
+    {
+      "platform": "Darwin",
+      "command": [
+        "python",
+        "-B",
+        "test-p1-replay.py",
+        "-v"
+      ],
+      "started_utc": "2026-10-29T13:58:24.714451+00:00",
+      "finished_utc": "2026-10-29T13:58:48.762684+00:00",
+      "exit_code": 0,
+      "result": "passed",
+      "python_version": "3.13.17",
+      "environment": {
+        "PYTHONOPTIMIZE": "unset for parent; replay suite sets child modes explicitly",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "test_methods": 4,
+      "driver_scenarios_by_mode": {
+        "normal": 30,
+        "flag": 30,
+        "environment": 30
+      }
+    },
+    {
+      "platform": "Darwin",
+      "command": [
+        "python",
+        "-B",
+        "test-p1-evidence.py",
+        "-v"
+      ],
+      "started_utc": "2026-10-29T13:58:48.763659+00:00",
+      "finished_utc": "2026-10-29T13:58:49.421926+00:00",
+      "exit_code": 0,
+      "result": "passed",
+      "python_version": "3.13.17",
+      "environment": {
+        "PYTHONOPTIMIZE": "unset for parent; replay suite sets child modes explicitly",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "test_methods": 10
+    },
+    {
+      "platform": "Darwin",
+      "command": [
+        "python",
+        "-O",
+        "-B",
+        "test-p1-evidence.py",
+        "-v"
+      ],
+      "started_utc": "2026-10-29T13:58:49.422803+00:00",
+      "finished_utc": "2026-10-29T13:58:50.362459+00:00",
+      "exit_code": 0,
+      "result": "passed",
+      "python_version": "3.13.17",
+      "environment": {
+        "PYTHONOPTIMIZE": "unset for parent; replay suite sets child modes explicitly",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "test_methods": 10
+    },
+    {
+      "platform": "Windows",
+      "command": [
+        "pwsh",
+        "-NoProfile",
+        "-File",
+        "scripts/test-p1-acceptance.ps1"
+      ],
+      "started_utc": "2026-10-29T13:58:54.494318+00:00",
+      "finished_utc": "2026-10-29T13:58:55.030150+00:00",
+      "exit_code": 0,
+      "result": "passed",
+      "powershell_version": "7.6.9"
+    },
+    {
+      "platform": "Windows",
+      "command": [
+        "pwsh",
+        "-NoProfile",
+        "-File",
+        "scripts/test-p1-recipient-mode.ps1"
+      ],
+      "started_utc": "2026-10-29T13:58:53.677388+00:00",
+      "finished_utc": "2026-10-29T13:58:54.493305+00:00",
+      "exit_code": 0,
+      "result": "passed",
+      "powershell_version": "7.6.9",
+      "scenarios": 12
+    },
+    {
+      "platform": "Windows",
+      "command": [
+        "python",
+        "-O",
+        "-B",
+        "test-p1-evidence.py",
+        "-v"
+      ],
+      "started_utc": "2026-10-29T13:58:51.616901+00:00",
+      "finished_utc": "2026-10-29T13:58:53.244717+00:00",
+      "exit_code": 0,
+      "result": "passed",
+      "python_version": "3.11.2",
+      "environment": {
+        "PYTHONOPTIMIZE": "unset for parent; replay suite sets child modes explicitly",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "test_methods": 10
+    },
+    {
+      "platform": "Windows",
+      "command": [
+        "python",
+        "-B",
+        "test-p1-replay.py",
+        "-v"
+      ],
+      "started_utc": "2026-10-29T13:58:36.531213+00:00",
+      "finished_utc": "2026-10-29T13:58:49.207859+00:00",
+      "exit_code": 0,
+      "result": "passed",
+      "python_version": "3.11.2",
+      "environment": {
+        "PYTHONOPTIMIZE": "unset for parent; replay suite sets child modes explicitly",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "test_methods": 4,
+      "driver_scenarios_by_mode": {
+        "normal": 30,
+        "flag": 30,
+        "environment": 30
+      }
+    },
+    {
+      "platform": "Windows",
+      "command": [
+        "python",
+        "-B",
+        "test-p1-evidence.py",
+        "-v"
+      ],
+      "started_utc": "2026-10-29T13:58:49.209863+00:00",
+      "finished_utc": "2026-10-29T13:58:51.613845+00:00",
+      "exit_code": 0,
+      "result": "passed",
+      "python_version": "3.11.2",
+      "environment": {
+        "PYTHONOPTIMIZE": "unset for parent; replay suite sets child modes explicitly",
+        "PYTHONDONTWRITEBYTECODE": "1"
+      },
+      "test_methods": 10
+    }
+  ],
+  "archive_checks": [
+    {
+      "platform": "Darwin",
+      "python_version": "3.13.17",
+      "command": [
+        "python",
+        "-B",
+        "scripts/check-p1-evidence.py",
+        "docs/evidence/beta2-2026-10-23"
+      ],
+      "started_utc": "2026-10-29T14:01:34.711808+00:00",
+      "finished_utc": "2026-10-29T14:01:34.820126+00:00",
+      "exit_code": 0,
+      "manifest_sha256": "4e4d24f47462128b48aa35652c1c0ff9a044c2bfb23911c6ee4624693026949e",
+      "checker_sha256": "09d18bb16d610fa00db075e88bc83a381750d5fe22a177af2a54f196f6360b6b"
+    },
+    {
+      "platform": "Darwin",
+      "python_version": "3.13.17",
+      "command": [
+        "python",
+        "-O",
+        "-B",
+        "scripts/check-p1-evidence.py",
+        "docs/evidence/beta2-2026-10-23"
+      ],
+      "started_utc": "2026-10-29T14:01:34.820542+00:00",
+      "finished_utc": "2026-10-29T14:01:34.969446+00:00",
+      "exit_code": 0,
+      "manifest_sha256": "4e4d24f47462128b48aa35652c1c0ff9a044c2bfb23911c6ee4624693026949e",
+      "checker_sha256": "09d18bb16d610fa00db075e88bc83a381750d5fe22a177af2a54f196f6360b6b"
+    },
+    {
+      "platform": "Darwin",
+      "python_version": "3.13.17",
+      "command": [
+        "python",
+        "-B",
+        "scripts/check-p1-evidence.py",
+        "docs/evidence/android-wifi-network-fix-2026-10-23"
+      ],
+      "started_utc": "2026-10-29T14:01:34.969732+00:00",
+      "finished_utc": "2026-10-29T14:01:35.030513+00:00",
+      "exit_code": 0,
+      "manifest_sha256": "e3cd99a5653d967a31e2ecb39824ed97b0d5f5f7171c5651843aa17e53d46071",
+      "checker_sha256": "09d18bb16d610fa00db075e88bc83a381750d5fe22a177af2a54f196f6360b6b"
+    },
+    {
+      "platform": "Darwin",
+      "python_version": "3.13.17",
+      "command": [
+        "python",
+        "-O",
+        "-B",
+        "scripts/check-p1-evidence.py",
+        "docs/evidence/android-wifi-network-fix-2026-10-23"
+      ],
+      "started_utc": "2026-10-29T14:01:35.031093+00:00",
+      "finished_utc": "2026-10-29T14:01:35.155622+00:00",
+      "exit_code": 0,
+      "manifest_sha256": "e3cd99a5653d967a31e2ecb39824ed97b0d5f5f7171c5651843aa17e53d46071",
+      "checker_sha256": "09d18bb16d610fa00db075e88bc83a381750d5fe22a177af2a54f196f6360b6b"
+    },
+    {
+      "platform": "Darwin",
+      "python_version": "3.13.17",
+      "command": [
+        "python",
+        "-B",
+        "scripts/check-p1-evidence.py",
+        "docs/evidence/android-wifi-network-r2-2026-10-24"
+      ],
+      "started_utc": "2026-10-29T14:01:35.155978+00:00",
+      "finished_utc": "2026-10-29T14:01:35.229511+00:00",
+      "exit_code": 0,
+      "manifest_sha256": "d8867aaa1556284e645a94bf5e16fb37dcfa5e72948915c51db84b806a8234a7",
+      "checker_sha256": "09d18bb16d610fa00db075e88bc83a381750d5fe22a177af2a54f196f6360b6b"
+    },
+    {
+      "platform": "Darwin",
+      "python_version": "3.13.17",
+      "command": [
+        "python",
+        "-O",
+        "-B",
+        "scripts/check-p1-evidence.py",
+        "docs/evidence/android-wifi-network-r2-2026-10-24"
+      ],
+      "started_utc": "2026-10-29T14:01:35.229899+00:00",
+      "finished_utc": "2026-10-29T14:01:35.378049+00:00",
+      "exit_code": 0,
+      "manifest_sha256": "d8867aaa1556284e645a94bf5e16fb37dcfa5e72948915c51db84b806a8234a7",
+      "checker_sha256": "09d18bb16d610fa00db075e88bc83a381750d5fe22a177af2a54f196f6360b6b"
+    },
+    {
+      "platform": "Darwin",
+      "python_version": "3.13.17",
+      "command": [
+        "python",
+        "-B",
+        "scripts/check-p1-evidence.py",
+        "docs/evidence/maintenance-candidate-2026-10-29"
+      ],
+      "started_utc": "2026-10-29T14:01:35.378570+00:00",
+      "finished_utc": "2026-10-29T14:01:35.484871+00:00",
+      "exit_code": 0,
+      "manifest_sha256": "255960b1d2b27d6f69d09d1662fb69e2e04f6683da81ec849edd91ecb39aad91",
+      "checker_sha256": "09d18bb16d610fa00db075e88bc83a381750d5fe22a177af2a54f196f6360b6b"
+    },
+    {
+      "platform": "Darwin",
+      "python_version": "3.13.17",
+      "command": [
+        "python",
+        "-O",
+        "-B",
+        "scripts/check-p1-evidence.py",
+        "docs/evidence/maintenance-candidate-2026-10-29"
+      ],
+      "started_utc": "2026-10-29T14:01:35.485169+00:00",
+      "finished_utc": "2026-10-29T14:01:35.658839+00:00",
+      "exit_code": 0,
+      "manifest_sha256": "255960b1d2b27d6f69d09d1662fb69e2e04f6683da81ec849edd91ecb39aad91",
+      "checker_sha256": "09d18bb16d610fa00db075e88bc83a381750d5fe22a177af2a54f196f6360b6b"
+    },
+    {
+      "platform": "Windows",
+      "python_version": "3.11.2",
+      "command": [
+        "python",
+        "-B",
+        "scripts/check-p1-evidence.py",
+        "docs/evidence/beta2-2026-10-23"
+      ],
+      "started_utc": "2026-10-29T14:01:05.843100+00:00",
+      "finished_utc": "2026-10-29T14:01:06.390734+00:00",
+      "exit_code": 0,
+      "manifest_sha256": "4e4d24f47462128b48aa35652c1c0ff9a044c2bfb23911c6ee4624693026949e",
+      "checker_sha256": "09d18bb16d610fa00db075e88bc83a381750d5fe22a177af2a54f196f6360b6b"
+    },
+    {
+      "platform": "Windows",
+      "python_version": "3.11.2",
+      "command": [
+        "python",
+        "-O",
+        "-B",
+        "scripts/check-p1-evidence.py",
+        "docs/evidence/beta2-2026-10-23"
+      ],
+      "started_utc": "2026-10-29T14:01:06.390734+00:00",
+      "finished_utc": "2026-10-29T14:01:06.462287+00:00",
+      "exit_code": 0,
+      "manifest_sha256": "4e4d24f47462128b48aa35652c1c0ff9a044c2bfb23911c6ee4624693026949e",
+      "checker_sha256": "09d18bb16d610fa00db075e88bc83a381750d5fe22a177af2a54f196f6360b6b"
+    },
+    {
+      "platform": "Windows",
+      "python_version": "3.11.2",
+      "command": [
+        "python",
+        "-B",
+        "scripts/check-p1-evidence.py",
+        "docs/evidence/android-wifi-network-fix-2026-10-23"
+      ],
+      "started_utc": "2026-10-29T14:01:06.462287+00:00",
+      "finished_utc": "2026-10-29T14:01:06.680477+00:00",
+      "exit_code": 0,
+      "manifest_sha256": "e3cd99a5653d967a31e2ecb39824ed97b0d5f5f7171c5651843aa17e53d46071",
+      "checker_sha256": "09d18bb16d610fa00db075e88bc83a381750d5fe22a177af2a54f196f6360b6b"
+    },
+    {
+      "platform": "Windows",
+      "python_version": "3.11.2",
+      "command": [
+        "python",
+        "-O",
+        "-B",
+        "scripts/check-p1-evidence.py",
+        "docs/evidence/android-wifi-network-fix-2026-10-23"
+      ],
+      "started_utc": "2026-10-29T14:01:06.680477+00:00",
+      "finished_utc": "2026-10-29T14:01:06.743504+00:00",
+      "exit_code": 0,
+      "manifest_sha256": "e3cd99a5653d967a31e2ecb39824ed97b0d5f5f7171c5651843aa17e53d46071",
+      "checker_sha256": "09d18bb16d610fa00db075e88bc83a381750d5fe22a177af2a54f196f6360b6b"
+    },
+    {
+      "platform": "Windows",
+      "python_version": "3.11.2",
+      "command": [
+        "python",
+        "-B",
+        "scripts/check-p1-evidence.py",
+        "docs/evidence/android-wifi-network-r2-2026-10-24"
+      ],
+      "started_utc": "2026-10-29T14:01:06.743504+00:00",
+      "finished_utc": "2026-10-29T14:01:07.175452+00:00",
+      "exit_code": 0,
+      "manifest_sha256": "d8867aaa1556284e645a94bf5e16fb37dcfa5e72948915c51db84b806a8234a7",
+      "checker_sha256": "09d18bb16d610fa00db075e88bc83a381750d5fe22a177af2a54f196f6360b6b"
+    },
+    {
+      "platform": "Windows",
+      "python_version": "3.11.2",
+      "command": [
+        "python",
+        "-O",
+        "-B",
+        "scripts/check-p1-evidence.py",
+        "docs/evidence/android-wifi-network-r2-2026-10-24"
+      ],
+      "started_utc": "2026-10-29T14:01:07.175452+00:00",
+      "finished_utc": "2026-10-29T14:01:07.252335+00:00",
+      "exit_code": 0,
+      "manifest_sha256": "d8867aaa1556284e645a94bf5e16fb37dcfa5e72948915c51db84b806a8234a7",
+      "checker_sha256": "09d18bb16d610fa00db075e88bc83a381750d5fe22a177af2a54f196f6360b6b"
+    },
+    {
+      "platform": "Windows",
+      "python_version": "3.11.2",
+      "command": [
+        "python",
+        "-B",
+        "scripts/check-p1-evidence.py",
+        "docs/evidence/maintenance-candidate-2026-10-29"
+      ],
+      "started_utc": "2026-10-29T14:01:07.252335+00:00",
+      "finished_utc": "2026-10-29T14:01:07.939368+00:00",
+      "exit_code": 0,
+      "manifest_sha256": "255960b1d2b27d6f69d09d1662fb69e2e04f6683da81ec849edd91ecb39aad91",
+      "checker_sha256": "09d18bb16d610fa00db075e88bc83a381750d5fe22a177af2a54f196f6360b6b"
+    },
+    {
+      "platform": "Windows",
+      "python_version": "3.11.2",
+      "command": [
+        "python",
+        "-O",
+        "-B",
+        "scripts/check-p1-evidence.py",
+        "docs/evidence/maintenance-candidate-2026-10-29"
+      ],
+      "started_utc": "2026-10-29T14:01:07.939368+00:00",
+      "finished_utc": "2026-10-29T14:01:08.066016+00:00",
+      "exit_code": 0,
+      "manifest_sha256": "255960b1d2b27d6f69d09d1662fb69e2e04f6683da81ec849edd91ecb39aad91",
+      "checker_sha256": "09d18bb16d610fa00db075e88bc83a381750d5fe22a177af2a54f196f6360b6b"
+    }
+  ]
+}

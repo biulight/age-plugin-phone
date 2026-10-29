@@ -18,6 +18,7 @@ from unittest.mock import patch
 scenario = sys.argv[1]
 network = scenario.startswith("network-")
 manual = scenario.startswith("network-manual-")
+restart_case = scenario.startswith("network-restart-")
 driver = Path(__file__).with_name('replay-probe.py')
 real_hash = hashlib.sha256
 
@@ -82,7 +83,7 @@ with tempfile.TemporaryDirectory() as temporary:
     def connect(*args, **kwargs):
         global connections
         connections += 1
-        if connections == 1: return Stream((b'X' if scenario == 'network-original-response' else b'') if network else response)
+        if connections == 1: return Stream((b'X' if scenario in ('network-original-response', 'network-early-response') else b'') if network else response)
         return Stream(b'X' if scenario in ('replay-response', 'network-replay-response') else b'')
 
     class Process:
@@ -92,7 +93,21 @@ with tempfile.TemporaryDirectory() as temporary:
         def communicate(self, **kwargs): return b'', b''
         def poll(self): return 0
 
+    pid_queries = 0
     def run(args, **kwargs):
+        global pid_queries
+        if args[:3] == ['adb', 'shell', 'pidof']:
+            pid_queries += 1
+            if scenario == 'network-restart-query-failed':
+                return subprocess.CompletedProcess(args, 2, b'', b'query failed')
+            if pid_queries == 1: output = b'101'
+            elif pid_queries == 2: output = b'101' if scenario == 'network-restart-not-stopped' else b''
+            else: output = b'' if scenario == 'network-restart-no-process' else (b'101' if scenario == 'network-restart-same-process' else b'202')
+            return subprocess.CompletedProcess(args, 0 if output else 1, output, b'')
+        if args[:4] == ['adb', 'shell', 'am', 'force-stop']:
+            return subprocess.CompletedProcess(args, 1 if scenario == 'network-restart-stop-failed' else 0, b'', b'')
+        if args[:4] == ['adb', 'shell', 'am', 'start']:
+            return subprocess.CompletedProcess(args, 1 if scenario == 'network-restart-launch-failed' else 0, b'Error' if scenario == 'network-restart-launch-error' else b'Status: ok\n', b'')
         if args[0] == 'pwsh':
             if scenario != 'network-missing-cycle': write_cycle()
             return subprocess.CompletedProcess(args, 1 if scenario == 'network-switch-failed' else 0, b'', b'')
@@ -109,7 +124,7 @@ with tempfile.TemporaryDirectory() as temporary:
         return real_hash(data)
 
     with patch.dict(os.environ, TEMP=temporary, LOCALAPPDATA=temporary), \
-         patch.object(sys, 'argv', [str(driver)] + (['--network-cancel'] + ([] if manual else ['--auto-cycle']) if network else [])), \
+         patch.object(sys, 'argv', [str(driver)] + (['--network-cancel'] + ([] if manual else ['--auto-cycle']) if network else []) + (['--restart-after-cancel'] if restart_case else [])), \
          patch('hashlib.sha256', digest), patch('socket.socket', lambda *a, **k: Stream()), \
          patch('socket.create_connection', connect), patch('socket.SO_EXCLUSIVEADDRUSE', 4, create=True), \
          patch('subprocess.Popen', Process), patch('subprocess.run', run), patch('time.sleep', lambda _: None), \
@@ -118,8 +133,8 @@ with tempfile.TemporaryDirectory() as temporary:
             runpy.run_path(str(driver), run_name='__main__')
         except SystemExit as error:
             code = error.code
-    reports = list(root.glob('wifi-network-cancel-exact-replay-*.json' if network else 'wifi-exact-request-replay-*.json'))
+    reports = list(root.glob('wifi-network-cancel-restart-exact-replay-*.json' if restart_case else ('wifi-network-cancel-exact-replay-*.json' if network else 'wifi-exact-request-replay-*.json')))
     if len(reports) != 1:
         raise RuntimeError('driver did not write exactly one report')
     report = json.loads(reports[0].read_text())
-    print('FIXTURE_RESULT=' + json.dumps(dict(exit_code=code, result=report['result'], python_version=platform.python_version(), optimization=sys.flags.optimize)))
+    print('FIXTURE_RESULT=' + json.dumps(dict(exit_code=code, result=report['result'], python_version=platform.python_version(), optimization=sys.flags.optimize, early_peer_result=report.get('early_peer_result'))))

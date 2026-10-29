@@ -29,13 +29,16 @@ jobs:
       - name: P1 checked ADB and Wi-Fi failure fixtures
         if: runner.os == 'Windows'
         shell: pwsh
-        run: ./scripts/test-p1-acceptance.ps1
+        run: |
+          ./scripts/test-p1-acceptance.ps1
+          ./scripts/test-p1-recipient-mode.ps1
       - name: Validate archived acceptance evidence
         shell: bash
         run: |
           python -B scripts/check-p1-evidence.py docs/evidence/beta2-2026-10-23
           python -B scripts/check-p1-evidence.py docs/evidence/android-wifi-network-fix-2026-10-23
           python -B scripts/check-p1-evidence.py docs/evidence/android-wifi-network-r2-2026-10-24
+          python -B scripts/check-p1-evidence.py docs/evidence/maintenance-candidate-2026-10-29
       - name: Upload acceptance-tool regression records
         if: always()
         uses: actions/upload-artifact@v4

@@ -1,0 +1,47 @@
+{
+  "case": "wifi-network-cancel-restart-exact-replay",
+  "result": "automated-checks-passed-awaiting-observation",
+  "phone_observation": "pending",
+  "started_utc": "2026-10-29T10:26:20.519447+00:00",
+  "driver_sha256": "216ac3f0be39f6ec4c2f348e7fe995fb1f038d1afa753ab1d184486ea507547a",
+  "replay_checks_sha256": "4355ac2a281632fddeaa5580b4e35ae8537f329062c46c57e1a8ab3ae9bb39f6",
+  "restart_helper_sha256": "4b5afa0fed9a13cec70a51106995aa6f51938ff9369f05691e0302e0e10536ee",
+  "provenance": {
+    "switch_sha256": "6779082c293f8bb53692adde65e07c5e80e19aaee113ae55e3cd8d89d50553e1",
+    "common_sha256": "8768eabb6f6948b5cfe53ab8163a0a021d850a08a9f1c952e23af5ad47d5daab",
+    "base_helper_sha256": "379b1a657af42ceef7c2a9380c200190dde3ddecaa89f0afb3ecd9eea8b0c8e9"
+  },
+  "automatic_cycle_delay_seconds": 10,
+  "original_peer_result": "bounded-read-timeout-without-response",
+  "original_exit_code": 1,
+  "original_output_check": "no-output",
+  "original_finished_utc": "2026-10-29T10:28:20.673446+00:00",
+  "network_cycle_file": "wifi-interface-cycle-d50078f306794272a7a22f386076c3f7.json",
+  "network_cycle_sha256": "55eaea372a82e3c9426d92712764cef694bfca44961ac24d559f36ed80d3df9c",
+  "restart": {
+    "started_utc": "2026-10-29T10:28:20.723302+00:00",
+    "package": "io.github.biulight.age_plugin_phone",
+    "old_process_stopped": true,
+    "fresh_process_started": true,
+    "finished_utc": "2026-10-29T10:28:21.161604+00:00",
+    "result": "passed"
+  },
+  "replays": [
+    {
+      "mode": "identical-frame",
+      "signed_request_byte_identical": true,
+      "expiry_remaining_seconds_at_send": 183,
+      "peer_result": "closed-without-response",
+      "elapsed_seconds": 0.016
+    },
+    {
+      "mode": "fresh-outer-session-same-signed-request",
+      "signed_request_byte_identical": true,
+      "expiry_remaining_seconds_at_send": 182,
+      "peer_result": "closed-without-response",
+      "elapsed_seconds": 0.016
+    }
+  ],
+  "adb_reverse_count": 0,
+  "finished_utc": "2026-10-29T10:28:23.828141+00:00"
+}

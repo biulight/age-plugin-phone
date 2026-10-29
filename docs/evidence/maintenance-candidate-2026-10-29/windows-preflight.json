@@ -1,0 +1,15 @@
+{
+  "version": "0.1.0-beta.2",
+  "commit": "e08d631b33bd0c16948ca26275bc851b0bf56c15",
+  "workflow_run": "34612479284",
+  "workflow_attempt": 1,
+  "exe_sha256": "62d8f3836598dd1ab287c3b2ac432539870bfb0cbe7bdfd547d08cf3be373e2b",
+  "signer_sha256": "d64e82d01bb5835b292a0abbf38759a2c36aaa7003af46809e6a5d730e239215",
+  "authenticode_status": "UnknownError",
+  "signtool_exit": 1,
+  "trust_error": "untrusted-test-root",
+  "root_sha256": "7506695a68ad99f3bcad5e7faee2f4e42fcc0062d91b5f6d68ab850bf1f32c96",
+  "custom_root_chain": "Valid",
+  "windows_supported": true,
+  "trust_scope": "pinned release signer and root validated in memory; private root not publicly trusted; no certificate store changes"
+}
