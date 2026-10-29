@@ -21,11 +21,25 @@ recovery, foreground Wi-Fi unwrap, foreground/background listener lifecycle, fin
 and zero ADB reverse residue. This supports publication of the developer prerelease only; it does
 not mark any deferred public-Alpha gate as passed.
 
-The latest published release is `v0.1.0-beta.2` from commit `e08d631`. Its exact-commit CI,
-four-crate publication, and Windows/Android signing workflows passed. The multi-identity regression
-passed with a source-installed desktop before publication, but has not been repeated with the
-published Windows/Android package pair. Beta 2 therefore does not inherit alpha.1's exact-package
-physical evidence and does not expand this owner-only operating profile.
+As of 2026-10-27, the latest published release is `v0.1.0-beta.2` from `e08d631`.
+Its exact-commit CI, four-crate publication and Windows/Android signing workflows passed.
+The [2026-10-23 exact-package run](beta2-package-acceptance-2026-10-23.md) subsequently
+recorded the scoped `phone` multi-identity, failure/recovery and foreground Wi-Fi cases.
+It also reproduced automatic-discovery failure after network restoration. That failure
+remains attached to the published Beta 2 bits; the overall P1 matrix is not marked passed.
+
+The [Android recovery repair](android-wifi-network-recovery.md) is merged at `196943f`
+and passed scoped tests on separately identified, unpublished same-signer APKs. The first
+fix's first-discovery result does not transfer to final R2, whose replay relay used a
+direct endpoint before discovery recovery. Final-pair first discovery, separate `phone`
+and `tag` acceptance, and cancelled-request replay after app restart remain open in the
+[execution plan](roadmap.md). Existing pairing reuse is not fresh-pairing acceptance, and
+an in-place update is not the complete upgrade/invalidation matrix.
+
+P1 synthetic regressions and archive checks are now configured in the CI workflow;
+CI success verifies tooling and recorded evidence, never a new physical phone operation.
+Neither the scoped package results, merged repair nor CI integration expands this
+owner-only operating profile or establishes production-secret support.
 
 QR framing, native camera transport, private multi-phone stanza selection, lifecycle controls, and
 strict wrong-device/replay rejection remain implemented capabilities. Their presence does not mean
@@ -38,7 +52,7 @@ The following work is recorded but deferred while the application remains owner-
 - rerun exact-candidate QR fallback plus captured-response replay with the attached Windows UVC
   camera; the owner-only exploratory run is recorded in `alpha-evidence-candidate.md` but does not
   transfer to an exact candidate;
-- test a wrong paired physical phone, multiple phone identities, and a second independently
+- test a wrong paired physical phone, multiple physical phones, and a second independently
   capability-qualified StrongBox device family;
 - complete the remaining multi-device lifecycle, invalidation, upgrade, and migration matrix;
 - move Windows distribution signing from the private test root to a publicly trusted open-source

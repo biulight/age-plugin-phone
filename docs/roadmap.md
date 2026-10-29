@@ -10,55 +10,80 @@ the four crates were published and production-installed in
 [run 34612479475](https://github.com/biulight/age-plugin-phone/actions/runs/34612479475),
 and the Windows/Android artifacts were built, verified, and published in
 [run 34612479284](https://github.com/biulight/age-plugin-phone/actions/runs/34612479284).
-The scoped multi-identity behavior passed on a source-installed desktop before publication. The
-same smoke has not been recorded against the published Windows/Android package pair, so that
-remains post-publication evidence rather than a completed release gate. See
-[the release checklist](beta-readiness.md).
+The scoped multi-identity behavior passed on a source-installed desktop before publication
+and was repeated against the exact published Windows/Android pair on 2026-10-23.
+That [package record](beta2-package-acceptance-2026-10-23.md) closes the scoped `phone`
+core regression, but preserves a reproduced Wi-Fi automatic-discovery recovery failure.
+The [subsequent Android fix](android-wifi-network-recovery.md) was merged in PR #23 at
+`196943f`; its signed local candidates have separate evidence and are not published
+Beta 2 artifacts. See [the release checklist](beta-readiness.md).
 
-## Next execution plan — 2026-09-22
+## Next execution plan — updated 2026-10-27
 
-Keep the owner-only, synthetic-data scope while closing evidence around the code already shipped.
-Do not start BLE, a dedicated USB transport, background wake, or another platform package during
-this phase.
+Keep the owner-only, synthetic-data scope. P0 acceptance tooling and the scoped P1
+package/fix evidence are merged; the full single-pair acceptance matrix is not complete.
+Do not start BLE, a dedicated USB transport, background wake, or another platform package
+while closing these gaps.
 
-### Phase 1: exact Beta 2 package regression
+### Phase 1: exact Beta 2 package regression — scoped phone core recorded
 
-- [ ] Verify the published Windows ZIP and Android APK checksums, signatures, versions, source
-  commit, and workflow attempt before installation. Retain an independently tested recovery
-  recipient.
-- [ ] Exercise the published pair with two configured phone identity files: the first valid
-  nonmatching identity must cause no phone contact, and age must continue to the matching identity.
-  The matching identity must require a fresh native phone verification and recover byte-identical
-  synthetic input.
-- [ ] Repeat malformed supported stanza, unavailable private state, cancellation, and independent
-  recovery checks. Every failure must produce no plaintext; a retry must create a fresh request and
-  require a new phone verification.
-- [ ] Record only version, immutable commit, package hashes, signer identities, result, and timing.
-  Do not record private keys, plaintext, raw protocol messages, QR contents, or device serials.
+- [x] Verify the published Windows ZIP and Android APK checksums, signatures, versions,
+  source commit and workflow attempt; verify independent recovery before phone unwrap.
+- [x] Exercise two valid configured `phone` identity stubs: nonmatch-only returned an ordinary
+  identity miss with no prompt, then nonmatch followed by match required fresh native verification
+  and recovered byte-identical synthetic input. No-prompt observation is not packet-capture proof
+  of zero contact; the source regression separately checks no-contact behavior.
+- [x] Repeat malformed supported stanza, unavailable private state, cancellation and fresh
+  recovery checks without plaintext on failure. Existing pairings and replay state were preserved.
+- [x] Archive sanitized machine results, owner observations, artifact identities and driver
+  provenance in the [published-package evidence](evidence/beta2-2026-10-23/README.md).
+- [ ] Run and record `tag` separately on the final candidate; the `phone` result does not certify
+  another recipient mode, fresh pairing, multiple physical phones or the full lifecycle matrix.
 
-### Phase 2: foreground Wi-Fi adverse-condition matrix
+### Phase 2: foreground Wi-Fi matrix and final-candidate closure
 
-- [ ] On one exact artifact pair, cover no listener, hostile first connection, app backgrounding,
-  network change, cancellation, timeout, replay, and a successful Wi-Fi-to-ADB recovery using a
-  fresh user-initiated request.
-- [ ] Repeat consecutive Wi-Fi requests after success, cancellation, timeout, and foreground
-  restoration to verify immediate listener re-arm and the fixed-port `TIME_WAIT` behavior.
-- [ ] Keep wrong-phone and multiple-phone cases in the broader-use phase because they require
-  additional physical devices. Discovery may choose one route before request creation; after a
-  request is created, no test may treat fallback, reconnect, or silent retry as success.
+The published Beta 2 pair passed scoped no-listener, hostile-connection, cancellation,
+timeout, background, peer-disconnect, request-replay and explicit fresh USB recovery cases.
+Consecutive requests after success, cancellation, timeout and foreground restoration were
+recorded. Its first automatic-discovery request after network restoration nevertheless failed;
+that result remains a failure of those published bits, not an unconditional P1 pass.
+
+The first unpublished repair passed idle and pending-authorization network cycles followed
+by the first automatic-discovery request. The final R2 repair added observation-registration
+retry and ownership regressions, then passed network-cancelled request replay and scoped
+foreground recovery. Its relay used a direct endpoint before the fresh discovery request;
+that does not close the first-discovery gap for R2. See the
+[separate candidate evidence](evidence/android-wifi-network-r2-2026-10-24/README.md).
+
+- [x] Configure synthetic P1 regressions and all three evidence-archive checks in the
+  `acceptance-tooling` CI matrix. This adds ongoing validation, not new physical passes;
+  the first hosted run of this CI addition remains to be observed after submission.
+- [ ] On one final exact signed pair, repeat idle and pending-authorization network restoration
+  with the first automatic-discovery request, without a prior direct connection, listener toggle
+  or second-request workaround. Reconcile the other adverse-condition rows on that same pair.
+- [ ] Record separate `phone` and `tag` multi-identity/cancellation results on the final pair.
+- [ ] Verify exact cancelled-request replay after app restart within expiry, then a fresh successful
+  request. JVM durable-store tests and same-process physical rejection are separate evidence.
+- [ ] Keep AP/subnet roaming explicitly unverified until exercised. Wrong-phone and multiple-phone
+  physical cases remain in Phase 3. A new request may choose another transport; a signed request
+  may never silently fall back, reconnect or retry.
+- [ ] Before a maintenance publication, bind the immutable candidate, signatures, installed hashes
+  and required acceptance rows. Never replace the published Beta 2 assets or rewrite their failure.
 
 ### Phase 3: broader-use re-entry
 
 - [ ] Qualify a second StrongBox device family and complete wrong-paired-phone, multiple-phone,
-  invalidation, upgrade, and lifecycle coverage against one exact signed pair.
+  invalidation, upgrade and lifecycle coverage against one exact signed pair.
+- [ ] Complete exact-candidate QR and injected-response replay gates retained in the
+  [owner-only scope](owner-only-preview.md).
 - [ ] Move Windows signing to a publicly trusted open-source program and conduct a limited
   technical-user Alpha before expanding beyond the repository owner.
 - [ ] Revisit protocol freeze only after the physical matrix and compatibility policy are complete;
   until then, protocol v2 remains experimental and production secrets remain unsupported.
 
-This phase is complete when the published Beta 2 pair has a reproducible multi-identity regression
-record and the single-phone foreground Wi-Fi failure/recovery matrix is closed. Broader-device,
-public-signing, and external-user gates remain explicitly open.
+The scoped published-package core regression is complete. The next stage ends when the final
+candidate's single-phone foreground Wi-Fi and recipient-mode gaps above are closed, with failures
+and exclusions retained. Broader-device, public-signing and external-user gates remain open.
 
 ## Product sequencing principles
 
