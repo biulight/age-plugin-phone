@@ -82,12 +82,52 @@ first discovery after both idle and pending-request cycles without an intervenin
   [owner-only scope](owner-only-preview.md).
 - [ ] Move Windows signing to a publicly trusted open-source program and conduct a limited
   technical-user Alpha before expanding beyond the repository owner.
-- [ ] Revisit protocol freeze only after the physical matrix and compatibility policy are complete;
-  until then, protocol v2 remains experimental and production secrets remain unsupported.
+- [ ] Complete the broader platform/distribution matrix without treating protocol freeze as
+  hardware acceptance or production-secret approval. Freeze preparation follows the separate gates below.
 
 The scoped published-package core regression is complete. The next stage ends when the final
 release candidate is built, signed and checked as its own immutable package pair. The existing
 R2 pair's scoped matrix is recorded, with failures and exclusions retained. Broader-device, public-signing and external-user gates remain open.
+
+## Protocol v2 freeze preparation — policy updated 2026-10-30
+
+Beta remains a limited technical-testing stage. Both published Betas use protocol v2. For
+**prerelease versions before protocol freeze**, clearly announced breaking updates are allowed;
+cross-version interoperability, automatic state migration and downgrade support are not promised.
+Stable commitments begin only at an explicitly selected freeze baseline. The authoritative
+[protocol policy and scope](protocol.md#prerelease-compatibility-policy) separate signed messages,
+recipient formats and public stubs from private storage, transport framing and product contracts.
+
+Priorities below are work order, not vulnerability severity:
+
+- [ ] **P0 — scope and specification:** select the immutable freeze baseline and vector set;
+  consolidate canonical v2 semantics, supported stanza capabilities, format boundaries and future
+  versioning rules. Do not infer feature compatibility from the protocol number alone.
+- [ ] **P0 — candidate review:** close a targeted independent review of security-sensitive changes
+  since the recorded review, and bind all applicable findings to the selected candidate.
+- [ ] **P1 — current implementation agreement:** complete Rust/Kotlin/Swift pairing and envelope
+  vectors plus malformed/unsupported-version rejection; verify cancellation, wrong-device binding,
+  timeout, replay and persistence-failure behavior. Existing tests and physical passes retain their
+  recorded scope; full Swift pairing/envelope shared-vector coverage remains to be established.
+- [ ] **P1 — breaking-update procedure:** on disposable identities, validate independent recovery,
+  endpoint update order, any required re-pairing and re-encryption. Clearly state affected versions,
+  formats and retained-ciphertext consequences. Never repair compatibility by resetting replay state.
+- [ ] **P2 — platform and distribution acceptance:** retain the open Phase 2/3 cases, including
+  AP/subnet roaming, fresh exact-candidate pairing, device reboot, invalidation/storage failures,
+  wrong/multiple physical phones, second StrongBox family, QR response replay, broader lifecycle,
+  public signing and external-user readiness. Credit prior scoped evidence without marking the
+  complete matrix passed. Security defects in these cases still block the affected path.
+
+Do not require every historical Alpha/Beta pair to interoperate or implement migration solely to
+preserve prerelease compatibility. Current-candidate protocol safety and clearly rejected incompatible
+inputs remain freeze gates. Broader hardware coverage alone is not a wire-freeze prerequisite.
+The accepted desktop snapshot-freshness boundary remains documented, not a new anti-rollback gate.
+
+A limited maintenance release may precede freeze under the existing owner-only scope. It must still
+bind an immutable version to its actual signed artifacts and complete scoped exact-package acceptance.
+Neither freeze nor publication establishes production-secret support. Historical acceptance archives
+and release bodies remain unchanged; this policy supersedes the earlier sequencing that tied wire
+freeze to completion of the entire physical matrix.
 
 ## Product sequencing principles
 
@@ -126,8 +166,8 @@ invariant.
   and connection state are never authentication inputs. ADB remains the technical-Alpha default
   and is intended to become a development, diagnostics, and recovery path rather than a promised
   general-availability default.
-- Do not freeze the wire format or promise production-secret protection until independent
-  cryptographic and implementation review is complete.
+- Freeze wire semantics only after the candidate-specific specification, review and agreement gates
+  above close. Production-secret protection and broader platform support require separate acceptance.
 - Add convenience transports only through the common transport boundary; no transport may weaken
   per-operation user verification, replay protection, or paired-device binding.
 
@@ -249,8 +289,9 @@ release gate, not an open question about whether the ADB transport can carry the
 - [x] Obtain independent cryptographic and implementation review and resolve its findings. The
   source review resolved ISR-001 and documented ISR-002's unreachable advisory preconditions;
   native Windows and remaining physical/package evidence remain separate Alpha gates.
-- [ ] Freeze a stable protocol version only after review, with explicit upgrade,
-  downgrade-rejection, and compatibility rules.
+- [ ] Freeze a stable protocol baseline after the current freeze-preparation gates close, with
+  explicit future versioning and safe rejection rules. Earlier prereleases have no cross-version
+  compatibility promise and may require announced recovery/re-pairing/re-encryption.
 
 ## Milestone 6: Windows and Android product Alpha
 

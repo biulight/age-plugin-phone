@@ -8,8 +8,12 @@ Shine and this project. A user without Shine must be able to use it with a compa
 The phone does not parse application configuration, environment variables, full age ciphertext,
 or plaintext.
 
-The protocol remains an experimental version 2 design. Source-level independent review is complete;
-the wire format remains unfrozen pending compatibility policy and the remaining Alpha evidence.
+Protocol v2 remains unfrozen; Beta 1 and Beta 2 are limited technical-test releases using v2.
+Prerelease versions before protocol freeze do not promise cross-version compatibility and may make
+clearly announced breaking updates. Historical source reviews cover their recorded candidates;
+freeze requires a named baseline, current-candidate review closure and implementation agreement.
+See the [freeze scope and remaining acceptance](protocol.md#freeze-scope-and-future-changes).
+Platform coverage and exact-package release acceptance remain separate from wire-format stability.
 
 ## Unwrap flow
 
