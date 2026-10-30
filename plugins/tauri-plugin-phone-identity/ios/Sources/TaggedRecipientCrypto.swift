@@ -70,7 +70,7 @@ enum TaggedRecipientCrypto {
         stanza: RecipientStanza,
         identity: SecureEnclave.P256.KeyAgreement.PrivateKey
     ) throws -> Data {
-        let (version, ephemeral, ephemeralBytes) = try parse(stanza)
+        let (version, ephemeral, _) = try parse(stanza)
         if version == 3 {
             guard try P256Tag.matches(recipient: identity.publicKey, arguments: stanza.arguments, body: stanza.body) else {
                 throw TaggedRecipientError.authentication
@@ -79,7 +79,13 @@ enum TaggedRecipientCrypto {
             return try P256Tag.open(secret: secret, recipient: identity.publicKey, arguments: stanza.arguments, body: stanza.body)
         }
         let secret = try identity.sharedSecretFromKeyAgreement(with: ephemeral)
-        let recipient = try RecipientEncoding.compressed(identity.publicKey)
+        return try openPhone(stanza: stanza, secret: secret, recipient: identity.publicKey)
+    }
+
+    static func openPhone(stanza: RecipientStanza, secret: SharedSecret, recipient: P256.KeyAgreement.PublicKey) throws -> Data {
+        let (version, _, ephemeralBytes) = try parse(stanza)
+        guard version == 1 || version == 2 else { throw TaggedRecipientError.malformed }
+        let recipient = try RecipientEncoding.compressed(recipient)
         let info = Data((version == 2
             ? "age-plugin-phone/recipient/p256/v2/file-key"
             : "age-plugin-phone/recipient/p256/v1").utf8)

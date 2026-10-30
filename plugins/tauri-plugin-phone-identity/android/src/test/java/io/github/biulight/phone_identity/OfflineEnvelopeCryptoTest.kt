@@ -240,7 +240,7 @@ class OfflineEnvelopeCryptoTest {
 
     @Test
     fun verifiesAndDecryptsSharedRustVector() {
-        for (resource in listOf("offline-envelope-v2.json", "p256tag-envelope-v2.json")) {
+        for (resource in listOf("offline-envelope-v2.json", "p256tag-envelope-v2.json", "phone-v2-envelope.json")) {
         val vector = ObjectMapper().readTree(requireNotNull(javaClass.classLoader?.getResourceAsStream(resource)))
         val desktopSigning = keyPair(vector["desktop_signing_scalar"].asInt())
         val phoneSigning = keyPair(vector["phone_signing_scalar"].asInt())
@@ -263,6 +263,34 @@ class OfflineEnvelopeCryptoTest {
                 desktopSession.private,
             ),
         )
+        }
+    }
+
+    @Test
+    fun sharedD5Rejections() {
+        val fixture = ObjectMapper().readTree(requireNotNull(javaClass.classLoader?.getResourceAsStream("phone-v2-envelope.json")))
+        val cases = ObjectMapper().readTree(requireNotNull(javaClass.classLoader?.getResourceAsStream("protocol-rejections-v2.json")))
+        val offer = OfflineEnvelopeCrypto.verifyPairingOffer(base64(pairingVector["signed_offer_base64"].asText()))
+        fun request(bytes: ByteArray) = OfflineEnvelopeCrypto.verifyRequest(bytes,
+            hex(fixture["desktop_id_hex"].asText()), hex(fixture["identity_id_hex"].asText()),
+            keyPair(1).public, fixture["now_unix"].asLong())
+        val verified = request(base64(fixture["signed_request_base64"].asText()))
+        org.junit.Assert.assertEquals(39, cases["cases"].size())
+        for (case in cases["cases"]) {
+            val target = case["target"].asText()
+            require(target in setOf("offer", "pairing_response", "request", "response"))
+            org.junit.Assert.assertTrue(case["accept"].isBoolean)
+            org.junit.Assert.assertFalse(case["accept"].asBoolean())
+            val bytes = base64(case["encoded_base64"].asText())
+            assertThrows(case["name"].asText(), Exception::class.java) {
+                when (target) {
+                    "offer" -> OfflineEnvelopeCrypto.verifyPairingOffer(bytes)
+                    "pairing_response" -> OfflineEnvelopeCrypto.verifyPairingResponse(bytes, offer)
+                    "request" -> request(bytes)
+                    "response" -> OfflineEnvelopeCrypto.openResponse(bytes, verified, keyPair(2).public, keyPair(5).private)
+                    else -> error("Unknown corpus target")
+                }
+            }
         }
     }
 
@@ -306,7 +334,7 @@ class OfflineEnvelopeCryptoTest {
 
     @Test
     fun rejectsTamperingWrongDeviceAndExpiry() {
-        for (resource in listOf("offline-envelope-v2.json", "p256tag-envelope-v2.json")) {
+        for (resource in listOf("offline-envelope-v2.json", "p256tag-envelope-v2.json", "phone-v2-envelope.json")) {
         val vector = ObjectMapper().readTree(requireNotNull(javaClass.classLoader?.getResourceAsStream(resource)))
         val desktopSigning = keyPair(vector["desktop_signing_scalar"].asInt())
         val request = base64(vector["signed_request_base64"].asText())
