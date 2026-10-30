@@ -1,6 +1,6 @@
 # Protocol v2 freeze preparation record
 
-Date: 2026-10-30. Status: D1–D5 decisions accepted by the project owner; implementation and acceptance remain open; **not frozen**.
+Date: 2026-10-30. Status: D1–D5 decisions accepted by the project owner; D3 implementation and D5 source conformance are present; final acceptance remains open; **not frozen**.
 Beta remains limited technical testing. The [prerelease compatibility policy](protocol.md#prerelease-compatibility-policy)
 permits clearly announced breaking updates before freeze without cross-version interoperability,
 automatic migration or downgrade promises. This record does not authorize code changes or publication.
@@ -65,7 +65,9 @@ was subsequently authorized; its source/test evidence is recorded below.
 ### D1 — Scope and baseline
 
 Retain `69b3cdf` as the source assessment baseline and the scope above. Runtime sources and all
-seven public vectors were unchanged through `fd6fa6c`; the later commits record documentation.
+seven public vectors were unchanged through `fd6fa6c`. D3 was subsequently merged in `40b8fe4`;
+the D5 working change adds fixtures and minimal Swift test seams without replacing that historical
+assessment baseline or selecting a final frozen candidate.
 Do not select today's HEAD as the final frozen baseline merely because CI passed. After D3/D5
 implementation and review, select a new immutable source SHA if code or vectors changed, and bind
 it to an accepted specification revision and vector inventory.
@@ -130,7 +132,9 @@ and retains the durable high-water mark. Malformed/oversized envelope cases also
 entry points (and all four Rust signed-message decoders). These targeted regressions passed;
 Swift durable-store restart behavior remains source-reviewed here, not newly executed by this harness.
 Formatting, diff whitespace, relative documentation links and the seven original vector bytes were
-checked. Hosted CI, physical devices and D5's full conformance matrix were not run for this change.
+checked. These were the local D3 results; merged D3 subsequently passed all 11 jobs in
+[main CI #110](https://github.com/biulight/age-plugin-phone/actions/runs/41032750673) at `40b8fe4`.
+That run does not validate the later D5 working change or physical devices.
 The host's newer Rust 1.99 Clippy reports an existing `manual_is_variant_and` warning in desktop
 `age_identity.rs`; that unrelated source was left unchanged.
 
@@ -167,11 +171,30 @@ public-stub canonical CBOR/text expectations linked to a pairing transcript, inc
 phone/tag recipients. Organize shared negative cases with explicit expected outcomes, covering D3
 and version/suite/type, reused roles, high-S, wrong bindings and ciphertext tampering.
 
-Run full pairing/envelope fixtures through Swift as well as Rust/Kotlin. The Swift envelope currently
-lives outside the Core test module and its generation APIs depend on Secure Enclave keys. Introduce
-only the minimal test boundary needed to execute production-used encoding/crypto logic; do not copy
-a second implementation or enable a production software-key fallback. Fixed signed fixture bytes
-must verify; randomized hardware ECDSA signatures need not equal deterministic fixture signatures.
+D5 implementation now adds `phone-v2-envelope.json`, `public-identity-stub-v2.json` and
+`protocol-rejections-v2.json`; the [catalog](test-vectors/README.md) records hashes, consumers and
+reproduction commands. Rust/Kotlin consume the complete phone-v2 envelope and all 39 rejection
+cases. The production Swift harness verifies inbound offers/requests (18 rejection cases), checks
+fixed signatures and pairing fingerprints, opens all three stanza modes and compares outbound
+pairing/response payloads and response AEAD bytes against the same fixtures. Response input rejection
+belongs to the desktop role and runs in Rust/Kotlin; no mobile desktop decoder is added for tests.
+
+Only production-used byte construction/post-ECDH functions are exposed internally for deterministic
+fixtures. Secure Enclave signing and native identity agreement stay in their original wrappers;
+there is no production software identity or signer injection. Public-stub bytes/text and recipient
+exports are checked by the owning desktop code and an independent stdlib CBOR/Bech32 checker.
+Fixed signed fixture bytes verify; randomized hardware ECDSA signatures need not reproduce them.
+
+Local D5 validation against `40b8fe4` plus the working change: Rust 1.88 workspace tests and
+Clippy with warnings denied passed; Kotlin 93 tests and Swift Core 14 tests passed. The production
+Swift boundary/conformance and stream-lifecycle harnesses passed. All three new JSON fixtures were
+reproduced byte-for-byte by their generators; the desktop and independent Python stub checks passed.
+Workflow lint, four-package archive layout, formatting, links and fixture hashes were checked.
+Follow-up checks passed for all 39 mutation signatures in Rust and Swift/CryptoKit and for the
+specific Rust rejection categories; signed stanza fields and envelope/stub recipient linkage are
+also checked. This strengthens fixture validity evidence without changing production behavior.
+No D5 hosted CI, physical device acceptance or independent security review is claimed.
+
 
 Acceptance: every required shared fixture has identified consumers and passing expected results;
 all newly generated bytes have independently checked expectations rather than self-confirming
@@ -198,16 +221,16 @@ and remaining gaps are tracked in the [vector catalog](test-vectors/README.md).
    protocol gates, including the breaking-update procedure. Decide freeze separately from production
    support and exact-release-package acceptance.
 
-D3 boundary tests and implementation are present in the working change. D5 completeness,
-independent review and final baseline selection remain outstanding. No exhaustive historical Alpha/Beta interoperability matrix is required.
+D3 is implemented and D5 now has shared fixtures and role-appropriate production consumers.
+Independent review, final candidate CI/native evidence and baseline selection remain outstanding. No exhaustive historical Alpha/Beta interoperability matrix is required.
 
 ## Evidence and remaining work
 
 | Work item | Status and next step |
 | --- | --- |
-| P0 inventory: source baseline, current schemas, domains, scope and public-vector hashes | Complete as an inventory; D1–D5 policy decisions are accepted, while implementation, final baseline and freeze acceptance remain open |
+| P0 inventory: source baseline, current schemas, domains, scope and public-vector hashes | Complete as an inventory; D1–D5 policy decisions are accepted, with D3/D5 source evidence now present; final baseline and freeze acceptance remain open |
 | P0 independent candidate review | Open; inspect changes since the historical reviewed candidates and close findings against the chosen SHA |
-| P1 cross-implementation conformance | Partial: Rust/Kotlin v2 envelope/pairing and Rust/Kotlin/Swift tag vectors exist; full Swift signed-envelope/pairing fixture execution and a shared phone-v2 envelope remain open |
+| P1 cross-implementation conformance | Source conformance implemented: complete phone-v2 and stub fixtures, Rust/Kotlin rejection matrix and Swift production pairing/envelope coverage; final candidate binding and independent review remain open |
 | P1 rejection/lifecycle/persistence evidence | Existing negative tests and scoped physical results remain useful; bind required cases to the candidate, including D3 boundaries. Source/CI agreement is not hardware verification |
 | P1 breaking-update procedure | Open: exercise independent recovery, endpoint update order, any re-pairing and re-encryption on disposable identities. No exhaustive old Alpha/Beta interoperability matrix is required |
 | P2 platform and release acceptance | Retain broader devices, wrong/multiple physical phones, fresh exact-package pairing, QR response replay, roaming, reboot/invalidation/storage/lifecycle rows and distribution readiness in the roadmap |
@@ -219,6 +242,6 @@ not rebuild or re-certify those artifacts at `69b3cdf`. The published Beta 2 dis
 attached to its published bits. Broader coverage alone is not a wire-freeze gate, but any discovered
 binding, parsing, authorization or consumption defect must be resolved for the affected path.
 
-Next action: complete D5 conformance evidence, then follow the independent review and final
-baseline steps above. Neither this
+Next action: bind D3/D5 source evidence to a new candidate, then complete independent review and
+the remaining final-baseline steps above. Neither this
 record nor protocol freeze grants production-secret approval or replaces exact-release acceptance.

@@ -100,6 +100,10 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./scripts/test-windows-minimal-acceptance.ps1
+      - name: Public identity stub conformance
+        run: |
+          python scripts/check-public-stub-vector.py
+          cargo run --locked -p age-plugin-phone --example public_stub_vector -- crates/core/test-vectors/pairing-transcript-v2.json crates/core/test-vectors/public-identity-stub-v2.json
       - name: Cargo 1.88 minimal alternate registry rehearsal
         run: python scripts/registry-preflight.py --minimal --output "${{ runner.temp }}/phone-registry-minimal"
       - name: Detached four-package build, tests and install
@@ -192,6 +196,8 @@ jobs:
         run: python3 scripts/test-ios-stream-lifecycle.py
       - name: Test Swift production protocol boundaries
         run: python3 scripts/test-ios-protocol-boundaries.py
+      - name: Swift production cross-language conformance
+        run: python3 scripts/test-ios-protocol-conformance.py
       - name: Generate iOS project
         working-directory: apps/mobile
         run: bun run tauri ios init --ci --skip-targets-install

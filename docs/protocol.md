@@ -6,11 +6,11 @@ The [consolidated v2 specification candidate](protocol-v2-spec.md) records the c
 arrays, domains, recipient/stanza constructions, public stub and replay semantics against source
 baseline `69b3cdfa006d8bbe4f1154ec5874ea954f2ae717`. Use it for current byte layouts and this page
 for flow and policy. [Freeze preparation](protocol-v2-freeze-preparation.md) records the accepted
-scope, evidence and D1–D5 decisions with outstanding implementation/acceptance;
+scope, D1–D5 decisions, implemented D3/D5 source evidence and outstanding final acceptance;
 no stable baseline has been accepted.
 
-The [public-vector catalog](test-vectors/README.md) inventories seven existing fixtures with hashes
-and consumer coverage. ADRs [0001](adr/0001-experimental-p256-recipient.md),
+The [public-vector catalog](test-vectors/README.md) inventories the seven original fixtures and additive D3/D5
+corpora with hashes and consumer coverage. ADRs [0001](adr/0001-experimental-p256-recipient.md),
 [0002](adr/0002-experimental-offline-envelope.md), [0012](adr/0012-private-stanza-selection.md),
 [0014](adr/0014-split-desktop-key-protocol-v2.md) and [0026](adr/0026-native-tagged-recipients.md)
 retain historical rationale and amendments. Do not apply their superseded v1 message layouts or
@@ -252,13 +252,15 @@ identifier and an explicit transition policy rather than redefining the frozen v
   catalog in the [P0 preparation record](protocol-v2-freeze-preparation.md), without changing code.
 - [x] Record accepted D1–D5 decisions, including scope, restricted legacy support, target time/input
   bounds, capabilities and required conformance evidence. Decision acceptance is not implementation.
-- [ ] Implement and validate D3/D5, close independent review and remaining protocol gates, then
+- [ ] Bind implemented D3/D5 source evidence to the final candidate, close independent review and
+  remaining protocol gates, then
   accept the final source/specification/vector baseline. Preparation is not freeze.
 - [ ] Bind independent security review and finding closure to that candidate, including a targeted
   review of security-sensitive changes after the recorded `0305c0e` follow-up.
 - [ ] Complete current-candidate Rust/Kotlin/Swift agreement on pairing and unwrap bytes, signatures,
   digests and rejection cases. Rust/Kotlin shared v2 vectors and Swift tag/HPKE tests are supporting
-  evidence; full Swift pairing/envelope shared-vector coverage remains to be established.
+  evidence; the D5 harness now verifies Swift inbound messages and outbound bytes against the shared
+  fixtures. Final candidate review and native/stateful acceptance remain separate.
 - [ ] Verify unsupported versions and malformed inputs fail safely, and cover cancellation, replay,
   wrong-device binding, timeout and uncertain persistence on the included implementations. Preserve
   ordinary restart consumption and the documented desktop snapshot-freshness limitation.

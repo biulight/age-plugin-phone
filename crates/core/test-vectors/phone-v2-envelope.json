@@ -1,0 +1,31 @@
+{
+  "desktop_id_hex": "11111111111111111111111111111111",
+  "desktop_selection_scalar": 7,
+  "desktop_session_scalar": 5,
+  "desktop_signing_scalar": 1,
+  "expires_at_unix": 1000300,
+  "file_key_hex": "55555555555555555555555555555555",
+  "identity_id_hex": "22222222222222222222222222222222",
+  "identity_scalar": 3,
+  "now_unix": 1000000,
+  "phone_session_scalar": 6,
+  "phone_signing_scalar": 2,
+  "recipient": "age1phone1qgp9ajly6xnrxzjyerm7l9gaf0cktekxkus7ltdfsha5zesmcmnl6mqz3efnkmaqhaa5vfdmxpn8cq0mvpl0n79c4q877kesqc58qvv8k23jyg3zyg3zyg3zyg3zyg3zyg3zy94gqcw",
+  "request_digest_base64": "Gjgwfomp7ZLHB1AUUbaPEMvNIKL+8cEtbAHV203Lye8",
+  "request_id_hex": "33333333333333333333333333333333",
+  "request_nonce_hex": "4444444444444444444444444444444444444444444444444444444444444444",
+  "response_nonce_hex": "6666666666666666666666666666666666666666666666666666666666666666",
+  "schema": "age-plugin-phone/phone-v2-envelope-test-vector/v2",
+  "signed_request_base64": "glkBGosCAwFQMzMzMzMzMzMzMzMzMzMzM1AiIiIiIiIiIiIiIiIiIiIiUBERERERERERERERERERERFYIQJRWQt6UVFA0teEyFYIZo/f74yC/R9b5SQhVUoNw9Az7YNtcGhvbmUtcDI1Ni12MoJ4LEF1SlRTalV5MEkrN29DM2VaWjdtSzlBREgrTGJlRldXNzFDVEFrUnJBd2hTeCtKODVRUjJzL1lmNTV0V3I0a1ZTMWRlak5DSGlqUUZHQTV1U1dlcWFjdHBzWCAmFuzcaWJIs03XdKEKkcg00qfi0IVBm47MbVTmm0eyGFggREREREREREREREREREREREREREREREREREREREREREQaAA9DbGt0ZXN0IGNhbGxlclhAK47AGJY9qAketwIQ0cJhYSqEKJ7NyYOyy98l6GuRmOxbc3ksMGQKRo6nio/cuzcVEMrVVvHbIZJblGQQpgPsLA",
+  "signed_response_base64": "gljAigIEAVAzMzMzMzMzMzMzMzMzMzMzWCAaODB+iantkscHUBRRto8Qy80gov7xwS1sAdXbTcvJ71AiIiIiIiIiIiIiIiIiIiIiUBERERERERERERERERERERFYIQKwGhcqdqRgLJLTJCy4l93jAkx0DeuyFbTGsKrpPCKRqVggZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZYIFj5bZe7Ie8+jrRRDjwUkCEbw2Si58f7CmaScb9QhQwOWEBrxX/zmxSKskGpVdqgObQxoFlcW/SQlFePGm3qfcoKLiu405JR2LDyyvwbZ+BfNFfsgLprfVIr/cTWH0WBq9GA",
+  "stanza": {
+    "args": [
+      "AuJTSjUy0I+7oC3eZZ7mK9ADH+LbeFWW71CTAkRrAwhS",
+      "J85QR2s/Yf55tWr4kVS1dejNCHijQFGA5uSWeqactps"
+    ],
+    "body_base64": "Jhbs3GliSLNN13ShCpHINNKn4tCFQZuOzG1U5ptHshg",
+    "tag": "phone-p256-v2"
+  },
+  "stanza_ephemeral_scalar": 4,
+  "warning": "All values are public deterministic test data and must never be used for real keys or requests."
+}

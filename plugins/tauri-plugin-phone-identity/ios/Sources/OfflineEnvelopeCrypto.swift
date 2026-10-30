@@ -79,10 +79,7 @@ enum OfflineEnvelopeCrypto {
         let signingPublic = try TaggedRecipientCrypto.compressedSigning(signingKey.publicKey)
         guard signingPublic == identity.signingPublicKey else { throw OfflineProtocolError.malformed }
         let nonce = try randomData(count: 32)
-        let payload = try StrictCBOR.encode(.array([
-            .unsigned(version), .unsigned(2), .unsigned(suite), .bytes(identity.identityId),
-            .text(identity.recipient), .bytes(signingPublic), .bytes(offer.digest), .bytes(nonce)
-        ]))
+        let payload = try pairingResponsePayload(offer: offer, identity: identity, nonce: nonce)
         let signature = try lowSSignature(try signingKey.signature(for: domainInput(pairingSignatureDomain, payload: payload)).rawRepresentation)
         let encoded = try encodeSigned(payload, signature: signature)
         return VerifiedPairingResponse(
@@ -93,6 +90,17 @@ enum OfflineEnvelopeCrypto {
             nonce: nonce,
             encoded: encoded
         )
+    }
+
+    // Shared byte construction for the hardware path and public conformance fixtures.
+    static func pairingResponsePayload(offer: VerifiedPairingOffer, identity: IdentityPublicMetadata, nonce: Data) throws -> Data {
+        guard identity.identityId.count == 16, identity.signingPublicKey.count == 33, nonce.count == 32 else {
+            throw OfflineProtocolError.malformed
+        }
+        return try StrictCBOR.encode(.array([
+            .unsigned(version), .unsigned(2), .unsigned(suite), .bytes(identity.identityId),
+            .text(identity.recipient), .bytes(identity.signingPublicKey), .bytes(offer.digest), .bytes(nonce)
+        ]))
     }
 
     static func pairingFingerprint(_ offer: VerifiedPairingOffer, _ response: VerifiedPairingResponse) -> Data {
@@ -157,9 +165,16 @@ enum OfflineEnvelopeCrypto {
         signingKey: SecureEnclave.P256.Signing.PrivateKey
     ) throws -> Data {
         guard fileKey.count == 16 else { throw OfflineProtocolError.malformed }
-        let session = P256.KeyAgreement.PrivateKey(compactRepresentable: true)
+        let payload = try responsePayload(request: request, fileKey: fileKey,
+            session: P256.KeyAgreement.PrivateKey(compactRepresentable: true), responseNonce: randomData(count: 32))
+        let signature = try lowSSignature(try signingKey.signature(for: domainInput(responseSignatureDomain, payload: payload)).rawRepresentation)
+        return try encodeSigned(payload, signature: signature)
+    }
+
+    static func responsePayload(request: VerifiedUnwrapRequest, fileKey: Data,
+                                session: P256.KeyAgreement.PrivateKey, responseNonce: Data) throws -> Data {
+        guard fileKey.count == 16, responseNonce.count == 32 else { throw OfflineProtocolError.malformed }
         let sessionPublic = try RecipientEncoding.compressed(session.publicKey)
-        let responseNonce = try randomData(count: 32)
         let aad = try StrictCBOR.encode(.array([
             .unsigned(version), .unsigned(4), .unsigned(suite), .bytes(request.requestId),
             .bytes(request.digest), .bytes(request.identityId), .bytes(request.desktopId),
@@ -179,8 +194,7 @@ enum OfflineEnvelopeCrypto {
             .bytes(request.digest), .bytes(request.identityId), .bytes(request.desktopId),
             .bytes(sessionPublic), .bytes(responseNonce), .bytes(encrypted)
         ]))
-        let signature = try lowSSignature(try signingKey.signature(for: domainInput(responseSignatureDomain, payload: payload)).rawRepresentation)
-        return try encodeSigned(payload, signature: signature)
+        return payload
     }
 
     private static func header(_ values: [CBORValue], type: UInt64) throws {
@@ -189,7 +203,7 @@ enum OfflineEnvelopeCrypto {
               try values[2].exactUnsigned() == suite else { throw OfflineProtocolError.malformed }
     }
 
-    private static func encodeSigned(_ payload: Data, signature: Data) throws -> Data {
+    static func encodeSigned(_ payload: Data, signature: Data) throws -> Data {
         try StrictCBOR.encode(.array([.bytes(payload), .bytes(signature)]))
     }
 
@@ -197,7 +211,7 @@ enum OfflineEnvelopeCrypto {
         try ProtocolBounds.decodeEnvelope(encoded)
     }
 
-    private static func verify(
+    static func verify(
         key: P256.Signing.PublicKey,
         domain: Data,
         payload: Data,

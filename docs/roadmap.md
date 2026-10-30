@@ -107,12 +107,10 @@ Priorities below are work order, not vulnerability severity:
   domain and parser inputs, baseline capabilities and required conformance set in the
   [decision record](protocol-v2-freeze-preparation.md#accepted-decisions-and-acceptance-criteria).
   These are accepted requirements, not completed implementation or freeze acceptance.
-- [ ] **D3/D5 — boundary evidence and implementation:** first establish failing/shared boundary
-  cases, then implement D3's `[0, 2^63-1]` time domain, overflow-safe validation/creation and
-  65,536-byte signed-envelope entry cap. Complete D5's phone-v2 envelope/stub fixtures and minimal
-  Swift test boundary using production logic. Keep the original seven vectors unchanged.
-  D3 now has a working implementation and shared boundary fixture, including a Swift production
-  request harness. D5 full conformance coverage and final candidate review remain open.
+- [x] **D3/D5 — boundary implementation and source conformance:** portable time/size limits,
+  complete phone-v2 envelope and public-stub vectors, shared rejection corpus and production Swift
+  pairing/envelope harness are implemented. All seven original fixtures remain unchanged. This
+  source-level milestone does not close independent review or native/final-candidate acceptance.
 - [ ] **P0 — final scope/specification baseline:** after implementation and independent review,
   identify final source/specification/vector revisions and close the remaining protocol gates.
   Do not infer feature compatibility from the protocol number alone or treat the candidate as frozen.
@@ -121,7 +119,8 @@ Priorities below are work order, not vulnerability severity:
 - [ ] **P1 — current implementation agreement:** complete Rust/Kotlin/Swift pairing and envelope
   vectors plus malformed/unsupported-version rejection; verify cancellation, wrong-device binding,
   timeout, replay and persistence-failure behavior. Existing tests and physical passes retain their
-  recorded scope; full Swift pairing/envelope shared-vector coverage remains to be established.
+  recorded scope; D5 supplies role-appropriate Swift pairing/envelope source coverage, while native
+  authorization and durable-store acceptance remain separately scoped.
 - [ ] **P1 — breaking-update procedure:** on disposable identities, validate independent recovery,
   endpoint update order, any required re-pairing and re-encryption. Clearly state affected versions,
   formats and retained-ciphertext consequences. Never repair compatibility by resetting replay state.
@@ -134,7 +133,7 @@ Priorities below are work order, not vulnerability severity:
 Execution order: accepted decisions → boundary evidence → narrow D3 implementation → D5 conformance
 coverage → independent increment review → final baseline/freeze decision. The
 [implementation order](protocol-v2-freeze-preparation.md#implementation-order) and per-decision
-acceptance criteria govern closure; the current task only records documentation.
+acceptance criteria govern closure; source conformance does not itself declare a freeze.
 
 Do not require every historical Alpha/Beta pair to interoperate or implement migration solely to
 preserve prerelease compatibility. Current-candidate protocol safety and clearly rejected incompatible

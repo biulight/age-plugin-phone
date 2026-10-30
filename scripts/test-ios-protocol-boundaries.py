@@ -87,17 +87,21 @@ struct IdentityPublicMetadata {
 }
 '''
 
-with tempfile.TemporaryDirectory(prefix="phone-ios-protocol-") as temporary:
-    work = Path(temporary)
-    sources = list((IOS / "Core/Sources/PhoneIdentityCore").glob("*.swift"))
-    for name in ["OfflineEnvelopeCrypto.swift", "TaggedRecipientCrypto.swift"]:
-        target = work / name
-        target.write_text((IOS / "Sources" / name).read_text().replace("import PhoneIdentityCore\n", ""))
-        sources.append(target)
-    harness = work / "Harness.swift"
-    harness.write_text(HARNESS)
-    executable = work / "protocol-boundaries"
-    subprocess.run(["swiftc", "-package-name", "PhoneIdentityCore", "-module-cache-path",
-                    str(work / "module-cache"), *map(str, sources), str(harness),
-                    "-o", str(executable)], check=True)
-    subprocess.run([str(executable), str(ROOT / "crates/core/test-vectors")], check=True)
+def run(source: str) -> None:
+    with tempfile.TemporaryDirectory(prefix="phone-ios-protocol-") as temporary:
+        work = Path(temporary)
+        sources = list((IOS / "Core/Sources/PhoneIdentityCore").glob("*.swift"))
+        for name in ["OfflineEnvelopeCrypto.swift", "TaggedRecipientCrypto.swift"]:
+            target = work / name
+            target.write_text((IOS / "Sources" / name).read_text().replace("import PhoneIdentityCore\n", ""))
+            sources.append(target)
+        harness = work / "Harness.swift"
+        harness.write_text(source)
+        executable = work / "protocol-boundaries"
+        subprocess.run(["swiftc", "-package-name", "PhoneIdentityCore", "-module-cache-path",
+                        str(work / "module-cache"), *map(str, sources), str(harness),
+                        "-o", str(executable)], check=True)
+        subprocess.run([str(executable), str(ROOT / "crates/core/test-vectors")], check=True)
+
+if __name__ == "__main__":
+    run(HARNESS)
