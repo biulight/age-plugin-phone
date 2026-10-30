@@ -111,6 +111,8 @@ Priorities below are work order, not vulnerability severity:
   cases, then implement D3's `[0, 2^63-1]` time domain, overflow-safe validation/creation and
   65,536-byte signed-envelope entry cap. Complete D5's phone-v2 envelope/stub fixtures and minimal
   Swift test boundary using production logic. Keep the original seven vectors unchanged.
+  D3 now has a working implementation and shared boundary fixture, including a Swift production
+  request harness. D5 full conformance coverage and final candidate review remain open.
 - [ ] **P0 — final scope/specification baseline:** after implementation and independent review,
   identify final source/specification/vector revisions and close the remaining protocol gates.
   Do not infer feature compatibility from the protocol number alone or treat the candidate as frozen.

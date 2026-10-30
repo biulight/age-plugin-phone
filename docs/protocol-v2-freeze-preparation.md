@@ -59,8 +59,8 @@ exclusion similarly does not permit state loss, uncertain replay reset or weaker
 ## Accepted decisions and acceptance criteria
 
 The project owner accepted the following recommendations on 2026-10-30. Acceptance of policy does
-not establish implementation conformance, close the independent review, or authorize this
-documentation task to modify code. D3 specifies target behavior not yet uniformly enforced.
+not establish implementation conformance or close the independent review. D3 implementation
+was subsequently authorized; its source/test evidence is recorded below.
 
 ### D1 — Scope and baseline
 
@@ -89,7 +89,7 @@ recovery steps; no removal is part of this work.
 
 ### D3 — Portable time and parser boundaries
 
-Accepted target rules, pending implementation and cross-language verification:
+Accepted rules (implemented in the D3 working change; final candidate review remains open):
 
 - Encode Unix seconds as a CBOR unsigned integer in `[0, 2^63-1]`. Apply the same valid range to
   verifier time. Reject negative values, numeric strings and values outside that range.
@@ -107,11 +107,32 @@ Accepted target rules, pending implementation and cross-language verification:
 - Keep persistent-state parsing limits separate. In particular, do not replace iOS storage-specific
   array limits with the protocol parser's default 128-element limit.
 
-Evidence: Rust currently uses u64 with saturating lifetime addition; Kotlin accepts nonnegative
-Long and uses ordinary addition; Swift uses UInt64 and ordinary addition. Swift CBOR has a default
-65,536-byte limit, while Rust/Kotlin envelope entry points need explicit equivalent protection.
-QR/stream already use 65,536-byte limits. These are boundary differences, not evidence of a
-practical biometric bypass.
+Implementation: Rust now checks the portable range and subtracts only after ordering; desktop
+request generation rejects overflow rather than saturating. Kotlin uses the same ordered validation
+and checked generation, with a bounded canonical CBOR preflight before Jackson allocation. Swift
+validates the portable range in routing and verification and applies the explicit envelope cap.
+All signed-envelope decoders reject inputs above 65,536 bytes before payload copying. Persistent
+storage limits and durable consumption semantics remain separate.
+
+Evidence: `protocol-boundaries-v2.json` supplies shared time/creation and malformed-CBOR cases.
+Rust/Kotlin tests also exercise signed requests at the upper bound; the Swift production harness
+compiles the actual envelope implementation with public synthetic metadata. Core Swift tests check
+creation arithmetic even though Swift does not currently generate unwrap requests. Size-limit tests
+distinguish valid outer framing from a valid signed request. This is local source evidence, not
+hardware authorization evidence or a completed independent review.
+
+Local D3 validation on 2026-10-30: Rust workspace tests passed (network/process tests required
+an unrestricted test environment); CI-pinned Rust 1.88 Clippy passed with warnings denied; Kotlin
+92 unit tests and Swift Core 14 tests passed. The Swift production request harness also passed.
+Follow-up D3 tests verify that invalid response clocks do not consume a response, and that Kotlin
+rejects invalid time without writing state, preserves maximum-time replay entries across reopen,
+and retains the durable high-water mark. Malformed/oversized envelope cases also reach pairing
+entry points (and all four Rust signed-message decoders). These targeted regressions passed;
+Swift durable-store restart behavior remains source-reviewed here, not newly executed by this harness.
+Formatting, diff whitespace, relative documentation links and the seven original vector bytes were
+checked. Hosted CI, physical devices and D5's full conformance matrix were not run for this change.
+The host's newer Rust 1.99 Clippy reports an existing `manual_is_variant_and` warning in desktop
+`age_identity.rs`; that unrelated source was left unchanged.
 
 Acceptance: shared cases cover negative/text integers, `2^63-1`, `2^63`, `now-1`, `now`, `now+300`,
 `now+301` where representable, checked creation near the upper bound, and rejection of invalid
@@ -177,8 +198,8 @@ and remaining gaps are tracked in the [vector catalog](test-vectors/README.md).
    protocol gates, including the breaking-update procedure. Decide freeze separately from production
    support and exact-release-package acceptance.
 
-Steps 2–6 are outstanding. This sequence defines future work; the current authorization remains
-documentation-only. No exhaustive historical Alpha/Beta interoperability matrix is required.
+D3 boundary tests and implementation are present in the working change. D5 completeness,
+independent review and final baseline selection remain outstanding. No exhaustive historical Alpha/Beta interoperability matrix is required.
 
 ## Evidence and remaining work
 
@@ -198,6 +219,6 @@ not rebuild or re-certify those artifacts at `69b3cdf`. The published Beta 2 dis
 attached to its published bits. Broader coverage alone is not a wire-freeze gate, but any discovered
 binding, parsing, authorization or consumption defect must be resolved for the affected path.
 
-Next action after implementation is authorized: establish D3/D5 boundary evidence, then follow the
-implementation order above. Only separately authorized implementation work may change code or fixtures. Neither this
+Next action: complete D5 conformance evidence, then follow the independent review and final
+baseline steps above. Neither this
 record nor protocol freeze grants production-secret approval or replaces exact-release acceptance.

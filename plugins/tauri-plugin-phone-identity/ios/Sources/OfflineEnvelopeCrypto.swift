@@ -48,7 +48,6 @@ enum OfflineEnvelopeCrypto {
     private static let requestDigestDomain = Data("age-plugin-phone/request-digest/v2".utf8)
     private static let responseSessionInfo = Data("age-plugin-phone/session-response/p256/v2".utf8)
     private static let zeroNonce = try! ChaChaPoly.Nonce(data: Data(repeating: 0, count: 12))
-    private static let maximumLifetime: UInt64 = 300
 
     static func verifyPairingOffer(_ encoded: Data) throws -> VerifiedPairingOffer {
         let (payload, signature) = try decodeSigned(encoded)
@@ -104,6 +103,7 @@ enum OfflineEnvelopeCrypto {
         let (payload, _) = try decodeSigned(encoded)
         let values = try StrictCBOR.decode(payload).exactArray(11)
         try header(values, type: 3)
+        try ProtocolBounds.validateTimestamp(try values[9].exactUnsigned())
         return (try values[5].exactBytes(16), try values[4].exactBytes(16))
     }
 
@@ -132,7 +132,8 @@ enum OfflineEnvelopeCrypto {
         )
         _ = try TaggedRecipientCrypto.parse(stanza)
         let expires = try values[9].exactUnsigned()
-        guard expires >= nowUnix, expires <= nowUnix + maximumLifetime else { throw OfflineProtocolError.expired }
+        do { try ProtocolBounds.validateTime(expires: expires, now: nowUnix) }
+        catch { throw OfflineProtocolError.expired }
         let hint: String?
         if values[10] == .null { hint = nil } else { hint = try values[10].boundedText(64) }
         try verify(key: desktopSigningKey, domain: requestSignatureDomain, payload: payload, signature: signature)
@@ -193,8 +194,7 @@ enum OfflineEnvelopeCrypto {
     }
 
     private static func decodeSigned(_ encoded: Data) throws -> (Data, Data) {
-        let values = try StrictCBOR.decode(encoded).exactArray(2)
-        return (try values[0].exactBytes(), try values[1].exactBytes(64))
+        try ProtocolBounds.decodeEnvelope(encoded)
     }
 
     private static func verify(

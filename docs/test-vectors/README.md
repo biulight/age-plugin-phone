@@ -2,8 +2,8 @@
 
 Inventory date: 2026-10-30. Baseline: `69b3cdfa006d8bbe4f1154ec5874ea954f2ae717`.
 The sole source of fixture bytes is [crates/core/test-vectors](../../crates/core/test-vectors).
-There are **seven JSON files**. Keep them packaged in core; do not copy JSON into this directory.
-This catalog and its hashes identify existing bytes, not newly generated vectors or new test passes.
+There are **seven original JSON files plus one D3 boundary fixture**. Keep them packaged in core; do not copy JSON into this directory.
+The original hashes pin the assessment baseline; the additional D3 fixture pins the working change.
 See the [consolidated specification](../protocol-v2-spec.md) and
 [freeze preparation decisions](../protocol-v2-freeze-preparation.md).
 
@@ -29,6 +29,17 @@ The offline-envelope fixture's v2 refers to the envelope, not its embedded stanz
 shared JSON phone-v2 request/response fixture. The pairing recipient is the single-phone key encoding;
 it must not be confused with the paired recipient in `p256-recipient-v2.json`.
 
+## D3 boundary corpus
+
+[protocol-boundaries-v2.json](../../crates/core/test-vectors/protocol-boundaries-v2.json) records
+portable time/creation expectations and malformed CBOR inputs. Rust protocol tests, Kotlin
+`ProtocolBoundsTest`, Swift `ProtocolBoundsTests` and the
+[Swift production request harness](../../scripts/test-ios-protocol-boundaries.py) consume it.
+The harness compiles production envelope code with synthetic public metadata; it does not exercise
+hardware keys or replace D5 full pairing/response coverage. Run it with
+`python3 scripts/test-ios-protocol-boundaries.py` on macOS. Decimal strings in this fixture represent
+test integers beyond host-language ranges; they are not allowed on the protocol wire.
+
 ## SHA-256 manifest
 
 These digests pin baseline files without requiring a new machine-readable ledger:
@@ -42,6 +53,8 @@ These digests pin baseline files without requiring a new machine-readable ledger
 | `p256tag.json` | `d298ccda3620109a1f593af956910ef96bdbdbd848e014ce6694a09d25ea7b09` |
 | `p256tag-collision.json` | `9dad2c42a5e26819a7ef8f7a935f95fd6a07f2b7d9b3099157bb9db34d2b3e62` |
 | `p256tag-envelope-v2.json` | `832e81cece94cd848d4350ff2af8a95947a006ba235e6e9fec8d502e88432f04` |
+
+Additional D3 fixture SHA-256: `09475ec03003ab22653596ad279027d458e2644a3d299f34541b079f2c1ad1aa`.
 
 ## Reproduction and packaging
 
@@ -87,4 +100,4 @@ inventory. Do not claim the existing script separately pins all seven hashes.
 
 D5's required set is now accepted in the preparation record; generating the additional fixtures and
 closing their implementation coverage remain outstanding. Retain these seven baseline files unchanged.
-No vector bytes, code or platform state are changed by this documentation work.
+The D3 corpus is additive; all seven original fixture hashes are retained.

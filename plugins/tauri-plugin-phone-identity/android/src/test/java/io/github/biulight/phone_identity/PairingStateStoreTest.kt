@@ -137,6 +137,42 @@ class PairingStateStoreTest {
     }
 
     @Test
+    fun extremeTimeConsumptionSurvivesRestartAndInvalidTimeDoesNotWrite() {
+        val root = temporary.newFolder("extreme-time")
+        val record = record()
+        // Signature verification is covered separately; exercise the durable store boundary here.
+        val verified = OfflineEnvelopeCrypto.verifyRequest(
+            request(), record.desktopId, record.identityId,
+            TaggedRecipientCrypto.decodeCompressed(record.desktopSigningPublicKey), now(),
+        )
+        val maximum = verified.copy(request = verified.request.copy(expiresAtUnix = Long.MAX_VALUE))
+        PairingStateStore.createAt(root, record, now(), 2, JvmDurableFileOperations).use { store ->
+            val before = stateFiles(root).single().readBytes()
+            assertCategory(PairingStateStore.Category.EXPIRED) { store.consumeRequest(maximum, -1) }
+            assertCategory(PairingStateStore.Category.LIFETIME) {
+                store.consumeRequest(maximum, Long.MAX_VALUE - 301)
+            }
+            assertArrayEquals(before, stateFiles(root).single().readBytes())
+            store.consumeRequest(maximum, Long.MAX_VALUE - 300)
+        }
+        PairingStateStore.openAt(root, record.desktopId, record.identityId, JvmDurableFileOperations).use { store ->
+            assertCategory(PairingStateStore.Category.REPLAY) { store.consumeRequest(maximum, Long.MAX_VALUE) }
+            val another = maximum.copy(request = maximum.request.copy(
+                requestId = ByteArray(16) { 0x71 }, nonce = ByteArray(32) { 0x72 },
+            ))
+            store.consumeRequest(another, Long.MAX_VALUE)
+        }
+        PairingStateStore.openAt(root, record.desktopId, record.identityId, JvmDurableFileOperations).use { store ->
+            val another = maximum.copy(request = maximum.request.copy(
+                requestId = ByteArray(16) { 0x73 }, nonce = ByteArray(32) { 0x74 },
+            ))
+            assertCategory(PairingStateStore.Category.CLOCK_ROLLBACK) {
+                store.consumeRequest(another, Long.MAX_VALUE - 1)
+            }
+        }
+    }
+
+    @Test
     fun rejectsSwappedCorruptNonCanonicalAndNonPrivateState() {
         val root = temporary.newFolder("malformed")
         val first = record()

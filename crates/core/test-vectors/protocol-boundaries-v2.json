@@ -1,0 +1,112 @@
+{
+  "schema": "age-plugin-phone/protocol-boundaries/v2",
+  "time_cases": [
+    {
+      "name": "zero",
+      "now": "0",
+      "expires": "0",
+      "accept": true
+    },
+    {
+      "name": "same",
+      "now": "1000",
+      "expires": "1000",
+      "accept": true
+    },
+    {
+      "name": "window",
+      "now": "1000",
+      "expires": "1300",
+      "accept": true
+    },
+    {
+      "name": "expired",
+      "now": "1000",
+      "expires": "999",
+      "accept": false
+    },
+    {
+      "name": "too_long",
+      "now": "1000",
+      "expires": "1301",
+      "accept": false
+    },
+    {
+      "name": "maximum",
+      "now": "9223372036854775807",
+      "expires": "9223372036854775807",
+      "accept": true
+    },
+    {
+      "name": "near_maximum",
+      "now": "9223372036854775507",
+      "expires": "9223372036854775807",
+      "accept": true
+    },
+    {
+      "name": "near_maximum_too_long",
+      "now": "9223372036854775506",
+      "expires": "9223372036854775807",
+      "accept": false
+    },
+    {
+      "name": "expiry_out_of_range",
+      "now": "9223372036854775807",
+      "expires": "9223372036854775808",
+      "accept": false
+    },
+    {
+      "name": "clock_out_of_range",
+      "now": "9223372036854775808",
+      "expires": "9223372036854775808",
+      "accept": false
+    },
+    {
+      "name": "negative_clock",
+      "now": "-1",
+      "expires": "0",
+      "accept": false
+    },
+    {
+      "name": "negative_expiry",
+      "now": "0",
+      "expires": "-1",
+      "accept": false
+    }
+  ],
+  "creation_cases": [
+    {
+      "now": "0",
+      "accept": true
+    },
+    {
+      "now": "9223372036854775507",
+      "accept": true
+    },
+    {
+      "now": "9223372036854775508",
+      "accept": false
+    },
+    {
+      "now": "9223372036854775807",
+      "accept": false
+    },
+    {
+      "now": "9223372036854775808",
+      "accept": false
+    },
+    {
+      "now": "-1",
+      "accept": false
+    }
+  ],
+  "invalid_cbor_hex": [
+    "",
+    "80",
+    "9fffffffffffffffff",
+    "825bffffffffffffffff5840",
+    "82818181818181818181818181818181818181005840",
+    "825800584000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "82410058410000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+  ]
+}

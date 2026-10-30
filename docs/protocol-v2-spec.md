@@ -221,8 +221,9 @@ and hardware state must match it. Export derives the paired v2 or tag recipient 
 
 For ordinary representable clock values, the current acceptance window is inclusive:
 `now <= expires_at_unix <= now + 300 seconds`. Reject later/expired requests. The response inherits
-the request's expiry. Extreme integer and clock arithmetic requires D3 implementation and verification
-before freeze; the target rule below is accepted but is not a claim of current conformance.
+the request's expiry. The D3 working implementation additionally enforces `[0, 2^63-1]` for both
+values, then checks ordering and a difference at most 300. Creation rejects overflow; see the
+implementation status below. These changes do not retroactively describe the historical baseline.
 
 Scope consumption by endpoint role, desktop ID and phone identity ID. A repeated request ID **or**
 request nonce is replay. Desktop consumption tracks the complete signed-response digest. Retain
@@ -238,7 +239,7 @@ The [vector catalog](test-vectors/README.md) distinguishes byte-level fixtures f
 hardware and lifecycle evidence. Error categories must fail safely; matching cross-platform error
 strings or the order of diagnostics for multiply-invalid inputs is not a freeze commitment.
 
-## Accepted target requirements pending implementation
+## Accepted requirements and implementation status
 
 The source-baseline description above remains auditable as current behavior. The project owner
 accepted D1–D5 on 2026-10-30; the following requirements guide subsequent implementation and do not
@@ -249,8 +250,8 @@ silently redefine what `69b3cdf` already enforces. Exact criteria and work order
 | --- | --- | --- |
 | D1 | Freeze signed messages, selected recipient/stanza semantics, public stub and safety invariants; version storage/framing/product contracts separately | Select final source/specification/vector revisions after implementation and review; no freeze is declared |
 | D2 | Retain restricted legacy phone v1 stanza support and the distinct single-phone public-key encoding in pairing/stubs | Preserve single-candidate success, mixed/ambiguous rejection and protocol-v1/state rejection |
-| D3 | Both `now` and expiry are CBOR-compatible nonnegative seconds at most `2^63-1`; check ranges, then `expires >= now`, then `expires - now <= 300`; generation uses checked addition and rejects out-of-range results | Replace divergent boundary arithmetic and exercise extremes on all three implementations |
-| D3 | Complete signed envelopes are at most 65,536 bytes, checked before payload decode/copy; preserve exact schema bounds and bounded nesting/allocation | Verify direct decoder entry points as well as transports; keep storage parsing limits separate |
+| D3 | Both `now` and expiry are CBOR-compatible nonnegative seconds at most `2^63-1`; check ranges, then `expires >= now`, then `expires - now <= 300`; generation uses checked addition and rejects out-of-range results | Implemented with shared boundary cases; bind local results to the final candidate and independent review |
+| D3 | Complete signed envelopes are at most 65,536 bytes, checked before payload decode/copy; preserve exact schema bounds and bounded nesting/allocation | Direct decoder limits implemented and tested; storage limits remain separate; final candidate review pending |
 | D4 | Suite 1; paired phone v2, explicit tag and restricted legacy v1; no new negotiation. Incompatible semantics require a new version | Verify the capability set, unknown-input rejection and no fallback; future stanza extensions identify minimum versions and use a new version absent separately accepted safe capability identification |
 | D5 | Keep all seven fixtures unchanged; add full phone-v2 envelope and public-stub expectations, shared rejection cases and full Swift pairing/envelope coverage | Exercise production-used logic without software-key fallback; test stateful replay/cancellation/persistence separately |
 
