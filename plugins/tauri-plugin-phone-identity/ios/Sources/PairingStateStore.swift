@@ -88,7 +88,8 @@ final class PairingStateStore {
                     desktopSigningKey: signing, nowUnix: nowUnix
                 )
                 guard nowUnix >= state.lastSeen else { throw PairingStoreError.clockRollback }
-                guard request.expiresAtUnix >= nowUnix, request.expiresAtUnix <= nowUnix + 300 else { throw PairingStoreError.expired }
+                do { try ProtocolBounds.validateTime(expires: request.expiresAtUnix, now: nowUnix) }
+                catch { throw PairingStoreError.expired }
                 state.entries.removeAll { $0.expiresAt < nowUnix }
                 guard !state.entries.contains(where: { $0.requestId == request.requestId || $0.nonce == request.nonce }) else { throw PairingStoreError.replay }
                 guard state.entries.count < state.capacity else { throw PairingStoreError.capacity }

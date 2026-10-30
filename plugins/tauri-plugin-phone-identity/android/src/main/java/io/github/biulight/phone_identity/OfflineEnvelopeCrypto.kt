@@ -26,7 +26,6 @@ internal object OfflineEnvelopeCrypto {
     private const val PAIRING_RESPONSE_TYPE = 2
     private const val REQUEST_TYPE = 3
     private const val RESPONSE_TYPE = 4
-    private const val MAX_LIFETIME_SECONDS = 300L
     private val offerSignatureDomain = ascii("age-plugin-phone/pairing-offer-signature/v2")
     private val pairingSignatureDomain = ascii("age-plugin-phone/pairing-response-signature/v2")
     private val requestSignatureDomain = ascii("age-plugin-phone/unwrap-request-signature/v2")
@@ -228,7 +227,7 @@ internal object OfflineEnvelopeCrypto {
             desktopSessionPublic,
             stanza,
             randomBytes(32, random),
-            nowUnix + MAX_LIFETIME_SECONDS,
+            ProtocolBounds.requestExpiry(nowUnix),
             "StrongBox tagged-recipient Doctor",
         )
         val payload = encodeRequestPayload(request)
@@ -259,7 +258,7 @@ internal object OfflineEnvelopeCrypto {
             desktopSessionPublic,
             stanza,
             randomBytes(32, random),
-            nowUnix + MAX_LIFETIME_SECONDS,
+            ProtocolBounds.requestExpiry(nowUnix),
             "Pairing confirmation Doctor",
         )
         val payload = encodeRequestPayload(request)
@@ -285,9 +284,7 @@ internal object OfflineEnvelopeCrypto {
         val request = decodeRequestPayload(payload)
         if (!MessageDigest.isEqual(request.desktopId, expectedDesktopId)) throw ProtocolException()
         if (!MessageDigest.isEqual(request.identityId, expectedIdentityId)) throw ProtocolException()
-        if (request.expiresAtUnix < nowUnix || request.expiresAtUnix > nowUnix + MAX_LIFETIME_SECONDS) {
-            throw ProtocolException()
-        }
+        ProtocolBounds.validateTime(request.expiresAtUnix, nowUnix)
         verify(desktopSigningPublic, requestSignatureDomain, payload, signature)
         return VerifiedRequest(request, encoded.copyOf(), digest(requestDigestDomain, encoded))
     }
@@ -504,6 +501,7 @@ internal object OfflineEnvelopeCrypto {
     }
 
     private fun strictArray(encoded: ByteArray, size: Int): ArrayNode {
+        ProtocolBounds.validateEncoded(encoded)
         val node = cbor.readTree(encoded) as? ArrayNode ?: throw ProtocolException()
         if (node.size() != size || !MessageDigest.isEqual(cbor.writeValueAsBytes(node), encoded)) {
             throw ProtocolException()

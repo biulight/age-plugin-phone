@@ -34,6 +34,30 @@ pub use replay::{DEFAULT_REPLAY_CAPACITY, ReplayGuard, ReplayRole, ReplayScope, 
 pub const PROTOCOL_VERSION: u16 = 2;
 pub const ALGORITHM_SUITE: u16 = 1;
 pub const MAX_REQUEST_LIFETIME_SECS: u64 = 300;
+/// Portable protocol timestamp range shared with signed 64-bit mobile clocks.
+pub const MAX_PROTOCOL_TIME: u64 = i64::MAX as u64;
+/// Complete signed envelope limit, independent of transport framing.
+pub const MAX_SIGNED_MESSAGE_BYTES: usize = 65_536;
+
+pub(crate) fn validate_request_time(expires: u64, now: u64) -> Result<(), Error> {
+    if expires > MAX_PROTOCOL_TIME || now > MAX_PROTOCOL_TIME {
+        return Err(Error::Malformed);
+    }
+    if expires < now {
+        return Err(Error::Expired);
+    }
+    if expires - now > MAX_REQUEST_LIFETIME_SECS {
+        return Err(Error::LifetimeTooLong);
+    }
+    Ok(())
+}
+
+/// Create a maximum-lifetime expiry without saturation or wraparound.
+pub fn request_expiry(now: u64) -> Result<u64, Error> {
+    now.checked_add(MAX_REQUEST_LIFETIME_SECS)
+        .filter(|expires| *expires <= MAX_PROTOCOL_TIME)
+        .ok_or(Error::Malformed)
+}
 pub type Id = [u8; 16];
 pub type ProtocolNonce = [u8; 32];
 pub type ProtocolDigest = [u8; 32];
@@ -348,12 +372,7 @@ pub fn create_request(
     if signing_key.public_key()? != pairing.desktop_signing_public_key {
         return Err(Error::InvalidPublicKey);
     }
-    if payload.expires_at_unix < now {
-        return Err(Error::Expired);
-    }
-    if payload.expires_at_unix > now.saturating_add(MAX_REQUEST_LIFETIME_SECS) {
-        return Err(Error::LifetimeTooLong);
-    }
+    validate_request_time(payload.expires_at_unix, now)?;
     let signed = SignedUnwrapRequest::sign(payload, signing_key)?;
     let digest = hash(REQUEST_DIGEST, &signed.encode());
     Ok(VerifiedRequest { signed, digest })
@@ -383,12 +402,7 @@ pub fn verify_request_with_replay(
     if request.payload.identity_id != pairing.identity_id {
         return Err(Error::WrongIdentity);
     }
-    if request.payload.expires_at_unix < now {
-        return Err(Error::Expired);
-    }
-    if request.payload.expires_at_unix > now.saturating_add(MAX_REQUEST_LIFETIME_SECS) {
-        return Err(Error::LifetimeTooLong);
-    }
+    validate_request_time(request.payload.expires_at_unix, now)?;
     verify(
         &verifying(&pairing.desktop_signing_public_key)?,
         REQUEST_SIG,
@@ -489,9 +503,7 @@ pub fn open_response(
     replay: &mut (impl ReplayStore + ?Sized),
     now: u64,
 ) -> Result<Zeroizing<[u8; 16]>, Error> {
-    if request.payload().expires_at_unix < now {
-        return Err(Error::Expired);
-    }
+    validate_request_time(request.payload().expires_at_unix, now)?;
     let p = &response.payload;
     if p.request_id != request.payload().request_id
         || p.request_digest != request.digest()
@@ -575,6 +587,9 @@ fn seal_shared(
 }
 
 fn validate_request(value: &UnwrapRequest) -> Result<(), Error> {
+    if value.expires_at_unix > MAX_PROTOCOL_TIME {
+        return Err(Error::Malformed);
+    }
     public(&value.session_public_key)?;
     validate_stanza(&value.recipient_stanza).map_err(|_| Error::InvalidRecipientStanza)?;
     if let Some(v) = &value.caller_hint {
@@ -847,6 +862,9 @@ fn canonical(a: &[u8], b: &[u8]) -> Result<(), Error> {
     }
 }
 fn decode_signed(b: &[u8]) -> Result<(Vec<u8>, [u8; 64]), Error> {
+    if b.is_empty() || b.len() > MAX_SIGNED_MESSAGE_BYTES {
+        return Err(Error::Malformed);
+    }
     let mut d = Decoder::new(b);
     arr(&mut d, 2)?;
     let p = d.bytes().map_err(|_| Error::Malformed)?.to_vec();
@@ -893,7 +911,11 @@ fn decode_stanza(d: &mut Decoder<'_>) -> Result<TaggedStanza, Error> {
     let args = (0..argument_count.unwrap_or_default())
         .map(|_| text(d, 128))
         .collect::<Result<Vec<_>, _>>()?;
-    let body = d.bytes().map_err(|_| Error::Malformed)?.to_vec();
+    let body = d.bytes().map_err(|_| Error::Malformed)?;
+    if body.len() != 32 {
+        return Err(Error::Malformed);
+    }
+    let body = body.to_vec();
     Ok(TaggedStanza { tag, args, body })
 }
 fn decode_request(b: &[u8]) -> Result<UnwrapRequest, Error> {
@@ -1096,6 +1118,129 @@ mod tests {
         }
     }
     #[test]
+    fn d3_signed_requests_and_replay_boundaries() {
+        let cases: serde_json::Value = serde_json::from_str(include_str!(
+            "../../test-vectors/protocol-boundaries-v2.json"
+        ))
+        .unwrap();
+        for case in cases["time_cases"].as_array().unwrap() {
+            let (Ok(now), Ok(expires)) = (
+                case["now"].as_str().unwrap().parse::<u64>(),
+                case["expires"].as_str().unwrap().parse::<u64>(),
+            ) else {
+                continue;
+            };
+            let (request, pairing, _, _) = fixture();
+            let mut payload = request.payload;
+            payload.expires_at_unix = expires;
+            let expected = case["accept"].as_bool().unwrap();
+            assert_eq!(
+                create_request(payload.clone(), &sig(1), &pairing, now).is_ok(),
+                expected
+            );
+            // Sign canonical bytes directly so out-of-range wire input reaches the decoder.
+            let bytes = encode_request(&payload);
+            let encoded = signed(&bytes, &sign(&sig(1), REQUEST_SIG, &bytes).unwrap());
+            let mut guard = ReplayGuard::default();
+            let accepted = SignedUnwrapRequest::decode(&encoded)
+                .and_then(|request| guard.verify_request(request, &pairing, now));
+            assert_eq!(accepted.is_ok(), expected, "{}", case["name"]);
+            if expected {
+                assert_eq!(
+                    guard
+                        .verify_request(
+                            SignedUnwrapRequest::decode(&encoded).unwrap(),
+                            &pairing,
+                            now
+                        )
+                        .unwrap_err(),
+                    Error::Replay
+                );
+            } else {
+                // Rejection must not consume IDs/nonces or poison an otherwise valid scope.
+                let (fresh, _, _, _) = fixture();
+                assert!(guard.verify_request(fresh, &pairing, 1_000_000).is_ok());
+            }
+        }
+    }
+
+    #[test]
+    fn d3_rejects_non_integer_wire_timestamps() {
+        let (request, _, _, _) = fixture();
+        let original = encode_request(&request.payload);
+        let mut decoder = Decoder::new(&original);
+        decoder.array().unwrap();
+        for _ in 0..9 {
+            decoder.skip().unwrap();
+        }
+        let start = decoder.position();
+        decoder.skip().unwrap();
+        let end = decoder.position();
+        // Canonical negative integer and numeric text are not unsigned Unix seconds.
+        for replacement in [&[0x20][..], &[0x61, b'0'][..]] {
+            let mut payload = original[..start].to_vec();
+            payload.extend_from_slice(replacement);
+            payload.extend_from_slice(&original[end..]);
+            assert!(SignedUnwrapRequest::decode(&signed(&payload, &[0; 64])).is_err());
+        }
+    }
+
+    #[test]
+    fn shared_d3_time_and_parser_boundaries() {
+        let cases: serde_json::Value = serde_json::from_str(include_str!(
+            "../../test-vectors/protocol-boundaries-v2.json"
+        ))
+        .unwrap();
+        for case in cases["time_cases"].as_array().unwrap() {
+            let now = case["now"].as_str().unwrap().parse::<u64>();
+            let expires = case["expires"].as_str().unwrap().parse::<u64>();
+            let accepted = match (now, expires) {
+                (Ok(now), Ok(expires)) => validate_request_time(expires, now).is_ok(),
+                _ => false,
+            };
+            assert_eq!(
+                accepted,
+                case["accept"].as_bool().unwrap(),
+                "{}",
+                case["name"]
+            );
+        }
+        for case in cases["creation_cases"].as_array().unwrap() {
+            let accepted = case["now"]
+                .as_str()
+                .unwrap()
+                .parse::<u64>()
+                .is_ok_and(|now| request_expiry(now).is_ok());
+            assert_eq!(accepted, case["accept"].as_bool().unwrap());
+        }
+        for case in cases["invalid_cbor_hex"].as_array().unwrap() {
+            let bytes = case
+                .as_str()
+                .unwrap()
+                .as_bytes()
+                .as_chunks::<2>()
+                .0
+                .iter()
+                .map(|pair| u8::from_str_radix(std::str::from_utf8(pair).unwrap(), 16).unwrap())
+                .collect::<Vec<_>>();
+            assert!(SignedUnwrapRequest::decode(&bytes).is_err());
+            assert!(SignedUnwrapResponse::decode(&bytes).is_err());
+            assert!(SignedPairingOffer::decode(&bytes).is_err());
+            assert!(SignedPairingResponse::decode(&bytes).is_err());
+        }
+        for size in [65_536, 65_537] {
+            // Valid outer framing at the size boundary, not a valid signed request.
+            let bytes = signed(&vec![0; size - 70], &[0; 64]);
+            assert_eq!(bytes.len(), size);
+            assert_eq!(decode_signed(&bytes).is_ok(), size == 65_536);
+            assert!(SignedUnwrapRequest::decode(&bytes).is_err());
+            assert!(SignedUnwrapResponse::decode(&bytes).is_err());
+            assert!(SignedPairingOffer::decode(&bytes).is_err());
+            assert!(SignedPairingResponse::decode(&bytes).is_err());
+        }
+    }
+
+    #[test]
     fn round_trip_and_replay() {
         use base64::{Engine as _, engine::general_purpose::STANDARD_NO_PAD};
         let (r, p, s, ps) = fixture();
@@ -1127,6 +1272,47 @@ mod tests {
         );
         assert_eq!(
             open_response(&response, &verified, &p, &s, &mut rg, 1_000_000).unwrap_err(),
+            Error::Replay
+        );
+    }
+
+    #[test]
+    fn d3_invalid_response_clock_does_not_consume_response() {
+        let (request, pairing, session, phone_signing) = fixture();
+        let verified = ReplayGuard::default()
+            .verify_request(request, &pairing, 1_000_000)
+            .unwrap();
+        let response =
+            seal_response_with_ephemeral(&verified, &F, &phone_signing, &sk(6), [0x66; 32])
+                .unwrap();
+        let mut replay = ReplayGuard::default();
+        for now in [MAX_PROTOCOL_TIME + 1, 999_999, 1_000_301] {
+            assert!(
+                open_response(&response, &verified, &pairing, &session, &mut replay, now).is_err()
+            );
+        }
+        assert_eq!(
+            *open_response(
+                &response,
+                &verified,
+                &pairing,
+                &session,
+                &mut replay,
+                1_000_000
+            )
+            .unwrap(),
+            F
+        );
+        assert_eq!(
+            open_response(
+                &response,
+                &verified,
+                &pairing,
+                &session,
+                &mut replay,
+                1_000_000
+            )
+            .unwrap_err(),
             Error::Replay
         );
     }

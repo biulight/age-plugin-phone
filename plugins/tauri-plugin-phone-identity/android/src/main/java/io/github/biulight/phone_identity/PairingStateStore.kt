@@ -691,7 +691,7 @@ internal class PairingStateStore private constructor(
 
         private fun validateExpiry(expiresAtUnix: Long, nowUnix: Long) {
             if (nowUnix < 0 || expiresAtUnix < nowUnix) throw PairingStateException(Category.EXPIRED)
-            if (expiresAtUnix > nowUnix + 300) throw PairingStateException(Category.LIFETIME)
+            if (expiresAtUnix - nowUnix > 300) throw PairingStateException(Category.LIFETIME)
         }
 
         private fun strictArray(encoded: ByteArray, size: Int): ArrayNode {

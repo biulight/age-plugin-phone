@@ -2,9 +2,7 @@ use std::collections::HashSet;
 
 use minicbor::{Decoder, Encoder};
 
-use crate::protocol::{
-    Error, Id, MAX_REQUEST_LIFETIME_SECS, PairingRecord, ProtocolDigest, ProtocolNonce,
-};
+use crate::protocol::{Error, Id, PairingRecord, ProtocolDigest, ProtocolNonce};
 
 const STATE_VERSION: u16 = 2;
 const REQUEST_ENTRY: u16 = 1;
@@ -424,13 +422,7 @@ fn validate_capacity(capacity: usize) -> Result<(), Error> {
 }
 
 fn validate_expiry(expires_at_unix: u64, now_unix: u64) -> Result<(), Error> {
-    if expires_at_unix < now_unix {
-        Err(Error::Expired)
-    } else if expires_at_unix > now_unix.saturating_add(MAX_REQUEST_LIFETIME_SECS) {
-        Err(Error::LifetimeTooLong)
-    } else {
-        Ok(())
-    }
+    super::validate_request_time(expires_at_unix, now_unix)
 }
 
 #[cfg(all(unix, not(target_os = "macos")))]

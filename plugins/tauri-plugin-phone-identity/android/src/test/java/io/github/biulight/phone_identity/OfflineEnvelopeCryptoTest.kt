@@ -354,6 +354,54 @@ class OfflineEnvelopeCryptoTest {
         }
     }
 
+    @Test
+    fun signedRequestsAtMaximumTimeAndCheckedCreation() {
+        val desktop = keyPair(vector["desktop_signing_scalar"].asInt())
+        val original = OfflineEnvelopeCrypto.verifyRequest(
+            base64(vector["signed_request_base64"].asText()),
+            hex(vector["desktop_id_hex"].asText()), hex(vector["identity_id_hex"].asText()),
+            desktop.public, vector["now_unix"].asLong(),
+        )
+        val request = OfflineEnvelopeCrypto.createSignedRequestForPairing(
+            original.request.stanza, desktop, keyPair(5).public,
+            original.request.desktopId, original.request.identityId, Long.MAX_VALUE - 300,
+            java.security.SecureRandom(),
+        )
+        for (now in listOf(Long.MAX_VALUE - 300, Long.MAX_VALUE - 1, Long.MAX_VALUE)) {
+            OfflineEnvelopeCrypto.verifyRequest(request.signedBytes, request.request.desktopId,
+                request.request.identityId, desktop.public, now)
+        }
+        for (now in listOf(-1L, Long.MAX_VALUE - 301)) {
+            assertThrows(OfflineEnvelopeCrypto.ProtocolException::class.java) {
+                OfflineEnvelopeCrypto.verifyRequest(request.signedBytes, request.request.desktopId,
+                    request.request.identityId, desktop.public, now)
+            }
+        }
+        for (now in listOf(-1L, Long.MAX_VALUE - 299, Long.MAX_VALUE)) {
+            assertThrows(OfflineEnvelopeCrypto.ProtocolException::class.java) {
+                OfflineEnvelopeCrypto.createSignedRequest(original.request.stanza, desktop,
+                    keyPair(5).public, now, java.security.SecureRandom())
+            }
+        }
+    }
+
+    @Test
+    fun rejectsMalformedTimestampTypesBeforeRouting() {
+        for (value in listOf(
+            com.fasterxml.jackson.databind.node.TextNode("1000300"),
+            com.fasterxml.jackson.databind.node.LongNode(-1),
+            com.fasterxml.jackson.databind.node.BigIntegerNode(BigInteger("9223372036854775808")),
+        )) {
+            val outer = cbor.readTree(base64(vector["signed_request_base64"].asText())) as ArrayNode
+            val payload = cbor.readTree(outer[0].binaryValue()) as ArrayNode
+            payload.set(9, value)
+            outer.set(0, cbor.writeValueAsBytes(payload))
+            assertThrows(OfflineEnvelopeCrypto.ProtocolException::class.java) {
+                OfflineEnvelopeCrypto.requestScope(cbor.writeValueAsBytes(outer))
+            }
+        }
+    }
+
     private fun requestWithTextHeader(encoded: ByteArray, headerIndex: Int): ByteArray {
         val signed = cbor.readTree(encoded) as ArrayNode
         val payload = cbor.readTree(signed[0].binaryValue()) as ArrayNode

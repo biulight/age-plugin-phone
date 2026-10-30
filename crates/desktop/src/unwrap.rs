@@ -5,8 +5,8 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use age_plugin_phone_core::protocol::{
-    FileReplayGuard, MAX_REQUEST_LIFETIME_SECS, PairingRecord, ProtocolNonce, SignedUnwrapResponse,
-    UnwrapRequest, VerifiedRequest, create_request, open_response,
+    FileReplayGuard, PairingRecord, ProtocolNonce, SignedUnwrapResponse, UnwrapRequest,
+    VerifiedRequest, create_request, open_response, request_expiry,
 };
 use age_plugin_phone_core::recipient::TaggedStanza;
 use p256::{SecretKey, elliptic_curve::sec1::ToEncodedPoint as _};
@@ -89,7 +89,7 @@ impl DesktopUnwrapSession {
                     .map_err(|_| UnwrapError::Request)?,
                 recipient_stanza: stanza,
                 nonce,
-                expires_at_unix: now_unix.saturating_add(MAX_REQUEST_LIFETIME_SECS),
+                expires_at_unix: request_expiry(now_unix).map_err(|_| UnwrapError::Request)?,
                 caller_hint,
             },
             desktop.signer(),
