@@ -111,11 +111,16 @@ Priorities below are work order, not vulnerability severity:
   complete phone-v2 envelope and public-stub vectors, shared rejection corpus and production Swift
   pairing/envelope harness are implemented. All seven original fixtures remain unchanged. This
   source-level milestone does not close independent review or native/final-candidate acceptance.
+- [x] **P0 — review-candidate preparation:** pin `799b36f`, specification input, eleven vector
+  hashes and successful merged CI in the [candidate packet](protocol-v2-candidate-review-2026-10-31.md).
+  The packet scopes independent review from `0305c0e` and lists G1–G5 evidence gaps. It is not a
+  completed review, final freeze baseline or release approval.
 - [ ] **P0 — final scope/specification baseline:** after implementation and independent review,
   identify final source/specification/vector revisions and close the remaining protocol gates.
   Do not infer feature compatibility from the protocol number alone or treat the candidate as frozen.
 - [ ] **P0 — candidate review:** close a targeted independent review of security-sensitive changes
-  since the recorded review, and bind all applicable findings to the selected candidate.
+  since the recorded review (`0305c0e..799b36f`, R1–R5 in the candidate packet), and bind all
+  applicable findings to the reviewed SHA and any remediation commits.
 - [ ] **P1 — current implementation agreement:** complete Rust/Kotlin/Swift pairing and envelope
   vectors plus malformed/unsupported-version rejection; verify cancellation, wrong-device binding,
   timeout, replay and persistence-failure behavior. Existing tests and physical passes retain their

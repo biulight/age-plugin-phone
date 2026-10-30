@@ -7,7 +7,8 @@ arrays, domains, recipient/stanza constructions, public stub and replay semantic
 baseline `69b3cdfa006d8bbe4f1154ec5874ea954f2ae717`. Use it for current byte layouts and this page
 for flow and policy. [Freeze preparation](protocol-v2-freeze-preparation.md) records the accepted
 scope, D1–D5 decisions, implemented D3/D5 source evidence and outstanding final acceptance;
-no stable baseline has been accepted.
+no stable baseline has been accepted. The [2026-10-31 candidate packet](protocol-v2-candidate-review-2026-10-31.md)
+pins `799b36f` for independent review with successful source CI; final acceptance remains open.
 
 The [public-vector catalog](test-vectors/README.md) inventories the seven original fixtures and additive D3/D5
 corpora with hashes and consumer coverage. ADRs [0001](adr/0001-experimental-p256-recipient.md),

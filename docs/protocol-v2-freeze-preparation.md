@@ -1,14 +1,24 @@
 # Protocol v2 freeze preparation record
 
-Date: 2026-10-30. Status: D1–D5 decisions accepted by the project owner; D3 implementation and D5 source conformance are present; final acceptance remains open; **not frozen**.
+Updated: 2026-10-31. Status: D1–D5 decisions accepted by the project owner; D3 implementation and D5 source conformance are present; final acceptance remains open; **not frozen**.
 Beta remains limited technical testing. The [prerelease compatibility policy](protocol.md#prerelease-compatibility-policy)
 permits clearly announced breaking updates before freeze without cross-version interoperability,
 automatic migration or downgrade promises. This record does not authorize code changes or publication.
 
 ## Candidate baseline
 
-Use `69b3cdfa006d8bbe4f1154ec5874ea954f2ae717` (PR #26 merge) as the **source candidate for
-this preparation**, not as an already accepted stable baseline. At preparation start, local dev,
+The proposed **independent-review candidate** is now
+`799b36f18b89704bca00417b7af3dee6564054d2` (PR #30 merge). The
+[candidate review packet](protocol-v2-candidate-review-2026-10-31.md) pins the source tree,
+specification input, eleven vector hashes, complete CI and the `0305c0e..799b36f` review scope.
+[Main CI 41067845115](https://github.com/biulight/age-plugin-phone/actions/runs/41067845115)
+passed all 11 jobs on this exact commit, rechecked on 2026-10-31. Independent review and final
+freeze acceptance remain open. This documentation preparation creates no tag or release.
+
+### Historical preparation baseline
+
+`69b3cdfa006d8bbe4f1154ec5874ea954f2ae717` (PR #26 merge) was the original source candidate for
+preparation, not an accepted stable baseline. At preparation start, local dev,
 origin/dev and origin/main pointed to that commit. The local Xcode project modification and
 untracked files are excluded. These documents record preparation subsequent to the source baseline;
 a final freeze decision must also identify the accepted specification revision.
@@ -33,7 +43,8 @@ silently transfer these CI results, vector hashes or historical hardware passes 
 | --- | --- |
 | [Consolidated v2 specification](protocol-v2-spec.md) | Current layouts, domains, cryptographic contexts, selection, stub and replay semantics, traced to source |
 | [Protocol overview and policy](protocol.md) | Architecture-level flow, compatibility policy and remaining freeze gates |
-| [Public vector catalog](test-vectors/README.md) | Seven existing fixtures, hashes, consumers, reproduction routes and missing coverage |
+| [Public vector catalog](test-vectors/README.md) | Seven original fixtures plus D3/D5 additions, hashes, consumers, reproduction routes and remaining acceptance |
+| [Candidate review packet](protocol-v2-candidate-review-2026-10-31.md) | Immutable review inputs, increment scope and G1–G5 closure criteria; no independent verdict |
 | ADRs 0001/0002/0010/0012/0014/0026 | Historical rationale and successive amendments; not an instruction to implement obsolete combined key roles or v1 message domains |
 | [Threat model](threat-model.md) | Security invariants and accepted exclusions, including desktop snapshot freshness |
 
@@ -66,8 +77,8 @@ was subsequently authorized; its source/test evidence is recorded below.
 
 Retain `69b3cdf` as the source assessment baseline and the scope above. Runtime sources and all
 seven public vectors were unchanged through `fd6fa6c`. D3 was subsequently merged in `40b8fe4`;
-the D5 working change adds fixtures and minimal Swift test seams without replacing that historical
-assessment baseline or selecting a final frozen candidate.
+D5 was merged in `799b36f`. Its fixtures and minimal Swift test seams now form part of the proposed
+independent-review candidate, without replacing the historical assessment or declaring a final frozen baseline.
 Do not select today's HEAD as the final frozen baseline merely because CI passed. After D3/D5
 implementation and review, select a new immutable source SHA if code or vectors changed, and bind
 it to an accepted specification revision and vector inventory.
@@ -193,7 +204,10 @@ Workflow lint, four-package archive layout, formatting, links and fixture hashes
 Follow-up checks passed for all 39 mutation signatures in Rust and Swift/CryptoKit and for the
 specific Rust rejection categories; signed stanza fields and envelope/stub recipient linkage are
 also checked. This strengthens fixture validity evidence without changing production behavior.
-No D5 hosted CI, physical device acceptance or independent security review is claimed.
+D5 subsequently passed all 11 jobs in
+[PR CI 41066710639](https://github.com/biulight/age-plugin-phone/actions/runs/41066710639) at `1708706`
+and [main CI 41067845115](https://github.com/biulight/age-plugin-phone/actions/runs/41067845115) at
+`799b36f`. These runs do not establish physical device acceptance or independent security review.
 
 
 Acceptance: every required shared fixture has identified consumers and passing expected results;
@@ -222,7 +236,8 @@ and remaining gaps are tracked in the [vector catalog](test-vectors/README.md).
    support and exact-release-package acceptance.
 
 D3 is implemented and D5 now has shared fixtures and role-appropriate production consumers.
-Independent review, final candidate CI/native evidence and baseline selection remain outstanding. No exhaustive historical Alpha/Beta interoperability matrix is required.
+Exact-candidate source CI is complete at `799b36f`; independent review, scoped native/stateful
+evidence assessment, the breaking-update exercise and final baseline selection remain outstanding. No exhaustive historical Alpha/Beta interoperability matrix is required.
 
 ## Evidence and remaining work
 
@@ -242,6 +257,6 @@ not rebuild or re-certify those artifacts at `69b3cdf`. The published Beta 2 dis
 attached to its published bits. Broader coverage alone is not a wire-freeze gate, but any discovered
 binding, parsing, authorization or consumption defect must be resolved for the affected path.
 
-Next action: bind D3/D5 source evidence to a new candidate, then complete independent review and
-the remaining final-baseline steps above. Neither this
+Next action: hand the [prepared candidate packet](protocol-v2-candidate-review-2026-10-31.md) to an
+independent reviewer, then close G1–G5 with scoped evidence before any freeze decision. Neither this
 record nor protocol freeze grants production-secret approval or replaces exact-release acceptance.

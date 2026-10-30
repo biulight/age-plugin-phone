@@ -1,6 +1,13 @@
 # Independent security review package
 
-Status: independent source review completed; one low-severity finding resolved.
+Historical Milestone 5 status: independent source review completed for its recorded candidates;
+one low-severity finding resolved. This is not a review-complete claim for current main.
+
+For the current protocol-v2 freeze candidate `799b36f`, use the
+[2026-10-31 independent-review preparation packet](protocol-v2-candidate-review-2026-10-31.md).
+It covers the increment after the September follow-up; independent review remains open. The older
+candidate/tag and artifact requirements below describe the historical campaign, not a tag or
+publication action requested by the new source-review preparation.
 
 This is the entry point for the Milestone 5 cryptographic and implementation review. The protocol
 is experimental version 2 and is not suitable for production secrets. Preparing this package does

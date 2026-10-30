@@ -140,6 +140,9 @@ inventory. Do not claim the existing script separately pins all seven hashes.
 
 ## Remaining acceptance
 
+The [candidate review packet](../protocol-v2-candidate-review-2026-10-31.md) pins all eleven hashes
+at `799b36f` with successful merged CI, an immutable specification input and review gaps G1–G5.
+
 The D5 fixture set and source-level consumers are implemented. Full Swift durable-store restart
 and hardware authorization are not exercised by these static fixtures. Bind source/fixture hashes,
 CI and independent increment review to the final candidate, and retain separate stateful/native
