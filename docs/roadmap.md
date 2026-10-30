@@ -111,19 +111,32 @@ Priorities below are work order, not vulnerability severity:
   complete phone-v2 envelope and public-stub vectors, shared rejection corpus and production Swift
   pairing/envelope harness are implemented. All seven original fixtures remain unchanged. This
   source-level milestone does not close independent review or native/final-candidate acceptance.
+- [x] **P0 — review-candidate preparation:** pin `799b36f`, specification input, eleven vector
+  hashes and successful merged CI in the [candidate packet](protocol-v2-candidate-review-2026-10-31.md).
+  The packet scopes independent review from `0305c0e` and lists G1–G5 evidence gaps. It is not a
+  final freeze baseline or release approval; the subsequent independent review is recorded below.
 - [ ] **P0 — final scope/specification baseline:** after implementation and independent review,
   identify final source/specification/vector revisions and close the remaining protocol gates.
   Do not infer feature compatibility from the protocol number alone or treat the candidate as frozen.
-- [ ] **P0 — candidate review:** close a targeted independent review of security-sensitive changes
-  since the recorded review, and bind all applicable findings to the selected candidate.
+- [x] **P0 — independent source review execution:** a fresh agent reviewed `0305c0e..799b36f`
+  R1–R5; [results, methods and exclusions](independent-protocol-v2-review-2026-10-31.md) are recorded.
+  No new defect in the named examined security categories was confirmed; this is not freeze approval.
+- [ ] **P0 — candidate review closure:** decide O1 remediation or explicit justified deferral. O1
+  is an existing low-priority clock-conversion observation with unverified device reachability,
+  not fixed or accepted. Bind any fix to a successor SHA and independent re-verification.
 - [ ] **P1 — current implementation agreement:** complete Rust/Kotlin/Swift pairing and envelope
   vectors plus malformed/unsupported-version rejection; verify cancellation, wrong-device binding,
   timeout, replay and persistence-failure behavior. Existing tests and physical passes retain their
   recorded scope; D5 supplies role-appropriate Swift pairing/envelope source coverage, while native
-  authorization and durable-store acceptance remain separately scoped.
+  authorization and durable-store acceptance remain separately scoped. Complete the required
+  [G3 rows](independent-protocol-v2-review-2026-10-31.md#g3--targeted-state-and-native-acceptance-still-open),
+  including the independently unexecuted Android JVM suite and justified native evidence binding.
 - [ ] **P1 — breaking-update procedure:** on disposable identities, validate independent recovery,
   endpoint update order, any required re-pairing and re-encryption. Clearly state affected versions,
-  formats and retained-ciphertext consequences. Never repair compatibility by resetting replay state.
+  formats and retained-ciphertext consequences. The
+  [G4 exercise](independent-protocol-v2-review-2026-10-31.md#g4--breaking-update-and-recovery-exercise-still-open)
+  remains unexecuted; require a real scoped transition and verified recovery/fresh use. Never repair
+  compatibility by resetting replay state.
 - [ ] **P2 — platform and distribution acceptance:** retain the open Phase 2/3 cases, including
   AP/subnet roaming, fresh exact-candidate pairing, device reboot, invalidation/storage failures,
   wrong/multiple physical phones, second StrongBox family, QR response replay, broader lifecycle,
@@ -131,7 +144,7 @@ Priorities below are work order, not vulnerability severity:
   complete matrix passed. Security defects in these cases still block the affected path.
 
 Execution order: accepted decisions → boundary evidence → narrow D3 implementation → D5 conformance
-coverage → independent increment review → final baseline/freeze decision. The
+coverage → independent increment review → O1 disposition and targeted G3/G4 acceptance → final baseline/freeze decision. The
 [implementation order](protocol-v2-freeze-preparation.md#implementation-order) and per-decision
 acceptance criteria govern closure; source conformance does not itself declare a freeze.
 
