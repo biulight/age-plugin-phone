@@ -121,9 +121,10 @@ Priorities below are work order, not vulnerability severity:
 - [x] **P0 — independent source review execution:** a fresh agent reviewed `0305c0e..799b36f`
   R1–R5; [results, methods and exclusions](independent-protocol-v2-review-2026-10-31.md) are recorded.
   No new defect in the named examined security categories was confirmed; this is not freeze approval.
-- [ ] **P0 — candidate review closure:** decide O1 remediation or explicit justified deferral. O1
-  is an existing low-priority clock-conversion observation with unverified device reachability,
-  not fixed or accepted. Bind any fix to a successor SHA and independent re-verification.
+- [ ] **P0 — candidate review closure:** O1 has a local checked-clock remediation in the
+  [2026-11-01 follow-up](independent-protocol-v2-review-2026-10-31.md#o1-implementation-follow-up--2026-11-01),
+  awaiting successor SHA binding and independent re-verification. Actual-device reachability
+  remains unverified; the observation is not independently closed or accepted as a risk.
 - [ ] **P1 — current implementation agreement:** complete Rust/Kotlin/Swift pairing and envelope
   vectors plus malformed/unsupported-version rejection; verify cancellation, wrong-device binding,
   timeout, replay and persistence-failure behavior. Existing tests and physical passes retain their
@@ -144,7 +145,7 @@ Priorities below are work order, not vulnerability severity:
   complete matrix passed. Security defects in these cases still block the affected path.
 
 Execution order: accepted decisions → boundary evidence → narrow D3 implementation → D5 conformance
-coverage → independent increment review → O1 disposition and targeted G3/G4 acceptance → final baseline/freeze decision. The
+coverage → independent increment review → O1 independent closure and targeted G3/G4 acceptance → final baseline/freeze decision. The
 [implementation order](protocol-v2-freeze-preparation.md#implementation-order) and per-decision
 acceptance criteria govern closure; source conformance does not itself declare a freeze.
 

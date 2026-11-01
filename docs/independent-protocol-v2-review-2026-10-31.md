@@ -1,6 +1,6 @@
 # Independent protocol v2 increment review — 2026-10-31
 
-Decision: **R1–R5 source review performed; no new authorization bypass, wrong-device binding,
+Original decision at `799b36f` (2026-10-31): **R1–R5 source review performed; no new authorization bypass, wrong-device binding,
 weaker fallback, unbounded parsing or replay-consumption restoration defect confirmed in the
 examined scope.** One low-priority existing clock-conversion observation (O1) remains for disposition.
 This is not protocol-freeze approval, hardware acceptance or release approval.
@@ -67,6 +67,9 @@ limitation was not reported as a new defect.
 
 ## O1 — existing iOS system-clock conversion may trap
 
+The observation and classification below describe the reviewed candidate. For current remediation
+status, see the [implementation follow-up](#o1-implementation-follow-up--2026-11-01).
+
 **Classification:** low-priority defensive robustness observation. **State:** observed conversion
 failure; actual-device reachability unverified; disposition pending. Not fixed, not accepted as a
 risk, and not classified by this review as a P0/P1 protocol-freeze security blocker.
@@ -95,6 +98,47 @@ adapter boundary. NaN/infinity are defensive test inputs, not asserted reachable
 The owner must choose remediation or explicit documented deferral with rationale. Remediation
 requires a successor source SHA, relevant regressions and independent verification; a deferral
 must retain the observed behavior and reachability limits. This record makes neither decision.
+
+### O1 implementation follow-up — 2026-11-01
+
+The owner requested continued implementation after review delivery. The successor implementation
+change based on `776a38f` now routes all six iOS clock-to-integer call sites through
+`ProtocolBounds.unixTime`. It rejects negative/non-finite samples and integers above `Int64.max`
+before use, preserves whole-second truncation for valid samples, and handles the rounded
+`Double(Int64.max)` boundary. Invalid post-authorization time follows the existing file-key clearing
+and context/deadline cleanup path; replay consumption is not restored.
+
+Current O1 status: **remediation implemented locally; independent re-verification and successor
+candidate binding pending**. The original observation and review verdict above describe `799b36f`
+and remain unchanged. This follow-up is implementation evidence from the coordinating agent, not
+an independent closure or evidence that an actual iOS clock reaches the problematic inputs.
+No wire bytes, public fixtures, private-state formats or compatibility policy changed.
+
+Local implementation verification on macOS arm64:
+
+- `swift test --package-path plugins/tauri-plugin-phone-identity/ios/Core`: 15 tests passed,
+  including negative/fractional/non-finite/overflow clock samples and existing cancellation,
+  deadline, malformed-message and replay regressions. The first sandboxed attempt could not write
+  its compiler cache; the permitted retry passed.
+- `python3 scripts/test-ios-protocol-boundaries.py`: production adapter/request checks passed.
+- `python3 -B scripts/test-ios-protocol-conformance.py`: pairing, three envelopes and 18 inbound
+  rejection cases passed; public fixtures remain unchanged.
+- `python3 -B scripts/test-ios-stream-lifecycle.py`: passed.
+- `swiftc -frontend -parse plugins/tauri-plugin-phone-identity/ios/Sources/PhoneIdentityPlugin.swift`:
+  passed (syntax only; not device acceptance).
+- `RUSTC_WRAPPER= cargo build --locked --target aarch64-apple-ios --manifest-path
+  apps/mobile/src-tauri/Cargo.toml`: passed, including the production Swift plugin; no project
+  regeneration, signing, simulator launch or device installation was performed.
+- From `apps/mobile/src-tauri/gen/android`, `mise exec -- ./gradlew
+  :tauri-plugin-phone-identity:testDebugUnitTest --no-daemon --rerun-tasks`: 93 tests across 17 suites,
+  zero failures/errors/skips, with repository-selected Temurin 17. The initial system-JDK 27 attempt
+  failed in Gradle configuration before tests; it is not a product failure or a pass. Existing
+  Gradle/Tauri deprecation warnings remain.
+
+The Android run is coordinating/implementing-agent evidence; it does not retroactively change the
+original reviewer's blocked run or satisfy G3a's independent-execution requirement. No Android
+source changed. The implementation commit must be bound as a successor candidate and receive
+targeted independent review before O1 can close. G3 native acceptance and G4 remain open; no device operation or recovery exercise is implied by this patch.
 
 ## G3 — targeted state and native acceptance still open
 

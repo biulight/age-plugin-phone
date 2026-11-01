@@ -218,7 +218,7 @@ final class PhoneIdentityPlugin: Plugin {
                             self.presentResponse(frames: frames, title: "Scan this pairing response", fingerprint: fingerprint, confirmLabel: "Fingerprint matches · Save") { accepted in
                                 guard accepted else { self.finishPairing(invoke, label: offer.desktopLabel, fingerprint: fingerprint, error: "user_cancelled"); return }
                                 do {
-                                    _ = try self.pairings.create(offer: offer, response: response, nowUnix: UInt64(Date().timeIntervalSince1970))
+                                    _ = try self.pairings.create(offer: offer, response: response, nowUnix: try ProtocolBounds.unixTime())
                                     self.finishPairing(invoke, label: offer.desktopLabel, fingerprint: fingerprint, error: nil)
                                 } catch { self.finishPairing(invoke, label: offer.desktopLabel, fingerprint: fingerprint, error: self.errorCategory(error)) }
                             }
@@ -287,7 +287,7 @@ final class PhoneIdentityPlugin: Plugin {
                 self.cryptoQueue.async {
                     var message = pair.0; defer { message.resetBytes(in: 0..<message.count) }
                     do {
-                        let request = try self.pairings.verifyAndConsume(message, nowUnix: UInt64(Date().timeIntervalSince1970))
+                        let request = try self.pairings.verifyAndConsume(message, nowUnix: try ProtocolBounds.unixTime())
                         let requestFingerprint = request.digest.hex
                         var fileKey = try self.openAuthenticatedFileKey(request)
                         defer { fileKey.resetBytes(in: 0..<fileKey.count) }
@@ -530,7 +530,7 @@ final class PhoneIdentityPlugin: Plugin {
                             }
                             guard self.wifiPairingIsActive(token) else { return }
                             do {
-                                _ = try self.pairings.create(offer: offer, response: response, nowUnix: UInt64(Date().timeIntervalSince1970))
+                                _ = try self.pairings.create(offer: offer, response: response, nowUnix: try ProtocolBounds.unixTime())
                                 self.finishWifiPairing(token, label: offer.desktopLabel, fingerprint: fingerprint, error: nil)
                             } catch { self.finishWifiPairing(token, error: self.errorCategory(error)) }
                         }
@@ -654,7 +654,7 @@ final class PhoneIdentityPlugin: Plugin {
         _ request: VerifiedUnwrapRequest,
         ownerSession: PhoneStreamSession? = nil
     ) throws -> Data {
-        guard UInt64(Date().timeIntervalSince1970) <= request.expiresAtUnix else {
+        guard try ProtocolBounds.unixTime() <= request.expiresAtUnix else {
             throw NativeQRFlowError.timeout
         }
         guard stateQueue.sync(execute: {
@@ -698,7 +698,8 @@ final class PhoneIdentityPlugin: Plugin {
             throw error
         }
         guard deadline.complete(),
-              UInt64(Date().timeIntervalSince1970) <= request.expiresAtUnix,
+              let now = try? ProtocolBounds.unixTime(),
+              now <= request.expiresAtUnix,
               stateQueue.sync(execute: { activeAuthenticationContext === context }) else {
             fileKey.resetBytes(in: 0..<fileKey.count)
             throw NativeQRFlowError.timeout
@@ -710,7 +711,7 @@ final class PhoneIdentityPlugin: Plugin {
         cryptoQueue.async {
             var message = raw; defer { message.resetBytes(in: 0..<message.count) }
             do {
-                let request = try self.pairings.verifyAndConsume(message, nowUnix: UInt64(Date().timeIntervalSince1970))
+                let request = try self.pairings.verifyAndConsume(message, nowUnix: try ProtocolBounds.unixTime())
                 var fileKey = try self.openAuthenticatedFileKey(request, ownerSession: session)
                 defer { fileKey.resetBytes(in: 0..<fileKey.count) }
                 let signingKey = try self.identity.signingKey()

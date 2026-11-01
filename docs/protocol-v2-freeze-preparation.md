@@ -1,9 +1,14 @@
 # Protocol v2 freeze preparation record
 
-Updated: 2026-10-31. Status: D1–D5 decisions accepted by the project owner; D3 implementation and D5 source conformance are present; final acceptance remains open; **not frozen**.
+Updated: 2026-11-01. Status: D1–D5 decisions accepted by the project owner; D3 implementation and D5 source conformance are present; final acceptance remains open; **not frozen**.
 Beta remains limited technical testing. The [prerelease compatibility policy](protocol.md#prerelease-compatibility-policy)
 permits clearly announced breaking updates before freeze without cross-version interoperability,
 automatic migration or downgrade promises. This record does not authorize code changes or publication.
+
+The [O1 implementation follow-up](independent-protocol-v2-review-2026-10-31.md#o1-implementation-follow-up--2026-11-01)
+adds a checked iOS clock adapter in a successor implementation change based on `776a38f`.
+Remediation is locally implemented, awaiting independent re-verification and successor candidate
+binding; the original `799b36f` review/CI remains historical evidence for its exact bytes.
 
 ## Candidate baseline
 
@@ -14,7 +19,7 @@ specification input, eleven vector hashes, complete CI and the `0305c0e..799b36f
 [Main CI 41067845115](https://github.com/biulight/age-plugin-phone/actions/runs/41067845115)
 passed all 11 jobs on this exact commit, rechecked on 2026-10-31. The
 [independent agent review](independent-protocol-v2-review-2026-10-31.md) has examined R1–R5; O1
-disposition, targeted G3/G4 evidence and final specification/freeze acceptance remain open. This documentation preparation creates no tag or release.
+independent closure, targeted G3/G4 evidence and final specification/freeze acceptance remain open. This documentation preparation creates no tag or release.
 
 ### Historical preparation baseline
 
@@ -32,7 +37,7 @@ a final freeze decision must also identify the accepted specification revision.
   [that review](independent-security-review-2026-09-11.md) does not automatically cover later changes.
   The separate [candidate-delta review](independent-protocol-v2-review-2026-10-31.md) now covers R1–R5,
   including desktop continuation and Android pairing-state/Wi-Fi lifecycle changes. This document
-  transcribes that result; O1 disposition remains pending.
+  transcribes that result; local O1 remediation now awaits independent re-verification.
 - Beta 1 `c73b289` and Beta 2 `e08d631` both use v2/suite 1; the candidate does not introduce a
   v1-to-v2 upgrade for published Beta users. Product versions and protocol/stanza versions are distinct.
 
@@ -240,7 +245,7 @@ and remaining gaps are tracked in the [vector catalog](test-vectors/README.md).
 
 D3 is implemented and D5 now has shared fixtures and role-appropriate production consumers.
 Exact-candidate source CI and R1–R5 independent agent review are complete at `799b36f`; O1
-disposition, scoped native/stateful evidence, the breaking-update exercise and final baseline
+independent closure, scoped native/stateful evidence, the breaking-update exercise and final baseline
 selection remain outstanding. No exhaustive historical Alpha/Beta interoperability matrix is required.
 
 ## Evidence and remaining work
@@ -248,7 +253,7 @@ selection remain outstanding. No exhaustive historical Alpha/Beta interoperabili
 | Work item | Status and next step |
 | --- | --- |
 | P0 inventory: source baseline, current schemas, domains, scope and public-vector hashes | Complete as an inventory; D1–D5 policy decisions are accepted, with D3/D5 source evidence now present; final baseline and freeze acceptance remain open |
-| P0 independent candidate review | R1–R5 review performed; no new defect in the named examined security categories confirmed. O1 remains pending owner disposition, not fixed or accepted; verify any remediation against a successor SHA |
+| P0 independent candidate review | R1–R5 review performed; no new defect in the named examined security categories confirmed. O1 remediation is locally implemented but not independently closed; bind and verify a successor SHA |
 | P1 cross-implementation conformance | Source conformance implemented: complete phone-v2 and stub fixtures, Rust/Kotlin rejection matrix and Swift production pairing/envelope coverage; independent source review recorded; final specification/candidate binding remains open |
 | P1 rejection/lifecycle/persistence evidence | Existing negative tests and scoped physical results remain useful; bind required cases to the candidate, including D3 boundaries. Follow [G3a–G3d](independent-protocol-v2-review-2026-10-31.md#g3--targeted-state-and-native-acceptance-still-open); independently rerun Android JVM tests, map scoped native requirements and close required rows. Source/CI agreement is not hardware verification |
 | P1 breaking-update procedure | Open: exercise independent recovery, endpoint update order, any re-pairing and re-encryption on disposable identities. Follow the [G4 exercise](independent-protocol-v2-review-2026-10-31.md#g4--breaking-update-and-recovery-exercise-still-open); no execution is claimed. No exhaustive old Alpha/Beta interoperability matrix is required |
@@ -261,7 +266,7 @@ not rebuild or re-certify those artifacts at `69b3cdf`. The published Beta 2 dis
 attached to its published bits. Broader coverage alone is not a wire-freeze gate, but any discovered
 binding, parsing, authorization or consumption defect must be resolved for the affected path.
 
-Next actions: decide O1 remediation or explicit justified deferral, scope and execute G3/G4, then
+Next actions: verify the local O1 remediation independently against a committed successor, scope and execute G3/G4, then
 bind the final specification/source/vector revisions (G2) and make the separate G5 freeze decision.
 Any source fix requires a successor candidate and independent re-verification. The
 [candidate packet](protocol-v2-candidate-review-2026-10-31.md) retains the gate definitions. Neither this

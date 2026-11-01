@@ -47,6 +47,20 @@ struct IdentityPublicMetadata {
             do { try verify(signed, now); accepted = true } catch { }
             precondition(accepted == c["accept"] as! Bool, c["name"] as! String)
         }
+        // Exercise the production clock adapter before request verification, including
+        // a negative fractional sample that an unchecked conversion would truncate to zero.
+        for seconds: Double in [-1, -0.5, .nan, .infinity, -.infinity,
+                                Double(Int64.max), Double(UInt64.max)] {
+            var rejected = false
+            var reachedVerification = false
+            do {
+                let now = try ProtocolBounds.unixTime(seconds)
+                reachedVerification = true
+                try verify(original, now)
+            } catch { rejected = true }
+            precondition(rejected && !reachedVerification)
+        }
+        try verify(original, ProtocolBounds.unixTime(1_000_000.999))
         // Untrusted routing rejects invalid time types/range before private state lookup.
         for expiry in [CBORValue.text("1000300"), .unsigned(UInt64(Int64.max) + 1)] {
             var changed = fields; changed[9] = expiry
