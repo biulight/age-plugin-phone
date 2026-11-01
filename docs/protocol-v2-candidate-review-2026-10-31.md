@@ -1,10 +1,15 @@
 # Protocol v2 candidate review package — 2026-10-31
 
-Status: **R1–R5 independently reviewed; O1 disposition and G2–G5 acceptance open; not frozen, not a release approval**.
+Status: **R1–R5 independently reviewed; O1 source closure verified at `431cf9f`; G2–G5 acceptance open; not frozen, not a release approval**.
 This packet organizes evidence and open questions. Its authors participated in D3/D5 implementation;
 preparation, self-checks and passing CI do not close the independent-review gate. The separate
 [independent agent review record](independent-protocol-v2-review-2026-10-31.md) records execution,
 O1 and exclusions; it is not an external human audit or final freeze approval.
+
+The [2026-11-01 O1 follow-up](independent-protocol-v2-review-2026-10-31.md#o1-implementation-follow-up--2026-11-01)
+is independently verified at `431cf9f`; see the [closure record](independent-protocol-v2-review-2026-10-31.md#o1-independent-re-verification--2026-11-01).
+G3a independent JVM execution also passed there. The immutable inputs and original verdict below
+remain bound to `799b36f`; final successor source/specification/vector binding and CI remain open.
 
 ## Immutable inputs
 
@@ -91,7 +96,7 @@ Use Rust 1.88, JDK 17 and macOS/CryptoKit for the documented native-language tes
 
 | Gate | Existing evidence | Still required / closure criterion |
 | --- | --- | --- |
-| G1 / P0 — independent increment review | Historical review through `0305c0e`; D3/D5 implementation self-checks and exact-candidate CI | A reviewer not acting as the D3/D5 implementer reviews R1–R5, records exclusions and methods, and verifies fixes against exact successor SHAs. R1–R5 were reviewed by a fresh agent with no D3/D5 implementation participation; see the [record](independent-protocol-v2-review-2026-10-31.md). No new security defect in the named examined categories was confirmed. Existing observation O1 remains pending disposition; review execution does not close all acceptance gates. |
+| G1 / P0 — independent increment review | Historical review through `0305c0e`; D3/D5 implementation self-checks and exact-candidate CI | A reviewer not acting as the D3/D5 implementer reviews R1–R5, records exclusions and methods, and verifies fixes against exact successor SHAs. R1–R5 were reviewed by a fresh agent with no D3/D5 implementation participation; see the [record](independent-protocol-v2-review-2026-10-31.md). No new security defect in the named examined categories was confirmed. O1 source remediation was independently verified at `431cf9f`; review execution does not close all acceptance gates. |
 | G2 / P0 — specification and fixture binding | Pinned draft and eleven-vector manifest; Rust/Kotlin 39 rejection cases; Swift 18 inbound rejection cases and outgoing byte comparisons | Reviewer confirms accepted scope and implemented semantics agree, including D2/D4 selection/capabilities. Resolve discrepancies explicitly; bind the final specification revision to the reviewed source. The independent source review supplies scoped agreement evidence, not final specification approval. Swift is not claimed to implement a desktop response decoder. |
 | G3 / P1 — candidate lifecycle/persistence/native evidence | Rust/JVM replay and failure regressions; Swift source/harness checks; historical device archives | Map every mandatory safety invariant to an executable test or explicitly scoped native result. For changed paths, record justified evidence reuse or perform targeted candidate-native checks. Swift durable-store restart and hardware prompt cancellation/freshness are not established by Core vectors or CI builds. The [G3 follow-up rows](independent-protocol-v2-review-2026-10-31.md#g3--targeted-state-and-native-acceptance-still-open) define candidate Android execution, iOS durable consumption, native ownership and evidence binding; acceptance remains open. Do not require the whole platform matrix merely because coverage is incomplete. |
 | G4 / P1 — breaking-update exercise | Accepted pre-freeze policy; historical independent-recovery cases | On disposable identities, record source/package hashes, independent recovery before changes, endpoint update order, required re-pairing/re-encryption, and verified recovery/output. Keep terminal failures and replay consumption; no manual state reset. Old-version compatibility is not a success criterion. Not executed; the [G4 exercise and closure criteria](independent-protocol-v2-review-2026-10-31.md#g4--breaking-update-and-recovery-exercise-still-open) require an actual scoped transition and verified recovery. |
@@ -123,8 +128,8 @@ reproduction and proposed remediation. For each fix, record its commit and indep
 An empty findings list is meaningful only with an explicit scope and method; CI success is not a verdict.
 
 The [review record](independent-protocol-v2-review-2026-10-31.md) records O1 as an observed existing
-clock-conversion failure with unverified device reachability and pending disposition, not a fixed
-issue or accepted risk. No freeze approval has been given. Subsequent records must distinguish
+clock-conversion failure with unverified device reachability. Remediation is independently closed
+in the `431cf9f` source scope; final successor candidate binding remains open. No freeze approval has been given. Subsequent records must distinguish
 `not reviewed`, `confirmed`, `fixed awaiting review`, `closed` and explicitly accepted limitations.
 Do not dismiss an issue merely because historical tests passed. After review, perform the targeted
 G3/G4 work and make the separate final freeze decision; release approval remains separate.

@@ -5,6 +5,17 @@ package enum ProtocolBounds {
     package static let maximumTime = UInt64(Int64.max)
     package static let maximumMessageBytes = 65_536
 
+    /// Validate the clock before conversion: Double(Int64.max) rounds up to 2^63.
+    /// Preserve whole-second expiry semantics without trapping on invalid system time.
+    package static func unixTime(_ seconds: TimeInterval = Date().timeIntervalSince1970) throws -> UInt64 {
+        guard seconds.isFinite, seconds >= 0,
+              let value = UInt64(exactly: seconds.rounded(.down)) else {
+            throw StrictCBORError.limit
+        }
+        try validateTimestamp(value)
+        return value
+    }
+
     package static func validateTimestamp(_ value: UInt64) throws {
         guard value <= maximumTime else { throw StrictCBORError.limit }
     }

@@ -9,6 +9,20 @@ final class ProtocolBoundsTests: XCTestCase {
         return try JSONSerialization.jsonObject(with: Data(contentsOf: root.appendingPathComponent("crates/core/test-vectors/protocol-boundaries-v2.json"))) as! [String: Any]
     }
 
+    func testSystemClockConversion() throws {
+        for seconds: Double in [-1, -0.5, -Double.leastNonzeroMagnitude,
+                                .nan, .infinity, -.infinity, Double.greatestFiniteMagnitude,
+                                Double(Int64.max), Double(UInt64.max)] {
+            XCTAssertThrowsError(try ProtocolBounds.unixTime(seconds), "\(seconds)")
+        }
+        XCTAssertEqual(try ProtocolBounds.unixTime(0), 0)
+        XCTAssertEqual(try ProtocolBounds.unixTime(1_000_000.999), 1_000_000)
+        let largestAccepted = Double(Int64.max).nextDown
+        XCTAssertEqual(try ProtocolBounds.unixTime(largestAccepted), UInt64(largestAccepted))
+        // An invalid sample must not poison a subsequent valid clock reading.
+        XCTAssertEqual(try ProtocolBounds.unixTime(1_000_001), 1_000_001)
+    }
+
     func testSharedTimeCases() throws {
         let fixture = try cases()
         for c in fixture["time_cases"] as! [[String: Any]] {

@@ -1,6 +1,6 @@
 # Independent protocol v2 increment review — 2026-10-31
 
-Decision: **R1–R5 source review performed; no new authorization bypass, wrong-device binding,
+Original decision at `799b36f` (2026-10-31): **R1–R5 source review performed; no new authorization bypass, wrong-device binding,
 weaker fallback, unbounded parsing or replay-consumption restoration defect confirmed in the
 examined scope.** One low-priority existing clock-conversion observation (O1) remains for disposition.
 This is not protocol-freeze approval, hardware acceptance or release approval.
@@ -67,6 +67,9 @@ limitation was not reported as a new defect.
 
 ## O1 — existing iOS system-clock conversion may trap
 
+The observation and classification below describe the reviewed candidate. For current remediation
+status, see the [implementation follow-up](#o1-implementation-follow-up--2026-11-01).
+
 **Classification:** low-priority defensive robustness observation. **State:** observed conversion
 failure; actual-device reachability unverified; disposition pending. Not fixed, not accepted as a
 risk, and not classified by this review as a P0/P1 protocol-freeze security blocker.
@@ -96,6 +99,90 @@ The owner must choose remediation or explicit documented deferral with rationale
 requires a successor source SHA, relevant regressions and independent verification; a deferral
 must retain the observed behavior and reachability limits. This record makes neither decision.
 
+### O1 implementation follow-up — 2026-11-01
+
+The owner requested continued implementation after review delivery. The successor implementation
+change based on `776a38f` now routes all six iOS clock-to-integer call sites through
+`ProtocolBounds.unixTime`. It rejects negative/non-finite samples and integers above `Int64.max`
+before use, preserves whole-second truncation for valid samples, and handles the rounded
+`Double(Int64.max)` boundary. Invalid post-authorization time follows the existing file-key clearing
+and context/deadline cleanup path; replay consumption is not restored.
+
+Implementation-stage status: **remediation implemented; independent re-verification pending at
+the time of implementation**. The subsequent review below records current closure. The original observation and review verdict above describe `799b36f`
+and remain unchanged. This follow-up is implementation evidence from the coordinating agent, not
+an independent closure or evidence that an actual iOS clock reaches the problematic inputs.
+No wire bytes, public fixtures, private-state formats or compatibility policy changed.
+
+Local implementation verification on macOS arm64:
+
+- `swift test --package-path plugins/tauri-plugin-phone-identity/ios/Core`: 15 tests passed,
+  including negative/fractional/non-finite/overflow clock samples and existing cancellation,
+  deadline, malformed-message and replay regressions. The first sandboxed attempt could not write
+  its compiler cache; the permitted retry passed.
+- `python3 scripts/test-ios-protocol-boundaries.py`: production adapter/request checks passed.
+- `python3 -B scripts/test-ios-protocol-conformance.py`: pairing, three envelopes and 18 inbound
+  rejection cases passed; public fixtures remain unchanged.
+- `python3 -B scripts/test-ios-stream-lifecycle.py`: passed.
+- `swiftc -frontend -parse plugins/tauri-plugin-phone-identity/ios/Sources/PhoneIdentityPlugin.swift`:
+  passed (syntax only; not device acceptance).
+- `RUSTC_WRAPPER= cargo build --locked --target aarch64-apple-ios --manifest-path
+  apps/mobile/src-tauri/Cargo.toml`: passed, including the production Swift plugin; no project
+  regeneration, signing, simulator launch or device installation was performed.
+- From `apps/mobile/src-tauri/gen/android`, `mise exec -- ./gradlew
+  :tauri-plugin-phone-identity:testDebugUnitTest --no-daemon --rerun-tasks`: 93 tests across 17 suites,
+  zero failures/errors/skips, with repository-selected Temurin 17. The initial system-JDK 27 attempt
+  failed in Gradle configuration before tests; it is not a product failure or a pass. Existing
+  Gradle/Tauri deprecation warnings remain.
+
+The Android run is coordinating/implementing-agent evidence; it does not retroactively change the
+original reviewer's blocked run or satisfy G3a's independent-execution requirement. No Android
+source changed. These implementation checks alone did not close O1; the independent follow-up
+below supplies the subsequent source-level closure. Final candidate binding remains required. G3 native acceptance and G4 remain open; no device operation or recovery exercise is implied by this patch.
+
+### O1 independent re-verification — 2026-11-01
+
+**Result: O1 closed in the source scope of `431cf9f821f973953d4c0cfffaebb5d120ee241c`.**
+No new P0/P1/P2/P3 finding was reported. This is source-level remediation closure, not a new
+full-scope review, native acceptance, final candidate selection or protocol-freeze approval.
+
+The owner authorized a new fresh-context reviewer, Codex agent `/root/independent_o1_review`,
+which did not participate in the O1 implementation and did not delegate. Its read-only review
+compared `776a38f52ee17fb3c26d22509864a830b436e178..431cf9f821f973953d4c0cfffaebb5d120ee241c`,
+read the architecture/protocol/threat model and inspected the relevant unchanged callers.
+The coordinator transcribes its result here; this is not an external human audit.
+
+The reviewer confirmed finite/nonnegative checks, exact UInt64 conversion and the final Int64
+bound, including the rounded `Double(Int64.max)` input and its accepted predecessor. All six
+production uses (lines 221, 290, 533, 657, 701 and 714 at the reviewed commit) use the adapter.
+Invalid post-authorization time clears `fileKey` before throwing and executes deadline/context
+cleanup; consumption is never restored. The production boundary test's `reachedVerification`
+assertion prevents downstream request rejection from masquerading as adapter rejection.
+
+Independent executions (local `rtk proxy` prefix omitted):
+
+| Command | Result |
+| --- | --- |
+| `swift test --package-path plugins/tauri-plugin-phone-identity/ios/Core` | 15 tests, zero failures |
+| `python3 -B scripts/test-ios-protocol-boundaries.py` | Passed |
+| `python3 -B scripts/test-ios-protocol-conformance.py` | Pairing, three envelopes and 18 inbound rejection cases passed |
+| `python3 -B scripts/test-ios-stream-lifecycle.py` | Exit 0 |
+| Android generated directory: `mise exec -- ./gradlew :tauri-plugin-phone-identity:testDebugUnitTest --no-daemon --rerun-tasks` | 33 tasks executed; XML: 17 suites, 93 tests, zero failures/errors/skips; Temurin 17.0.20.1 |
+| `git diff --check 776a38f 431cf9f` | Passed |
+
+Initial Swift-cache and Gradle-lock sandbox failures were followed by permitted successful reruns;
+existing Gradle/Tauri deprecation warnings remained. G3a's independent JVM execution subitem now
+passes at `431cf9f`; its device-storage subitem remains open. This does not rewrite the original
+reviewer's blocked execution at `799b36f` or the implementer's separate results.
+
+Not rerun: full iOS target build. Not performed: actual-device clock fault injection, Secure Enclave
+or native authentication acceptance, restart durability, device storage tests, or recovery exercise.
+Post-auth cleanup conclusions are from source review, not a new phone observation. The historical
+`799b36f` review and CI are not transferred to this successor. Final source/specification/vector
+binding, successor CI, G3 native evidence, G4 and G5 remain separate outstanding work.
+The reviewer changed no files or Git state; the coordinator verified tracked-file and original
+untracked-file hashes, HEAD and index were unchanged after review.
+
 ## G3 — targeted state and native acceptance still open
 
 Before running devices, map invariants to the existing candidate tests and exact archived packages.
@@ -104,10 +191,10 @@ missing observation or a tool failure is not a pass. Do not claim a full platfor
 
 | Follow-up | Acceptance evidence |
 | --- | --- |
-| G3a — Android candidate tests | Independently execute the candidate JVM suite in a permitted environment. Execute the existing device storage tests where native evidence is needed: replacement failure, uncertain sync failure and clock rollback. Bind source/build/device identifiers and distinguish reopen from power loss. |
+| G3a — Android candidate tests | Independent JVM execution passed at `431cf9f` (93 tests); this subitem is complete for that source. Execute the existing device storage tests where native evidence is needed: replacement failure, uncertain sync failure and clock rollback. Bind source/build/device identifiers and distinguish reopen from power loss. |
 | G3b — iOS durable consumption | With a candidate-bound disposable pairing, verify consumed requests remain rejected after cancellation/failure and an ordinary supported app restart. A fresh request must still require new authorization. Missing/corrupt/uncertain state must fail closed; never reset it to create a pass. Core vectors and compilation do not close this row. |
 | G3c — native authorization ownership | On included changed paths, record fresh native approval per operation, cancellation/timeout/disconnect without file-key output, stale callback rejection and fresh-request recovery. Include Android Wi-Fi replacement ownership and iOS cancellation around protected-key use as required by the candidate delta; substantiate any reuse of old evidence. |
-| G3d — scope and disposition | Bind every reused/executed result to source and package hashes, exact transport/recipient mode and owner observation. Resolve O1's disposition separately; broader device-family/roaming work stays a release gate unless a concrete safety defect affects the included path. |
+| G3d — scope and disposition | Bind every reused/executed result to source and package hashes, exact transport/recipient mode and owner observation. O1 source closure is recorded above; retain its exact revision and scope; broader device-family/roaming work stays a release gate unless a concrete safety defect affects the included path. |
 
 Do not install, replace, revoke or delete existing user identities merely to perform this plan.
 Use disposable state and the normal native confirmation flows. Keep raw requests, QR contents,
