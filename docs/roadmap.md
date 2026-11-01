@@ -121,17 +121,20 @@ Priorities below are work order, not vulnerability severity:
 - [x] **P0 — independent source review execution:** a fresh agent reviewed `0305c0e..799b36f`
   R1–R5; [results, methods and exclusions](independent-protocol-v2-review-2026-10-31.md) are recorded.
   No new defect in the named examined security categories was confirmed; this is not freeze approval.
-- [ ] **P0 — candidate review closure:** O1 has a local checked-clock remediation in the
-  [2026-11-01 follow-up](independent-protocol-v2-review-2026-10-31.md#o1-implementation-follow-up--2026-11-01),
-  awaiting successor SHA binding and independent re-verification. Actual-device reachability
-  remains unverified; the observation is not independently closed or accepted as a risk.
+- [x] **O1 — source remediation review:** independently verified at `431cf9f`; see the
+  [closure and exclusions](independent-protocol-v2-review-2026-10-31.md#o1-independent-re-verification--2026-11-01).
+  Actual-device clock reachability remains unverified; this is not native or freeze acceptance.
+- [ ] **P0 — successor candidate binding:** identify the final source/specification/vector revisions
+  and obtain successor CI; historical `799b36f` CI does not certify the O1 patch.
+- [x] **G3a — independent JVM execution subitem:** 93 tests passed at `431cf9f` under JDK 17.
+  The Android device-storage subitem and the rest of G3 remain open.
 - [ ] **P1 — current implementation agreement:** complete Rust/Kotlin/Swift pairing and envelope
   vectors plus malformed/unsupported-version rejection; verify cancellation, wrong-device binding,
   timeout, replay and persistence-failure behavior. Existing tests and physical passes retain their
   recorded scope; D5 supplies role-appropriate Swift pairing/envelope source coverage, while native
   authorization and durable-store acceptance remain separately scoped. Complete the required
   [G3 rows](independent-protocol-v2-review-2026-10-31.md#g3--targeted-state-and-native-acceptance-still-open),
-  including the independently unexecuted Android JVM suite and justified native evidence binding.
+  including remaining device-storage/native evidence and justified evidence reuse.
 - [ ] **P1 — breaking-update procedure:** on disposable identities, validate independent recovery,
   endpoint update order, any required re-pairing and re-encryption. Clearly state affected versions,
   formats and retained-ciphertext consequences. The
