@@ -144,7 +144,9 @@ The [candidate review packet](../protocol-v2-candidate-review-2026-10-31.md) pin
 at `799b36f` with successful merged CI, an immutable specification input and acceptance gates G1–G5.
 The [independent agent review](../independent-protocol-v2-review-2026-10-31.md) records R1–R5 source
 review and executed vector checks. O1 source closure and independent JVM execution are recorded
-at `431cf9f`; remaining G3/G4, successor CI and final specification binding remain open.
+at `431cf9f`. The [successor inventory](../protocol-v2-candidate-review-2026-10-31.md#successor-candidate--2026-11-02)
+binds identical runtime/test bytes, this unchanged eleven-vector set and successful CI to `41dd48d`;
+remaining G3/G4 and final normative specification acceptance remain open.
 
 The D5 fixture set and source-level consumers are implemented. Full Swift durable-store restart
 and hardware authorization are not exercised by these static fixtures. Bind source/fixture hashes,

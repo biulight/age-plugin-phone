@@ -1,18 +1,24 @@
 # Protocol v2 freeze preparation record
 
-Updated: 2026-11-01. Status: D1–D5 decisions accepted by the project owner; D3 implementation and D5 source conformance are present; final acceptance remains open; **not frozen**.
+Updated: 2026-11-02. Status: D1–D5 decisions accepted by the project owner; D3 implementation and D5 source conformance are present; final acceptance remains open; **not frozen**.
 Beta remains limited technical testing. The [prerelease compatibility policy](protocol.md#prerelease-compatibility-policy)
 permits clearly announced breaking updates before freeze without cross-version interoperability,
 automatic migration or downgrade promises. This record does not authorize code changes or publication.
 
 The [O1 implementation follow-up](independent-protocol-v2-review-2026-10-31.md#o1-implementation-follow-up--2026-11-01)
 adds a checked iOS clock adapter in a successor implementation change based on `776a38f`.
-O1 source remediation is independently closed at `431cf9f`, with final successor candidate
-binding still open; the original `799b36f` review/CI remains historical evidence for its exact bytes.
+O1 source remediation is independently closed at `431cf9f`; the
+[successor inventory](protocol-v2-candidate-review-2026-10-31.md#successor-candidate--2026-11-02)
+binds `41dd48d` to identical runtime/test bytes, unchanged specification/vector inputs and successful
+exact-source CI. Final normative acceptance remains open; the original `799b36f` review/CI remains historical evidence for its exact bytes.
 
 ## Candidate baseline
 
-The proposed **independent-review candidate** is now
+The current successor is **`41dd48d79bd7497f72ac1e7e3d63ffe97d4462d1`**, with all 11 jobs in
+[main CI 41323830238](https://github.com/biulight/age-plugin-phone/actions/runs/41323830238) successful.
+Its reviewed runtime/test bytes match `431cf9f`; no new native acceptance is claimed.
+
+The original **independent-review candidate** was
 `799b36f18b89704bca00417b7af3dee6564054d2` (PR #30 merge). The
 [candidate review packet](protocol-v2-candidate-review-2026-10-31.md) pins the source tree,
 specification input, eleven vector hashes, complete CI and the `0305c0e..799b36f` review scope.
@@ -244,7 +250,7 @@ and remaining gaps are tracked in the [vector catalog](test-vectors/README.md).
 
 D3 is implemented and D5 now has shared fixtures and role-appropriate production consumers.
 Exact-candidate source CI and R1–R5 independent agent review are complete at `799b36f`; O1 source closure and independent JVM execution are recorded at `431cf9f`.
-Successor CI, scoped native/stateful evidence, the breaking-update exercise and final baseline
+Successor inventory and CI are complete at `41dd48d`; scoped native/stateful evidence, the breaking-update exercise and final baseline
 selection remain outstanding. No exhaustive historical Alpha/Beta interoperability matrix is required.
 
 ## Evidence and remaining work
@@ -252,7 +258,7 @@ selection remain outstanding. No exhaustive historical Alpha/Beta interoperabili
 | Work item | Status and next step |
 | --- | --- |
 | P0 inventory: source baseline, current schemas, domains, scope and public-vector hashes | Complete as an inventory; D1–D5 policy decisions are accepted, with D3/D5 source evidence now present; final baseline and freeze acceptance remain open |
-| P0 independent candidate review | R1–R5 review performed; no new defect in the named examined security categories confirmed. O1 source remediation independently closed at `431cf9f`; final successor binding and CI remain open |
+| P0 independent candidate review | R1–R5 review performed; no new defect in the named examined security categories confirmed. O1 source remediation independently closed at `431cf9f`; successor inventory and exact-source CI complete at `41dd48d`; final normative acceptance remains open |
 | P1 cross-implementation conformance | Source conformance implemented: complete phone-v2 and stub fixtures, Rust/Kotlin rejection matrix and Swift production pairing/envelope coverage; independent source review recorded; final specification/candidate binding remains open |
 | P1 rejection/lifecycle/persistence evidence | Existing negative tests and scoped physical results remain useful; bind required cases to the candidate, including D3 boundaries. Follow [G3a–G3d](independent-protocol-v2-review-2026-10-31.md#g3--targeted-state-and-native-acceptance-still-open); independent JVM execution passed at `431cf9f` (93 tests); map scoped native requirements and close required rows. Source/CI agreement is not hardware verification |
 | P1 breaking-update procedure | Open: exercise independent recovery, endpoint update order, any re-pairing and re-encryption on disposable identities. Follow the [G4 exercise](independent-protocol-v2-review-2026-10-31.md#g4--breaking-update-and-recovery-exercise-still-open); no execution is claimed. No exhaustive old Alpha/Beta interoperability matrix is required |
@@ -265,7 +271,7 @@ not rebuild or re-certify those artifacts at `69b3cdf`. The published Beta 2 dis
 attached to its published bits. Broader coverage alone is not a wire-freeze gate, but any discovered
 binding, parsing, authorization or consumption defect must be resolved for the affected path.
 
-Next actions: complete successor candidate binding and CI, scope and execute remaining G3/G4, then
+Next actions: scope and execute remaining G3/G4 against the pinned successor, then
 bind the final specification/source/vector revisions (G2) and make the separate G5 freeze decision.
 Any source fix requires a successor candidate and independent re-verification. The
 [candidate packet](protocol-v2-candidate-review-2026-10-31.md) retains the gate definitions. Neither this
