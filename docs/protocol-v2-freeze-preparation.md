@@ -253,6 +253,9 @@ Exact-candidate source CI and R1–R5 independent agent review are complete at `
 Successor inventory and CI are complete at `41dd48d`; scoped native/stateful evidence, the breaking-update exercise and final baseline
 selection remain outstanding. No exhaustive historical Alpha/Beta interoperability matrix is required.
 
+The [G3 acceptance plan](protocol-v2-g3-acceptance-plan.md) provides scoped execution order,
+Android test expectations, iOS driver prerequisites and evidence fields. Device execution remains pending.
+
 ## Evidence and remaining work
 
 | Work item | Status and next step |

@@ -136,7 +136,9 @@ Priorities below are work order, not vulnerability severity:
   recorded scope; D5 supplies role-appropriate Swift pairing/envelope source coverage, while native
   authorization and durable-store acceptance remain separately scoped. Complete the required
   [G3 rows](independent-protocol-v2-review-2026-10-31.md#g3--targeted-state-and-native-acceptance-still-open),
-  including remaining device-storage/native evidence and justified evidence reuse.
+  including remaining device-storage/native evidence and justified evidence reuse. Use the
+  [G3 acceptance preparation](protocol-v2-g3-acceptance-plan.md); Android device tests are not run
+  and an iOS restart/replay driver remains to be established.
 - [ ] **P1 — breaking-update procedure:** on disposable identities, validate independent recovery,
   endpoint update order, any required re-pairing and re-encryption. Clearly state affected versions,
   formats and retained-ciphertext consequences. The

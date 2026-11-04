@@ -62,6 +62,9 @@ released-client interoperability. This includes the new public-stub checks and S
 conformance harness. Native builds and synthetic tests do not prove fresh hardware authorization.
 Documentation deployment is not credited by this CI run; it is a separate workflow.
 
+The [G3 execution preparation](protocol-v2-g3-acceptance-plan.md) maps the remaining native rows,
+existing Android instrumentation tests, iOS driver gap and required evidence. It records no new passes.
+
 ## Public-vector byte manifest
 
 All values are public synthetic fixtures. Never provision their keys into production hardware.
