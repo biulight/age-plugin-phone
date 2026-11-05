@@ -3,12 +3,12 @@
 Historical Milestone 5 status: independent source review completed for its recorded candidates;
 one low-severity finding resolved. This is not a review-complete claim for current main.
 
-For the current protocol-v2 freeze candidate `799b36f`, use the
+For the current protocol-v2 acceptance candidate `41dd48d` (successor to `799b36f`), use the
 [2026-10-31 independent-review preparation packet](protocol-v2-candidate-review-2026-10-31.md).
 It covers the increment after the September follow-up. The
 [independent agent review](independent-protocol-v2-review-2026-10-31.md) records R1–R5 execution,
-O1 source closure and independent JVM execution at `431cf9f`, plus unverified items. Successor
-binding/CI, remaining G3/G4 and final freeze acceptance remain open. The older
+O1 source closure and independent JVM execution at `431cf9f`, plus unverified items. The packet now pins successor `41dd48d` and successful exact-source CI;
+remaining G3/G4 and final normative/freeze acceptance remain open. The older
 candidate/tag and artifact requirements below describe the historical campaign, not a tag or
 publication action requested by the new source-review preparation.
 

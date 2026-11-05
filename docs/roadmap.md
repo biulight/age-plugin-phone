@@ -124,8 +124,10 @@ Priorities below are work order, not vulnerability severity:
 - [x] **O1 — source remediation review:** independently verified at `431cf9f`; see the
   [closure and exclusions](independent-protocol-v2-review-2026-10-31.md#o1-independent-re-verification--2026-11-01).
   Actual-device clock reachability remains unverified; this is not native or freeze acceptance.
-- [ ] **P0 — successor candidate binding:** identify the final source/specification/vector revisions
-  and obtain successor CI; historical `799b36f` CI does not certify the O1 patch.
+- [x] **P0 — successor candidate inventory and CI:** pin `41dd48d`, its unchanged specification
+  and eleven vector hashes, and successful exact-source main CI in the
+  [successor inventory](protocol-v2-candidate-review-2026-10-31.md#successor-candidate--2026-11-02).
+  Runtime/test bytes match independently reviewed `431cf9f`; final normative acceptance stays open.
 - [x] **G3a — independent JVM execution subitem:** 93 tests passed at `431cf9f` under JDK 17.
   The Android device-storage subitem and the rest of G3 remain open.
 - [ ] **P1 — current implementation agreement:** complete Rust/Kotlin/Swift pairing and envelope
@@ -134,7 +136,9 @@ Priorities below are work order, not vulnerability severity:
   recorded scope; D5 supplies role-appropriate Swift pairing/envelope source coverage, while native
   authorization and durable-store acceptance remain separately scoped. Complete the required
   [G3 rows](independent-protocol-v2-review-2026-10-31.md#g3--targeted-state-and-native-acceptance-still-open),
-  including remaining device-storage/native evidence and justified evidence reuse.
+  including remaining device-storage/native evidence and justified evidence reuse. Use the
+  [G3 acceptance preparation](protocol-v2-g3-acceptance-plan.md); Android device tests are not run
+  and an iOS restart/replay driver remains to be established.
 - [ ] **P1 — breaking-update procedure:** on disposable identities, validate independent recovery,
   endpoint update order, any required re-pairing and re-encryption. Clearly state affected versions,
   formats and retained-ciphertext consequences. The

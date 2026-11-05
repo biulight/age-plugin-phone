@@ -183,6 +183,16 @@ binding, successor CI, G3 native evidence, G4 and G5 remain separate outstanding
 The reviewer changed no files or Git state; the coordinator verified tracked-file and original
 untracked-file hashes, HEAD and index were unchanged after review.
 
+### Successor evidence binding — 2026-11-02
+
+The coordinator subsequently pinned merged source `41dd48d` in the
+[successor inventory](protocol-v2-candidate-review-2026-10-31.md#successor-candidate--2026-11-02).
+Only six review/status documents differ from reviewed `431cf9f`; runtime/test bytes and all eleven
+fixtures are identical. Exact-source main CI passed all 11 jobs. This permits scoped reuse of O1
+closure and independent JVM results without changing the review above or claiming another
+independent review. Successor inventory/CI preparation is complete; final normative acceptance,
+G3 native evidence, G4 and G5 remain open.
+
 ## G3 — targeted state and native acceptance still open
 
 Before running devices, map invariants to the existing candidate tests and exact archived packages.

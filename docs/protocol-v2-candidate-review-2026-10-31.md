@@ -9,9 +9,32 @@ O1 and exclusions; it is not an external human audit or final freeze approval.
 The [2026-11-01 O1 follow-up](independent-protocol-v2-review-2026-10-31.md#o1-implementation-follow-up--2026-11-01)
 is independently verified at `431cf9f`; see the [closure record](independent-protocol-v2-review-2026-10-31.md#o1-independent-re-verification--2026-11-01).
 G3a independent JVM execution also passed there. The immutable inputs and original verdict below
-remain bound to `799b36f`; final successor source/specification/vector binding and CI remain open.
+remain bound to `799b36f`. The successor inventory below binds `41dd48d`; final normative
+specification acceptance, remaining G3/G4 and the G5 freeze decision remain open.
 
-## Immutable inputs
+## Successor candidate — 2026-11-02
+
+**Review/acceptance candidate: `41dd48d79bd7497f72ac1e7e3d63ffe97d4462d1` (PR #32 merge).**
+This is a pinned successor inventory, not an accepted frozen baseline.
+
+| Input | Revision or evidence |
+| --- | --- |
+| Candidate tree | `4fb7cea34169780fe31dff1dbced57317ee55330` |
+| Independently reviewed O1 source | `431cf9f821f973953d4c0cfffaebb5d120ee241c`; [closure and exclusions](independent-protocol-v2-review-2026-10-31.md#o1-independent-re-verification--2026-11-01) |
+| Source equivalence | `git diff --name-only 431cf9f 41dd48d` contains only six review/status documents; runtime code, tests, scripts, CI and public fixtures are identical |
+| Specification input | [protocol-v2-spec.md at the successor](https://github.com/biulight/age-plugin-phone/blob/41dd48d79bd7497f72ac1e7e3d63ffe97d4462d1/docs/protocol-v2-spec.md), SHA-256 `21f644152ccea6132825c0fb80908dc086a8ff48f089e85010809e67f81e9357`; unchanged draft, not normative approval |
+| Public vectors | All eleven manifest hashes below verified against this SHA; identical to `799b36f` |
+| Exact-candidate CI | [main run 41323830238](https://github.com/biulight/age-plugin-phone/actions/runs/41323830238), push event at `41dd48d`, all 11 jobs successful; rechecked 2026-11-02 |
+| Review evidence reuse | R1–R5 retain their original `799b36f` scope; O1 closure and independent JVM execution are bound to `431cf9f`. Identical successor runtime/test bytes justify reuse for those same scopes, without expanding their exclusions |
+
+The inventory closes successor identification and exact-source CI preparation. G2 still requires
+explicit acceptance of the final normative specification/capability/vector set; G3a device storage,
+G3b/G3c native lifecycle and authorization, G4 breaking-update recovery and G5 remain open.
+Use this source for subsequent scoped acceptance; bind any built package hash separately. Do not
+relabel historical physical results as passes for a new package. This documentation overlay needs
+its own revision in the final decision and creates no tag, release or device acceptance.
+
+## Original immutable inputs — 2026-10-31
 
 | Input | Revision or evidence |
 | --- | --- |
@@ -38,6 +61,9 @@ iOS, acceptance tooling on Ubuntu/Windows/macOS, reproducible inputs, release au
 released-client interoperability. This includes the new public-stub checks and Swift production
 conformance harness. Native builds and synthetic tests do not prove fresh hardware authorization.
 Documentation deployment is not credited by this CI run; it is a separate workflow.
+
+The [G3 execution preparation](protocol-v2-g3-acceptance-plan.md) maps the remaining native rows,
+existing Android instrumentation tests, iOS driver gap and required evidence. It records no new passes.
 
 ## Public-vector byte manifest
 
@@ -129,7 +155,7 @@ An empty findings list is meaningful only with an explicit scope and method; CI 
 
 The [review record](independent-protocol-v2-review-2026-10-31.md) records O1 as an observed existing
 clock-conversion failure with unverified device reachability. Remediation is independently closed
-in the `431cf9f` source scope; final successor candidate binding remains open. No freeze approval has been given. Subsequent records must distinguish
+in the `431cf9f` source scope; the successor inventory above is bound, while final normative acceptance remains open. No freeze approval has been given. Subsequent records must distinguish
 `not reviewed`, `confirmed`, `fixed awaiting review`, `closed` and explicitly accepted limitations.
 Do not dismiss an issue merely because historical tests passed. After review, perform the targeted
 G3/G4 work and make the separate final freeze decision; release approval remains separate.
