@@ -8,7 +8,7 @@ maintenance update are published for limited technical testing. The
 Existing hardware evidence does not establish support for every device. The
 [2026-10-23 package run](docs/beta2-package-acceptance-2026-10-23.md) closes the scoped Beta 2
 multi-identity regression but retains a network-restoration discovery failure in those published bits.
-Both Betas use protocol v2, which remains unfrozen; independent recovery is required.
+Both Betas predate the [protocol v2 freeze](docs/protocol-v2-freeze-preparation.md) at `41dd48d`. Independent recovery is required.
 Prerelease versions before protocol freeze do not promise cross-version compatibility, automatic
 migration or downgrade support. Clearly announced breaking updates may require endpoint updates,
 re-pairing and recovery-based re-encryption. See the [compatibility policy](docs/protocol.md#prerelease-compatibility-policy).

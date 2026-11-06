@@ -107,8 +107,8 @@ serials should be redacted or replaced by run-local labels.
 
 ## Release decision
 
-The Alpha gate remains closed while any required row or scenario is pending, while an independent
-review finding is unresolved, or while protocol version 2 is still an unfrozen experimental format.
+The [protocol v2 freeze](protocol-v2-freeze-preparation.md) closes the wire-format gate.
+Pending required scenarios and unresolved independent-review findings still block Alpha acceptance.
 macOS success cannot waive a Windows requirement, and QR success cannot waive the Developer USB
 matrix (or vice versa). Owner-only operation does not change this public-Alpha decision.
 

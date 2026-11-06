@@ -1,0 +1,84 @@
+{
+  "case": "alpha5-to-v2-candidate",
+  "old_source": "ecde426b055ac75c0791e709b0e4da9cf52698ce",
+  "new_source": "41dd48d79bd7497f72ac1e7e3d63ffe97d4462d1",
+  "driver_sha256": "7c570f73c8da98eccda06779a4c8df17411e939262c8886450214b0f5e4cda85",
+  "relay_sha256": "c0a3483f70df0248ee8c6bc59c1147f412cdfe78ea0e77c423813579c6e23062",
+  "start": "2026-11-06T19:31:06.919920+00:00",
+  "cases": [
+    {
+      "case": "alpha5-retained-baseline",
+      "start": "2026-11-06T19:31:20.081091+00:00",
+      "end": "2026-11-06T19:31:24.518858+00:00",
+      "exit_code": 0,
+      "output_bytes": 96,
+      "expected_result": true,
+      "owner_observed": true
+    },
+    {
+      "case": "candidate-desktop-tag-to-alpha5-phone",
+      "start": "2026-11-06T19:31:40.980746+00:00",
+      "end": "2026-11-06T19:31:41.403198+00:00",
+      "request_digest": "1224e33df103d6c54f19633413b3c6bd9e45d1f6f3100dae8d0ad370ed31bd56",
+      "signed_tag": "p256tag",
+      "transport_close": "eof",
+      "remaining_seconds": 300,
+      "exit_code": 1,
+      "output_bytes": 0,
+      "owner_observed": true
+    },
+    {
+      "case": "candidate-desktop-old-phone-control",
+      "start": "2026-11-06T19:32:44.106168+00:00",
+      "end": "2026-11-06T19:32:58.825576+00:00",
+      "exit_code": 0,
+      "output_bytes": 96,
+      "expected_result": true,
+      "owner_observed": true
+    },
+    {
+      "case": "candidate-tag-existing-pair",
+      "start": "2026-11-06T19:33:40.589422+00:00",
+      "end": "2026-11-06T19:33:44.087434+00:00",
+      "exit_code": 0,
+      "output_bytes": 96,
+      "expected_result": true,
+      "owner_observed": true
+    },
+    {
+      "case": "retained-cipher-new-pairing",
+      "start": "2026-11-06T19:34:31.473676+00:00",
+      "end": "2026-11-06T19:34:31.730584+00:00",
+      "exit_code": 1,
+      "output_bytes": 0,
+      "expected_result": true,
+      "owner_observed": true
+    },
+    {
+      "case": "reencrypted-fresh-use",
+      "start": "2026-11-06T19:35:32.725546+00:00",
+      "end": "2026-11-06T19:35:37.345638+00:00",
+      "exit_code": 0,
+      "output_bytes": 96,
+      "expected_result": true,
+      "owner_observed": true
+    }
+  ],
+  "result": "completed-awaiting-evidence-review",
+  "old_apk": "f57420034a6a0252919132699562e74b59a8fcecaf83effba2f2e2874085e653",
+  "new_apk": "a8294582e2c9cedfe79e35a780b11c0caea1cae1ece4743f702072a149d3d367",
+  "old_desktop": "a76c585f2ac5b4818a1c147a5b986193bdc6da9b94c282e057c04fa5e806109e",
+  "new_desktop": "886b7a11152c2fdd69d6e1248af2cfc9027aa953779ac8486813460612e579d7",
+  "old_stub_sha256": "7d014ff98e5dcf6303c2898b6995237ec23f482c79452e853bb6db5c65276194",
+  "age_sha256": "90f5cc37249c06e0b302e476a8a63bcefeecd9437c192b8af33e6ff2d69558dd",
+  "independent_recovery_before_update": "2026-11-06T19:31:12.635196+00:00",
+  "retained_cipher_sha256": "47ea675f226cb5d845810d20c43590b2ac860f6f4a8e30bf169496d37ca6e62d",
+  "tag_cipher_sha256": "5f1479a2dbdd03aa0dd213f2b5768ce0f78ec5194a03b83e4cde9f073344f88b",
+  "phone_update_utc": "2026-11-06T19:33:33.626037+00:00",
+  "preserved_uid_and_first_install": true,
+  "new_pairing_confirmed": "2026-11-06T19:34:28.073774+00:00",
+  "new_stub_sha256": "15509e1824c2e6470b4e6511267df6b71d0bf71aa5e9adcac9a2768fe4c2562d",
+  "reencrypted_cipher_sha256": "0421f60880513f3212a688c0f6231a075074a8f2a19eee1993170baf3fde8649",
+  "independent_recovery_after_rotation": "2026-11-06T19:35:22.208995+00:00",
+  "end": "2026-11-06T19:35:42.241776+00:00"
+}

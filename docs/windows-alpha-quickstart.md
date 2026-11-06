@@ -7,9 +7,9 @@
 
 This guide validates one exact signed Windows/Android developer-prerelease pair with synthetic data
 before using the phone identity for retained data. It does not close the full Alpha matrix and is
-not approval to protect real secrets. The independent source review is complete, but protocol v2
-remains unfrozen and the remaining QR/replay, lifecycle/invalidation, multi-phone, public-signing,
-and technical-user gates are still open. Historical results from another commit or artifact pair
+not approval to protect real secrets. This prerelease pair predates the [protocol v2 freeze](protocol-v2-freeze-preparation.md).
+QR/replay, lifecycle/invalidation, multi-phone, public-signing and technical-user gates retain
+their recorded package scope. Historical results from another commit or artifact pair
 do not transfer; this guide remains reusable for each new exact artifact pair.
 
 The present use is the owner-only technical preview in

@@ -186,10 +186,9 @@ strict parsing, or transport independence keep the Alpha gate closed.
   Windows signing program and the immutable final review candidate artifacts remain pending.
 - The source-level independent cryptographic and implementation review is complete. Native
   Windows execution and the remaining physical/package evidence stay open as separate Alpha gates.
-- Protocol version 2 remains unfrozen. The current [compatibility and freeze policy](protocol.md#prerelease-compatibility-policy)
-  allows clearly announced breaking updates in prerelease versions before protocol freeze, without
-  cross-version interoperability, migration or downgrade promises. A freeze needs its own named
-  baseline and candidate-specific review closure; this historical review does not certify later changes.
+- This review predates the [protocol v2 freeze](protocol-v2-freeze-preparation.md). Its findings
+  apply to the versions examined here. The freeze record binds later review and verification to
+  `41dd48d`.
 - `cargo audit` also reports RUSTSEC-2024-0429 through the Linux-only Tauri GTK dependency graph.
   The Windows and Android release artifacts do not include GTK, and this project does not call the
   affected `glib::VariantStrIter` API. Reassess this rationale when Tauri changes that dependency

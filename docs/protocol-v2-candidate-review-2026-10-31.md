@@ -1,6 +1,8 @@
 # Protocol v2 candidate review package — 2026-10-31
 
-Status: **R1–R5 independently reviewed; O1 source closure verified at `431cf9f`; G2–G5 acceptance open; not frozen, not a release approval**.
+**Historical review packet.** At the time of this inventory R1–R5 had been reviewed and O1
+source closure verified at `431cf9f`. For the subsequent G2–G5 decision at `41dd48d`, see the
+[2026-11-07 freeze record](protocol-v2-freeze-preparation.md#freeze-assessment--2026-11-07).
 This packet organizes evidence and open questions. Its authors participated in D3/D5 implementation;
 preparation, self-checks and passing CI do not close the independent-review gate. The separate
 [independent agent review record](independent-protocol-v2-review-2026-10-31.md) records execution,
@@ -9,8 +11,8 @@ O1 and exclusions; it is not an external human audit or final freeze approval.
 The [2026-11-01 O1 follow-up](independent-protocol-v2-review-2026-10-31.md#o1-implementation-follow-up--2026-11-01)
 is independently verified at `431cf9f`; see the [closure record](independent-protocol-v2-review-2026-10-31.md#o1-independent-re-verification--2026-11-01).
 G3a independent JVM execution also passed there. The immutable inputs and original verdict below
-remain bound to `799b36f`. The successor inventory below binds `41dd48d`; final normative
-specification acceptance, remaining G3/G4 and the G5 freeze decision remain open.
+remain bound to `799b36f`. The successor inventory below binds `41dd48d`; G2–G5 were open
+at that review date. Their final disposition is in the freeze record linked above.
 
 ## Successor candidate — 2026-11-02
 

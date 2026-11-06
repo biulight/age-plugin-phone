@@ -1,22 +1,103 @@
-# Protocol v2 freeze preparation record
+# Protocol v2 freeze decision and preparation record
 
-Updated: 2026-11-02. Status: D1–D5 decisions accepted by the project owner; D3 implementation and D5 source conformance are present; final acceptance remains open; **not frozen**.
-Beta remains limited technical testing. The [prerelease compatibility policy](protocol.md#prerelease-compatibility-policy)
-permits clearly announced breaking updates before freeze without cross-version interoperability,
-automatic migration or downgrade promises. This record does not authorize code changes or publication.
+**Frozen on 2026-11-07.** Protocol v2, suite 1, takes effect at source
+`41dd48d79bd7497f72ac1e7e3d63ffe97d4462d1`. The normative bytes are identified by the
+specification and eleven fixture hashes below. The compatibility commitment begins at this
+baseline. Published Alpha and Beta packages retain their original limited-testing scope.
 
 The [O1 implementation follow-up](independent-protocol-v2-review-2026-10-31.md#o1-implementation-follow-up--2026-11-01)
 adds a checked iOS clock adapter in a successor implementation change based on `776a38f`.
 O1 source remediation is independently closed at `431cf9f`; the
 [successor inventory](protocol-v2-candidate-review-2026-10-31.md#successor-candidate--2026-11-02)
 binds `41dd48d` to identical runtime/test bytes, unchanged specification/vector inputs and successful
-exact-source CI. Final normative acceptance remains open; the original `799b36f` review/CI remains historical evidence for its exact bytes.
+exact-source CI. The original `799b36f` review/CI remains historical evidence for its exact bytes.
+
+## Freeze assessment — 2026-11-07
+
+**G5 accepted.** Freeze the signed pairing and unwrap messages, suite-1 cryptographic and
+selection rules, supported recipient/stanza encodings, public identity stub, and rejection
+semantics specified in the [normative specification](protocol-v2-spec.md). An incompatible
+change requires a distinct version and transition policy. Private storage layouts, transport
+framing/discovery, CLI, packaging and release certification are outside the wire commitment.
+
+| Gate | Assessment |
+| --- | --- |
+| G1 — independent review | Accept the recorded R1–R5 review at `799b36f` and O1 closure at `431cf9f` for their examined source scopes. Runtime and test sources at the pinned successor match the O1 revision. |
+| G2 — specification and fixtures | Source/fixture agreement verified for the D1–D5 candidate described below. Accept the exact specification and fixture bytes below as normative. |
+| G3a — Android storage | Complete for the recorded scope. Credit the 93 JVM tests and [three physical storage tests](protocol-v2-g3-acceptance-plan.md#physical-android-storage-result--2026-11-07) on Android 16 (SM-F9660). The installed APK hash matched the clean candidate build. |
+| G3b–d — native lifecycle and binding | [Android owner session](protocol-v2-g3-acceptance-plan.md#android-native-results--2026-11-07) accepted on the selected package/device. Cancellation and foreground loss returned zero output; fresh verification recovered the expected sample. The [iPhone owner session](protocol-v2-g3-acceptance-plan.md#iphone-native-results--2026-11-07) passed cancellation, both unexpired replays after a verified restart and fresh recovery. Accept G3 for the bound devices, packages and scopes. |
+| G4 — breaking update | Accepted for the Alpha 5 → `41dd48d` Windows/Android transition using USB pairing and Wi-Fi unwrap. All six cases and both independent recovery checks passed. [Upgrade evidence](evidence/protocol-v2-g4-2026-11-07/android-upgrade-session.json). |
+
+**G2 binding.** The candidate tree is `4fb7cea34169780fe31dff1dbced57317ee55330`. The committed
+review draft has SHA-256 `21f644152ccea6132825c0fb80908dc086a8ff48f089e85010809e67f81e9357`.
+The [G2 specification text](protocol-v2-spec.md) has SHA-256
+`061e13025115bd22c1110fa37b445c88e5a360b79235b1f792893c3a9b75ee8d` (Git blob
+`35f738276fc7c02875e60f93012494571830dd34`). It replaces historical implementation status
+with the successor's D3 rules and names the existing phone stanza AEAD explicitly.
+All 11 files in the [vector manifest](protocol-v2-candidate-review-2026-10-31.md#public-vector-byte-manifest)
+matched their SHA-256 values in both the candidate tree and this checkout. The frozen D3 rules
+check the complete
+65,536-byte envelope bound before decoding or copying the payload, validate both times in
+`[0, 2^63−1]`, require an ordered difference of at most 300 seconds, and reject creation overflow.
+
+Suite 1 includes the four fixed signed messages, public stub, paired phone v2 selection, explicit
+`p256tag` and restricted legacy v1 stanzas. Desktop selection checks all public tag matches for
+ambiguity. If no tag matches it discards those candidates. Legacy then requires one identity and
+one remaining stanza. After selection, a failure is terminal. Unknown age tags are ignored at the
+age input boundary and unsupported signed inputs are rejected. Private storage layouts, framing,
+discovery and product/platform support have separate contracts under [D1](#accepted-freeze-scope).
+The Rust conformance tests passed both cases, including the signed rejection corpus. The independent
+stub checker passed. The Swift production harness passed pairing, all three envelope fixtures and
+18 inbound rejection cases. Kotlin evidence is the recorded independent JVM run.
+
+**Evidence provenance.** The committed delta from `41dd48d` through assessment revision
+`21104ed3c276ff47484d1091d883eea045226162` contains documentation, CI configuration and
+the iOS probe with its tests. It has no product implementation or vector delta. Candidate CI
+was rechecked on 2026-11-07: [run 41323830238](https://github.com/biulight/age-plugin-phone/actions/runs/41323830238)
+reported the exact successor SHA and 11 successful jobs out of 11.
+The [macOS reopen observation](protocol-v2-g3-acceptance-plan.md#macos-desktop-replay-store-observation)
+remains open for availability: the local contention control preserved consumption and rejected
+replay after reopening. Loss of consumption or key output on storage failure would block the affected path.
+
+The iOS device case used the iPhone-only scene overlay. Stock SDK 27 packaging and the corrupt
+private-record capacity trap remain platform limitations documented in the [G3 record](protocol-v2-g3-acceptance-plan.md).
+Any safety defect found later must be assessed against this baseline. Freeze grants no release
+or production-secret approval.
+
+### G4 exercise inputs and results
+
+The selected starting point is `v0.1.0-alpha.5` at `ecde426b055ac75c0791e709b0e4da9cf52698ce`.
+The isolated Windows desktop built from it has SHA-256
+`a76c585f2ac5b4818a1c147a5b986193bdc6da9b94c282e057c04fa5e806109e`. The two Android debug
+packages use the separate, previously absent ID `io.github.biulight.age_plugin_phone.g4test` and
+the same development signing certificate. Their SHA-256 values are
+`f57420034a6a0252919132699562e74b59a8fcecaf83effba2f2e2874085e653` (Alpha 5) and
+`a8294582e2c9cedfe79e35a780b11c0caea1cae1ece4743f702072a149d3d367` (candidate).
+The Alpha 5 APK was installed and its on-device hash verified. The owner confirmed the old USB pairing; the Windows stub matched the exported recipient.
+
+An independent age recipient recovered both synthetic inputs before the update. With the desktop
+updated first, the Alpha 5 phone rejected a signed `p256tag` request before expiry without
+prompting or returning bytes. The old phone still opened its original phone-format ciphertext
+with fresh verification. The candidate APK was then installed over the isolated old package.
+Its UID and first install time matched. The same tag ciphertext opened with fresh verification
+under the existing pairing.
+
+The owner next compared full fingerprints and established a second disposable pairing.
+The retained phone-format ciphertext failed with zero output and no prompt under the new
+pairing. Independent recovery followed by re-encryption produced a ciphertext that passed both
+independent recovery and fresh phone verification against the original 96-byte sample. The
+original pairing and its replay state were retained. This tests a change in supported capability,
+followed separately by replacement of a pairing. It covers neither a downgrade nor a wire-v1 import.
+
+The [six-case report](evidence/protocol-v2-g4-2026-11-07/android-upgrade-session.json) has
+SHA-256 `7ca3903e314e0ed2dd54c7fcbe1023eb5e02c75b5127ee9c0f4caea750f2d387`. The device was
+an SM-F9660 running Android 16, with Windows TPM pairing, USB fingerprint confirmation and Wi-Fi unwrap.
 
 ## Candidate baseline
 
 The current successor is **`41dd48d79bd7497f72ac1e7e3d63ffe97d4462d1`**, with all 11 jobs in
 [main CI 41323830238](https://github.com/biulight/age-plugin-phone/actions/runs/41323830238) successful.
-Its reviewed runtime/test bytes match `431cf9f`; no new native acceptance is claimed.
+Its reviewed runtime/test bytes match `431cf9f`; the assessment above records subsequent native acceptance.
 
 The original **independent-review candidate** was
 `799b36f18b89704bca00417b7af3dee6564054d2` (PR #30 merge). The
@@ -24,7 +105,7 @@ The original **independent-review candidate** was
 specification input, eleven vector hashes, complete CI and the `0305c0e..799b36f` review scope.
 [Main CI 41067845115](https://github.com/biulight/age-plugin-phone/actions/runs/41067845115)
 passed all 11 jobs on this exact commit, rechecked on 2026-10-31. The
-[independent agent review](independent-protocol-v2-review-2026-10-31.md) has examined R1–R5; targeted G3/G4 evidence and final specification/freeze acceptance remain open. This documentation preparation creates no tag or release.
+[independent agent review](independent-protocol-v2-review-2026-10-31.md) has examined R1–R5; G3 and G4 have separate dispositions in the current assessment. This documentation preparation creates no tag or release.
 
 ### Historical preparation baseline
 
@@ -54,20 +135,19 @@ silently transfer these CI results, vector hashes or historical hardware passes 
 | Material | Role |
 | --- | --- |
 | [Consolidated v2 specification](protocol-v2-spec.md) | Current layouts, domains, cryptographic contexts, selection, stub and replay semantics, traced to source |
-| [Protocol overview and policy](protocol.md) | Architecture-level flow, compatibility policy and remaining freeze gates |
+| [Protocol overview and policy](protocol.md) | Architecture-level flow, compatibility policy and completed freeze gates |
 | [Public vector catalog](test-vectors/README.md) | Seven original fixtures plus D3/D5 additions, hashes, consumers, reproduction routes and remaining acceptance |
 | [Candidate review packet](protocol-v2-candidate-review-2026-10-31.md) | Immutable review inputs, increment scope and G1–G5 closure criteria; links the separate review result |
 | [Independent increment review](independent-protocol-v2-review-2026-10-31.md) | Reviewer provenance, R1–R5 results, O1, executed checks, exclusions and G3/G4 follow-up acceptance |
 | ADRs 0001/0002/0010/0012/0014/0026 | Historical rationale and successive amendments; not an instruction to implement obsolete combined key roles or v1 message domains |
 | [Threat model](threat-model.md) | Security invariants and accepted exclusions, including desktop snapshot freshness |
 
-The consolidated specification is the review entry point for current bytes. It does not declare
-all implementations conformant. Resolve discrepancies against the named source and vectors before
-accepting normative text; do not alter source or fixtures merely to make the documentation agree.
+The consolidated specification is normative for the named source and vector bytes.
+Independent reviews and device sessions retain their documented implementation scopes.
 
 ## Accepted freeze scope
 
-The following scope is accepted under D1. Final baseline selection and freeze approval remain open:
+D1 defines the scope accepted in the freeze decision above:
 
 | Include in the v2 baseline | Keep separately versioned or outside this freeze |
 | --- | --- |
@@ -115,7 +195,7 @@ recovery steps; no removal is part of this work.
 
 ### D3 — Portable time and parser boundaries
 
-Accepted rules (implemented in the D3 working change; final candidate review remains open):
+D3 implemented the following rules, subsequently reviewed and bound to the frozen source:
 
 - Encode Unix seconds as a CBOR unsigned integer in `[0, 2^63-1]`. Apply the same valid range to
   verifier time. Reject negative values, numeric strings and values outside that range.
@@ -234,7 +314,7 @@ and remaining gaps are tracked in the [vector catalog](test-vectors/README.md).
 ## Implementation order
 
 1. **Decisions recorded:** D1 scope, D2 retention, D3 target limits, D4 capability policy and D5
-   required conformance set are accepted. Final baseline selection is still deferred.
+   required conformance set were accepted before selecting the final baseline.
 2. **Establish boundary evidence:** add failing/shared time and parsing cases and complete-message
    expectations to identify actual cross-language differences before changing behavior.
 3. **Implement D3 narrowly:** unify time range, safe arithmetic and protocol-entry bounds while
@@ -250,11 +330,10 @@ and remaining gaps are tracked in the [vector catalog](test-vectors/README.md).
 
 D3 is implemented and D5 now has shared fixtures and role-appropriate production consumers.
 Exact-candidate source CI and R1–R5 independent agent review are complete at `799b36f`; O1 source closure and independent JVM execution are recorded at `431cf9f`.
-Successor inventory and CI are complete at `41dd48d`; scoped native/stateful evidence, the breaking-update exercise and final baseline
-selection remain outstanding. No exhaustive historical Alpha/Beta interoperability matrix is required.
+Successor inventory and CI are complete at `41dd48d`; the assessment above records acceptance of G3, G4 and the final baseline. No exhaustive historical Alpha/Beta interoperability matrix is required.
 
 The [G3 acceptance plan](protocol-v2-g3-acceptance-plan.md) provides scoped execution order,
-Android test expectations, iOS driver prerequisites and evidence fields. Device execution remains pending.
+Android storage and native results, iOS restart/replay results and their evidence bindings.
 The [macOS desktop replay-store observation](protocol-v2-g3-acceptance-plan.md#macos-desktop-replay-store-observation)
 tracks an intermittent reopen failure at `f92e107`. Its CI cause remains unknown. In the local
 contention control, the reopened store rejected the previously consumed response as a replay.
@@ -263,11 +342,11 @@ contention control, the reopened store rejected the previously consumed response
 
 | Work item | Status and next step |
 | --- | --- |
-| P0 inventory: source baseline, current schemas, domains, scope and public-vector hashes | Complete as an inventory; D1–D5 policy decisions are accepted, with D3/D5 source evidence now present; final baseline and freeze acceptance remain open |
-| P0 independent candidate review | R1–R5 review performed; no new defect in the named examined security categories confirmed. O1 source remediation independently closed at `431cf9f`; successor inventory and exact-source CI complete at `41dd48d`; final normative acceptance remains open |
-| P1 cross-implementation conformance | Source conformance implemented: complete phone-v2 and stub fixtures, Rust/Kotlin rejection matrix and Swift production pairing/envelope coverage; independent source review recorded; final specification/candidate binding remains open |
-| P1 rejection/lifecycle/persistence evidence | Existing negative tests and scoped physical results remain useful; bind required cases to the candidate, including D3 boundaries. Follow [G3a–G3d](independent-protocol-v2-review-2026-10-31.md#g3--targeted-state-and-native-acceptance-still-open); independent JVM execution passed at `431cf9f` (93 tests); map scoped native requirements and close required rows. Source/CI agreement is not hardware verification |
-| P1 breaking-update procedure | Open: exercise independent recovery, endpoint update order, any re-pairing and re-encryption on disposable identities. Follow the [G4 exercise](independent-protocol-v2-review-2026-10-31.md#g4--breaking-update-and-recovery-exercise-still-open); no execution is claimed. No exhaustive old Alpha/Beta interoperability matrix is required |
+| P0 inventory: source baseline, current schemas, domains, scope and public-vector hashes | Complete as an inventory; D1–D5 policy decisions are accepted, with D3/D5 source evidence now present; final baseline accepted above |
+| P0 independent candidate review | R1–R5 review performed; no new defect in the named examined security categories confirmed. O1 source remediation independently closed at `431cf9f`; successor inventory and exact-source CI complete at `41dd48d`; final normative baseline accepted above |
+| P1 cross-implementation conformance | Source conformance implemented: complete phone-v2 and stub fixtures, Rust/Kotlin rejection matrix and Swift production pairing/envelope coverage; independent source review recorded; final specification and candidate binding recorded above |
+| P1 rejection/lifecycle/persistence evidence | Accepted for the named candidate, physical Android/iPhone sessions, host fault controls and documented reuse in the [G3 disposition](protocol-v2-g3-acceptance-plan.md) |
+| P1 breaking-update procedure | Passed for the Alpha 5 → candidate transition described above, including verified independent recovery and fresh use after re-encryption. |
 | P2 platform and release acceptance | Retain broader devices, wrong/multiple physical phones, fresh exact-package pairing, QR response replay, roaming, reboot/invalidation/storage/lifecycle rows and distribution readiness in the roadmap |
 
 The [2026-10-29 fixed-pair record](evidence/maintenance-candidate-2026-10-29/README.md) retains
@@ -277,8 +356,5 @@ not rebuild or re-certify those artifacts at `69b3cdf`. The published Beta 2 dis
 attached to its published bits. Broader coverage alone is not a wire-freeze gate, but any discovered
 binding, parsing, authorization or consumption defect must be resolved for the affected path.
 
-Next actions: scope and execute remaining G3/G4 against the pinned successor, then
-bind the final specification/source/vector revisions (G2) and make the separate G5 freeze decision.
-Any source fix requires a successor candidate and independent re-verification. The
-[candidate packet](protocol-v2-candidate-review-2026-10-31.md) retains the gate definitions. Neither this
-record nor protocol freeze grants production-secret approval or replaces exact-release acceptance.
+Release gates remain in the [roadmap](roadmap.md). The earlier preparation decisions and
+the [candidate packet](protocol-v2-candidate-review-2026-10-31.md) retain their historical scope.

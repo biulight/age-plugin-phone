@@ -8,13 +8,11 @@ Shine and this project. A user without Shine must be able to use it with a compa
 The phone does not parse application configuration, environment variables, full age ciphertext,
 or plaintext.
 
-Protocol v2 remains unfrozen; Beta 1 and Beta 2 are limited technical-test releases using v2.
-Prerelease versions before protocol freeze do not promise cross-version compatibility and may make
-clearly announced breaking updates. Historical source reviews cover their recorded candidates;
-freeze requires a named baseline, current-candidate review closure and implementation agreement.
-See the [freeze scope and remaining acceptance](protocol.md#freeze-scope-and-future-changes),
-[consolidated current-byte specification](protocol-v2-spec.md) and
-[P0 source candidate/decisions](protocol-v2-freeze-preparation.md).
+Protocol v2, suite 1, is frozen at `41dd48d79bd7497f72ac1e7e3d63ffe97d4462d1`.
+Beta 1 and Beta 2 predate that baseline and retain their limited technical-test scope.
+The [freeze decision](protocol-v2-freeze-preparation.md) binds the
+[normative specification](protocol-v2-spec.md) and public vectors. See the
+[compatibility scope](protocol.md#freeze-scope-and-future-changes) for future wire changes.
 Platform coverage and exact-package release acceptance remain separate from wire-format stability.
 
 ## Unwrap flow

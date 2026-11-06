@@ -5,7 +5,7 @@ sidebar_position: 2
 
 # Versions and known limitations
 
-This manual targets **0.1.0-beta.2**, a limited technical beta published on September 11, 2026. Use disposable or synthetic data only. Protocol v2 remains unfrozen; publication does not expand hardware acceptance or authorize production-secret use.
+This manual targets **0.1.0-beta.2**, a limited technical beta published on September 11, 2026. Use disposable or synthetic data only. The protocol v2 freeze starts at source `41dd48d` on November 7, 2026, after this Beta.
 
 ## Compatibility before protocol freeze
 
@@ -17,9 +17,12 @@ and retained-file consequences in the release notes before upgrading; follow the
 [recovery guide](../guides/recovery.md). Sharing the protocol number does not guarantee all features
 work with an older phone app.
 
-Stable compatibility commitments will start at an explicitly declared freeze baseline, without
-retroactively covering earlier prereleases. Protocol freeze alone will not establish support for
-additional devices or production-secret use.
+The wire compatibility commitment starts at `41dd48d`. In the tested transition from Alpha 5,
+updating the desktop first allowed existing phone-format ciphertext to open, while the old phone
+rejected the newer `p256tag` request. Updating the phone in place enabled that request with the
+existing pairing. When the pairing was deliberately replaced, retained phone-format ciphertext
+required independent recovery and re-encryption for the new pairing. Platform and release
+acceptance apply separately.
 
 ## Beta 2
 

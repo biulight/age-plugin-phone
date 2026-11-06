@@ -1,0 +1,131 @@
+{
+  "disposition": "passed",
+  "scope": "G3b–d, ordinary iPhone app restart and fresh authorization on the selected Wi-Fi phone-v2 route",
+  "source": "41dd48d79bd7497f72ac1e7e3d63ffe97d4462d1",
+  "device": "iPhone16,1",
+  "os": "iOS 27.2",
+  "bundle": "io.github.biulight.age-plugin-phone.g3",
+  "build": "0.1.0.4",
+  "ipa_sha256": "25707f16224c7011b3562ce56aa76e2af9c6a327f2d28f011801245417f6ae5b",
+  "desktop_sha256": "886b7a11152c2fdd69d6e1248af2cfc9027aa953779ac8486813460612e579d7",
+  "age_sha256": "90f5cc37249c06e0b302e476a8a63bcefeecd9437c192b8af33e6ff2d69558dd",
+  "relay_sha256": "c0a3483f70df0248ee8c6bc59c1147f412cdfe78ea0e77c423813579c6e23062",
+  "windows_worker_sha256": "46fd79bc6c9da83cd8846996dd36725340790a691993c2cb8f333edec33b7190",
+  "mac_controller_sha256": "86df9caba221bdf9676435fd4a189d799ecbcbdf9250f27dc2f6a4493527c3c4",
+  "windows_ack_sha256": "33deb6b25f54ec5984f38cf1305bdbd46a61d3cbd4e75334e2a906b497519d55",
+  "windows_report_sha256": "99ee46b87a7dd0a20779ee99098b8a56180623156b37e4d18c42fe8d24264113",
+  "mac_report_sha256": "41354b4e6b12d1ec2cff2455727b4c400b9d01a3627ec5de58ffaefaa29e5dc5",
+  "transport": "Wi-Fi",
+  "recipient_mode": "phone",
+  "independent_recovery_verified": true,
+  "clock_note": "Windows send and expiry times use the Windows clock. Process snapshots and owner observations use the Mac clock, approximately 69 seconds ahead. Events were sequenced by acknowledged control messages.",
+  "windows_session_utc": [
+    "2026-11-06T19:22:52.008578+00:00",
+    "2026-11-06T19:25:31.045626+00:00"
+  ],
+  "mac_session_utc": [
+    "2026-11-06T19:24:01.396452+00:00",
+    "2026-11-06T19:26:40.767284+00:00"
+  ],
+  "mac_process_checks": [
+    {
+      "utc": "2026-11-06T19:24:11.470627+00:00",
+      "current": [
+        2124
+      ],
+      "tracked_present": [
+        2124
+      ]
+    },
+    {
+      "utc": "2026-11-06T19:24:58.583265+00:00",
+      "current": [
+        2124
+      ],
+      "old_present": true
+    },
+    {
+      "utc": "2026-11-06T19:24:59.094392+00:00",
+      "current": [],
+      "old_present": false
+    },
+    {
+      "utc": "2026-11-06T19:24:59.677904+00:00",
+      "current": [
+        2131
+      ],
+      "old_present": false
+    },
+    {
+      "utc": "2026-11-06T19:25:24.350174+00:00",
+      "current": [
+        2131
+      ],
+      "tracked_present": [
+        2131
+      ]
+    },
+    {
+      "utc": "2026-11-06T19:26:14.328154+00:00",
+      "current": [
+        2131
+      ],
+      "tracked_present": [
+        2131
+      ]
+    },
+    {
+      "utc": "2026-11-06T19:26:27.589068+00:00",
+      "current": [
+        2131
+      ],
+      "tracked_present": [
+        2131
+      ]
+    }
+  ],
+  "owner_observations_mac_utc": {
+    "binding": "2026-11-06T19:24:10.842878+00:00",
+    "baseline": "2026-11-06T19:24:25.938526+00:00",
+    "ready_to_cancel": "2026-11-06T19:24:37.583243+00:00",
+    "cancel": "2026-11-06T19:24:57.375271+00:00",
+    "relaunched": "2026-11-06T19:25:23.503133+00:00",
+    "replay_identical": "2026-11-06T19:25:56.412185+00:00",
+    "replay_fresh": "2026-11-06T19:26:26.735460+00:00",
+    "recovery": "2026-11-06T19:26:39.451441+00:00"
+  },
+  "second_listener_ready_mac_utc": "2026-11-06T19:26:13.514698+00:00",
+  "baseline": {
+    "native_approval": true,
+    "matched_sample_bytes": 96
+  },
+  "cancel": {
+    "owner_cancelled": true,
+    "exit_nonzero": true,
+    "output_bytes": 0,
+    "peer_result": "eof"
+  },
+  "expires_unix": 1793993308,
+  "replays": [
+    {
+      "mode": "identical",
+      "sent_utc": "2026-11-06T19:24:15.058018+00:00",
+      "seconds_remaining_at_send": 252.94198203086853,
+      "peer_result": "eof",
+      "received_and_rejected_observed": true,
+      "new_biometric_prompt_observed": false
+    },
+    {
+      "mode": "fresh",
+      "sent_utc": "2026-11-06T19:25:05.129326+00:00",
+      "seconds_remaining_at_send": 202.87067365646362,
+      "peer_result": "eof",
+      "received_and_rejected_observed": true,
+      "new_biometric_prompt_observed": false
+    }
+  ],
+  "recovery": {
+    "fresh_native_approval": true,
+    "matched_sample_bytes": 96
+  }
+}

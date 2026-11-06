@@ -1,10 +1,12 @@
 # Changelog
 
-All notable changes to this project are documented here. This project has not frozen its wire
-format; prerelease upgrades may require re-pairing and re-encrypting through an independent
-recovery recipient.
+All notable changes to this project are documented here.
 
 ## [Unreleased]
+
+- Froze protocol v2, suite 1, on 2026-11-07 at source `41dd48d`. The
+  [freeze decision](docs/protocol-v2-freeze-preparation.md) binds the normative specification
+  and eleven public fixtures. Published Beta packages predate the baseline.
 
 ## [0.1.0-beta.2] - 2026-09-11
 

@@ -1,0 +1,54 @@
+{
+  "source": "41dd48d79bd7497f72ac1e7e3d63ffe97d4462d1",
+  "apk_sha256": "4136640b525617f09f26d4a2aa27cb4b1be6483559ea4788180fecfd70dadd87",
+  "plugin_sha256": "886b7a11152c2fdd69d6e1248af2cfc9027aa953779ac8486813460612e579d7",
+  "age_sha256": "90f5cc37249c06e0b302e476a8a63bcefeecd9437c192b8af33e6ff2d69558dd",
+  "started": "2026-11-06T18:11:37.207396+00:00",
+  "transport": "direct-wifi",
+  "mode": "phone",
+  "cases": [
+    {
+      "case": "baseline",
+      "start": "2026-11-06T18:11:48.920923+00:00",
+      "result": "passed",
+      "end": "2026-11-06T18:11:53.584714+00:00",
+      "exit_code": 0,
+      "output_bytes": 96,
+      "expected_result": true,
+      "owner_observed": true
+    },
+    {
+      "case": "cancel",
+      "start": "2026-11-06T18:12:09.619310+00:00",
+      "result": "passed",
+      "end": "2026-11-06T18:12:13.579512+00:00",
+      "exit_code": 1,
+      "output_bytes": 0,
+      "expected_result": true,
+      "owner_observed": true
+    },
+    {
+      "case": "foreground-loss",
+      "start": "2026-11-06T18:12:21.759682+00:00",
+      "result": "passed",
+      "end": "2026-11-06T18:12:35.060246+00:00",
+      "exit_code": 1,
+      "output_bytes": 0,
+      "expected_result": true,
+      "owner_observed": true
+    },
+    {
+      "case": "recovery",
+      "start": "2026-11-06T18:12:56.051583+00:00",
+      "result": "passed",
+      "end": "2026-11-06T18:13:00.873863+00:00",
+      "exit_code": 0,
+      "output_bytes": 96,
+      "expected_result": true,
+      "owner_observed": true
+    }
+  ],
+  "result": "completed-awaiting-review",
+  "independent_recovery_verified": true,
+  "end": "2026-11-06T18:13:12.307330+00:00"
+}

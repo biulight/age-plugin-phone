@@ -5,7 +5,8 @@ your phone while keeping its long-term decryption key off the desktop. Works
 through the standard age plugin interface and is independent of Shine.
 
 > **Limited technical beta:** `0.1.0-beta.2` was published on September 11, 2026.
-> Protocol v2 is unfrozen. Use synthetic or disposable data only, with an
+> The [protocol v2 freeze](docs/protocol-v2-freeze-preparation.md) starts at `41dd48d`, after Beta 2.
+> Use synthetic or disposable data only, with an
 > independently verified recovery recipient. Do not use it to protect real secrets.
 
 ## User manual

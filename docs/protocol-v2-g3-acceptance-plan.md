@@ -1,6 +1,7 @@
 # Protocol v2 G3 acceptance preparation
 
-Prepared: 2026-11-02. **Plan only; no new device result or G3 closure.**
+Prepared 2026-11-02, physical results reviewed 2026-11-07. G3a–d are accepted for the
+recorded source, isolated packages, devices and Wi-Fi phone-recipient cases below.
 Source candidate: `41dd48d79bd7497f72ac1e7e3d63ffe97d4462d1`.
 Use the [successor inventory](protocol-v2-candidate-review-2026-10-31.md#successor-candidate--2026-11-02)
 and [G3 criteria](independent-protocol-v2-review-2026-10-31.md#g3--targeted-state-and-native-acceptance-still-open).
@@ -13,10 +14,10 @@ confirmation/observation. Do not clear app data, edit replay files or migrate pr
 | Row | Existing evidence | Next execution / status |
 | --- | --- | --- |
 | G3a JVM | Independent 17-suite/93-test pass at `431cf9f`; identical successor Android/test bytes | Complete for this source scope; do not repeat merely to accumulate passes |
-| G3a Android durable files | Three production-file instrumentation tests exist; source reviewed | Not run on a device for this candidate; prepare exact test APKs and run the three cases below |
-| G3b iOS durable consumption | Production store source review; Core and protocol harness passes | Host relay and synthetic regressions available; review driver and validate on a disposable iPhone |
-| G3c native ownership | Existing Android ownership/JVM regressions, Swift deadline/lifecycle tests; scoped historical physical results | Candidate package/transport/recipient rows need fresh execution or documented justified reuse |
-| G3d evidence binding | Source, spec/vector hashes and main CI pinned | Device/package identity, owner observations and per-row disposition not yet supplied |
+| G3a Android durable files | All three instrumentation tests passed on physical SM-F9660, Android 16 | Complete for file operations and ordinary reopen on this device |
+| G3b iOS durable consumption | Production store source review; Core and protocol harness passes | Accepted for the physical cancel/restart/replay case and scoped host store fault controls |
+| G3c native ownership | Existing Android ownership/JVM regressions, Swift deadline/lifecycle tests; scoped historical physical results | Accepted for the recorded Android and iPhone cases, with the reuse and exclusions below |
+| G3d evidence binding | Source, spec/vector hashes and main CI pinned | Both reviewed owner-session records bind the package, source, mode, results and observations |
 
 Order: select the disposable device/endpoint scope → bind exact packages and drivers → Android
 file-test execution → scoped native cancellation/restart/ownership cases → review evidence and
@@ -33,13 +34,210 @@ Do not discover or manipulate a user's installed phone state merely to fill thes
 Build from a separate clean checkout of the exact candidate. Keep local Xcode signing changes
 out of that source inventory; any necessary local signing overlay must be explicitly identified
 without publishing credentials or Team IDs. Record build tool versions, artifact SHA-256, package
-identifier/version, source SHA and relevant driver hashes. No candidate device artifact has been
-built or installed by this preparation. A debug/instrumentation APK is not a release artifact.
+identifier/version, source SHA and relevant driver hashes.
 
 Before installation, check the test/target package identifiers and whether they would replace an
 existing app. Use an isolated test device or separately scoped test target; do not uninstall or
 replace the user's app to avoid a conflict. The operator must explicitly select the device and
 confirm the disposable state before any installation, network cycle or app restart.
+
+### Android instrumentation build — 2026-11-07
+
+A clean Git export of the candidate supplied the Gradle project and plugin sources. Local build
+settings pointed to that export and the locked Tauri 2.11.5 Android library. With Temurin
+17.0.20.1, Gradle 8.14.3 and compile SDK 36, the following offline build succeeded:
+
+```console
+./gradlew --offline --no-daemon :tauri-plugin-phone-identity:assembleDebugAndroidTest
+```
+
+The debug instrumentation APK had SHA-256
+`d11ff3851fd795757c0c80891b5082fffaccb40fea9c682bdddcaad68d88338a`.
+Its compiled manifest identifies both the package and instrumentation target as
+`io.github.biulight.phone_identity.test`, using `androidx.test.runner.AndroidJUnitRunner`.
+This self-targeting library test exercises synthetic storage fixtures.
+
+### Physical Android storage result — 2026-11-07
+
+The operator selected the USB-connected Android on the Windows host. ADB 1.0.41 (platform-tools
+37.0.1) identified one authorized physical SM-F9660, Android 16 / API 36. The test package was
+absent before installation. The transfer and installed base APK both matched the build hash above.
+`am instrument -w -r` ran the named `PairingStateStoreDeviceTest` class with AndroidJUnitRunner.
+UTC interval: 2026-11-06 17:51:55.916–17:51:56.692. Runner result: `OK (3 tests)`, with
+status code 0 for each named method.
+
+| Case | Observed through the test assertions |
+| --- | --- |
+| `replacementFailureDoesNotConsumeAndPoisonsOnlyOpenHandle` | Replacement failure and retry on the poisoned handle returned STORAGE. A new handle consumed the previously uncommitted request. |
+| `syncFailurePreservesUncertainReplayConsumptionAfterReopen` | Sync failure returned STORAGE. The reopened store rejected the same request as REPLAY. |
+| `clockRollbackRejectsWithoutConsumingOrChangingPairing` | Injected rollback returned CLOCK_ROLLBACK and preserved the pairing digest. Reopening at valid time accepted the unconsumed entry. |
+
+The runner removed each synthetic test directory in teardown. After verification the operator
+removed the newly installed instrumentation package and checked its absence. Transport, recipient selection,
+hardware authorization and owner prompt observations are inapplicable to this file-store row.
+The product package was separate from the test target. Native cancellation and Wi-Fi ownership
+still require a product session. Ordinary reopen does not establish power-loss durability.
+
+### Native session preflight — 2026-11-07
+
+The Android phone retained the historical R2 product APK (`cd28c3a7…`, identified in the
+[R2 archive](evidence/maintenance-candidate-2026-10-29/README.md)). The clean candidate's
+`android:build:wifi-poc` task produced a separate `io.github.biulight.age_plugin_phone.wifipoc`
+APK, version 0.1.0-beta.2 / 1000, SHA-256
+`4136640b525617f09f26d4a2aa27cb4b1be6483559ea4788180fecfd70dadd87`. This ID was absent
+before the run. The installed base APK matched and its main activity launched.
+For Wi-Fi pairing, the macOS arm64 desktop built with Rust 1.88.0 from the same candidate
+has SHA-256 `c59f205c6b44a5e18ca72f25f53ce0f7059ee384f466b9bfe8674c2018cf3168`.
+Product acceptance requires the owner's full-fingerprint comparison and per-operation observations.
+
+The Mac Wi-Fi setup attempt failed before creating state. Candidate `wifi-doctor` returned
+`local_socket_unavailable`. An interface-scoped probe could send both broadcasts on the LAN
+interface. On a second interface, its directed broadcast succeeded and its limited broadcast
+returned `EHOSTUNREACH`. The candidate treats a failed interface send as terminal. The Windows
+11 (build 22631) x64 candidate was built separately with Rust 1.88.0 for a new USB pairing
+attempt, SHA-256 `886b7a11152c2fdd69d6e1248af2cfc9027aa953779ac8486813460612e579d7`.
+The Windows candidate completed USB pairing with the side-by-side app after full-fingerprint
+confirmation. The wrapper's output-file rename failed after setup succeeded. The sole complete
+result was recovered byte-for-byte and its public stub exported the same phone recipient.
+
+### Android native results — 2026-11-07
+
+The [owner session](evidence/protocol-v2-g3-2026-11-07/android-owner-session.json) binds the
+Windows/Android candidates above to age 1.3.1, direct Wi-Fi and the paired phone v2 recipient.
+The operator answered each observation in the live session. Its SHA-256 is
+`69189275ae64e8e33f34129c4901e50e36143b2f7bb2d397af1bec9802501cb9`. The session driver
+had SHA-256 `601db77f3f276722acc0e2679ec725fbec9877f99adf2c5070431f499a40e870`.
+The driver verified the installed APK and desktop binary, encrypted one synthetic sample to the
+phone and a disposable independent recovery recipient, then verified independent recovery before
+requesting any phone operation. The desktop fixture and pairing were retained for review.
+
+| Case | Owner observation and desktop result |
+| --- | --- |
+| Baseline | Fresh verification approved. Exit 0, all 96 recovered bytes matched. |
+| Cancel | Fresh prompt cancelled and dismissed. Exit 1, zero output bytes. |
+| Foreground loss | Pressing Home dismissed the pending prompt. After the failed request the owner returned to the same app. Exit 1, zero output bytes. |
+| New owner / fresh request | Auto-listen handled the new request with fresh verification. The owner observed no stale prompt or response. Exit 0, all 96 bytes matched. |
+
+**Disposition.** Accept these four rows for G3c on this device. For delayed callback injection,
+use the candidate JVM ownership regressions, including `UnwrapOperationStateTest`. The physical
+foreground transition exercises replacement without forcing a particular scheduler interleaving.
+Reuse the [R2 timeout, disconnect and restart results](evidence/maintenance-candidate-2026-10-29/README.md)
+for unchanged listener/operation ownership only: the Android runtime delta from `be46c54` to
+`41dd48d` changes `OfflineEnvelopeCrypto`, `ProtocolBounds` and `PairingStateStore`. Candidate
+source conformance and G3a device results cover the changed parsing and storage paths. The R2
+runs retain their original package and do not establish candidate power-loss durability.
+
+### iPhone preflight — 2026-11-07
+
+Xcode identified one wired, paired `iPhone16,1` on iOS 27.2. The connected-device query for
+the isolated test bundle returned no installed match. The candidate export built an unsigned
+arm64 iPhoneOS IPA with a bundle identifier overlay (`io.github.biulight.age-plugin-phone.g3`,
+version 0.1.0 / build 0.1.0.2), SHA-256
+`d40cc9340605e562a51d9be8160641afe4da7db539daf07b0980ea779e561938`.
+After owner-authorized development provisioning, the signed IPA had SHA-256
+`f4703237129b6ab30e43f5e39d6ad73b4595788d01c5d7630f7ee1eaa48fb254`.
+Strict signature, device provisioning, application and keychain identifier checks passed.
+CoreDevice installed the isolated app and confirmed version 0.1.0 / build 0.1.0.2. The
+profile expires on 2026-11-13. The first launch was denied by the device security policy
+(FBSOpenApplicationErrorDomain 3). The signing leaf matched the embedded profile.
+
+| iPhoneOS 27.0 SDK build on iOS 27.2 | Observed outcome |
+| --- | --- |
+| 0.1.0.2, signed candidate above | After the security denial, the app launched and crashed. The isolated bundle's incident recorded SIGTRAP in UIKit's `UIApplicationEvaluateRuntimeIssueForNoSceneLifecycleAdoption`; its plist had no scene declaration. |
+| 0.1.0.3, single-scene packaging control, SHA-256 `b2f797051308f66254253db98cf624672314ea65ce4bd72543e68f862766ff78` | The owner saw a black screen. This control supplies no native authorization evidence. |
+| 0.1.0.4, iPhone-only Tao scene configuration, SHA-256 `25707f16224c7011b3562ce56aa76e2af9c6a327f2d28f011801245417f6ae5b` | The same PID survived two snapshots. The owner saw the application, completed Wi-Fi pairing with the pinned Windows candidate and confirmed the full fingerprint. The stub export matched and signed discovery found one endpoint. |
+
+The last **test-package overlay** sets `UIDeviceFamily = [1]` and
+`UIApplicationSceneManifest.UIApplicationSupportsMultipleScenes = true` to select the locked
+Tao 0.35.3 scene delegate. It also changes the build number and signature. All 37 file-backed
+Mach-O sections matched the first signed build, including the text section (SHA-256
+`c2b82074f11c32d3ecbc380f59fa31c3670aed9fa82da80bcd3cd199fbb431dc`). Lifecycle observations
+must be attributed to the last package. The stock SDK 27 launch failure and broader iOS/iPad
+packaging remain platform work. The physical restart and replay disposition follows separately.
+
+The Wi-Fi session uses the Windows TPM pairing. Windows runs age, the volatile relay and both
+replay sends. The cable-connected Mac checks the exact phone executable and process IDs with
+CoreDevice and collects live owner observations. The Windows route is selected by signed
+discovery against that public stub. Keep all protocol bytes inside the existing relay
+operations. Only control events, process observations and dispositions cross SSH.
+The first two-host control attempt stalled before phone authorization. A revised control channel
+passed a forced-decline exercise, and the Mac matched one installed process. Those preflights
+supply no native restart pass.
+
+Two subsequent physical attempts reached baseline approval and cancellation. In each, the
+baseline decrypt matched the synthetic sample, the owner confirmed cancellation, and the
+cancelled decrypt exited without output. One controller timed out; in the next attempt the
+owner answered NO at the app-quit instruction. Both process checks in that attempt still saw
+the original PID. No post-restart replay or final fresh request was observed. A retry needs a
+new signed request and a new observed quit/relaunch cycle.
+
+On a later retry the owner reported that Face ID approved the request intended for cancellation.
+Exclude this attempt from cancellation and replay evidence. The controller also recorded failed
+attempts without a completed restart. Cleanup stopped the isolated app and verified its process
+was absent. Only generated synthetic ciphertext and independent test keys from the eight
+unsuccessful Windows iPhone runs were deleted. Reports, pairing data and replay consumption
+were preserved. The controller now waits for the owner to turn the camera away and confirm
+readiness before sending a new cancellation request.
+
+In the next physical run the owner approved the baseline, cancelled a fresh request, then quit
+and reopened the isolated app. CoreDevice observed PID 2104, its absence, and PID 2108 for the
+same executable. The controller exited at the pre-send readiness question; the Windows worker
+had sent zero replays. This attempt established the restart only. At that point both replay dispositions
+and the final fresh decrypt were still open. The revised two-host driver sends the first replay
+after the owner confirms the relaunched listener and the new PID is checked. For the second
+send it asks for `READY` separately. Each send still requires an independent observation of
+the transient `(replay)` Wi-Fi status and absence of a biometric prompt.
+
+The following attempt stopped before either send. After the owner-confirmed quit, the original
+PID 2108 was absent but PID 2113 was already running. The driver's combined error
+`original-process-still-present` obscured the missing snapshot with no app running. To remove
+manual timing from the two-host session, the Mac now terminates only the verified isolated PID,
+waits for a successful snapshot with neither that PID nor the selected executable present,
+then launches the bound bundle and matches its returned PID to the running executable.
+In a separate physical control this sequence recorded PID 2120, an empty app snapshot, and
+PID 2124. It sent no unwrap request. Native approval, cancellation, listener readiness and
+post-send rejection still require owner observation in the live replay session.
+
+### iPhone native results — 2026-11-07
+
+The [reviewed owner session](evidence/protocol-v2-g3-2026-11-07/ios-owner-session.json) binds
+the isolated 0.1.0.4 IPA, desktop, drivers and both source reports. The initial approved
+request recovered the 96-byte synthetic sample. The operator cancelled the next Face ID
+request; the peer closed, the age process failed and returned zero output. CoreDevice then
+recorded PID 2124, no selected process, and PID 2131 for the same executable.
+
+| Replay after restart | Time remaining at send (Windows clock) | Network and owner observation |
+| --- | --- | --- |
+| Identical frame | 252.94 s | EOF with zero response bytes. The owner observed the app's replay rejection and no Face ID prompt. |
+| Fresh outer session ID, same signed request | 202.87 s | EOF with zero response bytes. The owner independently observed replay rejection and no Face ID prompt. |
+
+The final fresh request required new Face ID and recovered the matching sample. The independent
+recipient had also recovered that sample before the phone exercise. The clocks differed by about
+69 seconds; use each host's own timestamps and the acknowledged message order. Both Mac
+observations and both Windows sends preceded the signed expiry. Accept G3b–d for this route.
+For timeout and stale completions, credit the candidate Swift deadline tests and R4 ownership
+review at source level. The hardware case establishes fresh approval, cancellation, durable replay
+rejection and recovery. Device power loss, forced callback scheduling and other device or
+transport combinations remain outside this physical result.
+
+### iOS private-store fault controls
+
+A macOS Swift harness compiled the candidate's store and protocol sources with synthetic fixture
+metadata. It redirected the application-support root in the test copy to an empty temporary
+directory. The production `verifyAndConsume` path rejected a missing record and malformed CBOR
+without creating or replacing replay data. A valid consumed request was rejected as replay on
+reopen, with identical stored bytes. A second host control injected a directory-sync failure
+after the production rename in a copy of the store. The first consume returned a storage error,
+and reopening rejected the same request as replay with the consumed record byte-for-byte intact.
+These are host filesystem controls.
+
+One corrupted record exposed an availability defect: a canonical capacity of `UInt64.max` traps
+in `Int(try n[12].exactUnsigned())` during private record decoding. The fixture process exited
+on signal 5 before authentication or replay replacement. An ordinary signed request cannot
+supply this field; creation sets capacity to 1,024 in protected app storage. Record this as
+an implementation limitation for corrupt private state. The affected scope fails closed by
+terminating the process. A checked capacity conversion is needed for a normal error return.
+No existing phone pairing was altered for fault injection.
 
 ## G3a Android durable-file tests
 
@@ -56,7 +254,7 @@ or exercise StrongBox, native authentication or application UI.
 | `syncFailurePreservesUncertainReplayConsumptionAfterReopen` | Failure after replacement returns STORAGE; reopening rejects the request as REPLAY | Reopen does not prove actual power-loss durability |
 | `clockRollbackRejectsWithoutConsumingOrChangingPairing` | Earlier injected time returns CLOCK_ROLLBACK; stored offer digest unchanged; after reopen the new unconsumed entry can be consumed at valid time | Uses injected time and a verified-request copy; not a real system-clock change or fresh signature test |
 
-Execution entry point, **planned and not run by this preparation**, from
+Gradle entry point for future repetitions, from
 `apps/mobile/src-tauri/gen/android` after candidate build settings and the device scope are verified:
 
 ```console
@@ -154,9 +352,7 @@ case times, hashes, process observations and operator/device binding before acce
 
 Run `python3 -B scripts/g3/test_ios_restart_replay.py` for host-only regression checks, including
 both public request modes, frame bounds, restart ordering, replay response/timeout, expiry and
-fresh recovery output. These checks use simulated process snapshots and peers. Physical Xcode
-process output, prompt/error observation timing and end-to-end candidate execution remain to be
-verified. Historical Beta 2 evidence and its checker retain their existing scope.
+fresh recovery output. These checks use simulated process snapshots and peers. The two-host physical results above supply the Xcode process and owner observations. Historical Beta 2 evidence and its checker retain their existing scope.
 
 ## macOS desktop replay-store observation
 
@@ -179,7 +375,7 @@ Track the CI failure as an open desktop availability observation. Contention rep
 symptom locally; the CI cause remains unknown. On recurrence, capture the failed operation and
 OS error in test diagnostics without logging state contents. Escalate to a freeze blocker if
 evidence shows lost consumption, acceptance of a repeated response or file-key output despite a
-store failure. G3b still requires the physical iPhone restart and replay procedure above.
+store failure. The physical iPhone evidence above is scoped separately from this desktop observation.
 
 ## Evidence and closure checklist
 
@@ -197,6 +393,4 @@ Never retain keys, raw requests/responses, QR contents, decrypted plaintext or p
 public evidence. Artifact hashes and sanitized observations bind what was tested; they do not
 prove hardware behavior by themselves. Do not pre-populate observations or invent pass records.
 
-G3a JVM is the only completed execution subitem credited here. Closing the rest of G3 requires
-candidate-scoped required rows to pass or receive explicit justified dispositions consistent with
-safety invariants. G4 breaking-update/recovery and G2/G5 normative/freeze decisions remain separate.
+G3a–d are accepted for the scopes and dispositions above. The separate G4 and G2/G5 decisions are in the [freeze record](protocol-v2-freeze-preparation.md).

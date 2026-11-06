@@ -1,14 +1,13 @@
-# Protocol v2 consolidated specification candidate
+# Protocol v2 specification
 
-Status: review draft, 2026-10-30. Source baseline:
-`69b3cdfa006d8bbe4f1154ec5874ea954f2ae717`. This consolidates the current implementation;
-it does not declare a protocol freeze, change runtime behavior or certify all implementations.
-[Freeze preparation](protocol-v2-freeze-preparation.md) records accepted D1–D5 decisions, evidence and outstanding acceptance.
-[Protocol policy](protocol.md#prerelease-compatibility-policy) governs prerelease updates.
+This specification defines protocol version 2, suite 1, as implemented at
+`41dd48d79bd7497f72ac1e7e3d63ffe97d4462d1`. The [freeze record](protocol-v2-freeze-preparation.md)
+governs when the compatibility commitment takes effect. See the
+[prerelease policy](protocol.md#prerelease-compatibility-policy) for earlier packages.
 
-Read this document for the current byte layouts; use historical ADRs for rationale. A discrepancy
-between this draft, source and vectors must be resolved explicitly before freeze, not hidden by
-changing a vector. Public fixture scalars and file keys are synthetic test inputs only.
+The [eleven public vectors](protocol-v2-candidate-review-2026-10-31.md#public-vector-byte-manifest)
+pin canonical bytes and rejection examples. Public fixture scalars and file keys are synthetic
+test inputs only.
 
 ## Conventions and source map
 
@@ -49,6 +48,9 @@ Only fixed, definite-length arrays, unsigned integers, byte strings, UTF-8 strin
 null are accepted. Use shortest integer/length encodings. Reject extra/trailing fields or bytes,
 indefinite lengths, wrong CBOR types (including numeric strings), unsupported versions/suites/types
 and noncanonical re-encodings. JSON is a fixture container, never a signed representation.
+Reject an empty signed envelope or one larger than 65,536 bytes before decoding or copying its
+payload. Reject oversized length declarations, unexpected nesting and extra fields with
+bounded allocation and recursion.
 
 Every signed envelope is the two-element array:
 
@@ -75,9 +77,7 @@ or authorization semantics are implied.
 `stanza = [tag : T[64], args : array of 1 or 2 T[128], body : B[32]]`. The supported tag further
 restricts argument count, encoding and lengths. Unknown stanzas inside a signed request are rejected.
 This differs from ignoring unrelated stanza tags at the standard age `identity-v1` input boundary.
-`expires_at_unix` is unsigned integer Unix seconds. Accepted decision D3 limits the target domain
-to `[0, 2^63-1]`; the baseline implementations do not yet enforce identical range/arithmetic rules.
-See the accepted target requirements below rather than assuming the entire UInt64 domain is portable.
+`expires_at_unix` encodes Unix seconds as an unsigned integer in `[0, 2^63-1]`.
 `encrypted_file_key` is B[32], ciphertext followed by the 16-byte AEAD tag.
 
 ## Signature and digest domains
@@ -144,8 +144,9 @@ P is the compressed phone identity key, D the compressed desktop **selection** k
 compressed ephemeral key. `selector` is 32 bytes. `enc` is a valid uncompressed P-256 point (65
 bytes, prefix 0x04); `tag4` is 4 bytes. Never convert a paired phone recipient into tag by swapping HRP.
 
-For phone v1/v2, `K(shared, salt, info)` denotes HKDF-SHA256 Extract+Expand to 32 bytes;
-all AEAD nonces are 12 zero bytes. Fresh ephemeral scalars and domain separation are mandatory.
+For phone v1/v2, `K(shared, salt, info)` denotes HKDF-SHA256 Extract+Expand to 32 bytes.
+`AEAD` is ChaCha20-Poly1305 with a 12-byte all-zero nonce and a 16-byte authentication tag.
+Fresh ephemeral scalars and domain separation are mandatory.
 
 ```text
 phone_shared = ECDH(ephemeral_private, P)
@@ -219,11 +220,10 @@ and hardware state must match it. Export derives the paired v2 or tag recipient 
 
 ## Time, replay and terminal behavior
 
-For ordinary representable clock values, the current acceptance window is inclusive:
-`now <= expires_at_unix <= now + 300 seconds`. Reject later/expired requests. The response inherits
-the request's expiry. The D3 working implementation additionally enforces `[0, 2^63-1]` for both
-values, then checks ordering and a difference at most 300. Creation rejects overflow; see the
-implementation status below. These changes do not retroactively describe the historical baseline.
+First require both the verifier's time and expiry in `[0, 2^63-1]`. Then require
+`expires_at_unix >= now` and `expires_at_unix - now <= 300`. Both endpoints are inclusive.
+Request creation uses checked addition and rejects expiry beyond the maximum. The response
+inherits the request's expiry.
 
 Scope consumption by endpoint role, desktop ID and phone identity ID. A repeated request ID **or**
 request nonce is replay. Desktop consumption tracks the complete signed-response digest. Retain
@@ -239,29 +239,20 @@ The [vector catalog](test-vectors/README.md) distinguishes byte-level fixtures f
 hardware and lifecycle evidence. Error categories must fail safely; matching cross-platform error
 strings or the order of diagnostics for multiply-invalid inputs is not a freeze commitment.
 
-## Accepted requirements and implementation status
+## Scope and extension policy
 
-The source-baseline description above remains auditable as current behavior. The project owner
-accepted D1–D5 on 2026-10-30; the following requirements guide subsequent implementation and do not
-silently redefine what `69b3cdf` already enforces. Exact criteria and work order are in the
-[decision record](protocol-v2-freeze-preparation.md#accepted-decisions-and-acceptance-criteria).
+The compatibility surface comprises the four signed messages, the cryptographic contexts and
+key roles, the public stub, the supported recipient and stanza encodings, their selection and
+rejection rules, fresh authorization, and durable request/response consumption. Storage file
+layouts, QR and stream framing, discovery, product CLI, packaging and device support have
+separate contracts. Storage and transport implementations must still meet the safety requirements
+above. Persistent storage has its own limits for replay arrays.
 
-| Decision | Accepted requirement | Remaining acceptance |
-| --- | --- | --- |
-| D1 | Freeze signed messages, selected recipient/stanza semantics, public stub and safety invariants; version storage/framing/product contracts separately | Select final source/specification/vector revisions after implementation and review; no freeze is declared |
-| D2 | Retain restricted legacy phone v1 stanza support and the distinct single-phone public-key encoding in pairing/stubs | Preserve single-candidate success, mixed/ambiguous rejection and protocol-v1/state rejection |
-| D3 | Both `now` and expiry are CBOR-compatible nonnegative seconds at most `2^63-1`; check ranges, then `expires >= now`, then `expires - now <= 300`; generation uses checked addition and rejects out-of-range results | Implemented with shared boundary cases; bind local results to the final candidate and independent review |
-| D3 | Complete signed envelopes are at most 65,536 bytes, checked before payload decode/copy; preserve exact schema bounds and bounded nesting/allocation | Direct decoder limits implemented and tested; storage limits remain separate; final candidate review pending |
-| D4 | Suite 1; paired phone v2, explicit tag and restricted legacy v1; no new negotiation. Incompatible semantics require a new version | Verify the capability set, unknown-input rejection and no fallback; future stanza extensions identify minimum versions and use a new version absent separately accepted safe capability identification |
-| D5 | Keep all seven fixtures unchanged; add full phone-v2 envelope and public-stub expectations, shared rejection cases and full Swift pairing/envelope coverage | Shared fixtures and role-appropriate Swift production coverage implemented; bind final candidate evidence and retain separate stateful/native acceptance |
-
-For D3, a size-eligible message is not automatically valid. Reject numeric strings, negative and
-out-of-range times, malformed canonical encoding, oversized declared fields, extra/trailing bytes
-and malicious nesting. Native storage may need larger array limits than protocol parsing; do not
-apply the protocol parser's limits indiscriminately to persisted replay entries. Bounds are safety
-requirements independent of transport authentication.
-
-For D4, unknown age tags are ignored only at the standard `identity-v1` boundary; unknown types
-inside a signed request fail closed. Historical protocol-v2 apps need not support the frozen
-capability set. For D5, exact signed fixture bytes must verify, but randomized hardware signatures
-need not reproduce the same signature bytes. New test seams must not duplicate production crypto.
+Suite 1 supports paired phone v2, explicit `p256tag` and the restricted legacy phone stanza.
+Incompatible field, algorithm or interpretation changes require a distinguishable new version.
+An extension must state its minimum endpoint capabilities and rejection behavior. Use a new
+version for a new stanza capability unless a separately accepted mechanism can identify support
+safely. Historical prereleases with the same protocol number may support a smaller set.
+Verify the fixed signatures in the positive fixtures. Reject the negative fixtures for the
+specified violations, including high-S signatures. Hardware-generated signatures may differ
+over the same payload while meeting the low-S and verification rules.

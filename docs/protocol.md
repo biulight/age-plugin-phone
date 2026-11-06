@@ -1,14 +1,11 @@
-# Offline protocol draft
+# Offline protocol v2
 
-Status: version 2 design draft; not a stable wire format and not suitable for real secrets.
-
-The [consolidated v2 specification candidate](protocol-v2-spec.md) records the current message
-arrays, domains, recipient/stanza constructions, public stub and replay semantics against source
-baseline `69b3cdfa006d8bbe4f1154ec5874ea954f2ae717`. Use it for current byte layouts and this page
-for flow and policy. [Freeze preparation](protocol-v2-freeze-preparation.md) records the accepted
-scope, D1–D5 decisions, implemented D3/D5 source evidence and outstanding final acceptance;
-no stable baseline has been accepted. The [2026-10-31 candidate packet](protocol-v2-candidate-review-2026-10-31.md)
-pins `799b36f` for independent review with successful source CI; final acceptance remains open.
+**Status: frozen on 2026-11-07.** The [normative specification](protocol-v2-spec.md) defines
+version 2, suite 1, at source `41dd48d79bd7497f72ac1e7e3d63ffe97d4462d1`. The
+[freeze decision](protocol-v2-freeze-preparation.md#freeze-assessment--2026-11-07) binds its
+exact bytes, eleven public vectors, independent review and scoped device/upgrade evidence.
+The compatibility commitment begins at this baseline. Published Betas retain their limited
+technical-testing status.
 
 The [public-vector catalog](test-vectors/README.md) inventories the seven original fixtures and additive D3/D5
 corpora with hashes and consumer coverage. ADRs [0001](adr/0001-experimental-p256-recipient.md),
@@ -201,7 +198,7 @@ old ciphertext usable through the new pairing. [`ADR 0017`](adr/0017-lifecycle-a
 requires an independent recipient to recover and re-encrypt retained data; it never migrates a
 private key or replay scope.
 
-Version 2 remains unfrozen. Published Beta 1 (`c73b289`) and Beta 2 (`e08d631`) both use
+The published Betas predate the frozen baseline. Beta 1 (`c73b289`) and Beta 2 (`e08d631`) both use
 protocol v2, suite 1; Beta 2 does not change the protocol. Their product stage is **limited
 technical testing**. The policy below applies to **prerelease versions before protocol freeze**;
 it does not relabel Beta as Alpha or establish production-secret support.
@@ -228,9 +225,8 @@ neither adds migration code nor removes legacy stanza support.
 
 ### Freeze scope and future changes
 
-A freeze decision must name an immutable source baseline, normative specification and public-vector
-set. Stable commitments start at that baseline and do not retroactively cover earlier prereleases.
-The intended scope is:
+The freeze record identifies the immutable source, normative specification and public-vector set.
+Stable commitments start at that baseline. The following table defines their scope.
 
 | Surface | Freeze commitment |
 | --- | --- |
@@ -247,31 +243,13 @@ its introduction did not change protocol v2. No capability-negotiation mechanism
 this policy. After freeze, preserve the frozen semantics; incompatible revisions use a new version
 identifier and an explicit transition policy rather than redefining the frozen version.
 
-### Remaining freeze acceptance
+### Completed freeze acceptance
 
-- [x] Prepare the source candidate, consolidated current-byte specification and seven-vector
-  catalog in the [P0 preparation record](protocol-v2-freeze-preparation.md), without changing code.
-- [x] Record accepted D1–D5 decisions, including scope, restricted legacy support, target time/input
-  bounds, capabilities and required conformance evidence. Decision acceptance is not implementation.
-- [ ] Bind implemented D3/D5 source evidence to the final candidate, close independent review and
-  remaining protocol gates, then
-  accept the final source/specification/vector baseline. Preparation is not freeze.
-- [ ] Bind independent security review and finding closure to that candidate, including a targeted
-  review of security-sensitive changes after the recorded `0305c0e` follow-up.
-- [ ] Complete current-candidate Rust/Kotlin/Swift agreement on pairing and unwrap bytes, signatures,
-  digests and rejection cases. Rust/Kotlin shared v2 vectors and Swift tag/HPKE tests are supporting
-  evidence; the D5 harness now verifies Swift inbound messages and outbound bytes against the shared
-  fixtures. Final candidate review and native/stateful acceptance remain separate.
-- [ ] Verify unsupported versions and malformed inputs fail safely, and cover cancellation, replay,
-  wrong-device binding, timeout and uncertain persistence on the included implementations. Preserve
-  ordinary restart consumption and the documented desktop snapshot-freshness limitation.
-- [ ] Exercise the documented breaking-update path on disposable identities: independent recovery,
-  required endpoint updates/re-pairing, re-encryption and verification. Do not reset uncertain replay
-  state. No exhaustive historical Alpha/Beta interoperability or automatic-migration matrix is required.
-
-[Existing reviews](independent-security-review-2026-09-11.md) and the
-[fixed-pair acceptance](evidence/maintenance-candidate-2026-10-29/README.md) retain their exact
-source/device/package scope; these checklist items are not claims of new passes.
+The [decision record](protocol-v2-freeze-preparation.md#freeze-assessment--2026-11-07) accepts
+G1–G5. It binds the independent source review and O1 closure, D1–D5 specification and vectors,
+Android and iPhone cancellation/replay evidence, and the Alpha 5 upgrade and recovery case.
+The tested update preserved the existing pairing. Deliberate replacement of that pairing
+required independent recovery and re-encryption of retained phone-format ciphertext.
 
 Protocol freeze commits to format and semantics, not production readiness. New release artifacts
 still require source/signature/hash binding and scoped exact-package acceptance. Second-device-family,

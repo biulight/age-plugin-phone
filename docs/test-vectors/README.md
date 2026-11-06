@@ -1,11 +1,12 @@
 # Public protocol and recipient vectors
 
-Inventory date: 2026-10-30. Baseline: `69b3cdfa006d8bbe4f1154ec5874ea954f2ae717`.
+Frozen baseline (2026-11-07): `41dd48d79bd7497f72ac1e7e3d63ffe97d4462d1`.
+The original seven-fixture inventory was recorded at `69b3cdf` on 2026-10-30.
 The sole source of fixture bytes is [crates/core/test-vectors](../../crates/core/test-vectors).
 There are **eleven JSON files: seven original fixtures, one D3 boundary fixture and three D5 additions**. Keep them packaged in core; do not copy JSON into this directory.
 The original hashes pin the assessment baseline; the D3/D5 additions identify subsequent conformance evidence.
 See the [consolidated specification](../protocol-v2-spec.md) and
-[freeze preparation decisions](../protocol-v2-freeze-preparation.md).
+[freeze decision](../protocol-v2-freeze-preparation.md).
 
 All scalars, file keys and ciphertexts in these fixtures are intentionally public synthetic values.
 Never provision fixture keys into platform hardware or use fixed ephemeral inputs for real data.
@@ -145,11 +146,7 @@ at `799b36f` with successful merged CI, an immutable specification input and acc
 The [independent agent review](../independent-protocol-v2-review-2026-10-31.md) records R1–R5 source
 review and executed vector checks. O1 source closure and independent JVM execution are recorded
 at `431cf9f`. The [successor inventory](../protocol-v2-candidate-review-2026-10-31.md#successor-candidate--2026-11-02)
-binds identical runtime/test bytes, this unchanged eleven-vector set and successful CI to `41dd48d`;
-remaining G3/G4 and final normative specification acceptance remain open.
-
-The D5 fixture set and source-level consumers are implemented. Full Swift durable-store restart
-and hardware authorization are not exercised by these static fixtures. Bind source/fixture hashes,
-CI and independent increment review to the final candidate, and retain separate stateful/native
-acceptance and the breaking-update exercise. No protocol freeze is declared. The seven original
-fixture hashes and the D3 corpus remain unchanged.
+binds the same runtime/test bytes, eleven-vector set and successful CI to `41dd48d`.
+The [freeze decision](../protocol-v2-freeze-preparation.md#freeze-assessment--2026-11-07)
+accepts these exact vector bytes and the normative specification. The physical replay, native
+authorization and upgrade observations are recorded separately from fixture conformance.

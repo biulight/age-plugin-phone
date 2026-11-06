@@ -89,7 +89,7 @@ The scoped published-package core regression is complete. The next stage ends wh
 release candidate is built, signed and checked as its own immutable package pair. The existing
 R2 pair's scoped matrix is recorded, with failures and exclusions retained. Broader-device, public-signing and external-user gates remain open.
 
-## Protocol v2 freeze preparation — policy updated 2026-10-30
+## Protocol v2 freeze — 2026-11-07
 
 Beta remains a limited technical-testing stage. Both published Betas use protocol v2. For
 **prerelease versions before protocol freeze**, clearly announced breaking updates are allowed;
@@ -97,6 +97,9 @@ cross-version interoperability, automatic state migration and downgrade support 
 Stable commitments begin only at an explicitly selected freeze baseline. The authoritative
 [protocol policy and scope](protocol.md#prerelease-compatibility-policy) separate signed messages,
 recipient formats and public stubs from private storage, transport framing and product contracts.
+
+The [2026-11-07 freeze assessment](protocol-v2-freeze-preparation.md#freeze-assessment--2026-11-07)
+freezes suite 1 at `41dd48d` after scoped Android/iPhone acceptance and the Alpha 5 upgrade and recovery exercise.
 
 Priorities below are work order, not vulnerability severity:
 
@@ -115,9 +118,8 @@ Priorities below are work order, not vulnerability severity:
   hashes and successful merged CI in the [candidate packet](protocol-v2-candidate-review-2026-10-31.md).
   The packet scopes independent review from `0305c0e` and lists G1–G5 evidence gaps. It is not a
   final freeze baseline or release approval; the subsequent independent review is recorded below.
-- [ ] **P0 — final scope/specification baseline:** after implementation and independent review,
-  identify final source/specification/vector revisions and close the remaining protocol gates.
-  Do not infer feature compatibility from the protocol number alone or treat the candidate as frozen.
+- [x] **P0 — final scope/specification baseline:** bind the immutable source, normative specification
+  and eleven public vectors in the [G5 decision](protocol-v2-freeze-preparation.md#freeze-assessment--2026-11-07).
 - [x] **P0 — independent source review execution:** a fresh agent reviewed `0305c0e..799b36f`
   R1–R5; [results, methods and exclusions](independent-protocol-v2-review-2026-10-31.md) are recorded.
   No new defect in the named examined security categories was confirmed; this is not freeze approval.
@@ -127,24 +129,20 @@ Priorities below are work order, not vulnerability severity:
 - [x] **P0 — successor candidate inventory and CI:** pin `41dd48d`, its unchanged specification
   and eleven vector hashes, and successful exact-source main CI in the
   [successor inventory](protocol-v2-candidate-review-2026-10-31.md#successor-candidate--2026-11-02).
-  Runtime/test bytes match independently reviewed `431cf9f`; final normative acceptance stays open.
+  Runtime/test bytes match independently reviewed `431cf9f`. The G5 decision binds the normative bytes.
 - [x] **G3a — independent JVM execution subitem:** 93 tests passed at `431cf9f` under JDK 17.
-  The Android device-storage subitem and the rest of G3 remain open.
-- [ ] **P1 — current implementation agreement:** complete Rust/Kotlin/Swift pairing and envelope
+  The three candidate Android device-storage tests subsequently passed on Android 16.
+- [x] **P1 — current implementation agreement:** complete Rust/Kotlin/Swift pairing and envelope
   vectors plus malformed/unsupported-version rejection; verify cancellation, wrong-device binding,
   timeout, replay and persistence-failure behavior. Existing tests and physical passes retain their
   recorded scope; D5 supplies role-appropriate Swift pairing/envelope source coverage, while native
-  authorization and durable-store acceptance remain separately scoped. Complete the required
+  authorization and durable-store acceptance remain separately scoped. See the scoped
   [G3 rows](independent-protocol-v2-review-2026-10-31.md#g3--targeted-state-and-native-acceptance-still-open),
-  including remaining device-storage/native evidence and justified evidence reuse. Use the
-  [G3 acceptance preparation](protocol-v2-g3-acceptance-plan.md); Android device tests and physical iOS restart/replay remain open. The host driver now has
-  synthetic coverage and awaits a disposable-device run.
-- [ ] **P1 — breaking-update procedure:** on disposable identities, validate independent recovery,
-  endpoint update order, any required re-pairing and re-encryption. Clearly state affected versions,
-  formats and retained-ciphertext consequences. The
-  [G4 exercise](independent-protocol-v2-review-2026-10-31.md#g4--breaking-update-and-recovery-exercise-still-open)
-  remains unexecuted; require a real scoped transition and verified recovery/fresh use. Never repair
-  compatibility by resetting replay state.
+  and the [G3 acceptance record](protocol-v2-g3-acceptance-plan.md) for device storage, native ownership,
+  physical iPhone restart/replay and justified evidence reuse.
+- [x] **P1 — breaking-update procedure:** the [six-case exercise](evidence/protocol-v2-g4-2026-11-07/android-upgrade-session.json)
+  verified old-phone rejection, in-place update, fresh use under the existing pairing, independent
+  recovery and re-encryption under a new pairing. All test operations used USB pairing and Wi-Fi unwrap.
 - [ ] **P2 — platform and distribution acceptance:** retain the open Phase 2/3 cases, including
   AP/subnet roaming, fresh exact-candidate pairing, device reboot, invalidation/storage failures,
   wrong/multiple physical phones, second StrongBox family, QR response replay, broader lifecycle,
