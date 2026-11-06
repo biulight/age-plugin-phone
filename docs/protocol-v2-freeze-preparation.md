@@ -255,6 +255,9 @@ selection remain outstanding. No exhaustive historical Alpha/Beta interoperabili
 
 The [G3 acceptance plan](protocol-v2-g3-acceptance-plan.md) provides scoped execution order,
 Android test expectations, iOS driver prerequisites and evidence fields. Device execution remains pending.
+The [macOS desktop replay-store observation](protocol-v2-g3-acceptance-plan.md#macos-desktop-replay-store-observation)
+tracks an intermittent reopen failure at `f92e107`. Its CI cause remains unknown. In the local
+contention control, the reopened store rejected the previously consumed response as a replay.
 
 ## Evidence and remaining work
 
