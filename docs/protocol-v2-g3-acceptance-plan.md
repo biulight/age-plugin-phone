@@ -158,6 +158,29 @@ fresh recovery output. These checks use simulated process snapshots and peers. P
 process output, prompt/error observation timing and end-to-end candidate execution remain to be
 verified. Historical Beta 2 evidence and its checker retain their existing scope.
 
+## macOS desktop replay-store observation
+
+At main commit `f92e107`, the workspace run of
+`replaced_lock_and_missing_state_cannot_commit` passed. The detached package run then failed at
+line 271: after the old handle rejected the commit and both handles were dropped, reopening the
+store returned `ReplayState`. The test had yet to delete the state file. Both runs passed on the
+same-commit retry. The CI error identifies the failed reopen but does not distinguish lock
+acquisition, pending-marker checks or state reads. [First job](https://github.com/biulight/age-plugin-phone/actions/runs/42230638012/job/127935318371)
+and [retry](https://github.com/biulight/age-plugin-phone/actions/runs/42230638012/job/128008778862).
+
+Local checks on macOS arm64 with Rust 1.88.0 at `f92e107` passed 100 isolated runs, 100 runs of
+the four file-store tests in parallel, and 12 full core library test runs. A second process
+contending for the replacement lock reproduced the same line and error. The state file remained
+present with no pending marker. In a separate control with an already consumed synthetic response,
+the guard refused to open under contention. After lock release the guard reopened, rejected the
+same response as `Replay`, and the stored bytes matched the original consumed state.
+
+Track the CI failure as an open desktop availability observation. Contention reproduces the
+symptom locally; the CI cause remains unknown. On recurrence, capture the failed operation and
+OS error in test diagnostics without logging state contents. Escalate to a freeze blocker if
+evidence shows lost consumption, acceptance of a repeated response or file-key output despite a
+store failure. G3b still requires the physical iPhone restart and replay procedure above.
+
 ## Evidence and closure checklist
 
 Use one compact row per attempted case, keeping failures and retries separate:
