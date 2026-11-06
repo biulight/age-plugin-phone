@@ -137,8 +137,8 @@ Priorities below are work order, not vulnerability severity:
   authorization and durable-store acceptance remain separately scoped. Complete the required
   [G3 rows](independent-protocol-v2-review-2026-10-31.md#g3--targeted-state-and-native-acceptance-still-open),
   including remaining device-storage/native evidence and justified evidence reuse. Use the
-  [G3 acceptance preparation](protocol-v2-g3-acceptance-plan.md); Android device tests are not run
-  and an iOS restart/replay driver remains to be established.
+  [G3 acceptance preparation](protocol-v2-g3-acceptance-plan.md); Android device tests and physical iOS restart/replay remain open. The host driver now has
+  synthetic coverage and awaits a disposable-device run.
 - [ ] **P1 — breaking-update procedure:** on disposable identities, validate independent recovery,
   endpoint update order, any required re-pairing and re-encryption. Clearly state affected versions,
   formats and retained-ciphertext consequences. The
