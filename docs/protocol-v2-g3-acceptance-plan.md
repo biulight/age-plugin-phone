@@ -14,7 +14,7 @@ confirmation/observation. Do not clear app data, edit replay files or migrate pr
 | --- | --- | --- |
 | G3a JVM | Independent 17-suite/93-test pass at `431cf9f`; identical successor Android/test bytes | Complete for this source scope; do not repeat merely to accumulate passes |
 | G3a Android durable files | Three production-file instrumentation tests exist; source reviewed | Not run on a device for this candidate; prepare exact test APKs and run the three cases below |
-| G3b iOS durable consumption | Production store source review; Core and protocol harness passes | Native restart/replay observation missing; choose and validate a suitable in-memory replay driver before execution |
+| G3b iOS durable consumption | Production store source review; Core and protocol harness passes | Host relay and synthetic regressions available; review driver and validate on a disposable iPhone |
 | G3c native ownership | Existing Android ownership/JVM regressions, Swift deadline/lifecycle tests; scoped historical physical results | Candidate package/transport/recipient rows need fresh execution or documented justified reuse |
 | G3d evidence binding | Source, spec/vector hashes and main CI pinned | Device/package identity, owner observations and per-row disposition not yet supplied |
 
@@ -106,12 +106,57 @@ control, time checks and evidence schema against this candidate. Do not execute 
 unchanged or relabel archived results. Do not broaden the old archive checker to accept new evidence
 without explicit implementation and negative tests.
 
-No ready iOS restart/replay driver has been established by this preparation. Choose a reviewed
-volatile-memory relay plus owner-operated app restart, or a narrowly scoped native test harness,
-before claiming execution readiness. It must preserve signature/session binding, retain consumed
-state, verify restart and in-expiry rejection, and discard raw bytes without logging them. A macOS
-store harness or simulator can add supporting evidence but cannot close protected iOS storage or
-Secure Enclave/native-gesture rows. Driver implementation is a separate next task.
+### iOS driver preparation — 2026-11-06
+
+The [iOS restart/replay probe](../scripts/g3/ios_restart_replay.py) runs on a Mac with Xcode,
+Python 3.11+ and an interactive terminal. It targets the candidate source above. The owner supplies
+a disposable confirmed pairing, a single public phone identity stub, a small synthetic ciphertext
+(up to 65,536 bytes) and the expected SHA-256 of its nonempty plaintext. Use the candidate desktop
+plugin, a compatible age binary and the IPA installed on the selected device. Verify build/source,
+installed app identity/version, signing overlay and device-to-IP mapping separately. The probe
+hashes the supplied artifacts and records owner confirmations. Populate the device/OS and build
+provenance fields in the session evidence.
+
+Before execution, separately select and authorize the physical test device, app and pairing.
+Record the exact installed app executable path locally using Xcode's device process information.
+Keep the phone foreground with Wi-Fi auto-listen enabled. Supply the stable device UDID or
+CoreDevice UUID. The driver reads process snapshots using `xcrun devicectl device info processes`;
+the owner performs the quit and relaunch. Each snapshot must have a successful JSON outcome and
+an unambiguous numeric process ID for the exact executable when running. Unsupported process
+output or an unobservable restart leaves this row open.
+
+Example for a separately authorized device session, from the repository root:
+
+```console
+python3 -B scripts/g3/ios_restart_replay.py \
+  --device "$TEST_DEVICE_ID" --executable "$IOS_APP_EXECUTABLE" \
+  --local "$MAC_WIFI_IP" --phone "$IPHONE_WIFI_IP" --mode phone \
+  --age "$AGE_BINARY" --plugin "$CANDIDATE_PLUGIN" --ipa "$CANDIDATE_IPA" \
+  --config-dir "$DISPOSABLE_CONFIG" --identity "$PUBLIC_STUB_FILE" \
+  --ciphertext "$SYNTHETIC_CIPHERTEXT" --digest "$EXPECTED_PLAINTEXT_SHA256" \
+  --report "$NEW_REPORT_FILE"
+```
+
+The first and final decrypts use the direct phone route, check the synthetic output digest and
+require the owner to observe fresh authorization. The middle decrypt uses the selected Mac LAN
+address on port 47140 as a one-shot relay. Match the digest prefix in the phone prompt before
+cancelling. The driver retains the signed request in memory, checks that the age child fails
+without output, then verifies the original PID, its disappearance, and a new PID on the same
+device. After restart it sends the original frame and a fresh frame ID with identical signed bytes.
+It enforces expiry at send and close using wall and monotonic time. Timeout, any response byte,
+wrong/missing process or failed recovery ends the case.
+
+Observe the listener ready before **each** replay, followed by the app's replay rejection for that
+attempt and no new prompt. If the UI hides the transient error or delivery cannot be established,
+decline the confirmation and retain the incomplete observation. An EOF/reset alone cannot establish
+replay rejection. The terminal success marker is `completed-awaiting-evidence-review`. Review its
+case times, hashes, process observations and operator/device binding before accepting a physical row.
+
+Run `python3 -B scripts/g3/test_ios_restart_replay.py` for host-only regression checks, including
+both public request modes, frame bounds, restart ordering, replay response/timeout, expiry and
+fresh recovery output. These checks use simulated process snapshots and peers. Physical Xcode
+process output, prompt/error observation timing and end-to-end candidate execution remain to be
+verified. Historical Beta 2 evidence and its checker retain their existing scope.
 
 ## Evidence and closure checklist
 
