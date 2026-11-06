@@ -101,11 +101,11 @@ struct IdentityPublicMetadata {
 }
 '''
 
-def run(source: str) -> None:
+def run(source: str, additional_sources: tuple[str, ...] = ()) -> None:
     with tempfile.TemporaryDirectory(prefix="phone-ios-protocol-") as temporary:
         work = Path(temporary)
         sources = list((IOS / "Core/Sources/PhoneIdentityCore").glob("*.swift"))
-        for name in ["OfflineEnvelopeCrypto.swift", "TaggedRecipientCrypto.swift"]:
+        for name in ("OfflineEnvelopeCrypto.swift", "TaggedRecipientCrypto.swift", *additional_sources):
             target = work / name
             target.write_text((IOS / "Sources" / name).read_text().replace("import PhoneIdentityCore\n", ""))
             sources.append(target)

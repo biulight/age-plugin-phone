@@ -38,11 +38,15 @@ final class PairingStateStore {
     private let stateDomain = Data("age-plugin-phone/ios-pairing-state-scope/v2".utf8)
     private let managementDomain = Data("age-plugin-phone/ios-pairing-management/v1".utf8)
 
-    init() {
+    convenience init() {
         let support = try! FileManager.default.url(
             for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true
         )
-        root = support.appendingPathComponent("phone-identity/pairings-v2", isDirectory: true)
+        self.init(root: support.appendingPathComponent("phone-identity/pairings-v2", isDirectory: true))
+    }
+
+    init(root: URL) {
+        self.root = root
         try? FileManager.default.createDirectory(
             at: root, withIntermediateDirectories: true,
             attributes: [.protectionKey: FileProtectionType.complete, .posixPermissions: 0o700]
@@ -213,8 +217,9 @@ final class PairingStateStore {
         _ = try TaggedRecipientCrypto.publicKey(record.desktopSelectionPublicKey)
         _ = try TaggedRecipientCrypto.signingPublicKey(record.phoneSigningPublicKey)
         let created = try n[10].exactUnsigned(), lastSeen = try n[11].exactUnsigned()
-        let capacity = Int(try n[12].exactUnsigned())
-        guard lastSeen >= created, (1...16_384).contains(capacity), case .array(let entryValues) = n[13], entryValues.count <= capacity else { throw PairingStoreError.malformed }
+        guard let capacity = Int(exactly: try n[12].exactUnsigned()),
+              lastSeen >= created, (1...16_384).contains(capacity),
+              case .array(let entryValues) = n[13], entryValues.count <= capacity else { throw PairingStoreError.malformed }
         let entries = try entryValues.map { value -> ReplayEntry in
             let entry = try value.exactArray(3)
             return ReplayEntry(requestId: try entry[0].exactBytes(16), nonce: try entry[1].exactBytes(32), expiresAt: try entry[2].exactUnsigned())

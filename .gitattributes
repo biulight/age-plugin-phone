@@ -2,7 +2,8 @@
 apps/mobile/src-tauri/gen/schemas/** text eol=lf
 plugins/tauri-plugin-phone-identity/permissions/** text eol=lf
 
-# Protocol vectors have pinned byte hashes in scripts/check-package-layout.py.
+# Frozen specification and protocol vectors have pinned byte hashes in scripts/check-package-layout.py.
+docs/protocol-v2-spec.md text eol=lf
 crates/core/test-vectors/*.json text eol=lf
 
 # Evidence manifests and provenance hash the original bytes, including Windows CRLF.

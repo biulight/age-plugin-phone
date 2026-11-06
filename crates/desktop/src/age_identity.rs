@@ -116,9 +116,7 @@ fn identity_transport_override() -> Result<Option<TransportChoice>, ()> {
 }
 
 fn identity_messages_enabled() -> bool {
-    std::env::var("AGE_PLUGIN_PHONE_MESSAGES")
-        .ok()
-        .is_some_and(|value| parse_message_setting(&value))
+    std::env::var("AGE_PLUGIN_PHONE_MESSAGES").is_ok_and(|value| parse_message_setting(&value))
 }
 
 fn parse_message_setting(value: &str) -> bool {

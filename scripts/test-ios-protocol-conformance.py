@@ -5,4 +5,5 @@ import runpy
 
 root = Path(__file__).resolve().parent
 runner = runpy.run_path(str(root / "test-ios-protocol-boundaries.py"))
-runner["run"]((root / "fixtures/ios-protocol-conformance.swift").read_text())
+runner["run"]((root / "fixtures/ios-protocol-conformance.swift").read_text(),
+              ("PairingStateStore.swift", "Reports.swift"))

@@ -53,7 +53,7 @@ fn exports_exactly_one_recipient_with_no_private_state_and_strict_input() {
             output.stdout,
             format!("{}\n", stub.recipient_for(kind).unwrap()).as_bytes()
         );
-        assert!(output.stderr.is_empty());
+        assert_eq!(output.stderr.len(), 0);
     }
     assert_eq!(
         invoke(&[]).stdout,
@@ -70,7 +70,7 @@ fn exports_exactly_one_recipient_with_no_private_state_and_strict_input() {
         std::fs::write(&path, bad).unwrap();
         let output = invoke(&[]);
         assert!(!output.status.success());
-        assert!(output.stdout.is_empty());
+        assert_eq!(output.stdout.len(), 0);
     }
     std::fs::remove_file(&path).unwrap();
     assert!(!invoke(&[]).status.success());
@@ -97,5 +97,5 @@ fn help_and_option_validation_explain_explicit_modes() {
         .output()
         .unwrap();
     assert!(!output.status.success());
-    assert!(output.stdout.is_empty());
+    assert_eq!(output.stdout.len(), 0);
 }

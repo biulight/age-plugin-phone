@@ -4,6 +4,9 @@ All notable changes to this project are documented here.
 
 ## [Unreleased]
 
+- Prepared the [Beta 3 maintenance candidate](docs/releases/v0.1.0-beta.3.md) for exact-package
+  testing of Android foreground Wi-Fi recovery. The iOS store now rejects an out-of-range replay
+  capacity without terminating the app or replacing the corrupt record.
 - Froze protocol v2, suite 1, on 2026-11-07 at source `41dd48d`. The
   [freeze decision](docs/protocol-v2-freeze-preparation.md) binds the normative specification
   and eleven public fixtures. Published Beta packages predate the baseline.

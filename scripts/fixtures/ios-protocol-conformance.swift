@@ -9,6 +9,34 @@ struct IdentityPublicMetadata {
 }
 
 @main struct Harness {
+    static func checkCorruptReplayCapacity(offer: VerifiedPairingOffer, response: VerifiedPairingResponse,
+                                           signedRequest: Data, now: UInt64) throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = PairingStateStore(root: root)
+        _ = try store.create(offer: offer, response: response, nowUnix: now)
+        _ = try store.verifyAndConsume(signedRequest, nowUnix: now)
+        let files = try FileManager.default.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)
+            .filter { $0.pathExtension == "cbor" }
+        precondition(files.count == 1)
+        let file = files[0]
+        let consumed = try Data(contentsOf: file)
+        var fields = try StrictCBOR.decode(consumed).exactArray(14)
+        for capacity: UInt64 in [0, 16_385, UInt64(Int.max) + 1, UInt64.max] {
+            fields[12] = .unsigned(capacity)
+            let corrupt = try StrictCBOR.encode(.array(fields))
+            try corrupt.write(to: file)
+            let reopened = PairingStateStore(root: root)
+            do {
+                _ = try reopened.verifyAndConsume(signedRequest, nowUnix: now)
+                preconditionFailure("corrupt capacity accepted")
+            } catch PairingStoreError.malformed {}
+            let after = try Data(contentsOf: file)
+            precondition(after == corrupt, "corrupt record was replaced")
+        }
+        print("Swift corrupt replay capacity rejected with stored bytes preserved")
+    }
+
     static func main() throws {
         let root = URL(fileURLWithPath: CommandLine.arguments[1])
         func json(_ name: String) throws -> [String: Any] {
@@ -47,6 +75,10 @@ struct IdentityPublicMetadata {
         let paired = VerifiedPairingResponse(identityId: metadata.identityId, recipient: metadata.recipient,
             phoneSigningPublicKey: phoneSigning, offerDigest: offer.digest, nonce: hex(pairing["response_nonce_hex"] as! String), encoded: pairingBytes)
         equal(OfflineEnvelopeCrypto.pairingFingerprint(offer, paired), b64(pairing["fingerprint_base64"] as! String), "transcript fingerprint")
+        let offline = try json("offline-envelope-v2.json")
+        try checkCorruptReplayCapacity(offer: offer, response: paired,
+            signedRequest: b64(offline["signed_request_base64"] as! String),
+            now: (offline["now_unix"] as! NSNumber).uint64Value)
 
         for name in ["offline-envelope-v2.json", "p256tag-envelope-v2.json", "phone-v2-envelope.json"] {
             let vector = try json(name)

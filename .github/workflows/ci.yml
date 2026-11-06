@@ -76,7 +76,8 @@ jobs:
             libwebkit2gtk-4.1-dev \
             libxdo-dev
       - run: cargo fmt --all --check
-      - run: python scripts/check-package-layout.py --archives
+      - name: Check package archives and frozen protocol v2 baseline
+        run: python scripts/check-package-layout.py --archives
       - run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Run portable workspace tests
         if: runner.os != 'Windows'

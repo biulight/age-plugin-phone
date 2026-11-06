@@ -63,6 +63,7 @@ Secure Enclave signatures; no production software-key fallback or cached authori
 Run from the repository root:
 
 ```console
+python3 scripts/check-package-layout.py
 cargo test -p age-plugin-phone-core --locked --test protocol_conformance
 cargo run --locked -p age-plugin-phone --example public_stub_vector -- crates/core/test-vectors/pairing-transcript-v2.json crates/core/test-vectors/public-identity-stub-v2.json
 python3 scripts/check-public-stub-vector.py
