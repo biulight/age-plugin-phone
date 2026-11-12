@@ -15,7 +15,7 @@ sidebar_position: 2
 | iOS | 已有 iOS 17+ 开发设备群组，使用 Secure Enclave 与 Face ID/Touch ID | 不提供外部 iOS 安装包或 TestFlight 分发；不支持 Developer USB |
 | Linux 桌面 | 本 Beta 没有受支持的手机解密配置路径 | 可移植构建或测试不能证明桌面硬件密钥支持 |
 
-macOS 的已记录基线为运行 macOS 26.6.2 的 MacBookPro18,3。Windows/Android 和 macOS/Android 的 Developer USB、前台 Wi-Fi 有限定范围的记录；iPhone 群组使用前台 Wi-Fi。这些观察不能证明所有组合或另行发布的 Beta 2 安装包组合通过验收。使用确切发布包重复多身份回归测试仍待完成。
+macOS 的已记录基线为运行 macOS 26.6.2 的 MacBookPro18,3。Windows/Android 和 macOS/Android 的 Developer USB、前台 Wi-Fi 有限定范围的记录；iPhone 群组使用前台 Wi-Fi。这些观察不能证明所有组合通过验收。确切的 Windows/Android Beta 2 发布包组合已通过限定范围的 `phone` 多身份回归，更广的设备与生命周期组合仍未完成验证。发布包的验证范围与已复现的网络恢复失败见[版本与已知限制](reference/releases.md)。
 
 ## 工具与访问条件
 

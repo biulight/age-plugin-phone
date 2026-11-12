@@ -15,7 +15,7 @@ Check your complete desktop/phone combination before installing. A successful bu
 | iOS | Existing iOS 17+ development-device cohort, Secure Enclave and Face ID/Touch ID | No external iOS package or TestFlight distribution; Developer USB unavailable |
 | Linux desktop | No supported phone-decryption setup path in this beta | Portable builds/tests do not establish desktop hardware-key support |
 
-The recorded macOS baseline is MacBookPro18,3 on macOS 26.6.2. Windows/Android and macOS/Android Developer USB and foreground Wi-Fi have scoped records; the iPhone cohort uses foreground Wi-Fi. These observations do not certify every combination or the separately published Beta 2 package pair. The exact-package multi-identity regression repeat remains open.
+The recorded macOS baseline is MacBookPro18,3 on macOS 26.6.2. Windows/Android and macOS/Android Developer USB and foreground Wi-Fi have scoped records; the iPhone cohort uses foreground Wi-Fi. These observations do not certify every combination. The exact published Windows/Android Beta 2 pair passed the scoped `phone` multi-identity regression; the broader device/lifecycle matrix remains incomplete. See [versions and known limitations](reference/releases.md) for the package scope and the reproduced network-recovery failure.
 
 ## Tools and access
 
